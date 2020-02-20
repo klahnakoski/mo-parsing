@@ -1,10 +1,10 @@
 """
-Boolean Search query parser (Based on searchparser: https://github.com/mo_parsing/mo_parsing/blob/master/examples/searchparser.py)
+Boolean Search query parser (Based on searchparser: https://github.com/pyparsing/pyparsing/blob/master/examples/searchparser.py)
 
 version 2018-07-22
 
 This search query parser uses the excellent Pyparsing module
-(http://mo_parsing.sourceforge.net/) to parse search queries by users.
+(http://pyparsing.sourceforge.net/) to parse search queries by users.
 It handles:
 
 * 'and', 'or' and implicit 'and' operators;
@@ -81,7 +81,7 @@ TODO:
 - add more kinds of wildcards ('*' at the beginning and '*' inside a word)?
 
 """
-from mo_parsing import (
+from pyparsing import (
     Word,
     alphanums,
     Keyword,
@@ -448,7 +448,6 @@ class ParserTest(BooleanSearchParser):
             "안녕하세요, 당신은 어떠세요?": ["10", "12", "25", "35"],
         }
 
-        all_ok = True
         for text, matches in texts_matcheswith.items():
             _matches = []
             for _id, expr in exprs.items():
@@ -457,17 +456,11 @@ class ParserTest(BooleanSearchParser):
 
             test_passed = sorted(matches) == sorted(_matches)
             if not test_passed:
-                print("Failed", repr(text), "expected", matches, "matched", _matches)
+                raise Exception(
+                    " ".join(
+                        ("Failed", repr(text), "expected", matches, "matched", _matches)
+                    )
+                )
 
-            all_ok = all_ok and test_passed
 
-        return all_ok
-
-
-if __name__ == "__main__":
-    if ParserTest().Test():
-        print("All tests OK")
-        exit(0)
-    else:
-        print("One or more tests FAILED")
-        exit(1)
+ParserTest().Test()

@@ -8,7 +8,7 @@
 # Updated 8 Jan 2007 - fixed dict grouping bug, and made elements and
 #   members optional in array and object collections
 #
-# Updated 9 Aug 2016 - use more current mo_parsing constructs/idioms
+# Updated 9 Aug 2016 - use more current pyparsing constructs/idioms
 #
 json_bnf = """
 object
@@ -33,8 +33,8 @@ value
     null
 """
 
-import mo_parsing as pp
-from mo_parsing import mo_parsing_common as ppc
+import pyparsing as pp
+from pyparsing import pyparsing_common as ppc
 
 
 def make_keyword(kwd_str, kwd_value):
@@ -63,50 +63,3 @@ jsonObject << pp.Dict(LBRACE + pp.Optional(jsonMembers) + RBRACE)
 
 jsonComment = pp.cppStyleComment
 jsonObject.ignore(jsonComment)
-
-
-if __name__ == "__main__":
-    testdata = """
-    {
-        "glossary": {
-            "title": "example glossary",
-            "GlossDiv": {
-                "title": "S",
-                "GlossList":
-                    {
-                    "ID": "SGML",
-                    "SortAs": "SGML",
-                    "GlossTerm": "Standard Generalized Markup Language",
-                    "TrueValue": true,
-                    "FalseValue": false,
-                    "Gravity": -9.8,
-                    "LargestPrimeLessThan100": 97,
-                    "AvogadroNumber": 6.02E23,
-                    "EvenPrimesGreaterThan2": null,
-                    "PrimesLessThan10" : [2,3,5,7],
-                    "Acronym": "SGML",
-                    "Abbrev": "ISO 8879:1986",
-                    "GlossDef": "A meta-markup language, used to create markup languages such as DocBook.",
-                    "GlossSeeAlso": ["GML", "XML", "markup"],
-                    "EmptyDict" : {},
-                    "EmptyList" : []
-                    }
-            }
-        }
-    }
-    """
-
-    results = jsonObject.parseString(testdata)
-    results.pprint()
-    print()
-
-    def testPrint(x):
-        print(type(x), repr(x))
-
-    print(list(results.glossary.GlossDiv.GlossList.keys()))
-    testPrint(results.glossary.title)
-    testPrint(results.glossary.GlossDiv.GlossList.ID)
-    testPrint(results.glossary.GlossDiv.GlossList.FalseValue)
-    testPrint(results.glossary.GlossDiv.GlossList.Acronym)
-    testPrint(results.glossary.GlossDiv.GlossList.EvenPrimesGreaterThan2)
-    testPrint(results.glossary.GlossDiv.GlossList.PrimesLessThan10)

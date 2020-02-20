@@ -5,7 +5,7 @@
 #  Copyright 2010, Paul McGuire
 #
 
-from mo_parsing import (
+from pyparsing import (
     Word,
     alphas,
     alphanums,
@@ -20,7 +20,10 @@ from mo_parsing import (
     restOfLine,
     quotedString,
     Dict,
+    Keyword,
 )
+
+keep_import = Keyword
 
 ident = Word(alphas + "_", alphanums + "_").setName("identifier")
 integer = Regex(r"[+-]?\d+")

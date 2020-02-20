@@ -1,4 +1,4 @@
-from mo_parsing import *
+from pyparsing import *
 
 wikiInput = """
 Here is a simple Wiki input:

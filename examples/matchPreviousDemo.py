@@ -2,7 +2,7 @@
 # matchPreviousDemo.py
 #
 
-from mo_parsing import *
+from pyparsing import *
 
 src = """
 class a

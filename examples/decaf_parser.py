@@ -40,11 +40,10 @@
     Actuals ::=  Expr+, | e
     Constant ::= intConstant | doubleConstant | boolConstant |  stringConstant | null
 """
-import mo_parsing as pp
-from mo_parsing import mo_parsing_common as ppc
-from mo_parsing.cache import enablePackrat
+import pyparsing as pp
+from pyparsing import pyparsing_common as ppc
 
-enablePackrat()
+pp.ParserElement.enablePackrat()
 
 # keywords
 keywords = (

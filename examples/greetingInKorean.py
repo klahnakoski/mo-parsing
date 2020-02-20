@@ -5,7 +5,7 @@
 #
 # Copyright 2004-2016, by Paul McGuire
 #
-from mo_parsing import Word, mo_parsing_unicode as ppu
+from pyparsing import Word, pyparsing_unicode as ppu
 
 koreanChars = ppu.Korean.alphas
 koreanWord = Word(koreanChars, min=2)

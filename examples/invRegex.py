@@ -3,7 +3,7 @@
 #
 # Copyright 2008, Paul McGuire
 #
-# mo_parsing script to expand a regular expression into all possible matching strings
+# pyparsing script to expand a regular expression into all possible matching strings
 # Supports:
 # - {n} and {m,n} repetition, but not unbounded + or * repetition
 # - ? optional elements
@@ -13,7 +13,7 @@
 #
 __all__ = ["count", "invert"]
 
-from mo_parsing import (
+from pyparsing import (
     Literal,
     oneOf,
     printables,
@@ -305,5 +305,4 @@ def main():
         print("")
 
 
-if __name__ == "__main__":
-    main()
+main()

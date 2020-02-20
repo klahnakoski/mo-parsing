@@ -3,7 +3,7 @@
 #
 # Sample parser grammar to read a number given in words, and return the numeric value.
 #
-import mo_parsing as pp
+import pyparsing as pp
 from operator import mul
 from functools import reduce
 
@@ -110,7 +110,7 @@ tests = """
 test_expr = (
     (numWords("result") | ...)
     + ","
-    + (pp.mo_parsing_common.integer("expected") | "None")
+    + (pp.pyparsing_common.integer("expected") | "None")
 )
 
 

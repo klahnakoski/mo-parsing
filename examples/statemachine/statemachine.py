@@ -14,7 +14,7 @@ from urllib.parse import urlparse
 DEBUG = False
 
 
-import mo_parsing as pp
+import pyparsing as pp
 
 # define basic exception for invalid state transitions - state machine classes will subclass to
 # define their own specific exception type

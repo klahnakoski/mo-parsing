@@ -6,7 +6,7 @@
 # Copyright (c) 2004-2016, Paul McGuire
 #
 
-from mo_parsing import *
+from pyparsing import *
 
 # define punctuation and simple tokens for locating API calls
 LBRACK, RBRACK, LBRACE, RBRACE = map(Suppress, "[]{}")

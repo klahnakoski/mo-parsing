@@ -8,7 +8,7 @@ __version__ = "1.0"
 __author__ = "Daniel 'Dang' Griffith <pythondev - dang at lazytwinacres . net>"
 
 
-from mo_parsing import (
+from pyparsing import (
     Literal,
     CaselessLiteral,
     Word,
@@ -231,5 +231,4 @@ def main(testfiles=None, action=printer):
     return retval
 
 
-if __name__ == "__main__":
-    main()
+main()

@@ -1,12 +1,12 @@
 #
 # dictExample2.py
 #
-#  Illustration of using mo_parsing's Dict class to process tabular data
+#  Illustration of using pyparsing's Dict class to process tabular data
 #  Enhanced Dict example, courtesy of Mike Kelly
 #
 # Copyright (c) 2004, Paul McGuire
 #
-from mo_parsing import (
+from pyparsing import (
     Literal,
     Word,
     Group,
@@ -15,7 +15,7 @@ from mo_parsing import (
     alphas,
     nums,
     delimitedList,
-    mo_parsing_common as ppc,
+    pyparsing_common as ppc,
 )
 
 testData = """

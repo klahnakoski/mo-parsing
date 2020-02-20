@@ -5,8 +5,6 @@
 #
 # Copyright Paul McGuire, 2019
 #
-from mo_parsing.cache import enablePackrat
-
 BNF = """
     stmt_list           =   {stmt} ;
 
@@ -36,9 +34,9 @@ BNF = """
                           ;
 """
 
-import mo_parsing as pp
+import pyparsing as pp
 
-enablePackrat()
+pp.ParserElement.enablePackrat()
 
 LBRACE, RBRACE, LPAR, RPAR, SEMI = map(pp.Suppress, "{}();")
 EQ = pp.Literal("=")
@@ -47,8 +45,8 @@ keywords = (WHILE, IF, PRINT, PUTC, ELSE) = map(
     pp.Keyword, "while if print putc else".split()
 )
 any_keyword = pp.MatchFirst(keywords)
-identifier = ~any_keyword + pp.mo_parsing_common.identifier
-integer = pp.mo_parsing_common.integer
+identifier = ~any_keyword + pp.pyparsing_common.identifier
+integer = pp.pyparsing_common.integer
 string = pp.QuotedString('"', convertWhitespaceEscapes=False).setName("quoted string")
 char = pp.Regex(r"'\\?.'")
 

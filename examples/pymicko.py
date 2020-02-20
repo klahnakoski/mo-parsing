@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-#    Python/mo_parsing educational microC compiler v1.0
+#    Python/pyparsing educational microC compiler v1.0
 #    Copyright (C) 2009  Zarko Zivanov
 #    (largely based on flex/bison microC compiler by Zorica Suvajdzin, used with her permission;
 #     current version can be found at http://www.acs.uns.ac.rs, under "Programski Prevodioci" [Serbian site])
@@ -17,7 +17,7 @@
 #
 #    A copy of the GNU General Public License can be found at <https://www.gnu.org/licenses/>.
 
-from mo_parsing import *
+from pyparsing import *
 from sys import stdin, argv, exit
 
 # defines debug level
@@ -34,7 +34,7 @@ DEBUG = 0
 
 # microC language and microC compiler are educational tools, and their goal is to show some basic principles
 # of writing a C language compiler. Compiler represents one (relatively simple) solution, not necessarily the best one.
-# This Python/mo_parsing version is made using Python 2.6.4 and mo_parsing 1.5.2 (and it may contain errors :) )
+# This Python/pyparsing version is made using Python 2.6.4 and pyparsing 1.5.2 (and it may contain errors :) )
 
 ##########################################################################################
 ##########################################################################################
@@ -274,8 +274,8 @@ exshared = ExceptionSharedData()
 
 class SemanticException(Exception):
     """Exception for semantic errors found during parsing, similar to ParseException.
-       Introduced because ParseException is used internally in mo_parsing and custom
-       messages got lost and replaced by mo_parsing's generic errors.
+       Introduced because ParseException is used internally in pyparsing and custom
+       messages got lost and replaced by pyparsing's generic errors.
     """
 
     def __init__(self, message, print_location=True):
@@ -1609,27 +1609,11 @@ class MicroC:
 
     def parse_text(self, text):
         """Parse string (helper function)"""
-        try:
-            return self.rProgram.ignore(cStyleComment).parseString(text, parseAll=True)
-        except SemanticException as err:
-            print(err)
-            exit(3)
-        except ParseException as err:
-            print(err)
-            exit(3)
+        return self.rProgram.ignore(cStyleComment).parseString(text, parseAll=True)
 
     def parse_file(self, filename):
         """Parse file (helper function)"""
-        try:
-            return self.rProgram.ignore(cStyleComment).parseFile(
-                filename, parseAll=True
-            )
-        except SemanticException as err:
-            print(err)
-            exit(3)
-        except ParseException as err:
-            print(err)
-            exit(3)
+        return self.rProgram.ignore(cStyleComment).parseFile(filename, parseAll=True)
 
 
 ##########################################################################################
@@ -1673,44 +1657,42 @@ if 0:
 ##########################################################################################
 ##########################################################################################
 
-if __name__ == "__main__":
+test_program_example = """
+    int a;
+    int b;
+    int c;
+    unsigned d;
 
-    test_program_example = """
-        int a;
-        int b;
-        int c;
-        unsigned d;
+    int fun1(int x, unsigned y) {
+        return 123;
+    }
 
-        int fun1(int x, unsigned y) {
-            return 123;
-        }
+    int fun2(int a) {
+        return 1 + a * fun1(a, 456u);
+    }
 
-        int fun2(int a) {
-            return 1 + a * fun1(a, 456u);
-        }
-
-        int main(int x, int y) {
-            int w;
-            unsigned z;
-            if (9 > 8 && 2 < 3 || 6 != 5 && a <= b && c < x || w >= y) {
-                a = b + 1;
-                if (x == y)
-                    while (d < 4u)
-                        x = x * w;
-                else
-                    while (a + b < c - y && x > 3 || y < 2)
-                        if (z > d)
-                            a = a - 4;
-                        else
-                            b = a * b * c * x / y;
-            }
+    int main(int x, int y) {
+        int w;
+        unsigned z;
+        if (9 > 8 && 2 < 3 || 6 != 5 && a <= b && c < x || w >= y) {
+            a = b + 1;
+            if (x == y)
+                while (d < 4u)
+                    x = x * w;
             else
-                c = 4;
-            a = fun1(x,d) + fun2(fun1(fun2(w + 3 * 2) + 2 * c, 2u));
-            return 2;
+                while (a + b < c - y && x > 3 || y < 2)
+                    if (z > d)
+                        a = a - 4;
+                    else
+                        b = a * b * c * x / y;
         }
-    """
+        else
+            c = 4;
+        a = fun1(x,d) + fun2(fun1(fun2(w + 3 * 2) + 2 * c, 2u));
+        return 2;
+    }
+"""
 
-    mc = MicroC()
-    mc.parse_text(test_program_example)
-    print(mc.codegen.code)
+mc = MicroC()
+mc.parse_text(test_program_example)
+print(mc.codegen.code)

@@ -2160,68 +2160,6 @@ class Test2_WithoutPackrat(ppt.TestParseResultsAsserts, TestCase):
                 ),
             )
 
-    def testParseResultsPickle(self):
-        from mo_parsing import makeHTMLTags, ParseResults
-        import pickle
-
-        # test 1
-        body = makeHTMLTags("BODY")[0]
-        result = body.parseString("<BODY BGCOLOR='#00FFBB' FGCOLOR=black>")
-        if VERBOSE:
-            print(result.dump())
-            print()
-
-        for protocol in range(pickle.HIGHEST_PROTOCOL + 1):
-            print("Test pickle dump protocol", protocol)
-            try:
-                pickleString = pickle.dumps(result, protocol)
-            except Exception as e:
-                print("dumps exception:", e)
-                newresult = ParseResults()
-            else:
-                newresult = pickle.loads(pickleString)
-                if VERBOSE:
-                    print(newresult.dump())
-                    print()
-
-            self.assertEqual(
-                result.dump(),
-                newresult.dump(),
-                "Error pickling ParseResults object (protocol=%d)" % protocol,
-            )
-
-        # test 2
-        import mo_parsing as pp
-
-        word = pp.Word(pp.alphas + "'.")
-        salutation = pp.OneOrMore(word)
-        comma = pp.Literal(",")
-        greetee = pp.OneOrMore(word)
-        endpunc = pp.oneOf("! ?")
-        greeting = salutation + pp.Suppress(comma) + greetee + pp.Suppress(endpunc)
-        greeting.setParseAction(PickleTest_Greeting)
-
-        string = "Good morning, Miss Crabtree!"
-
-        result = greeting.parseString(string)
-
-        for protocol in range(pickle.HIGHEST_PROTOCOL + 1):
-            print("Test pickle dump protocol", protocol)
-            try:
-                pickleString = pickle.dumps(result, protocol)
-            except Exception as e:
-                print("dumps exception:", e)
-                newresult = ParseResults()
-            else:
-                newresult = pickle.loads(pickleString)
-            print(newresult.dump())
-            self.assertEqual(
-                newresult.dump(),
-                result.dump(),
-                "failed to pickle/unpickle ParseResults: expected {!r}, got {!r}".format(
-                    result, newresult
-                ),
-            )
 
     def testParseResultsWithNamedTuple(self):
 
@@ -6620,29 +6558,6 @@ class Test2_WithoutPackrat(ppt.TestParseResultsAsserts, TestCase):
             "multipled(3) failure with setResultsName",
         )
 
-
-class PickleTest_Greeting:
-    def __init__(self, toks):
-        self.salutation = toks[0]
-        self.greetee = toks[1]
-
-    def __repr__(self):
-        return "{}: {{{}}}".format(
-            self.__class__.__name__,
-            ", ".join(
-                "{!r}: {!r}".format(k, getattr(self, k)) for k in sorted(self.__dict__)
-            ),
-        )
-
-
-class Test3_EnablePackratParsing(TestCase):
-    def runTest(self):
-        Test2_WithoutPackrat.suite_context.restore()
-        enablePackrat()
-        Test2_WithoutPackrat.suite_context.save()
-
-
-Test4_WithPackrat = type("Test4_WithPackrat", (Test2_WithoutPackrat,), {})
 
 
 Test2_WithoutPackrat.suite_context = ppt.reset_mo_parsing_context()

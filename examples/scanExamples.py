@@ -1,11 +1,11 @@
 #
 # scanExamples.py
 #
-#  Illustration of using mo_parsing's scanString,transformString, and searchString methods
+#  Illustration of using pyparsing's scanString,transformString, and searchString methods
 #
 # Copyright (c) 2004, 2006 Paul McGuire
 #
-from mo_parsing import (
+from pyparsing import (
     Word,
     alphas,
     alphanums,
@@ -81,7 +81,7 @@ print(ident.transformString(testData))
 print("Example of a stripper")
 print("----------------------")
 
-from mo_parsing import dblQuotedString, LineStart
+from pyparsing import dblQuotedString, LineStart
 
 # remove all string macro definitions (after extracting to a string resource table?)
 stringMacroDef = Literal("#define") + ident + "=" + dblQuotedString + LineStart()

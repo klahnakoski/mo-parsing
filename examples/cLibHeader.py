@@ -6,7 +6,7 @@
 # Copyright, 2012 - Paul McGuire
 #
 
-from mo_parsing import (
+from pyparsing import (
     Word,
     alphas,
     alphanums,

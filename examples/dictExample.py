@@ -1,11 +1,11 @@
 #
 # dictExample.py
 #
-#  Illustration of using mo_parsing's Dict class to process tabular data
+#  Illustration of using pyparsing's Dict class to process tabular data
 #
 # Copyright (c) 2003, Paul McGuire
 #
-import mo_parsing as pp
+import pyparsing as pp
 
 testData = """
 +-------+------+------+------+------+------+------+------+------+

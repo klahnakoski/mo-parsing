@@ -6,9 +6,9 @@
 # Copyright 2004-2010, by Paul McGuire
 # September, 2010 - updated to more current use of setResultsName, new NIST URL
 #
-import mo_parsing as pp
+import pyparsing as pp
 
-ppc = pp.mo_parsing_common
+ppc = pp.pyparsing_common
 from urllib.request import urlopen
 
 integer = pp.Word(pp.nums)

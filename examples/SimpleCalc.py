@@ -25,14 +25,14 @@
 
 # Uncomment the line below for readline support on interactive terminal
 # import readline
-from mo_parsing import ParseException, Word, alphas, alphanums
+from pyparsing import ParseException, Word, alphas, alphanums
 
 # Debugging flag can be set to either "debug_flag=True" or "debug_flag=False"
 debug_flag = False
 
 variables = {}
 
-from fourFn import BNF, exprStack, evaluate_stack
+from examples.fourFn import BNF, exprStack, evaluate_stack
 
 # from fourFn import BNF, exprStack, fn, opn
 # def evaluateStack( s ):
@@ -62,6 +62,7 @@ assignment = ident("varname") + "=" + arithExpr
 pattern = assignment | arithExpr
 
 if __name__ == "__main__":
+
     # input_string
     input_string = ""
 

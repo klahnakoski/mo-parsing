@@ -3,7 +3,7 @@
 # Copyright, 2006, by Paul McGuire
 #
 
-from mo_parsing import *
+from pyparsing import *
 
 # first pass
 lbrack = Literal("[")

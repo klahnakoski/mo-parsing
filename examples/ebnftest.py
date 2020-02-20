@@ -5,12 +5,11 @@
 #
 # Submitted 2004 by Seo Sanghyeon
 #
-print("Importing mo_parsing...")
-from mo_parsing import *
+print("Importing pyparsing...")
+from pyparsing import *
+from examples import ebnf
 
-print("Constructing EBNF parser with mo_parsing...")
-import ebnf
-
+print("Constructing EBNF parser with pyparsing...")
 
 grammar = """
 syntax = (syntax_rule), {(syntax_rule)};

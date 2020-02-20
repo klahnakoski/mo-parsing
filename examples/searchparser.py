@@ -3,7 +3,7 @@
 version 2006-03-09
 
 This search query parser uses the excellent Pyparsing module
-(http://mo_parsing.sourceforge.net/) to parse search queries by users.
+(http://pyparsing.sourceforge.net/) to parse search queries by users.
 It handles:
 
 * 'and', 'or' and implicit 'and' operators;
@@ -57,7 +57,7 @@ TODO:
 - ask someone to check my English texts
 - add more kinds of wildcards ('*' at the beginning and '*' inside a word)?
 """
-from mo_parsing import (
+from pyparsing import (
     Word,
     alphanums,
     Keyword,
@@ -312,8 +312,7 @@ class ParserTest(SearchQueryParser):
         return all_ok
 
 
-if __name__ == "__main__":
-    if ParserTest().Test():
-        print("All tests OK")
-    else:
-        print("One or more tests FAILED")
+if ParserTest().Test():
+    print("All tests OK")
+else:
+    print("One or more tests FAILED")

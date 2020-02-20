@@ -4,7 +4,7 @@
 #
 # A partial implementation of a parser of Excel formula expressions.
 #
-from mo_parsing import (
+from pyparsing import (
     CaselessKeyword,
     Suppress,
     Word,
@@ -23,11 +23,10 @@ from mo_parsing import (
     Literal,
     QuotedString,
     ParserElement,
-    mo_parsing_common as ppc,
+    pyparsing_common as ppc,
 )
-from mo_parsing.cache import enablePackrat
 
-enablePackrat()
+ParserElement.enablePackrat()
 
 EQ, LPAR, RPAR, COLON, COMMA = map(Suppress, "=():,")
 EXCL, DOLLAR = map(Literal, "!$")

@@ -2,12 +2,12 @@
 # simpleArith.py
 #
 # Example of defining an arithmetic expression parser using
-# the infixNotation helper method in mo_parsing.
+# the infixNotation helper method in pyparsing.
 #
 # Copyright 2006, by Paul McGuire
 #
 
-from mo_parsing import *
+from pyparsing import *
 
 integer = Word(nums).setParseAction(lambda t: int(t[0]))
 variable = Word(alphas, exact=1)
@@ -27,19 +27,19 @@ factop = Literal("!")
 #   2.  Define a list of tuples for each level of operator
 #       precendence.  Each tuple is of the form
 #       (opExpr, numTerms, rightLeftAssoc, parseAction), where
-#       - opExpr is the mo_parsing expression for the operator;
+#       - opExpr is the pyparsing expression for the operator;
 #          may also be a string, which will be converted to a Literal
 #       - numTerms is the number of terms for this operator (must
 #          be 1 or 2)
 #       - rightLeftAssoc is the indicator whether the operator is
-#          right or left associative, using the mo_parsing-defined
+#          right or left associative, using the pyparsing-defined
 #          constants opAssoc.RIGHT and opAssoc.LEFT.
 #       - parseAction is the parse action to be associated with
 #          expressions matching this operator expression (the
 #          parse action tuple member may be omitted)
 #   3.  Call infixNotation passing the operand expression and
 #       the operator precedence list, and save the returned value
-#       as the generated mo_parsing expression.  You can then use
+#       as the generated pyparsing expression.  You can then use
 #       this expression to parse input strings, or incorporate it
 #       into a larger, more complex grammar.
 #

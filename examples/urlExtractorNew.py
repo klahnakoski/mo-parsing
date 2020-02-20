@@ -1,15 +1,15 @@
 # URL extractor
 # Copyright 2004, Paul McGuire
-from mo_parsing import makeHTMLTags
+from pyparsing import makeHTMLTags
 from urllib.request import urlopen
 import pprint
 
-# Define the mo_parsing grammar for a URL, that is:
+# Define the pyparsing grammar for a URL, that is:
 #    URLlink ::= <a href= URL>linkText</a>
 #    URL ::= doubleQuotedString | alphanumericWordPath
 # Note that whitespace may appear just about anywhere in the link.  Note also
-# that it is not necessary to explicitly show this in the mo_parsing grammar; by default,
-# mo_parsing skips over whitespace between tokens.
+# that it is not necessary to explicitly show this in the pyparsing grammar; by default,
+# pyparsing skips over whitespace between tokens.
 linkOpenTag, linkCloseTag = makeHTMLTags("a")
 link = linkOpenTag + linkOpenTag.tag_body("body") + linkCloseTag.suppress()
 

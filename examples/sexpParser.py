@@ -1,6 +1,6 @@
 # sexpParser.py
 #
-# Demonstration of the mo_parsing module, implementing a simple S-expression
+# Demonstration of the pyparsing module, implementing a simple S-expression
 # parser.
 #
 # Updates:
@@ -43,7 +43,7 @@ BNF reference: http://theory.lcs.mit.edu/~rivest/sexp.txt
 <null>        	:: "" ;
 """
 
-import mo_parsing as pp
+import pyparsing as pp
 from base64 import b64decode
 
 

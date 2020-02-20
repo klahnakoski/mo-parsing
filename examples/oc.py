@@ -70,10 +70,9 @@ The following is a description of the OC grammar:
     stars:		"*"*
 """
 
-from mo_parsing import *
-from mo_parsing.cache import enablePackrat
+from pyparsing import *
 
-enablePackrat()
+ParserElement.enablePackrat()
 
 LPAR, RPAR, LBRACK, RBRACK, LBRACE, RBRACE, SEMI, COMMA = map(Suppress, "()[]{};,")
 INT, CHAR, WHILE, DO, IF, ELSE, RETURN = map(

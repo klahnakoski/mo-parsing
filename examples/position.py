@@ -1,4 +1,4 @@
-from mo_parsing import *
+from pyparsing import *
 
 text = """Lorem ipsum dolor sit amet, consectetur adipisicing
 elit, sed do eiusmod tempor incididunt ut labore et dolore magna

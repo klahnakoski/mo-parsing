@@ -11,7 +11,7 @@ DESCRIPTION:
     The sparser.py script is a Specified PARSER.  It is unique (as far as I can
     tell) because it doesn't care about the delimiter(s).  The user specifies
     what is expected, and the order, for each line of text.  All of the heavy
-    lifting is handled by mo_parsing (http://mo_parsing.sf.net).
+    lifting is handled by pyparsing (http://pyparsing.sf.net).
 
 OPTIONS:
     -h,--help        this message
@@ -48,7 +48,7 @@ import sys
 import os
 import getopt
 
-from mo_parsing import *
+from pyparsing import *
 
 
 # ===globals======================
@@ -141,7 +141,7 @@ class ParseFileLineByLine:
 
     def __init__(self, filename, mode="r"):
         """Opens input file, and if available the definition file.  If the
-        definition file is available __init__ will then create some mo_parsing
+        definition file is available __init__ will then create some pyparsing
         helper variables.  """
         if mode not in ["r", "w", "a"]:
             raise OSError(0, "Illegal mode: " + repr(mode))
@@ -205,7 +205,7 @@ class ParseFileLineByLine:
             self.parsedef = None
             return None
 
-        # Create some handy mo_parsing constructs.  I kept 'decimal_sep' so that
+        # Create some handy pyparsing constructs.  I kept 'decimal_sep' so that
         # could easily change to parse if the decimal separator is a ",".
         decimal_sep = "."
         sign = oneOf("+ -")

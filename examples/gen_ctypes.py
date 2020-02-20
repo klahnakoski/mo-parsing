@@ -5,7 +5,7 @@
 #
 # Copyright 2004-2016, by Paul McGuire
 #
-from mo_parsing import *
+from pyparsing import *
 
 typemap = {
     "byte": "c_byte",
@@ -97,7 +97,7 @@ enum_def = (
     + RBRACE
 )
 
-c_header = open("snmp_api.h").read()
+c_header = open("examples/snmp_api.h").read()
 
 
 module = "pynetsnmp"
