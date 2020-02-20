@@ -1,18 +1,19 @@
 # encoding: utf-8
 import copy
 import warnings
+from collections import namedtuple
 from contextlib import contextmanager
 from copy import copy
-from datetime import datetime, date
+from datetime import datetime
 
 from mo_dots import Data
 from mo_logs import Log
 
-from mo_parsing.cache import packrat_cache_lock, packrat_cache_stats
+from mo_parsing.cache import packrat_cache
 from mo_parsing.exceptions import ParseBaseException, ParseException, ParseFatalException, conditionAsParseAction
 from mo_parsing.results import ParseResults
 from mo_parsing.utils import PY_3, _MAX_INT, _defaultExceptionDebugAction, _defaultStartDebugAction, \
-    _defaultSuccessDebugAction, _trim_arity, _ustr, basestring, __diag__
+    _defaultSuccessDebugAction, _trim_arity, _ustr, basestring, __diag__, noop
 
 # import later
 SkipTo, ZeroOrMore, OneOrMore, Optional, NotAny, Suppress, _flatten, replaceWith, quotedString, And, MatchFirst, Or, Each, Empty, StringEnd, Literal, Token, Group = [None] * 18
@@ -20,6 +21,11 @@ SkipTo, ZeroOrMore, OneOrMore, Optional, NotAny, Suppress, _flatten, replaceWith
 DEBUG = False
 DEFAULT_WHITE_CHARS = " \n\t\r"
 CURRENT_WHITE_CHARS = list(DEFAULT_WHITE_CHARS)
+
+DebugActions = namedtuple("DebugActions", ["TRY", "MATCH", "FAIL"])
+
+
+
 
 @contextmanager
 def default_whitespace(chars):
@@ -112,7 +118,7 @@ class ParserElement(object):
         self.parser_config.mayIndexError = True # used to optimize exception handling for subclasses that don't advance parse index
         self.parser_config.error_message = ""
         self.parser_config.modalResults = True  # used to mark results names as modal (report only last) or cumulative (list all)
-        self.parser_config.debugActions = (_defaultStartDebugAction, _defaultSuccessDebugAction, _defaultExceptionDebugAction)  # custom debug actions
+        self.parser_config.debugActions = DebugActions(noop, noop, noop)  # custom debug actions
         self.parser_config.callPreparse = True  # used to avoid redundant calls to preParse
         self.callDuringTry = False
         self.ignoreExprs = []
@@ -363,71 +369,53 @@ class ParserElement(object):
     def postParse(self, instring, loc, tokenlist):
         return tokenlist
 
-    # ~ @profile
-    def _parseNoCache(self, instring, loc, doActions=True, callPreParse=True):
-        TRY, MATCH, FAIL = 0, 1, 2
-        debugging = self.parser_config.debug or DEBUG
+    def _parse(self, instring, loc, doActions=True, callPreParse=True):
+        lookup = (self, instring, loc, callPreParse, doActions)
+        value = packrat_cache.get(lookup)
+        if value is not None:
+            if isinstance(value, Exception):
+                raise value
+            return value[0], value[1]
 
-        if debugging or self.parser_config.failAction:
-            # ~ print ("Match", self, "at loc", loc, "(%d, %d)" % (lineno(loc, instring), col(loc, instring)))
-            if self.parser_config.debugActions[TRY]:
-                self.parser_config.debugActions[TRY](instring, loc, self)
+        try:
+            if self.parser_config.debug:
+                self.parser_config.debugActions.TRY(instring, loc, self)
+            start = preloc = loc
             try:
                 if callPreParse and self.parser_config.callPreparse:
-                    preloc = self.preParse(instring, loc)
-                else:
-                    preloc = loc
-                tokensStart = preloc
-                if self.parser_config.mayIndexError or preloc >= len(instring):
-                    try:
-                        loc, tokens = self.parseImpl(instring, preloc, doActions)
-                    except IndexError:
-                        raise ParseException(instring, len(instring), self.parser_config.error_message, self)
-                else:
-                    loc, tokens = self.parseImpl(instring, preloc, doActions)
-            except Exception as err:
-                # ~ print ("Exception raised:", err)
-                if self.parser_config.debugActions[FAIL]:
-                    self.parser_config.debugActions[FAIL](instring, tokensStart, self, err)
-                if self.parser_config.failAction:
-                    self.parser_config.failAction(instring, tokensStart, self, err)
-                raise
-        else:
-            if callPreParse and self.parser_config.callPreparse:
-                preloc = self.preParse(instring, loc)
-            else:
-                preloc = loc
-            tokensStart = preloc
-            if self.parser_config.mayIndexError or preloc >= len(instring):
+                    start = preloc = self.preParse(instring, loc)
                 try:
                     loc, tokens = self.parseImpl(instring, preloc, doActions)
                 except IndexError:
-                    raise ParseException(instring, len(instring), self.parser_config.error_message, self)
-            else:
-                loc, tokens = self.parseImpl(instring, preloc, doActions)
+                    if self.parser_config.mayIndexError or preloc >= len(instring):
+                        ex = ParseException(instring, len(instring), self.parser_config.error_message, self)
+                        packrat_cache.set(lookup, ex.__class__(*ex.args))
+                        raise ex
+                    raise
+            except Exception as err:
+                if self.parser_config.debug:
+                    self.parser_config.debugActions.FAIL(instring, start, self, err)
+                self.parser_config.failAction(instring, start, self, err)
+                raise
 
-        if not isinstance(tokens, ParseResults):
-            Log.error("expecting ParseResult")
+            tokens = self.postParse(instring, loc, tokens)
 
-        tokens = self.postParse(instring, loc, tokens)
+            if not isinstance(tokens, ParseResults):
+                Log.error("expecting ParseResult")
+            if self.__class__.__name__ == "Forward":
+                if self.expr is not tokens.type_for_result:
+                    Log.error("expecting correct type to com from self")
+                else:
+                    pass  # OK
+            elif tokens.type_for_result is not self:
+                Log.error("expecting correct type to come from self")
 
-        if not isinstance(tokens, ParseResults):
-            Log.error("expecting ParseResult")
-        if self.__class__.__name__ == "Forward":
-            if self.expr is not tokens.type_for_result:
-                Log.error("expecting correct type to com from self")
-            else:
-                pass  # OK
-        elif tokens.type_for_result is not self:
-            Log.error("expecting correct type to come from self")
-
-        retTokens = tokens
-        if self.parseAction and (doActions or self.callDuringTry):
-            if debugging:
+            retTokens = tokens
+            if self.parseAction and (doActions or self.callDuringTry):
                 try:
                     for fn in self.parseAction:
                         try:
-                            tokens = fn(instring, tokensStart, retTokens)
+                            tokens = fn(instring, start, retTokens)
                         except IndexError as parse_action_exc:
                             exc = ParseException("exception raised in parse action")
                             exc.__cause__ = parse_action_exc
@@ -446,70 +434,21 @@ class ParserElement(object):
 
                         retTokens = tokens
                 except Exception as err:
-                    # ~ print "Exception raised in user parse action:", err
-                    if self.parser_config.debugActions[FAIL]:
-                        self.parser_config.debugActions[FAIL](instring, tokensStart, self, err)
+                    if self.parser_config.debug:
+                        self.parser_config.debugActions.FAIL(instring, start, self, err)
                     raise
-            else:
-                for fn in self.parseAction:
-                    try:
-                        tokens = fn(instring, tokensStart, retTokens)
-                        if isinstance(tokens, list):
-                            tokens = ParseResults(self, tokens)
-                        elif isinstance(tokens, ParseResults):
-                            pass
-                        elif isinstance(tokens, (basestring, int, float, datetime, date)):
-                            tokens = ParseResults(self, [tokens])
-                        elif tokens is None:
-                            # Assume tokens are kept
-                            tokens = retTokens
-                        elif isinstance(tokens, object):
-                            tokens = ParseResults(self, [tokens])
-                        else:
-                            Log.error("not understood")
-                    except IndexError as parse_action_exc:
-                        exc = ParseException("exception raised in parse action")
-                        exc.__cause__ = parse_action_exc
-                        raise exc
+            if self.parser_config.debug:
+                self.parser_config.debugActions.MATCH(instring, start, loc, self, retTokens)
+        except ParseBaseException as pe:
+            # cache a copy of the exception, without the traceback
+            packrat_cache.set(lookup, pe.__class__(*pe.args))
+            raise
 
-                    retTokens = tokens
-        if debugging:
-            # ~ print ("Matched", self, "->", retTokens.asList())
-            if self.parser_config.debugActions[MATCH]:
-                self.parser_config.debugActions[MATCH](instring, tokensStart, loc, self, retTokens)
-
+        try:
+            packrat_cache.set(lookup, (loc, retTokens))
+        except Exception as e:
+            raise e
         return loc, retTokens
-
-    _parse = _parseNoCache
-
-    # this method gets repeatedly called during backtracking with the same arguments -
-    # we can cache these arguments and save ourselves the trouble of re-parsing the contained expression
-    def _parseCache(self, instring, loc, doActions=True, callPreParse=True):
-        lookup = (self, instring, loc, callPreParse, doActions)
-        with packrat_cache_lock:
-            _cache = cache.packrat_cache
-            value = _cache.get(lookup)
-            if value is None:
-                packrat_cache_stats.miss += 1
-                try:
-                    loc, tok = self._parseNoCache(instring, loc, doActions, callPreParse)
-                    if not isinstance(tok, ParseResults):
-                        Log.error(
-                            "expecting prase results from {{type}}",
-                            type=value[1].__class__.__name__,
-                        )
-                except ParseBaseException as pe:
-                    # cache a copy of the exception, without the traceback
-                    _cache.set(lookup, pe.__class__(*pe.args))
-                    raise
-                else:
-                    _cache.set(lookup, (loc, copy(tok)))
-                    return loc, tok
-            else:
-                packrat_cache_stats.hit += 1
-                if isinstance(value, Exception):
-                    raise value
-                return value[0], copy(value[1])
 
     def tryParse(self, instring, loc):
         try:
@@ -1050,49 +989,15 @@ class ParserElement(object):
         """
         Enable display of debugging messages while doing pattern matching.
         """
-        self.parser_config.debugActions = (startAction or _defaultStartDebugAction,
-                             successAction or _defaultSuccessDebugAction,
-                             exceptionAction or _defaultExceptionDebugAction)
+        self.parser_config.debugActions = DebugActions(
+            startAction or _defaultStartDebugAction,
+            successAction or _defaultSuccessDebugAction,
+            exceptionAction or _defaultExceptionDebugAction,
+            )
         self.parser_config.debug = True
         return self
 
     def setDebug(self, flag=True):
-        """
-        Enable display of debugging messages while doing pattern matching.
-        Set ``flag`` to True to enable, False to disable.
-
-        Example::
-
-            wd = Word(alphas).setName("alphaword")
-            integer = Word(nums).setName("numword")
-            term = wd | integer
-
-            # turn on debugging for wd
-            wd.setDebug()
-
-            OneOrMore(term).parseString("abc 123 xyz 890")
-
-        prints::
-
-            Match alphaword at loc 0(1,1)
-            Matched alphaword -> ['abc']
-            Match alphaword at loc 3(1,4)
-            Exception raised:Expected alphaword (at char 4), (line:1, col:5)
-            Match alphaword at loc 7(1,8)
-            Matched alphaword -> ['xyz']
-            Match alphaword at loc 11(1,12)
-            Exception raised:Expected alphaword (at char 12), (line:1, col:13)
-            Match alphaword at loc 15(1,16)
-            Exception raised:Expected alphaword (at char 15), (line:1, col:16)
-
-        The output shown is that produced by the default debug actions - custom debug actions can be
-        specified using :class:`setDebugActions`. Prior to attempting
-        to match the ``wd`` expression, the debugging message ``"Match <exprname> at loc <n>(<line>,<col>)"``
-        is shown. Then if the parse succeeds, a ``"Matched"`` message is shown, or an ``"Exception raised"``
-        message is shown. Also note the use of :class:`setName` to assign a human-readable name to the expression,
-        which makes debugging and exception messages easier to understand - for instance, the default
-        name created for the :class:`Word` expression without calling ``setName`` is ``"W:(ABCD...)"``.
-        """
         if flag:
             self.setDebugActions(
                 _defaultStartDebugAction,

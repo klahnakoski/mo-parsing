@@ -810,21 +810,6 @@ class ParseResults(object):
         """
         pprint(self.asList(), *args, **kwargs)
 
-    # add support for pickle protocol
-    def __getstate__(self):
-        parser_type = self.type_for_result
-        name = parser_type.resultsName
-        type_name = parser_type.__class__.__name__
-        return self.tokens_for_result, type_name, name
-
-    def __setstate__(self, state):
-        self.tokens_for_result, type_name, name = state
-        parser_type = globals().get(type_name, ParserElement)
-        parser_element = parser_type(None)
-        parser_element.resultsName = name
-
-        self.type_for_result = parser_element
-
     def __getnewargs__(self):
         old_parser = self.type_for_result
         parser_type = globals().get(old_parser.__class__.__name__, ParserElement)

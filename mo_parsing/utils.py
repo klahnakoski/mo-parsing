@@ -8,6 +8,11 @@ import warnings
 
 from mo_logs import Log
 
+def noop(*args):
+    return
+
+
+
 try:
     # Python 3
     from itertools import filterfalse

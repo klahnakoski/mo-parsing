@@ -1,11 +1,8 @@
 import types
 from collections import OrderedDict
-from threading import RLock
+from threading import RLock, Lock
 
 from mo_dots import Data
-
-packrat_enabled = False
-
 
 class FiFoCache(object):
     def __init__(self, size):
@@ -56,12 +53,10 @@ class UnboundedCache(object):
         self.__len__ = types.MethodType(cache_len, self)
 
 
-# argument cache for optimizing repeated calls when backtracking through recursive expressions
-packrat_cache = (
-    {}
-)  # this is set later by enabledPackrat(); this is here so that resetCache() doesn't fail
-packrat_cache_lock = RLock()
+packrat_cache = UnboundedCache()
+packrat_cache_lock = Lock()
 packrat_cache_stats = Data()
+
 
 def resetCache():
     packrat_cache.clear()
@@ -69,7 +64,7 @@ def resetCache():
     packrat_cache_stats.miss = 0
 
 
-def enablePackrat(cache_size_limit: object = 128) -> object:
+def enablePackrat(cache_size_limit=128):
     """Enables "packrat" parsing, which adds memoizing to the parsing logic.
        Repeated parse attempts at the same string location (which happens
        often in many complex grammars) can immediately return a cached value,
@@ -95,14 +90,8 @@ def enablePackrat(cache_size_limit: object = 128) -> object:
            import mo_parsing
            mo_parsing.enablePackrat()
     """
-    global packrat_enabled
     global packrat_cache
-    if not packrat_enabled:
-        packrat_enabled = True
-        if cache_size_limit is None:
-            packrat_cache = UnboundedCache()
-        else:
-            packrat_cache = FiFoCache(cache_size_limit)
-        from mo_parsing.core import ParserElement
-
-        ParserElement._parse = ParserElement._parseCache
+    if cache_size_limit is None:
+        packrat_cache = UnboundedCache()
+    else:
+        packrat_cache = FiFoCache(cache_size_limit)
