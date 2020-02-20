@@ -1,7 +1,7 @@
 #
 # verilogParse.py
 #
-# an example of using the pyparsing module to be able to process Verilog files
+# an example of using the mo_parsing module to be able to process Verilog files
 # uses BNF defined at http://www.verilog.com/VerilogBNF.html
 #
 #    Copyright (c) 2004-2011 Paul T. McGuire.  All rights reserved.
@@ -48,9 +48,9 @@
 #           . tolerant of '=>' for '*>' operator
 #           . tolerant of '?' as hex character
 #           . proper handling of mintypmax_expr within path delays
-#   1.0.2 - Performance tuning (requires pyparsing 1.3)
-#   1.0.3 - Performance updates, using Regex (requires pyparsing 1.4)
-#   1.0.4 - Performance updates, enable packrat parsing (requires pyparsing 1.4.2)
+#   1.0.2 - Performance tuning (requires mo_parsing 1.3)
+#   1.0.3 - Performance updates, using Regex (requires mo_parsing 1.4)
+#   1.0.4 - Performance updates, enable packrat parsing (requires mo_parsing 1.4.2)
 #   1.0.5 - Converted keyword Literals to Keywords, added more use of Group to
 #           group parsed results tokens
 #   1.0.6 - Added support for module header with no ports list (thanks, Thomas Dejanovic!)
@@ -67,7 +67,7 @@ import sys
 
 __version__ = "1.0.11"
 
-from pyparsing import (
+from mo_parsing import (
     Literal,
     Keyword,
     Word,
@@ -92,20 +92,11 @@ from pyparsing import (
     Regex,
     cppStyleComment,
 )
-import pyparsing
+import mo_parsing
 
 usePackrat = False
 
 packratOn = False
-
-if usePackrat:
-    try:
-        ParserElement.enablePackrat()
-    except Exception:
-        pass
-    else:
-        packratOn = True
-
 
 def dumpTokens(s, l, t):
     import pprint
@@ -891,7 +882,7 @@ def Verilog_BNF():
 if __name__ == "__main__":
 
     print("Verilog parser test (V %s)" % __version__)
-    print(" - using pyparsing version", pyparsing.__version__)
+    print(" - using mo_parsing version", mo_parsing.__version__)
     print(" - using Python version", sys.version)
     if packratOn:
         print(" - using packrat parsing")
@@ -960,7 +951,7 @@ if __name__ == "__main__":
         print("SUCCESS - all files parsed")
 
     # ~ from line_profiler import LineProfiler
-    # ~ from pyparsing import ParseResults
+    # ~ from mo_parsing import ParseResults
     # ~ lp = LineProfiler(ParseResults.__init__)
 
     # ~ lp.print_stats()

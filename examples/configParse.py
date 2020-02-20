@@ -6,7 +6,7 @@
 # Copyright (c) 2003, Paul McGuire
 #
 
-from pyparsing import (
+from mo_parsing import (
     Literal,
     Word,
     ZeroOrMore,

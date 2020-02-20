@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-#    Python/pyparsing educational microC compiler v1.0
+#    Python/mo_parsing educational microC compiler v1.0
 #    Copyright (C) 2009  Zarko Zivanov
 #    (largely based on flex/bison microC compiler by Zorica Suvajdzin, used with her permission;
 #     current version can be found at http://www.acs.uns.ac.rs, under "Programski Prevodioci" [Serbian site])
@@ -17,7 +17,7 @@
 #
 #    A copy of the GNU General Public License can be found at <https://www.gnu.org/licenses/>.
 
-from pyparsing import *
+from mo_parsing import *
 from sys import stdin, argv, exit
 
 # defines debug level
@@ -34,7 +34,7 @@ DEBUG = 0
 
 # microC language and microC compiler are educational tools, and their goal is to show some basic principles
 # of writing a C language compiler. Compiler represents one (relatively simple) solution, not necessarily the best one.
-# This Python/pyparsing version is made using Python 2.6.4 and pyparsing 1.5.2 (and it may contain errors :) )
+# This Python/mo_parsing version is made using Python 2.6.4 and mo_parsing 1.5.2 (and it may contain errors :) )
 
 ##########################################################################################
 ##########################################################################################
@@ -274,8 +274,8 @@ exshared = ExceptionSharedData()
 
 class SemanticException(Exception):
     """Exception for semantic errors found during parsing, similar to ParseException.
-       Introduced because ParseException is used internally in pyparsing and custom
-       messages got lost and replaced by pyparsing's generic errors.
+       Introduced because ParseException is used internally in mo_parsing and custom
+       messages got lost and replaced by mo_parsing's generic errors.
     """
 
     def __init__(self, message, print_location=True):

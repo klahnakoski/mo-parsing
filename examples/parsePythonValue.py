@@ -2,7 +2,7 @@
 #
 # Copyright, 2006, by Paul McGuire
 #
-import pyparsing as pp
+import mo_parsing as pp
 
 
 cvtBool = lambda t: t[0] == "True"

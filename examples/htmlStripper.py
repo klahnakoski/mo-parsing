@@ -7,7 +7,7 @@
 # Copyright (c) 2006, 2016, Paul McGuire
 #
 from urllib.request import urlopen
-from pyparsing import (
+from mo_parsing import (
     makeHTMLTags,
     commonHTMLEntity,
     replaceHTMLEntity,

@@ -7,10 +7,8 @@
 # at http://svn.apache.org/viewvc/lucene/dev/trunk/lucene/docs/queryparsersyntax.html
 #
 
-import pyparsing as pp
-from pyparsing import pyparsing_common as ppc
-
-pp.ParserElement.enablePackrat()
+import mo_parsing as pp
+from mo_parsing import mo_parsing_common as ppc
 
 COLON, LBRACK, RBRACK, LBRACE, RBRACE, TILDE, CARAT = map(pp.Literal, ":[]{}~^")
 LPAR, RPAR = map(pp.Suppress, "()")

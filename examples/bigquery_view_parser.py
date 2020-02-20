@@ -1,17 +1,17 @@
 # bigquery_view_parser.py
 #
 # A parser to extract table names from BigQuery view definitions.
-# This is based on the `select_parser.py` sample in pyparsing:
-# https://github.com/pyparsing/pyparsing/blob/master/examples/select_parser.py
+# This is based on the `select_parser.py` sample in mo_parsing:
+# https://github.com/mo_parsing/mo_parsing/blob/master/examples/select_parser.py
 #
 # Michael Smedberg
 #
 
-from pyparsing import ParserElement, Suppress, Forward, CaselessKeyword
-from pyparsing import MatchFirst, alphas, alphanums, Combine, Word
-from pyparsing import QuotedString, CharsNotIn, Optional, Group, ZeroOrMore
-from pyparsing import oneOf, delimitedList, restOfLine, cStyleComment
-from pyparsing import infixNotation, opAssoc, Regex, nums
+from mo_parsing import ParserElement, Suppress, Forward, CaselessKeyword
+from mo_parsing import MatchFirst, alphas, alphanums, Combine, Word
+from mo_parsing import QuotedString, CharsNotIn, Optional, Group, ZeroOrMore
+from mo_parsing import oneOf, delimitedList, restOfLine, cStyleComment
+from mo_parsing import infixNotation, opAssoc, Regex, nums
 
 
 class BigQueryViewParser:
@@ -56,8 +56,6 @@ class BigQueryViewParser:
     def _get_parser(cls):
         if cls._parser is not None:
             return cls._parser
-
-        ParserElement.enablePackrat()
 
         LPAR, RPAR, COMMA, LBRACKET, RBRACKET, LT, GT = map(Suppress, "(),[]<>")
         ungrouped_select_stmt = Forward().setName("select statement")

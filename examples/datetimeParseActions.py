@@ -6,8 +6,8 @@
 # Copyright 2012, Paul T. McGuire
 #
 from datetime import datetime
-import pyparsing as pp
-from pyparsing import pyparsing_common as ppc
+import mo_parsing as pp
+from mo_parsing import mo_parsing_common as ppc
 
 # define an integer string, and a parse action to convert it
 # to an integer at parse time
@@ -64,7 +64,7 @@ date_expr.runTests(
 )
 
 
-# if dates conform to ISO8601, use definitions in pyparsing_common
+# if dates conform to ISO8601, use definitions in mo_parsing_common
 date_expr = ppc.iso8601_date.setParseAction(ppc.convertToDate())
 date_expr.ignore(pp.pythonStyleComment)
 

@@ -33,7 +33,7 @@ class Circle(Shape):
         return 3.14159 * self.radius ** 2
 
 
-import pyparsing as pp
+import mo_parsing as pp
 
 number = pp.Regex(r"-?\d+(\.\d*)?").setParseAction(lambda t: float(t[0]))
 

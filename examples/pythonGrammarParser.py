@@ -3,7 +3,7 @@
 # Copyright, 2006, by Paul McGuire
 #
 
-from pyparsing import *
+from mo_parsing import *
 
 # should probably read this from the Grammar file provided with the Python source, but
 # this just skips that step and inlines the bnf text directly - this grammar was taken from

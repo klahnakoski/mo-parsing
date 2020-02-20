@@ -3,7 +3,7 @@
 # Copyright (c) 2006, 2019, Paul McGuire
 #
 
-import pyparsing as pp
+import mo_parsing as pp
 
 
 def romanNumeralLiteral(numeralString, value):

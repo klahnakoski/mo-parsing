@@ -1,6 +1,6 @@
 # URL extractor
 # Copyright 2004, Paul McGuire
-from pyparsing import makeHTMLTags, pyparsing_common as ppc
+from mo_parsing import makeHTMLTags, mo_parsing_common as ppc
 from urllib.request import urlopen
 import pprint
 

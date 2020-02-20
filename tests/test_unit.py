@@ -18,7 +18,6 @@ import mo_parsing as pp
 from examples.jsonParser import jsonObject
 from mo_parsing import ParseException, cache
 from mo_parsing import testing as ppt
-from mo_parsing.cache import enablePackrat
 from mo_parsing.core import CURRENT_WHITE_CHARS, default_literal, CURRENT_LITERAL
 from tests.json_parser_tests import test1, test2, test3, test4, test5
 
@@ -104,7 +103,7 @@ class Test2_WithoutPackrat(ppt.TestParseResultsAsserts, TestCase):
                 "setDefaultWhitespaceChars updated dblQuotedString",
             )
 
-        with ppt.reset_mo_parsing_context():
+        with ppt.reset_parsing_context():
             pp.ParserElement.setDefaultWhitespaceChars(" \t")
             self.assertNotEqual(
                 set(pp.dblQuotedString.parser_config.whiteChars),
@@ -152,7 +151,7 @@ class Test2_WithoutPackrat(ppt.TestParseResultsAsserts, TestCase):
 
         ppc = pp.mo_parsing_common
 
-        with ppt.reset_mo_parsing_context():
+        with ppt.reset_parsing_context():
             expr_tests = [
                 (pp.dblQuotedString, '"abc"'),
                 (pp.sglQuotedString, "'def'"),
@@ -2663,7 +2662,7 @@ class Test2_WithoutPackrat(ppt.TestParseResultsAsserts, TestCase):
         success = test_patt.runTests(fail_tests, failureTests=True)[0]
         self.assertTrue(success, "failed LineStart failure mode tests (1)")
 
-        with ppt.reset_mo_parsing_context():
+        with ppt.reset_parsing_context():
             print(r"no \n in default whitespace chars")
             pp.ParserElement.setDefaultWhitespaceChars(" ")
 
@@ -2712,7 +2711,7 @@ class Test2_WithoutPackrat(ppt.TestParseResultsAsserts, TestCase):
                 test[s], "A", "failed LineStart with insignificant newlines"
             )
 
-        with ppt.reset_mo_parsing_context():
+        with ppt.reset_parsing_context():
             pp.ParserElement.setDefaultWhitespaceChars(" ")
             for t, s, e in (pp.LineStart() + "AAA").scanString(test):
                 print(s, e, pp.lineno(s, test), pp.line(s, test), ord(test[s]))
@@ -5006,7 +5005,7 @@ class Test2_WithoutPackrat(ppt.TestParseResultsAsserts, TestCase):
                 False, "failed to match keyword using updated keyword chars"
             )
 
-        with ppt.reset_mo_parsing_context():
+        with ppt.reset_parsing_context():
             pp.Keyword.setDefaultKeywordChars(pp.alphas)
             try:
                 pp.Keyword("start").parseString("start1000")
@@ -5027,7 +5026,7 @@ class Test2_WithoutPackrat(ppt.TestParseResultsAsserts, TestCase):
                 False, "failed to match keyword using updated keyword chars"
             )
 
-        with ppt.reset_mo_parsing_context():
+        with ppt.reset_parsing_context():
             pp.Keyword.setDefaultKeywordChars(pp.alphas)
             try:
                 pp.CaselessKeyword("START").parseString("start1000")
@@ -5234,7 +5233,7 @@ class Test2_WithoutPackrat(ppt.TestParseResultsAsserts, TestCase):
         print("Before parsing with setBreak:", was_called)
         import pdb
 
-        with ppt.reset_mo_parsing_context():
+        with ppt.reset_parsing_context():
             pdb.set_trace = mock_set_trace
             wd.parseString("ABC")
 
@@ -5714,7 +5713,7 @@ class Test2_WithoutPackrat(ppt.TestParseResultsAsserts, TestCase):
         )
 
         # test compatibility mode, no longer restoring pre-2.3.1 behavior
-        with ppt.reset_mo_parsing_context():
+        with ppt.reset_parsing_context():
             pp.__compat__.collect_all_And_tokens = False
             pp.__diag__.enable("warn_multiple_tokens_in_named_alternation")
             expr_a = pp.Literal("not") + pp.Literal("the") + pp.Literal("bird")
@@ -5776,7 +5775,7 @@ class Test2_WithoutPackrat(ppt.TestParseResultsAsserts, TestCase):
         )
 
         # test compatibility mode, no longer restoring pre-2.3.1 behavior
-        with ppt.reset_mo_parsing_context():
+        with ppt.reset_parsing_context():
             pp.__compat__.collect_all_And_tokens = False
             pp.__diag__.enable("warn_multiple_tokens_in_named_alternation")
             expr_a = pp.Literal("not") + pp.Literal("the") + pp.Literal("bird")
@@ -5849,8 +5848,6 @@ class Test2_WithoutPackrat(ppt.TestParseResultsAsserts, TestCase):
             return t[0] / t[1]
 
         expr.addParseAction(divide_args)
-        enablePackrat()
-        print()
 
         try:
             expr.parseString("123 0")
@@ -5919,7 +5916,7 @@ class Test2_WithoutPackrat(ppt.TestParseResultsAsserts, TestCase):
 
         ppc = pp.mo_parsing_common
 
-        with ppt.reset_mo_parsing_context():
+        with ppt.reset_parsing_context():
             pp.__diag__.enable("warn_ungrouped_named_tokens_in_collection")
 
             COMMA = pp.Suppress(",").setName("comma")
@@ -5940,7 +5937,7 @@ class Test2_WithoutPackrat(ppt.TestParseResultsAsserts, TestCase):
         """
         import mo_parsing as pp
 
-        with ppt.reset_mo_parsing_context():
+        with ppt.reset_parsing_context():
             pp.__diag__.enable("warn_name_set_on_empty_Forward")
 
             base = pp.Forward()
@@ -5958,7 +5955,7 @@ class Test2_WithoutPackrat(ppt.TestParseResultsAsserts, TestCase):
         """
         import mo_parsing as pp
 
-        with ppt.reset_mo_parsing_context():
+        with ppt.reset_parsing_context():
             pp.__diag__.enable("warn_on_multiple_string_args_to_oneof")
 
             with self.assertWarns(
@@ -5975,7 +5972,7 @@ class Test2_WithoutPackrat(ppt.TestParseResultsAsserts, TestCase):
         import mo_parsing as pp
         import textwrap
 
-        with ppt.reset_mo_parsing_context():
+        with ppt.reset_parsing_context():
             test_stdout = StringIO()
 
             with resetting(sys, "stdout", "stderr"):
@@ -6063,7 +6060,7 @@ class Test2_WithoutPackrat(ppt.TestParseResultsAsserts, TestCase):
                 "__diag__.{} not set to True".format(diag_name),
             )
 
-        with ppt.reset_mo_parsing_context():
+        with ppt.reset_parsing_context():
             # enable all warn_* diag_names
             pp.__diag__.enable_all_warnings()
             pprint.pprint(filtered_vars(vars(pp.__diag__)), width=30)
@@ -6560,5 +6557,5 @@ class Test2_WithoutPackrat(ppt.TestParseResultsAsserts, TestCase):
 
 
 
-Test2_WithoutPackrat.suite_context = ppt.reset_mo_parsing_context()
+Test2_WithoutPackrat.suite_context = ppt.reset_parsing_context()
 Test2_WithoutPackrat.suite_context.save()

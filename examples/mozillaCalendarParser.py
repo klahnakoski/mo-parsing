@@ -1,4 +1,4 @@
-from pyparsing import (
+from mo_parsing import (
     Optional,
     oneOf,
     Literal,

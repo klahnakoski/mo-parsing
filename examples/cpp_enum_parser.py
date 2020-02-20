@@ -9,7 +9,7 @@
 #
 #
 
-from pyparsing import *
+from mo_parsing import *
 
 # sample string with enums and other stuff
 sample = """

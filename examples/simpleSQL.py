@@ -5,7 +5,7 @@
 #
 # Copyright (c) 2003,2016, Paul McGuire
 #
-from pyparsing import (
+from mo_parsing import (
     Word,
     delimitedList,
     Optional,
@@ -19,7 +19,7 @@ from pyparsing import (
     opAssoc,
     restOfLine,
     CaselessKeyword,
-    pyparsing_common as ppc,
+    mo_parsing_common as ppc,
 )
 
 # define SQL tokens

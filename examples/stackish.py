@@ -28,7 +28,7 @@ SPACE White space is basically ignored. This is interesting because since
     separation character and perform reasonable diffs on two structures.
 """
 
-from pyparsing import (
+from mo_parsing import (
     Suppress,
     Word,
     nums,

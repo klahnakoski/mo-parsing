@@ -9,7 +9,7 @@ Submitted by Luca DallOlio, September, 2010
 (Minor updates by Paul McGuire, June, 2012)
 (Code idiom updates by Paul McGuire, April, 2019)
 """
-from pyparsing import (
+from mo_parsing import (
     Word,
     ZeroOrMore,
     printables,
@@ -257,7 +257,7 @@ def grammar():
     return grammarDef
 
 
-def __antlrAlternativesConverter(pyparsingRules, antlrBlock):
+def __antlrAlternativesConverter(mo_parsingRules, antlrBlock):
     rule = None
     if (
         hasattr(antlrBlock, "alternatives")
@@ -265,21 +265,21 @@ def __antlrAlternativesConverter(pyparsingRules, antlrBlock):
         and len(antlrBlock.alternatives) > 0
     ):
         alternatives = []
-        alternatives.append(__antlrAlternativeConverter(pyparsingRules, antlrBlock.a1))
+        alternatives.append(__antlrAlternativeConverter(mo_parsingRules, antlrBlock.a1))
         for alternative in antlrBlock.alternatives:
             alternatives.append(
-                __antlrAlternativeConverter(pyparsingRules, alternative)
+                __antlrAlternativeConverter(mo_parsingRules, alternative)
             )
         rule = MatchFirst(alternatives)("anonymous_or")
     elif hasattr(antlrBlock, "a1") and antlrBlock.a1 != "":
-        rule = __antlrAlternativeConverter(pyparsingRules, antlrBlock.a1)
+        rule = __antlrAlternativeConverter(mo_parsingRules, antlrBlock.a1)
     else:
         raise Exception("Not yet implemented")
     assert rule != None
     return rule
 
 
-def __antlrAlternativeConverter(pyparsingRules, antlrAlternative):
+def __antlrAlternativeConverter(mo_parsingRules, antlrAlternative):
     elementList = []
     for element in antlrAlternative.elements:
         rule = None
@@ -287,11 +287,11 @@ def __antlrAlternativeConverter(pyparsingRules, antlrAlternative):
             regex = r"[" + str(element.atom.c1[0]) + "-" + str(element.atom.c2[0] + "]")
             rule = Regex(regex)("anonymous_regex")
         elif hasattr(element, "block") and element.block != "":
-            rule = __antlrAlternativesConverter(pyparsingRules, element.block)
+            rule = __antlrAlternativesConverter(mo_parsingRules, element.block)
         else:
             ruleRef = element.atom[0]
-            assert ruleRef in pyparsingRules
-            rule = pyparsingRules[ruleRef](ruleRef)
+            assert ruleRef in mo_parsingRules
+            rule = mo_parsingRules[ruleRef](ruleRef)
         if hasattr(element, "op") and element.op != "":
             if element.op == "+":
                 rule = Group(OneOrMore(rule))("anonymous_one_or_more")
@@ -311,30 +311,30 @@ def __antlrAlternativeConverter(pyparsingRules, antlrAlternative):
     return rule
 
 
-def __antlrRuleConverter(pyparsingRules, antlrRule):
+def __antlrRuleConverter(mo_parsingRules, antlrRule):
     rule = None
-    rule = __antlrAlternativesConverter(pyparsingRules, antlrRule)
+    rule = __antlrAlternativesConverter(mo_parsingRules, antlrRule)
     assert rule != None
     rule(antlrRule.ruleName)
     return rule
 
 
 def antlrConverter(antlrGrammarTree):
-    pyparsingRules = {}
+    mo_parsingRules = {}
 
     antlrTokens = {}
     for antlrToken in antlrGrammarTree.tokens:
         antlrTokens[antlrToken.token_ref] = antlrToken.lit
     for antlrTokenName, antlrToken in list(antlrTokens.items()):
-        pyparsingRules[antlrTokenName] = Literal(antlrToken)
+        mo_parsingRules[antlrTokenName] = Literal(antlrToken)
 
     antlrRules = {}
     for antlrRule in antlrGrammarTree.rules:
         antlrRules[antlrRule.ruleName] = antlrRule
-        pyparsingRules[antlrRule.ruleName] = Forward()  # antlr is a top down grammar
+        mo_parsingRules[antlrRule.ruleName] = Forward()  # antlr is a top down grammar
     for antlrRuleName, antlrRule in list(antlrRules.items()):
-        pyparsingRule = __antlrRuleConverter(pyparsingRules, antlrRule)
-        assert pyparsingRule != None
-        pyparsingRules[antlrRuleName] <<= pyparsingRule
+        mo_parsingRule = __antlrRuleConverter(mo_parsingRules, antlrRule)
+        assert mo_parsingRule != None
+        mo_parsingRules[antlrRuleName] <<= mo_parsingRule
 
-    return pyparsingRules
+    return mo_parsingRules

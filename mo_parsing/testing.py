@@ -12,7 +12,7 @@ from mo_parsing.tokens import Keyword
 from mo_parsing.utils import __compat__
 
 
-class reset_mo_parsing_context:
+class reset_parsing_context:
     """
     Context manager to be used when writing unit tests that modify mo_parsing config values:
      - packrat parsing
@@ -22,7 +22,7 @@ class reset_mo_parsing_context:
      - __diag__ settings
 
     Example:
-        with reset_mo_parsing_context():
+        with reset_parsing_context():
             # test that literals used to construct a grammar are automatically suppressed
             default_literal(Suppress)
 

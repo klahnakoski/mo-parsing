@@ -1,6 +1,6 @@
 # removeLineBreaks.py
 #
-# Demonstration of the pyparsing module, converting text files
+# Demonstration of the mo_parsing module, converting text files
 # with hard line-breaks to text files with line breaks only
 # between paragraphs.  (Helps when converting downloads from Project
 # Gutenberg - https://www.gutenberg.org/ - to import to word processing apps
@@ -11,7 +11,7 @@
 #
 # Copyright 2006, by Paul McGuire
 #
-import pyparsing as pp
+import mo_parsing as pp
 
 line_end = pp.LineEnd()
 

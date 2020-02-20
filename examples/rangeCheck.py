@@ -8,7 +8,7 @@
 # Copyright 2011,2015 Paul T. McGuire
 #
 
-from pyparsing import Word, nums, Suppress, Optional
+from mo_parsing import Word, nums, Suppress, Optional
 from datetime import datetime
 
 

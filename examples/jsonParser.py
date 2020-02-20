@@ -8,7 +8,7 @@
 # Updated 8 Jan 2007 - fixed dict grouping bug, and made elements and
 #   members optional in array and object collections
 #
-# Updated 9 Aug 2016 - use more current pyparsing constructs/idioms
+# Updated 9 Aug 2016 - use more current mo_parsing constructs/idioms
 #
 json_bnf = """
 object
@@ -33,8 +33,8 @@ value
     null
 """
 
-import pyparsing as pp
-from pyparsing import pyparsing_common as ppc
+import mo_parsing as pp
+from mo_parsing import mo_parsing_common as ppc
 
 
 def make_keyword(kwd_str, kwd_value):

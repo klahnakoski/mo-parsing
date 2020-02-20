@@ -1,10 +1,10 @@
 # adventureEngine.py
 # Copyright 2005-2006, Paul McGuire
 #
-# Updated 2012 - latest pyparsing API
+# Updated 2012 - latest mo_parsing API
 #
 
-from pyparsing import *
+from mo_parsing import *
 import random
 import string
 

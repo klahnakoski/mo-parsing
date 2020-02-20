@@ -23,7 +23,7 @@ Referer
 Client Software
 """
 
-from pyparsing import (
+from mo_parsing import (
     alphas,
     nums,
     dblQuotedString,

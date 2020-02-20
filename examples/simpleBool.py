@@ -2,7 +2,7 @@
 # simpleBool.py
 #
 # Example of defining a boolean logic parser using
-# the operatorGrammar helper method in pyparsing.
+# the operatorGrammar helper method in mo_parsing.
 #
 # In this example, parse actions associated with each
 # operator expression will "compile" the expression
@@ -12,7 +12,7 @@
 # Copyright 2006, by Paul McGuire
 # Updated 2013-Sep-14 - improved Python 2/3 cross-compatibility
 #
-from pyparsing import infixNotation, opAssoc, Keyword, Word, alphas
+from mo_parsing import infixNotation, opAssoc, Keyword, Word, alphas
 
 # define classes to be built at parse time, as each matching
 # expression type is parsed

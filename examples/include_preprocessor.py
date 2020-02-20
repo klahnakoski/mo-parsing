@@ -1,11 +1,11 @@
 #
 # include_preprocessor.py
 #
-# Short pyparsing script to perform #include inclusions similar to the C preprocessor
+# Short mo_parsing script to perform #include inclusions similar to the C preprocessor
 #
 # Copyright 2019, Paul McGuire
 #
-import pyparsing as pp
+import mo_parsing as pp
 from pathlib import Path
 
 # parser elements to be used to assemble into #include parser

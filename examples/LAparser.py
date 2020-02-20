@@ -1,6 +1,6 @@
 """
 Purpose:   Linear Algebra Parser
-Based on:  SimpleCalc.py example (author Paul McGuire) in pyparsing-1.3.3
+Based on:  SimpleCalc.py example (author Paul McGuire) in mo_parsing-1.3.3
 Author:    Mike Ellis
 Copyright: Ellis & Grant, Inc. 2005
 License:   You may freely use, modify, and distribute this software.
@@ -58,7 +58,7 @@ Usage: To process LA equations embedded in source files, import this module and
 """
 
 import re, sys
-from pyparsing import (
+from mo_parsing import (
     Word,
     alphas,
     ParseException,

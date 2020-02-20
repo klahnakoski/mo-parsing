@@ -2,13 +2,13 @@
 #
 # Copyright 2009, 2011 Paul McGuire
 #
-# Expansion on the pyparsing example simpleArith.py, to include evaluation
+# Expansion on the mo_parsing example simpleArith.py, to include evaluation
 # of the parsed tokens.
 #
 # Added support for exponentiation, using right-to-left evaluation of
 # operands
 #
-from pyparsing import (
+from mo_parsing import (
     Word,
     nums,
     alphas,

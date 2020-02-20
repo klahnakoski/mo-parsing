@@ -4,7 +4,7 @@
 # Copyright (c) 2003,2019 Paul McGuire
 #
 
-import pyparsing as pp
+import mo_parsing as pp
 
 atomicWeight = {
     "O": 15.9994,

@@ -5,9 +5,7 @@
 # definition at https://www.sqlite.org/lang_select.html
 #
 import sys
-from pyparsing import *
-
-ParserElement.enablePackrat()
+from mo_parsing import *
 
 LPAR, RPAR, COMMA = map(Suppress, "(),")
 DOT, STAR = map(Literal, ".*")
@@ -28,7 +26,7 @@ any_keyword = MatchFirst(keywords.values())
 
 quoted_identifier = QuotedString('"', escQuote='""')
 identifier = (~any_keyword + Word(alphas, alphanums + "_")).setParseAction(
-    pyparsing_common.downcaseTokens
+    mo_parsing_common.downcaseTokens
 ) | quoted_identifier
 collation_name = identifier.copy()
 column_name = identifier.copy()
@@ -45,7 +43,7 @@ comment = "--" + restOfLine
 # expression
 expr = Forward().setName("expression")
 
-numeric_literal = pyparsing_common.number
+numeric_literal = mo_parsing_common.number
 string_literal = QuotedString("'", escQuote="''")
 blob_literal = Regex(r"[xX]'[0-9A-Fa-f]+'")
 literal_value = (

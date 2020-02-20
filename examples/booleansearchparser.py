@@ -1,10 +1,10 @@
 """
-Boolean Search query parser (Based on searchparser: https://github.com/pyparsing/pyparsing/blob/master/examples/searchparser.py)
+Boolean Search query parser (Based on searchparser: https://github.com/mo_parsing/mo_parsing/blob/master/examples/searchparser.py)
 
 version 2018-07-22
 
 This search query parser uses the excellent Pyparsing module
-(http://pyparsing.sourceforge.net/) to parse search queries by users.
+(http://mo_parsing.sourceforge.net/) to parse search queries by users.
 It handles:
 
 * 'and', 'or' and implicit 'and' operators;
@@ -81,7 +81,7 @@ TODO:
 - add more kinds of wildcards ('*' at the beginning and '*' inside a word)?
 
 """
-from pyparsing import (
+from mo_parsing import (
     Word,
     alphanums,
     Keyword,

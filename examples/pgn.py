@@ -9,8 +9,8 @@
 #
 # Copyright 2004, by Alberto Santini http://www.albertosantini.it/chess/
 #
-from pyparsing import alphanums, nums, quotedString
-from pyparsing import (
+from mo_parsing import alphanums, nums, quotedString
+from mo_parsing import (
     Combine,
     Forward,
     Group,
@@ -22,7 +22,7 @@ from pyparsing import (
     ZeroOrMore,
     Word,
 )
-from pyparsing import ParseException
+from mo_parsing import ParseException
 
 #
 # define pgn grammar

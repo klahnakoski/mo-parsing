@@ -1,11 +1,11 @@
 # greeting.py
 #
-# Demonstration of the pyparsing module, on the prototypical "Hello, World!"
+# Demonstration of the mo_parsing module, on the prototypical "Hello, World!"
 # example
 #
 # Copyright 2003, 2019 by Paul McGuire
 #
-import pyparsing as pp
+import mo_parsing as pp
 
 # define grammar
 greet = pp.Word(pp.alphas) + "," + pp.Word(pp.alphas) + pp.oneOf("! ? .")

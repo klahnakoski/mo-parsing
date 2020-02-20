@@ -31,7 +31,7 @@
 #
 
 from datetime import datetime, time, timedelta
-import pyparsing as pp
+import mo_parsing as pp
 import calendar
 
 __all__ = ["time_expression"]
@@ -50,7 +50,7 @@ integer_word = pp.MatchFirst(
         start=1,
     )
 )
-integer = pp.pyparsing_common.integer | integer_word
+integer = pp.mo_parsing_common.integer | integer_word
 
 CK = pp.CaselessKeyword
 CL = pp.CaselessLiteral

@@ -1,13 +1,13 @@
 #
 # linenoExample.py
 #
-# an example of using the location value returned by pyparsing to
+# an example of using the location value returned by mo_parsing to
 # extract the line and column number of the location of the matched text,
 # or to extract the entire line of text.
 #
 # Copyright (c) 2006, Paul McGuire
 #
-from pyparsing import *
+from mo_parsing import *
 
 data = """Now is the time
 for all good men

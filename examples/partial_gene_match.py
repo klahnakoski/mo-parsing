@@ -2,7 +2,7 @@
 #
 #  Example showing how to use the CloseMatch class, to find strings in a gene with up to 'n' mismatches
 #
-import pyparsing as pp
+import mo_parsing as pp
 
 from urllib.request import urlopen
 
@@ -16,7 +16,7 @@ with urlopen(data_url) as datafile:
 Sample header:
 >NC_001799-6-2978-2778 | organism=Toxoplasma_gondii_RH | location=NC_001799:2778-2978(-) | length=201
 """
-integer = pp.pyparsing_common.integer
+integer = pp.mo_parsing_common.integer
 genebit = pp.Group(
     ">"
     + pp.Word(pp.alphanums.upper() + "-_")("gene_id")

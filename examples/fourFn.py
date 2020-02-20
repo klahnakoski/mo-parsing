@@ -1,6 +1,6 @@
 # fourFn.py
 #
-# Demonstration of the pyparsing module, implementing a simple 4-function expression parser,
+# Demonstration of the mo_parsing module, implementing a simple 4-function expression parser,
 # with support for scientific notation, and symbols for e and pi.
 # Extended to add exponentiation and simple built-in functions.
 # Extended test cases, simplified pushFirst method.
@@ -13,7 +13,7 @@
 import math
 import operator
 
-from pyparsing import (
+from mo_parsing import (
     Literal,
     Word,
     Group,
@@ -65,7 +65,7 @@ def BNF():
         # fnumber = Combine(Word("+-"+nums, nums) +
         #                    Optional("." + Optional(Word(nums))) +
         #                    Optional(e + Word("+-"+nums, nums)))
-        # or use provided pyparsing_common.number, but convert back to str:
+        # or use provided mo_parsing_common.number, but convert back to str:
         # fnumber = ppc.number().addParseAction(lambda t: str(t[0]))
         fnumber = Regex(r"[+-]?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?")
         ident = Word(alphas, alphanums + "_$")

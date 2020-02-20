@@ -46,7 +46,7 @@ tests = """\
 4,294,967,295.000
 """
 
-from pyparsing import Regex
+from mo_parsing import Regex
 
 comma_decimal = Regex(r"\d{1,2}(([ .])\d\d\d(\2\d\d\d)*)?,\d*")
 comma_decimal.setParseAction(

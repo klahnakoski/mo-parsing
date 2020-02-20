@@ -8,7 +8,7 @@ __version__ = "1.0"
 __author__ = "Daniel 'Dang' Griffith <pythondev - dang at lazytwinacres . net>"
 
 
-from pyparsing import (
+from mo_parsing import (
     Literal,
     CaselessLiteral,
     Word,

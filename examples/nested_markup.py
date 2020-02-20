@@ -5,7 +5,7 @@
 #
 # Copyright 2019, Paul McGuire
 #
-import pyparsing as pp
+import mo_parsing as pp
 
 wiki_markup = pp.Forward()
 
@@ -51,6 +51,6 @@ Here is a simple Wiki input:
   ital{This is in italics}.
   bold{This is in bold}!
   bold{This is in ital{bold italics}! But this is just bold.}
-  Here's a URL to link{Pyparsing's bold{Wiki Page}!->https://github.com/pyparsing/pyparsing/wiki}
+  Here's a URL to link{Pyparsing's bold{Wiki Page}!->https://github.com/mo_parsing/mo_parsing/wiki}
 """
 print(wiki_markup.transformString(wiki_input))

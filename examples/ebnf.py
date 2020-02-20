@@ -1,5 +1,5 @@
-# This module tries to implement ISO 14977 standard with pyparsing.
-# pyparsing version 1.1 or greater is required.
+# This module tries to implement ISO 14977 standard with mo_parsing.
+# mo_parsing version 1.1 or greater is required.
 
 # ISO 14977 standardize The Extended Backus-Naur Form(EBNF) syntax.
 # You can read a final draft version here:
@@ -8,7 +8,7 @@
 # Submitted 2004 by Seo Sanghyeon
 #
 
-from pyparsing import *
+from mo_parsing import *
 
 
 all_names = """

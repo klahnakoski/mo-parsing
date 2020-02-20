@@ -421,11 +421,11 @@ class ParserElement(object):
                             exc.__cause__ = parse_action_exc
                             raise exc
 
-                        if isinstance(tokens, list):
+                        if isinstance(tokens, (list, tuple)):
                             tokens = ParseResults(self, tokens)
                         elif isinstance(tokens, ParseResults):
                             pass
-                        elif isinstance(tokens, (basestring, int, float, datetime)):
+                        elif isinstance(tokens, (basestring, int, float, datetime, set, dict)):
                             tokens = ParseResults(self, [tokens])
                         elif tokens is None:
                             tokens = ParseResults(self, [])

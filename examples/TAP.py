@@ -1,7 +1,7 @@
 #
 # TAP.py - TAP parser
 #
-# A pyparsing parser to process the output of the Perl
+# A mo_parsing parser to process the output of the Perl
 #   "Test Anything Protocol"
 #   (https://metacpan.org/pod/release/PETDANCE/TAP-1.00/TAP.pm)
 #
@@ -22,7 +22,7 @@
 # Copyright 2008, by Paul McGuire
 #
 
-from pyparsing import (
+from mo_parsing import (
     ParserElement,
     LineEnd,
     Optional,

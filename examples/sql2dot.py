@@ -47,7 +47,7 @@ alter table only student_registrations
     (class_id) references classes(class_id);
 """.upper()
 
-from pyparsing import (
+from mo_parsing import (
     Literal,
     Word,
     delimitedList,
