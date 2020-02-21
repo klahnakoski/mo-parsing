@@ -21,7 +21,7 @@ def test(strng):
         bnf = CORBA_IDL_BNF()
         tokens = bnf.parseString(strng)
         print("tokens = ")
-        pprint.pprint(tokens.asList())
+        print(tokens.asList())
         imgname = "idlParse%02d.bmp" % testnum
         testnum += 1
         # ~ tree2image.str2image( str(tokens.asList()), imgname )

@@ -6,7 +6,7 @@ from importlib import import_module
 
 from mo_files import File
 
-from mo_parsing.testing import reset_parsing_context
+from tests.utils import reset_parsing_context
 
 modules = [f.name for f in File("examples").children]
 

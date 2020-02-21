@@ -1,11 +1,10 @@
 # encoding: utf-8
-from collections import Mapping, MutableMapping
+from collections import MutableMapping
 from copy import copy
-from pprint import pprint
 
 from mo_logs import Log
 
-from mo_parsing.utils import PY_3, _ustr, _xml_escape, basestring, __compat__
+from mo_parsing.utils import PY_3, _ustr, __compat__
 
 Suppress, ParserElement, Forward, Group, Dict, Token = [None] * 6
 

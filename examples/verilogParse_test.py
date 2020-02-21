@@ -21,4 +21,4 @@ toptest = """
     output [5:0] out;
     COUNT_BITS8 count_bits( .IN( in ), .C( out ) );
     endmodule"""
-pprint.pprint(test(toptest).asList())
+print(test(toptest).asList())

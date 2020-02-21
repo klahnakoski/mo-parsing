@@ -25,6 +25,6 @@ for toks, strt, end in link.scanString(htmlText):
 
 # Create dictionary from list comprehension, assembled from each pair of tokens returned
 # from a matched URL.
-pprint.pprint(
+print(
     {toks.body: toks.startA.href for toks, strt, end in link.scanString(htmlText)}
 )

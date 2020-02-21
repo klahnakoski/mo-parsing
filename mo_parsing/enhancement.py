@@ -117,7 +117,7 @@ class FollowedBy(ParseElementEnhance):
         label = data_word + FollowedBy(':')
         attr_expr = Group(label + Suppress(':') + OneOrMore(data_word, stopOn=label).setParseAction(' '.join))
 
-        OneOrMore(attr_expr).parseString("shape: SQUARE color: BLACK posn: upper left").pprint()
+        OneOrMore(attr_expr).parseString("shape: SQUARE color: BLACK posn: upper left")
 
     prints::
 
@@ -258,14 +258,14 @@ class OneOrMore(_MultipleMatch):
         attr_expr = Group(label + Suppress(':') + OneOrMore(data_word).setParseAction(' '.join))
 
         text = "shape: SQUARE posn: upper left color: BLACK"
-        OneOrMore(attr_expr).parseString(text).pprint()  # Fail! read 'color' as data instead of next label -> [['shape', 'SQUARE color']]
+        OneOrMore(attr_expr).parseString(text)  # Fail! read 'color' as data instead of next label -> [['shape', 'SQUARE color']]
 
         # use stopOn attribute for OneOrMore to avoid reading label string as part of the data
         attr_expr = Group(label + Suppress(':') + OneOrMore(data_word, stopOn=label).setParseAction(' '.join))
-        OneOrMore(attr_expr).parseString(text).pprint() # Better -> [['shape', 'SQUARE'], ['posn', 'upper left'], ['color', 'BLACK']]
+        OneOrMore(attr_expr).parseString(text) # Better -> [['shape', 'SQUARE'], ['posn', 'upper left'], ['color', 'BLACK']]
 
         # could also be written as
-        (attr_expr * (1,)).parseString(text).pprint()
+        (attr_expr * (1,)).parseString(text)
     """
 
     def __str__(self):

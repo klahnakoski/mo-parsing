@@ -37,7 +37,7 @@ datatable = heading + Dict(ZeroOrMore(rowData)) + trailing
 data = datatable.parseString(testData)
 print(data)
 
-# shortcut for import pprint; pprint.pprint(data.asList())
+# shortcut for import pprint; print(data.asList())
 print(data)
 
 # access all data keys

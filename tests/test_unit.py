@@ -12,7 +12,6 @@ import json
 import math
 import operator
 import pdb
-import pprint
 import re
 import sys
 import textwrap
@@ -29,7 +28,6 @@ from examples.jsonParser import jsonObject
 from examples.simpleSQL import simpleSQL
 from mo_parsing import (
     ParseException,
-    cache,
     Word,
     alphas,
     nums,
@@ -51,7 +49,6 @@ from mo_parsing import (
     CaselessLiteral,
     RecursiveGrammarException,
 )
-from mo_parsing import testing as ppt
 from mo_parsing.core import (
     CURRENT_WHITE_CHARS,
     default_literal,
@@ -85,8 +82,6 @@ from mo_parsing.helpers import (
     delimitedList,
     removeQuotes,
     cStyleComment,
-    matchPreviousLiteral,
-    matchPreviousExpr,
     infixNotation,
     opAssoc,
     countedArray,
@@ -123,6 +118,8 @@ from mo_parsing.helpers import (
 )
 
 # see which Python implementation we are running
+from tests.utils import TestParseResultsAsserts, reset_parsing_context
+
 CPYTHON_ENV = sys.platform == "win32"
 IRON_PYTHON_ENV = sys.platform == "cli"
 JYTHON_ENV = sys.platform.startswith("java")
@@ -167,7 +164,7 @@ class resetting:
             setattr(self.ob, attr, value)
 
 
-class TestParsing(ppt.TestParseResultsAsserts, TestCase):
+class TestParsing(TestParseResultsAsserts, TestCase):
     suite_context = None
 
     def setUp(self):
@@ -199,7 +196,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
                 "setDefaultWhitespaceChars updated dblQuotedString",
             )
 
-        with ppt.reset_parsing_context():
+        with reset_parsing_context():
             ParserElement.setDefaultWhitespaceChars(" \t")
             self.assertNotEqual(
                 set(dblQuotedString.parser_config.whiteChars),
@@ -244,7 +241,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
 
     def testUpdateDefaultWhitespace2(self):
 
-        with ppt.reset_parsing_context():
+        with reset_parsing_context():
             expr_tests = [
                 (dblQuotedString, '"abc"'),
                 (sglQuotedString, "'def'"),
@@ -2555,7 +2552,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
         success = test_patt.runTests(fail_tests, failureTests=True)[0]
         self.assertTrue(success, "failed LineStart failure mode tests (1)")
 
-        with ppt.reset_parsing_context():
+        with reset_parsing_context():
             print(r"no \n in default whitespace chars")
             ParserElement.setDefaultWhitespaceChars(" ")
 
@@ -2602,7 +2599,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
                 test[s], "A", "failed LineStart with insignificant newlines"
             )
 
-        with ppt.reset_parsing_context():
+        with reset_parsing_context():
             ParserElement.setDefaultWhitespaceChars(" ")
             for t, s, e in (LineStart() + "AAA").scanString(test):
                 print(s, e, lineno(s, test), line(s, test), ord(test[s]))
@@ -4739,7 +4736,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
                 False, "failed to match keyword using updated keyword chars"
             )
 
-        with ppt.reset_parsing_context():
+        with reset_parsing_context():
             Keyword.setDefaultKeywordChars(alphas)
             try:
                 Keyword("start").parseString("start1000")
@@ -4760,7 +4757,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
                 False, "failed to match keyword using updated keyword chars"
             )
 
-        with ppt.reset_parsing_context():
+        with reset_parsing_context():
             Keyword.setDefaultKeywordChars(alphas)
             try:
                 CaselessKeyword("START").parseString("start1000")
@@ -4949,7 +4946,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
         wd.setBreak()
 
         print("Before parsing with setBreak:", was_called)
-        with ppt.reset_parsing_context():
+        with reset_parsing_context():
             pdb.set_trace = mock_set_trace
             wd.parseString("ABC")
 
@@ -5392,7 +5389,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
         )
 
         # test compatibility mode, no longer restoring pre-2.3.1 behavior
-        with ppt.reset_parsing_context():
+        with reset_parsing_context():
             __compat__.collect_all_And_tokens = False
             __diag__.enable("warn_multiple_tokens_in_named_alternation")
             expr_a = Literal("not") + Literal("the") + Literal("bird")
@@ -5453,7 +5450,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
         )
 
         # test compatibility mode, no longer restoring pre-2.3.1 behavior
-        with ppt.reset_parsing_context():
+        with reset_parsing_context():
             __compat__.collect_all_And_tokens = False
             __diag__.enable("warn_multiple_tokens_in_named_alternation")
             expr_a = Literal("not") + Literal("the") + Literal("bird")
@@ -5586,7 +5583,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
            name is defined on a containing expression with ungrouped subexpressions that also
            have results names (default=True)
         """
-        with ppt.reset_parsing_context():
+        with reset_parsing_context():
             __diag__.enable("warn_ungrouped_named_tokens_in_collection")
 
             COMMA = Suppress(",").setName("comma")
@@ -5605,7 +5602,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
          - warn_name_set_on_empty_Forward - flag to enable warnings whan a Forward is defined
            with a results name, but has no contents defined (default=False)
         """
-        with ppt.reset_parsing_context():
+        with reset_parsing_context():
             __diag__.enable("warn_name_set_on_empty_Forward")
 
             base = Forward()
@@ -5622,7 +5619,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
            incorrectly called with multiple str arguments (default=True)
         """
 
-        with ppt.reset_parsing_context():
+        with reset_parsing_context():
             __diag__.enable("warn_on_multiple_string_args_to_oneof")
 
             with self.assertWarns(
@@ -5637,7 +5634,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
            calls to ParserElement.setName() (default=False)
         """
 
-        with ppt.reset_parsing_context():
+        with reset_parsing_context():
             test_stdout = StringIO()
 
             with resetting(sys, "stdout", "stderr"):
@@ -5706,7 +5703,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
                 if isinstance(v, bool) and k not in dunders
             }
 
-        pprint.pprint(filtered_vars(vars(__diag__)), width=30)
+        print(filtered_vars(vars(__diag__)))
 
         warn_names = __diag__._warning_names
         other_names = __diag__._debug_names
@@ -5718,10 +5715,10 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
                 "__diag__.{} not set to True".format(diag_name),
             )
 
-        with ppt.reset_parsing_context():
+        with reset_parsing_context():
             # enable all warn_* diag_names
             __diag__.enable_all_warnings()
-            pprint.pprint(filtered_vars(vars(__diag__)), width=30)
+            print(filtered_vars(vars(__diag__)))
 
             # make sure they are on after being enabled
             for diag_name in warn_names:
@@ -6198,5 +6195,5 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
         )
 
 
-TestParsing.suite_context = ppt.reset_parsing_context()
+TestParsing.suite_context = reset_parsing_context()
 TestParsing.suite_context.save()

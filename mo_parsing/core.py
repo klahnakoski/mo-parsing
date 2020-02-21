@@ -4,7 +4,7 @@ import warnings
 from collections import namedtuple
 from contextlib import contextmanager
 from copy import copy
-from datetime import datetime, date
+from threading import RLock
 
 from mo_dots import Data
 from mo_logs import Log
@@ -57,6 +57,14 @@ DEFAULT_WHITE_CHARS = " \n\t\r"
 CURRENT_WHITE_CHARS = list(DEFAULT_WHITE_CHARS)
 
 DebugActions = namedtuple("DebugActions", ["TRY", "MATCH", "FAIL"])
+
+
+locker = RLock()
+def entrypoint(func):
+    def output(*args, **kwargs):
+        with locker:
+            return func(*args, **kwargs)
+    return output
 
 
 @contextmanager
@@ -520,6 +528,7 @@ class ParserElement(object):
         else:
             return True
 
+    @entrypoint
     def parseString(self, instring, parseAll=False):
         """
         Parse a string with respect to the parser definition. This function is intended as the primary interface to the
@@ -562,7 +571,6 @@ class ParserElement(object):
         ...
         mo_parsing.ParseException: Expected end of text, found 'b'  (at char 5), (line:1, col:6)
         """
-
         cache.resetCache()
         if not self.streamlined:
             self.streamline()
@@ -581,6 +589,7 @@ class ParserElement(object):
         else:
             return tokens
 
+    @entrypoint
     def scanString(self, instring, maxMatches=_MAX_INT, overlap=False):
         """
         Scan the input string for expression matches.  Each match will return the

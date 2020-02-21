@@ -55,7 +55,6 @@ class UnboundedCache(object):
 
 
 packrat_cache = UnboundedCache()
-packrat_cache_lock = Lock()
 packrat_cache_stats = Data()
 
 
