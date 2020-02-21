@@ -52,4 +52,4 @@ module_body = OneOrMore(stmt)
 
 print(data)
 parseTree = module_body.parseString(data)
-parseTree.pprint()
+print(parseTree)

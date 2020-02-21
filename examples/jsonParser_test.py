@@ -43,7 +43,7 @@ testdata = """
 """
 
 results = jsonObject.parseString(testdata)
-results.pprint()
+print(results)
 print()
 
 

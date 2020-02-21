@@ -409,7 +409,7 @@ class SkipTo(ParseElementEnhance):
                       + integer("days_open"))
 
         for tkt in ticket_expr.searchString(report):
-            print tkt.dump()
+            print tkt
 
     prints::
 
@@ -715,11 +715,11 @@ class Dict(TokenConverter):
         attr_expr = (label + Suppress(':') + OneOrMore(data_word, stopOn=label).setParseAction(' '.join))
 
         # print attributes as plain groups
-        print(OneOrMore(attr_expr).parseString(text).dump())
+        print(OneOrMore(attr_expr).parseString(text))
 
         # instead of OneOrMore(expr), parse using Dict(OneOrMore(Group(expr))) - Dict will auto-assign names
         result = Dict(OneOrMore(Group(attr_expr))).parseString(text)
-        print(result.dump())
+        print(result)
 
         # access named fields as dict entries, or output as dict
         print(result['shape'])

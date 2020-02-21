@@ -120,7 +120,7 @@ class TAPSummary:
                 self.bailReason = res.reason
                 break
 
-            # ~ print res.dump()
+            # ~ print res
             testnum = i + 1
             if res.testNumber != "":
                 if testnum != int(res.testNumber):

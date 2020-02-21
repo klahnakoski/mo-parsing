@@ -55,7 +55,7 @@ class PyparsingExpressionTestCase(unittest.TestCase):
             # expect success
             result = parsefn(test_spec.text)
             if test_spec.parse_fn == "parseString":
-                print(result.dump())
+                print(result)
                 # compare results against given list and/or dict
                 if test_spec.expected_list is not None:
                     self.assertEqual(result.asList(), test_spec.expected_list)

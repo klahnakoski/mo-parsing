@@ -92,6 +92,6 @@ leaseDef = (
 )
 
 for lease in leaseDef.searchString(sample):
-    print(lease.dump())
+    print(lease)
     print(lease.ipaddress, "->", lease.hardware.mac)
     print()

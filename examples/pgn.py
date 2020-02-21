@@ -108,4 +108,4 @@ Bxe5 Rxe5 21. Rg5 Rxe1# {Black wins} 0-1
 """
 # parse input string
 tokens = parsePGN(pgn, pgnGrammar)
-print(tokens.dump())
+print(tokens)

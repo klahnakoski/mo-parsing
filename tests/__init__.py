@@ -151,20 +151,20 @@ def runTests(
                     pp_value = postParse(t, result)
                     if pp_value is not None:
                         if isinstance(pp_value, ParseResults):
-                            Log.note(pp_value.dump())
+                            Log.note(pp_value)
                         else:
                             Log.note(str(pp_value))
                     else:
-                        Log.note(result.dump())
+                        Log.note("{{result}}", result=result)
                 except Exception as e:
-                    Log.note(result.dump(full=fullDump))
+                    Log.note("{{result}}", result=result)
                     Log.note(
                         "{0} failed: {1}: {2}".format(
                             postParse.__name__, type(e).__name__, e
                         )
                     )
             else:
-                Log.note(result.dump(full=fullDump))
+                Log.note("{{result}}", result=result)
 
         allResults.append((t, result))
 

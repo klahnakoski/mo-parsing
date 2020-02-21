@@ -51,7 +51,7 @@ class ParseResults(object):
         test("result.day")
         test("'month' in result")
         test("'minutes' in result")
-        test("result.dump()", str)
+        test("result", str)
 
     prints::
 
@@ -61,7 +61,7 @@ class ParseResults(object):
         result.day -> '31'
         'month' in result -> True
         'minutes' in result -> False
-        result.dump() -> ['1999', '/', '12', '/', '31']
+        result -> ['1999', '/', '12', '/', '31']
         - day: 31
         - month: 12
         - year: 1999
@@ -363,7 +363,7 @@ class ParseResults(object):
 
             label = Word(alphas)
             patt = label("LABEL") + OneOrMore(Word(nums))
-            print(patt.parseString("AAB 123 321").dump())
+            print(patt.parseString("AAB 123 321"))
 
             # Use pop() in a parse action to remove named result (note that corresponding value is not
             # removed from list form of results)
@@ -371,7 +371,7 @@ class ParseResults(object):
                 tokens.pop("LABEL")
                 return tokens
             patt.addParseAction(remove_LABEL)
-            print(patt.parseString("AAB 123 321").dump())
+            print(patt.parseString("AAB 123 321"))
 
         prints::
 
@@ -656,54 +656,6 @@ class ParseResults(object):
         ret = ParseResults(self.type_for_result, list(self.tokens_for_result))
         return ret
 
-    def asXML(self, doctag=None, namedItemsOnly=False, indent="", formatted=True):
-        """
-        (Deprecated) Returns the parse results as XML. Tags are created for tokens and lists that have defined results names.
-        """
-        if formatted:
-            more_indent = "  "
-            nl = "\n"
-        else:
-            indent = ""
-            more_indent = ""
-            nl = ""
-
-        no_name = "ITEM"
-
-        def toXML(tag, token, namedItemsOnly, indent):
-            """ return open iterator of not-indented tags """
-            if isinstance(token, ParseResults):
-                name = get_name(token)
-                if isinstance(token.type_for_result, Group):
-                    yield token.asXML(name or tag, not name, indent, formatted)
-                elif name:
-                    yield nl + indent + "<" + name + ">"
-                    for sub_tok in token.tokens_for_result:
-                        for x in toXML(None, sub_tok, False, indent + more_indent):
-                            yield x
-                    yield "</" + name + ">"
-                else:
-                    for sub_tok in token.tokens_for_result:
-                        for x in toXML(tag, sub_tok, namedItemsOnly, indent):
-                            yield x
-            elif tag is no_name and namedItemsOnly:
-                return
-            elif tag:
-                yield nl + indent + "<" + tag + ">"
-                yield _xml_escape(_ustr(token))
-                yield "</" + tag + ">"
-            else:
-                yield _xml_escape(_ustr(token))
-
-        name = doctag or get_name(self) or no_name
-
-        out = []
-        out.append(nl + indent + "<" + name + ">")
-        for sub_tok in self.tokens_for_result:
-            out.extend(toXML(no_name, sub_tok, namedItemsOnly, indent + more_indent))
-        out.append(nl + indent + "</" + name + ">")
-
-        return "".join(out)
 
     def __lookup(self, sub):
         for name, value in self.tokens_for_result:
@@ -743,123 +695,6 @@ class ParseResults(object):
         else:
             return None
 
-    def dump(self, indent="", full=True, include_list=True, _depth=0):
-        """
-        Diagnostic method for listing out the contents of
-        a :class:`ParseResults`. Accepts an optional ``indent`` argument so
-        that this string can be embedded in a nested display of other data.
-
-        Example::
-
-            integer = Word(nums)
-            date_str = integer("year") + '/' + integer("month") + '/' + integer("day")
-
-            result = date_str.parseString('12/31/1999')
-            print(result.dump())
-
-        prints::
-
-            ['12', '/', '31', '/', '1999']
-            - day: 1999
-            - month: 31
-            - year: 12
-        """
-        if _depth > 20:
-            Log.warning("not expected")
-        out = []
-        NL = "\n"
-        if include_list:
-            out.append(indent + _ustr(self.asList()))
-        else:
-            out.append("")
-
-        if full:
-            if self.haskeys():
-                items = sorted(
-                    ((str(k), v) for k, v in self.items()), key=lambda v: v[0]
-                )
-                for k, v in items:
-                    if out:
-                        out.append(NL)
-                    out.append("%s%s- %s: " % (indent, ("  " * _depth), k))
-                    if isinstance(v, ParseResults):
-                        if v:
-                            out.append(
-                                v.dump(
-                                    indent=indent,
-                                    full=full,
-                                    include_list=include_list,
-                                    _depth=_depth + 1,
-                                )
-                            )
-                        else:
-                            out.append(_ustr(v))
-                    else:
-                        out.append(repr(v))
-            elif any(isinstance(vv, ParseResults) for vv in self):
-                v = self
-                for i, vv in enumerate(v):
-                    if isinstance(vv, Annotation):
-                        pass
-                    elif isinstance(vv, ParseResults):
-                        out.append(
-                            "\n%s%s[%d]:\n%s%s%s"
-                            % (
-                                indent,
-                                ("  " * (_depth)),
-                                i,
-                                indent,
-                                ("  " * (_depth + 1)),
-                                vv.dump(
-                                    indent=indent,
-                                    full=full,
-                                    include_list=include_list,
-                                    _depth=_depth + 1,
-                                ),
-                            )
-                        )
-                    else:
-                        out.append(
-                            "\n%s%s[%d]:\n%s%s%s"
-                            % (
-                                indent,
-                                ("  " * (_depth)),
-                                i,
-                                indent,
-                                ("  " * (_depth + 1)),
-                                _ustr(vv),
-                            )
-                        )
-
-        return "".join(out)
-
-    def pprint(self, *args, **kwargs):
-        """
-        Pretty-printer for parsed results as a list, using the
-        `pprint <https://docs.python.org/3/library/pprint.html>`_ module.
-        Accepts additional positional or keyword args as defined for
-        `pprint.pprint <https://docs.python.org/3/library/pprint.html#pprint.pprint>`_ .
-
-        Example::
-
-            ident = Word(alphas, alphanums)
-            num = Word(nums)
-            func = Forward()
-            term = ident | num | Group('(' + func + ')')
-            func <<= ident + Group(Optional(delimitedList(term)))
-            result = func.parseString("fna a,b,(fnb c,d,200),100")
-            result.pprint(width=40)
-
-        prints::
-
-            ['fna',
-             ['a',
-              'b',
-              ['(', 'fnb', ['c', 'd', '200'], ')'],
-              '100']]
-        """
-        pprint(self.asList(), *args, **kwargs)
-
     def __getnewargs__(self):
         old_parser = self.type_for_result
         parser_type = globals().get(old_parser.__class__.__name__, ParserElement)
@@ -869,35 +704,6 @@ class ParseResults(object):
 
     def __dir__(self):
         return dir(type(self)) + list(self.keys())
-
-    @classmethod
-    def from_dict(cls, other, name=None):
-        """
-        Helper classmethod to construct a ParseResults from a dict, preserving the
-        name-value relations as results names. If an optional 'name' argument is
-        given, a nested ParseResults will be returned
-        """
-
-        def is_iterable(obj):
-            try:
-                iter(obj)
-            except Exception:
-                return False
-            else:
-                if PY_3:
-                    return not isinstance(obj, (str, bytes))
-                else:
-                    return not isinstance(obj, basestring)
-
-        ret = cls([])
-        for k, v in other.items():
-            if isinstance(v, Mapping):
-                ret += cls.from_dict(v, name=k)
-            else:
-                ret += cls([v], name=k)
-        if name is not None:
-            ret = cls([ret], name=name)
-        return ret
 
 
 def simpler(v):

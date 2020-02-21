@@ -82,7 +82,7 @@ calendars = OneOrMore(calendar)
 
 def gotEvent(s, loc, toks):
     for event in toks:
-        print(event.dump())
+        print(event)
 
 
 event.setParseAction(gotEvent)

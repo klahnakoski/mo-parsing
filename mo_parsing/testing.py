@@ -101,7 +101,7 @@ class TestParseResultsAsserts(TestCase):
         """
         result = expr.parseString(test_string, parseAll=True)
         if verbose:
-            print(result.dump())
+            print(result)
         self.assertParseResultsEquals(result, expected_list=expected_list, msg=msg)
 
     def assertParseAndCheckDict(
@@ -113,7 +113,7 @@ class TestParseResultsAsserts(TestCase):
         """
         result = expr.parseString(test_string, parseAll=True)
         if verbose:
-            print(result.dump())
+            print(result)
         self.assertParseResultsEquals(result, expected_dict=expected_dict, msg=msg)
 
     def assertRunTestResults(

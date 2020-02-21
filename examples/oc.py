@@ -198,4 +198,4 @@ main()
 """
 
 ast = program.parseString(test, parseAll=True)
-ast.pprint()
+print(ast)

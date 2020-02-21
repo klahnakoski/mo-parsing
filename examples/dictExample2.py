@@ -37,7 +37,7 @@ datatable = heading + Dict(ZeroOrMore(rowData)) + trailing
 
 # now parse data and print results
 data = datatable.parseString(testData)
-print(data.dump())
+print(data)
 print("data keys=", list(data.keys()))
 print("data['min']=", data["min"])
 print("sum(data['min']) =", sum(data["min"]))

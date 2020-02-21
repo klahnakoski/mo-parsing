@@ -235,7 +235,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
             """
 
             parsed_program = program.parseString(test)
-            print(parsed_program.dump())
+            print(parsed_program)
             self.assertEqual(
                 len(parsed_program),
                 3,
@@ -258,7 +258,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
                 parser = Group(expr[1, ...] + Optional(NL))[1, ...]
                 test_string = "\n".join([test_str] * 3)
                 result = parser.parseString(test_string, parseAll=True)
-                print(result.dump())
+                print(result)
                 self.assertEqual(len(result), 1, "failed {!r}".format(test_string))
 
             ParserElement.setDefaultWhitespaceChars(" \t")
@@ -267,7 +267,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
                 parser = Group(expr[1, ...] + Optional(NL))[1, ...]
                 test_string = "\n".join([test_str] * 3)
                 result = parser.parseString(test_string, parseAll=True)
-                print(result.dump())
+                print(result)
                 self.assertEqual(len(result), 3, "failed {!r}".format(test_string))
 
             ParserElement.setDefaultWhitespaceChars(" \n\t")
@@ -276,7 +276,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
                 parser = Group(expr[1, ...] + Optional(NL))[1, ...]
                 test_string = "\n".join([test_str] * 3)
                 result = parser.parseString(test_string, parseAll=True)
-                print(result.dump())
+                print(result)
                 self.assertEqual(len(result), 1, "failed {!r}".format(test_string))
 
     def testParseFourFn(self):
@@ -424,7 +424,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
         jsons = json.dumps({"glossary": {"title": "example glossary"}})
         expected = [["glossary", [["title", "example glossary"]]]]
         result = jsonObject.parseString(jsons)
-        result.pprint()
+        print(result)
         self.assertEqual(result.asList(), expected, "failed test {}".format(jsons))
 
     def testParseJSONData(self):
@@ -769,7 +769,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
 
         for t, exp in zip((test1, test2, test3, test4, test5), expected):
             result = jsonObject.parseString(t)
-            result.pprint()
+            print(result)
             self.assertEqual(result.asList(), exp, "failed test {}".format(t))
 
     def testParseCommaSeparatedValues(self):
@@ -800,7 +800,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
             print(results)
             for t in tests:
                 if not (len(results) > t[0] and results[t[0]] == t[1]):
-                    print("$$$", results.dump())
+                    print("$$$", results)
                     print("$$$", results[0])
                 self.assertTrue(
                     len(results) > t[0] and results[t[0]] == t[1],
@@ -863,7 +863,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
                 bnf = idlParse.CORBA_IDL_BNF()
                 tokens = bnf.parseString(strng)
                 print("tokens = ")
-                tokens.pprint()
+                print(tokens)
                 tokens = flatten(tokens.asList())
                 print(len(tokens))
                 self.assertEqual(
@@ -1359,7 +1359,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
         list_of_num = delimitedList(hexnum | num | name, ",")
 
         tokens = list_of_num.parseString("1, 0x2, 3, 0x4, aaa")
-        # print(tokens.dump())
+        # print(tokens)
         # self.assertParseResultsEquals(
         #     tokens,
         #     expected_list=["1", "0x2", "3", "0x4", "aaa"],
@@ -1386,7 +1386,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
         test = """Q(x,y,z):-Bloo(x,"Mitsis",y),Foo(y,z,1243),y>28,x<12,x>3"""
 
         queryRes = Query.parseString(test)
-        print(queryRes.dump())
+        print(queryRes)
         self.assertParseResultsEquals(
             queryRes.pred,
             expected_list=[["y", ">", "28"], ["x", "<", "12"], ["x", ">", "3"]],
@@ -2112,7 +2112,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
             print(test[s:e], "->", t)
             (expectedType, expectedEmpty, expectedBG, expectedFG) = next(resIter)
 
-            print(t.dump())
+            print(t)
             if "startBody" in t:
                 self.assertEqual(
                     bool(t.empty),
@@ -2342,7 +2342,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
         expr = Regex(r"\w+ (\d+) (\d+) (\w+)", asGroupList=True)
         expected_group_list = [tuple(test_str.split()[1:])]
         result = expr.parseString(test_str)
-        print(result.dump())
+        print(result)
         print(expected_group_list)
         self.assertParseResultsEquals(
             result,
@@ -2355,7 +2355,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
             r"\w+ (?P<num1>\d+) (?P<num2>\d+) (?P<last_word>\w+)", asMatch=True
         )
         result = expr.parseString(test_str)
-        print(result.dump())
+        print(result)
         print(result[0].groups())
         print(expected_group_list)
         self.assertEqual(
@@ -2446,7 +2446,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
         ]:
             # print(expr.searchString(s))
             result = sum(expr.searchString(s))
-            print(result.dump())
+            print(result)
             self.assertParseResultsEquals(result, expected_list, expected_dict)
 
         # infinite loop test - from Issue #127
@@ -2458,7 +2458,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
 
         results = pattern.searchString(string_test)
         try:
-            print(results.dump())
+            print(results)
         except RecursionError:
             self.assertTrue(False, "got maximum excursion limit exception")
         else:
@@ -2649,7 +2649,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
             res3 = bnf3.parseString(test)
             first = res3[0]
             rest = res3[1]
-            # ~ print res3.dump()
+            # ~ print res3
             print(repr(rest), "=?", repr(test[len(first) + 1 :]))
             self.assertEqual(
                 rest,
@@ -3003,12 +3003,12 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
 
         grammar = OneOrMore(Word(nums))("ints") + OneOrMore(Word(alphas))("words")
         res = grammar.parseString("123 456 ABC DEF")
-        print(res.dump())
+        print(res)
         origInts = res.ints.asList()
         origWords = res.words.asList()
         del res[1]
         del res["words"]
-        print(res.dump())
+        print(res)
         self.assertEqual(res[1], "ABC", "failed to delete 0'th element correctly")
         self.assertEqual(
             res.ints.asList(),
@@ -3070,7 +3070,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
             tagStart.setParseAction(attrib)
             result = expr.searchString(data)
 
-            print(result.dump())
+            print(result)
             self.assertEqual(
                 result.asList(),
                 exp,
@@ -3102,7 +3102,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
 
         expected = [[["ax", "+", "by"], "*C"]]
         result = expr.parseString(teststring)
-        print(result.dump())
+        print(result)
         self.assertEqual(
             result.asList(),
             expected,
@@ -3121,7 +3121,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
         expected = [[["ax", "+", "by"], "*C"]]
         expr = nestedExpr("[")
         result = expr.parseString(teststring)
-        print(result.dump())
+        print(result)
         self.assertEqual(
             result.asList(),
             expected,
@@ -3137,7 +3137,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
         expected = [[["ax", "+", "by"], "*C"]]
         expr = nestedExpr(closer="]")
         result = expr.parseString(teststring)
-        print(result.dump())
+        print(result)
         self.assertEqual(
             result.asList(),
             expected,
@@ -3158,7 +3158,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
         expected = [[["ax", "+", "by"], "*C"]]
         # expr = nestedExpr(opener, closer)
         result = expr.parseString(teststring)
-        print(result.dump())
+        print(result)
         self.assertEqual(
             result.asList(),
             expected,
@@ -3185,7 +3185,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
         ]
         expr = nestedExpr(ignoreExpr=comment)
         result = expr.parseString(teststring)
-        print(result.dump())
+        print(result)
         self.assertEqual(
             result.asList(),
             expected,
@@ -3214,7 +3214,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
         ]
         expr = nestedExpr(ignoreExpr=(comment ^ quotedString))
         result = expr.parseString(teststring)
-        print(result.dump())
+        print(result)
         self.assertEqual(
             result.asList(),
             expected,
@@ -3499,7 +3499,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
                 test.strip("{}").split(),
                 "failed to parse Each expression %r" % test,
             )
-            print(result.dump())
+            print(result)
 
         with self.assertRaises(ParseException):
             exp.parseString("{bar}")
@@ -3588,7 +3588,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
             print(expected)
             print(result)
             for pd in person_data.searchString(test):
-                print(pd.dump())
+                print(pd)
             print()
             self.assertEqual(
                 expected,
@@ -3627,7 +3627,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
         id_ref = locatedExpr("ID" + Word(alphanums, exact=12)("id"))
 
         res = id_ref.searchString(samplestr1)[0][0]
-        print(res.dump())
+        print(res)
         self.assertEqual(
             samplestr1[res.locn_start : res.locn_end],
             "ID PARI12345678",
@@ -3787,7 +3787,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
         result = (Optional("foo")("one") & Optional("bar")("two")).parseString(
             "bar foo"
         )
-        print(result.dump())
+        print(result)
         self.assertEqual(sorted(result.keys()), ["one", "two"])
 
     def testUnicodeExpression(self):
@@ -4846,7 +4846,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
 
         vals.addParseAction(add_total)
         results = vals.parseString("244 23 13 2343")
-        print(results.dump())
+        print(results)
         self.assertParseResultsEquals(
             results,
             expected_dict={"int_values": [244, 23, 13, 2343], "total": 2623},
@@ -4861,7 +4861,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
         result1 = line1.parseString("Mauney 46.5")
 
         print("### before parse action is added ###")
-        print("result1.dump():\n" + result1.dump() + "\n")
+        print("result1:\n" + result1 + "\n")
         before_pa_dict = result1.asDict()
 
         line1.setParseAction(lambda t: t)
@@ -4870,7 +4870,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
         after_pa_dict = result1.asDict()
 
         print("### after parse action was added ###")
-        print("result1.dump():\n" + result1.dump() + "\n")
+        print("result1:\n" + result1 + "\n")
         self.assertEqual(
             before_pa_dict,
             after_pa_dict,
@@ -4911,7 +4911,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
 
         a, aEnd = makeHTMLTags("a")
         attrs = a.parseString("<a href='blah'>")
-        print(attrs.dump())
+        print(attrs)
         self.assertParseResultsEquals(
             attrs,
             expected_dict={
@@ -4925,7 +4925,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
     def testFollowedBy(self):
         expr = Word(alphas)("item") + FollowedBy(integer("qty"))
         result = expr.parseString("balloon 99")
-        print(result.dump())
+        print(result)
         self.assertTrue("qty" in result, "failed to capture results name in FollowedBy")
         self.assertEqual(
             result.asDict(),
@@ -5037,7 +5037,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
             nüfus=4279677"""
         result = Dict(OneOrMore(Group(key_value))).parseString(sample)
 
-        print(result.dump())
+        print(result)
         self.assertParseResultsEquals(
             result,
             expected_dict={"şehir": "İzmir", "ülke": "Türkiye", "nüfus": 4279677},
@@ -5092,7 +5092,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
         module_body = OneOrMore(stmt)
 
         parseTree = module_body.parseString(data)
-        parseTree.pprint()
+        print(parseTree)
         self.assertEqual(
             parseTree.asList(),
             [
@@ -5160,7 +5160,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
         print(text)
 
         result = parser.parseString(text)
-        print(result.dump())
+        print(result)
         self.assertEqual(result.a, 100, "invalid indented block result")
         self.assertEqual(result.c.c1, 200, "invalid indented block result")
         self.assertEqual(result.c.c2.c21, 999, "invalid indented block result")
@@ -5490,11 +5490,11 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
             a = 10
             b = 20
             """
-            ).dump()
+            )
         )
 
         try:
-            print(key_value_dict.parseString("").dump())
+            print(key_value_dict.parseString(""))
         except ParseException as pe:
             print(ParseException.explain(pe))
         else:
@@ -6051,7 +6051,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
         g1 = "XXX" + (aaa | bbb | ccc)[...]
         teststring = "XXX b bb a bbb bbbb aa bbbbb :c bbbbbb aaa"
         names = []
-        print(g1.parseString(teststring).dump())
+        print(g1.parseString(teststring))
         for t in g1.parseString(teststring):
             print(t, repr(t))
             try:
@@ -6083,7 +6083,7 @@ class TestParsing(ppt.TestParseResultsAsserts, TestCase):
         print("verify behavior of ParseResults.get()")
         # use sum() to merge separate groups into single ParseResults
         res = sum(g1.parseString(teststring)[1:])
-        print(res.dump())
+        print(res)
         print(res.get("A", "A not found"))
         print(res.get("D", "!D"))
         self.assertEqual(

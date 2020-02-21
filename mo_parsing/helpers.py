@@ -327,14 +327,14 @@ def dictOf(key, value):
 
         text = "shape: SQUARE posn: upper left color: light blue texture: burlap"
         attr_expr = (label + Suppress(':') + OneOrMore(data_word, stopOn=label).setParseAction(' '.join))
-        print(OneOrMore(attr_expr).parseString(text).dump())
+        print(OneOrMore(attr_expr).parseString(text))
 
         attr_label = label
         attr_value = Suppress(':') + OneOrMore(data_word, stopOn=label).setParseAction(' '.join)
 
         # similar to Dict, but simpler call format
         result = dictOf(attr_label, attr_value).parseString(text)
-        print(result.dump())
+        print(result)
         print(result['shape'])
         print(result.shape)  # object attribute access works too
         print(result.asDict())
@@ -1124,7 +1124,7 @@ def indentedBlock(blockStatementExpr, indentStack, indent=True):
         module_body = OneOrMore(stmt)
 
         parseTree = module_body.parseString(data)
-        parseTree.pprint()
+        print(parseTree)
 
     prints::
 

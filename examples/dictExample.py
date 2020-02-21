@@ -38,7 +38,7 @@ data = datatable.parseString(testData)
 print(data)
 
 # shortcut for import pprint; pprint.pprint(data.asList())
-data.pprint()
+print(data)
 
 # access all data keys
 print("data keys=", list(data.keys()))

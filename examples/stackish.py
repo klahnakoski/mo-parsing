@@ -100,5 +100,5 @@ tests = """\
 for test in tests:
     if test:
         print(test)
-        print(item.parseString(test).dump())
+        print(item.parseString(test))
         print()
