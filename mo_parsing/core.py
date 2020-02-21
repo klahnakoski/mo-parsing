@@ -10,21 +10,53 @@ from mo_dots import Data
 from mo_logs import Log
 
 from mo_parsing.cache import packrat_cache
-from mo_parsing.exceptions import ParseBaseException, ParseException, ParseFatalException, conditionAsParseAction
+from mo_parsing.exceptions import (
+    ParseBaseException,
+    ParseException,
+    ParseFatalException,
+    conditionAsParseAction,
+)
 from mo_parsing.results import ParseResults
-from mo_parsing.utils import PY_3, _MAX_INT, _defaultExceptionDebugAction, _defaultStartDebugAction, \
-    _defaultSuccessDebugAction, _trim_arity, _ustr, basestring, __diag__, noop
+from mo_parsing.utils import (
+    PY_3,
+    _MAX_INT,
+    _defaultExceptionDebugAction,
+    _defaultStartDebugAction,
+    _defaultSuccessDebugAction,
+    _trim_arity,
+    _ustr,
+    basestring,
+    __diag__,
+    noop,
+)
 
 # import later
-SkipTo, ZeroOrMore, OneOrMore, Optional, NotAny, Suppress, _flatten, replaceWith, quotedString, And, MatchFirst, Or, Each, Empty, StringEnd, Literal, Token, Group = [None] * 18
+(
+    SkipTo,
+    ZeroOrMore,
+    OneOrMore,
+    Optional,
+    NotAny,
+    Suppress,
+    _flatten,
+    replaceWith,
+    quotedString,
+    And,
+    MatchFirst,
+    Or,
+    Each,
+    Empty,
+    StringEnd,
+    Literal,
+    Token,
+    Group,
+) = [None] * 18
 
 DEBUG = False
 DEFAULT_WHITE_CHARS = " \n\t\r"
 CURRENT_WHITE_CHARS = list(DEFAULT_WHITE_CHARS)
 
 DebugActions = namedtuple("DebugActions", ["TRY", "MATCH", "FAIL"])
-
-
 
 
 @contextmanager
@@ -111,15 +143,21 @@ class ParserElement(object):
         self.parser_config.skipWhitespace = True
         self.parser_config.copyDefaultWhiteChars = True
         self.parser_config.whiteChars = CURRENT_WHITE_CHARS
-        self.parser_config.mayReturnEmpty = False # used when checking for left-recursion
+        self.parser_config.mayReturnEmpty = (
+            False  # used when checking for left-recursion
+        )
         self.parser_config.keepTabs = False
         self.parser_config.debug = False
         self.streamlined = False
-        self.parser_config.mayIndexError = True # used to optimize exception handling for subclasses that don't advance parse index
+        self.parser_config.mayIndexError = True  # used to optimize exception handling for subclasses that don't advance parse index
         self.parser_config.error_message = ""
         self.parser_config.modalResults = True  # used to mark results names as modal (report only last) or cumulative (list all)
-        self.parser_config.debugActions = DebugActions(noop, noop, noop)  # custom debug actions
-        self.parser_config.callPreparse = True  # used to avoid redundant calls to preParse
+        self.parser_config.debugActions = DebugActions(
+            noop, noop, noop
+        )  # custom debug actions
+        self.parser_config.callPreparse = (
+            True  # used to avoid redundant calls to preParse
+        )
         self.callDuringTry = False
         self.ignoreExprs = []
 
@@ -132,8 +170,11 @@ class ParserElement(object):
             else:
                 return CURRENT_LITERAL(Literal(expr))
         if not isinstance(expr, ParserElement):
-            warnings.warn("Cannot combine element of type %s with ParserElement" % type(expr),
-                          SyntaxWarning, stacklevel=2)
+            warnings.warn(
+                "Cannot combine element of type %s with ParserElement" % type(expr),
+                SyntaxWarning,
+                stacklevel=2,
+            )
             return None
         return expr
 
@@ -222,11 +263,14 @@ class ParserElement(object):
         """
         if breakFlag:
             _parseMethod = self._parse
+
             def breaker(instring, loc, doActions=True, callPreParse=True):
                 import pdb
+
                 # this call to pdb.set_trace() is intentional, not a checkin error
                 pdb.set_trace()
                 return _parseMethod(instring, loc, doActions, callPreParse)
+
             breaker._originalParseMethod = _parseMethod
             self._parse = breaker
         else:
@@ -274,7 +318,9 @@ class ParserElement(object):
             # note that integer fields are now ints, not strings
             date_str.parseString("1999/12/31")  # -> [1999, '/', 12, '/', 31]
         """
-        if list(fns) == [None,]:
+        if list(fns) == [
+            None,
+        ]:
             self.parseAction = []
         else:
             if not all(callable(fn) for fn in fns):
@@ -312,8 +358,11 @@ class ParserElement(object):
             result = date_str.parseString("1999/12/31")  # -> Exception: Only support years 2000 and later (at char 0), (line:1, col:1)
         """
         for fn in fns:
-            self.parseAction.append(conditionAsParseAction(fn, message=kwargs.get('message'),
-                                                           fatal=kwargs.get('fatal', False)))
+            self.parseAction.append(
+                conditionAsParseAction(
+                    fn, message=kwargs.get("message"), fatal=kwargs.get("fatal", False)
+                )
+            )
 
         self.callDuringTry = self.callDuringTry or kwargs.get("callDuringTry", False)
         return self
@@ -388,7 +437,12 @@ class ParserElement(object):
                     loc, tokens = self.parseImpl(instring, preloc, doActions)
                 except IndexError:
                     if self.parser_config.mayIndexError or preloc >= len(instring):
-                        ex = ParseException(instring, len(instring), self.parser_config.error_message, self)
+                        ex = ParseException(
+                            instring,
+                            len(instring),
+                            self.parser_config.error_message,
+                            self,
+                        )
                         packrat_cache.set(lookup, ex.__class__(*ex.args))
                         raise ex
                     raise
@@ -438,7 +492,9 @@ class ParserElement(object):
                         self.parser_config.debugActions.FAIL(instring, start, self, err)
                     raise
             if self.parser_config.debug:
-                self.parser_config.debugActions.MATCH(instring, start, loc, self, retTokens)
+                self.parser_config.debugActions.MATCH(
+                    instring, start, loc, self, retTokens
+                )
         except ParseBaseException as pe:
             # cache a copy of the exception, without the traceback
             packrat_cache.set(lookup, pe.__class__(*pe.args))
@@ -463,7 +519,6 @@ class ParserElement(object):
             return False
         else:
             return True
-
 
     def parseString(self, instring, parseAll=False):
         """
@@ -522,7 +577,7 @@ class ParserElement(object):
                 se = Empty() + StringEnd()
                 se._parse(instring, loc)
         except ParseBaseException as exc:
-             raise exc
+            raise exc
         else:
             return tokens
 
@@ -653,7 +708,10 @@ class ParserElement(object):
         """
 
         g = Group(None)
-        output = ParseResults(self, [ParseResults(g, [t]) for t, s, e in self.scanString(instring, maxMatches)])
+        output = ParseResults(
+            self,
+            [ParseResults(g, [t]) for t, s, e in self.scanString(instring, maxMatches)],
+        )
         return output
 
     def split(self, instring, maxsplit=_MAX_INT, includeSeparators=False):
@@ -899,9 +957,11 @@ class ParserElement(object):
             key = (key, key)
 
         if len(key) > 2:
-            warnings.warn("only 1 or 2 index arguments supported ({0}{1})".format(key[:5],
-                                                                                '... [{0}]'.format(len(key))
-                                                                                if len(key) > 5 else ''))
+            warnings.warn(
+                "only 1 or 2 index arguments supported ({0}{1})".format(
+                    key[:5], "... [{0}]".format(len(key)) if len(key) > 5 else ""
+                )
+            )
 
         # clip to 2 elements
         ret = self * tuple(key[:2])
@@ -993,7 +1053,7 @@ class ParserElement(object):
             startAction or _defaultStartDebugAction,
             successAction or _defaultSuccessDebugAction,
             exceptionAction or _defaultExceptionDebugAction,
-            )
+        )
         self.parser_config.debug = True
         return self
 
@@ -1089,7 +1149,7 @@ class _PendingSkip(ParserElement):
     # once another ParserElement is added, this placeholder will be replaced with a SkipTo
     def __init__(self, expr, must_skip=False):
         super(_PendingSkip, self).__init__()
-        self.strRepr = str(expr + Empty()).replace('Empty', '...')
+        self.strRepr = str(expr + Empty()).replace("Empty", "...")
         self.name = self.strRepr
         self.anchor = expr
         self.must_skip = must_skip
@@ -1097,16 +1157,21 @@ class _PendingSkip(ParserElement):
     def __add__(self, other):
         skipper = SkipTo(other).setName("...")("_skipped*")
         if self.must_skip:
+
             def must_skip(t):
-                if not t._skipped or t._skipped.asList() == ['']:
+                if not t._skipped or t._skipped.asList() == [""]:
                     del t[0]
                     t.pop("_skipped", None)
+
             def show_skip(t):
-                if t._skipped.asList()[-1:] == ['']:
-                    skipped = t.pop('_skipped')
-                    t['_skipped'] = 'missing <' + repr(self.anchor) + '>'
-            return (self.anchor + skipper().addParseAction(must_skip)
-                    | skipper().addParseAction(show_skip)) + other
+                if t._skipped.asList()[-1:] == [""]:
+                    skipped = t.pop("_skipped")
+                    t["_skipped"] = "missing <" + repr(self.anchor) + ">"
+
+            return (
+                self.anchor + skipper().addParseAction(must_skip)
+                | skipper().addParseAction(show_skip)
+            ) + other
 
         return self.anchor + skipper + other
 
@@ -1114,7 +1179,9 @@ class _PendingSkip(ParserElement):
         return self.strRepr
 
     def parseImpl(self, *args):
-        raise Exception("use of `...` expression without following SkipTo target expression")
+        raise Exception(
+            "use of `...` expression without following SkipTo target expression"
+        )
 
 
 # export

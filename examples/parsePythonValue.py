@@ -13,9 +13,7 @@ cvtDict = lambda toks: dict(toks.asList())
 cvtList = lambda toks: [toks.asList()]
 
 # define punctuation as suppressed literals
-lparen, rparen, lbrack, rbrack, lbrace, rbrace, colon, comma = map(
-    Suppress, "()[]{}:,"
-)
+lparen, rparen, lbrack, rbrack, lbrace, rbrace, colon, comma = map(Suppress, "()[]{}:,")
 
 integer = Regex(r"[+-]?\d+").setName("integer").setParseAction(cvtInt)
 real = Regex(r"[+-]?\d+\.\d*([Ee][+-]?\d+)?").setName("real").setParseAction(cvtReal)
@@ -40,20 +38,14 @@ listItem = (
     | dictStr
 )
 
-tupleStr << (
-    lparen + Optional(delimitedList(listItem)) + Optional(comma) + rparen
-)
+tupleStr << (lparen + Optional(delimitedList(listItem)) + Optional(comma) + rparen)
 tupleStr.setParseAction(cvtTuple)
 
-listStr << (
-    lbrack + Optional(delimitedList(listItem) + Optional(comma)) + rbrack
-)
+listStr << (lbrack + Optional(delimitedList(listItem) + Optional(comma)) + rbrack)
 listStr.setParseAction(cvtList, lambda t: t[0])
 
 dictEntry = Group(listItem + colon + listItem)
-dictStr << (
-    lbrace + Optional(delimitedList(dictEntry) + Optional(comma)) + rbrace
-)
+dictStr << (lbrace + Optional(delimitedList(dictEntry) + Optional(comma)) + rbrace)
 dictStr.setParseAction(cvtDict)
 
 tests = """['a', 100, ('A', [101,102]), 3.14, [ +2.718, 'xyzzy', -1.414] ]

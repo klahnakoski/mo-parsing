@@ -7,9 +7,10 @@ from mo_logs import Log
 
 from mo_parsing.utils import PY_3, _ustr, _xml_escape, basestring, __compat__
 
-Suppress, ParserElement, Forward, Group, Dict, Token = [None]*6
+Suppress, ParserElement, Forward, Group, Dict, Token = [None] * 6
 
 _get = object.__getattribute__
+
 
 def get_name(tok):
     try:
@@ -103,7 +104,9 @@ class ParseResults(object):
                 if isinstance(self.type_for_result, Group):
                     yield self.type_for_result.parser_config.modalResults, self
                 elif len(self.tokens_for_result) == 1:
-                    yield self.type_for_result.parser_config.modalResults, self.tokens_for_result[0]
+                    yield self.type_for_result.parser_config.modalResults, self.tokens_for_result[
+                        0
+                    ]
                 else:
                     yield self.type_for_result.parser_config.modalResults, self
             elif not name:
@@ -209,7 +212,8 @@ class ParseResults(object):
             return sum(1 for t in self)
 
     def __bool__(self):
-        return (not not self.tokens_for_result)
+        return not not self.tokens_for_result
+
     __nonzero__ = __bool__
 
     def __iter__(self):
@@ -245,7 +249,9 @@ class ParseResults(object):
                     name = get_name(t)
                     if name:
                         if not isinstance(t.type_for_result, Annotation):
-                            self.tokens_for_result.append(Annotation(name, t.tokens_for_result))
+                            self.tokens_for_result.append(
+                                Annotation(name, t.tokens_for_result)
+                            )
                     return
                 else:
                     index -= 1
@@ -319,6 +325,7 @@ class ParseResults(object):
         """Returns an iterator of all named result key-value tuples."""
 
     else:
+
         def keys(self):
             """Returns all named result keys (as a list in Python 2.x, as an iterator in Python 3.x)."""
             return list(self.iterkeys())
@@ -473,7 +480,9 @@ class ParseResults(object):
             return ""
 
     def __add__(self, other):
-        return ParseResults(Group(None), self.tokens_for_result+other.tokens_for_result)
+        return ParseResults(
+            Group(None), self.tokens_for_result + other.tokens_for_result
+        )
 
     def __radd__(self, other):
         if not other:
@@ -500,7 +509,14 @@ class ParseResults(object):
         # if len(self.tokens_for_result) == 1:
         #     return str(self.tokens_for_result[0])
 
-        return '[' + ', '.join(_ustr(v) if isinstance(v, ParseResults) else repr(v) for v in self.tokens_for_result) + ']'
+        return (
+            "["
+            + ", ".join(
+                _ustr(v) if isinstance(v, ParseResults) else repr(v)
+                for v in self.tokens_for_result
+            )
+            + "]"
+        )
 
     def _asStringList(self):
         for t in self:
@@ -510,7 +526,7 @@ class ParseResults(object):
             else:
                 yield t
 
-    def asString(self, sep=''):
+    def asString(self, sep=""):
         return sep.join(self._asStringList())
 
     def asList(self):
@@ -538,10 +554,12 @@ class ParseResults(object):
                 return []
             elif isinstance(obj, ParseResults):
                 if obj.replaced_tokens:
-                    return [simpler(internal(o, depth+1)) for o in obj.replaced_tokens]
+                    return [
+                        simpler(internal(o, depth + 1)) for o in obj.replaced_tokens
+                    ]
                 output = []
                 for t in obj.tokens_for_result:
-                    inner = internal(t, depth+1)
+                    inner = internal(t, depth + 1)
                     output.extend(inner)
                 if isinstance(obj.type_for_result, Group):
                     return [output]
@@ -576,6 +594,7 @@ class ParseResults(object):
             print(json.dumps(result)) # -> Exception: TypeError: ... is not JSON serializable
             print(json.dumps(result.asDict())) # -> {"month": "31", "day": "1999", "year": "12"}
         """
+
         def pack(objs):
             # return an open dict, if possible
             # otherwise return an open list
@@ -588,7 +607,12 @@ class ParseResults(object):
                         # add(open_dict, name, pack(obj.tokens_for_result))
                         od, ol = pack(obj.tokens_for_result)
                         if isinstance(obj.type_for_result, Group):
-                            item = {k: s for k, v in od.items() for s in [simpler(v)] if s is not None} or ol
+                            item = {
+                                k: s
+                                for k, v in od.items()
+                                for s in [simpler(v)]
+                                if s is not None
+                            } or ol
                             add(open_dict, name, [ol])
                             open_list.append(item)
                         else:
@@ -597,7 +621,12 @@ class ParseResults(object):
                                 add(open_dict, k, v)
                     elif isinstance(obj.type_for_result, Group):
                         od, ol = pack(obj.tokens_for_result)
-                        item = {k: s for k, v in od.items() for s in [simpler(v)] if s is not None} or ol
+                        item = {
+                            k: s
+                            for k, v in od.items()
+                            for s in [simpler(v)]
+                            if s is not None
+                        } or ol
                         open_list.append(item)
                     elif isinstance(obj.type_for_result, Suppress):
                         pass
@@ -650,7 +679,7 @@ class ParseResults(object):
                 elif name:
                     yield nl + indent + "<" + name + ">"
                     for sub_tok in token.tokens_for_result:
-                        for x in toXML(None, sub_tok, False, indent+more_indent):
+                        for x in toXML(None, sub_tok, False, indent + more_indent):
                             yield x
                     yield "</" + name + ">"
                 else:
@@ -671,8 +700,8 @@ class ParseResults(object):
         out = []
         out.append(nl + indent + "<" + name + ">")
         for sub_tok in self.tokens_for_result:
-            out.extend(toXML(no_name, sub_tok, namedItemsOnly, indent+more_indent))
-        out.append( nl + indent + "</" + name + ">")
+            out.extend(toXML(no_name, sub_tok, namedItemsOnly, indent + more_indent))
+        out.append(nl + indent + "</" + name + ">")
 
         return "".join(out)
 
@@ -714,7 +743,7 @@ class ParseResults(object):
         else:
             return None
 
-    def dump(self, indent='', full=True, include_list=True, _depth=0):
+    def dump(self, indent="", full=True, include_list=True, _depth=0):
         """
         Diagnostic method for listing out the contents of
         a :class:`ParseResults`. Accepts an optional ``indent`` argument so
@@ -738,22 +767,31 @@ class ParseResults(object):
         if _depth > 20:
             Log.warning("not expected")
         out = []
-        NL = '\n'
+        NL = "\n"
         if include_list:
             out.append(indent + _ustr(self.asList()))
         else:
-            out.append('')
+            out.append("")
 
         if full:
             if self.haskeys():
-                items = sorted(((str(k), v) for k, v in self.items()), key=lambda v: v[0])
+                items = sorted(
+                    ((str(k), v) for k, v in self.items()), key=lambda v: v[0]
+                )
                 for k, v in items:
                     if out:
                         out.append(NL)
-                    out.append("%s%s- %s: " % (indent, ('  ' * _depth), k))
+                    out.append("%s%s- %s: " % (indent, ("  " * _depth), k))
                     if isinstance(v, ParseResults):
                         if v:
-                            out.append(v.dump(indent=indent, full=full, include_list=include_list, _depth=_depth + 1))
+                            out.append(
+                                v.dump(
+                                    indent=indent,
+                                    full=full,
+                                    include_list=include_list,
+                                    _depth=_depth + 1,
+                                )
+                            )
                         else:
                             out.append(_ustr(v))
                     else:
@@ -764,22 +802,34 @@ class ParseResults(object):
                     if isinstance(vv, Annotation):
                         pass
                     elif isinstance(vv, ParseResults):
-                        out.append("\n%s%s[%d]:\n%s%s%s" % (indent,
-                                                            ('  ' * (_depth)),
-                                                            i,
-                                                            indent,
-                                                            ('  ' * (_depth + 1)),
-                                                            vv.dump(indent=indent,
-                                                                    full=full,
-                                                                    include_list=include_list,
-                                                                    _depth=_depth + 1)))
+                        out.append(
+                            "\n%s%s[%d]:\n%s%s%s"
+                            % (
+                                indent,
+                                ("  " * (_depth)),
+                                i,
+                                indent,
+                                ("  " * (_depth + 1)),
+                                vv.dump(
+                                    indent=indent,
+                                    full=full,
+                                    include_list=include_list,
+                                    _depth=_depth + 1,
+                                ),
+                            )
+                        )
                     else:
-                        out.append("\n%s%s[%d]:\n%s%s%s" % (indent,
-                                                            ('  ' * (_depth)),
-                                                            i,
-                                                            indent,
-                                                            ('  ' * (_depth + 1)),
-                                                            _ustr(vv)))
+                        out.append(
+                            "\n%s%s[%d]:\n%s%s%s"
+                            % (
+                                indent,
+                                ("  " * (_depth)),
+                                i,
+                                indent,
+                                ("  " * (_depth + 1)),
+                                _ustr(vv),
+                            )
+                        )
 
         return "".join(out)
 
@@ -827,6 +877,7 @@ class ParseResults(object):
         name-value relations as results names. If an optional 'name' argument is
         given, a nested ParseResults will be returned
         """
+
         def is_iterable(obj):
             try:
                 iter(obj)
@@ -890,4 +941,3 @@ class Annotation(ParseResults):
 
 
 MutableMapping.register(ParseResults)
-

@@ -3,7 +3,11 @@ import warnings
 
 from mo_logs import Log
 
-from mo_parsing.exceptions import ParseBaseException, ParseException, RecursiveGrammarException
+from mo_parsing.exceptions import (
+    ParseBaseException,
+    ParseException,
+    RecursiveGrammarException,
+)
 from mo_parsing.core import ParserElement
 from mo_parsing.results import ParseResults, Annotation
 from mo_parsing.utils import _MAX_INT, _ustr, __diag__
@@ -13,10 +17,13 @@ Token, Literal, Keyword, Word, CharsNotIn, _PositionToken, StringEnd = [None] * 
 
 _get = object.__getattribute__
 
+
 class _NullToken(object):
     def __bool__(self):
         return False
+
     __nonzero__ = __bool__
+
     def __str__(self):
         return ""
 
@@ -25,6 +32,7 @@ class ParseElementEnhance(ParserElement):
     """Abstract subclass of :class:`ParserElement`, for combining and
     post-processing parsed tokens.
     """
+
     def __init__(self, expr, savelist=False):
         super(ParseElementEnhance, self).__init__(savelist)
         self.expr = expr = self.normalize(expr)
@@ -115,6 +123,7 @@ class FollowedBy(ParseElementEnhance):
 
         [['shape', 'SQUARE'], ['color', 'BLACK'], ['posn', 'upper left']]
     """
+
     def __init__(self, expr):
         super(FollowedBy, self).__init__(expr)
         self.parser_config.mayReturnEmpty = True
@@ -151,10 +160,13 @@ class NotAny(ParseElementEnhance):
         # integers that are followed by "." are actually floats
         integer = Word(nums) + ~Char(".")
     """
+
     def __init__(self, expr):
         super(NotAny, self).__init__(expr)
         # ~ self.leaveWhitespace()
-        self.parser_config.skipWhitespace = False  # do NOT use self.leaveWhitespace(), don't want to propagate to exprs
+        self.parser_config.skipWhitespace = (
+            False  # do NOT use self.leaveWhitespace(), don't want to propagate to exprs
+        )
         self.parser_config.mayReturnEmpty = True
         self.parser_config.error_message = "Found unwanted token, " + _ustr(self.expr)
 
@@ -196,7 +208,7 @@ class _MultipleMatch(ParseElementEnhance):
             acc.append(tmptokens)
 
         try:
-            hasIgnoreExprs = (not not self.ignoreExprs)
+            hasIgnoreExprs = not not self.ignoreExprs
             while 1:
                 if check_ender:
                     try_not_ender(instring, loc)
@@ -214,14 +226,18 @@ class _MultipleMatch(ParseElementEnhance):
 
     def _setResultsName(self, name, listAllMatches=False):
         if __diag__.warn_ungrouped_named_tokens_in_collection:
-            for e in [self.expr] + getattr(self.expr, 'exprs', []):
+            for e in [self.expr] + getattr(self.expr, "exprs", []):
                 if isinstance(e, ParserElement) and e.resultsName:
-                    warnings.warn("{0}: setting results name {1!r} on {2} expression "
-                                  "collides with {3!r} on contained expression".format("warn_ungrouped_named_tokens_in_collection",
-                                                                                       name,
-                                                                                       type(self).__name__,
-                                                                                       e.resultsName),
-                                  stacklevel=3)
+                    warnings.warn(
+                        "{0}: setting results name {1!r} on {2} expression "
+                        "collides with {3!r} on contained expression".format(
+                            "warn_ungrouped_named_tokens_in_collection",
+                            name,
+                            type(self).__name__,
+                            e.resultsName,
+                        ),
+                        stacklevel=3,
+                    )
 
         return super(_MultipleMatch, self)._setResultsName(name, listAllMatches)
 
@@ -270,6 +286,7 @@ class ZeroOrMore(_MultipleMatch):
 
     Example: similar to :class:`OneOrMore`
     """
+
     def __init__(self, expr, stopOn=None):
         super(ZeroOrMore, self).__init__(expr, stopOn=stopOn)
         self.parser_config.mayReturnEmpty = True
@@ -324,6 +341,7 @@ class Optional(ParseElementEnhance):
              ^
         FAIL: Expected end of text (at char 5), (line:1, col:6)
     """
+
     __optionalNotMatched = _NullToken()
 
     def __init__(self, expr, default=__optionalNotMatched):
@@ -411,6 +429,7 @@ class SkipTo(ParseElementEnhance):
         - issue_num: 79
         - sev: Minor
     """
+
     def __init__(self, other, include=False, ignore=None, failOn=None):
         super(SkipTo, self).__init__(other)
         self.ignoreExpr = ignore
@@ -425,8 +444,12 @@ class SkipTo(ParseElementEnhance):
         instrlen = len(instring)
         expr = self.expr
         expr_parse = self.expr._parse
-        self_failOn_canParseNext = self.failOn.canParseNext if self.failOn is not None else None
-        self_ignoreExpr_tryParse = self.ignoreExpr.tryParse if self.ignoreExpr is not None else None
+        self_failOn_canParseNext = (
+            self.failOn.canParseNext if self.failOn is not None else None
+        )
+        self_ignoreExpr_tryParse = (
+            self.ignoreExpr.tryParse if self.ignoreExpr is not None else None
+        )
 
         tmploc = loc
         while tmploc <= instrlen:
@@ -467,6 +490,7 @@ class SkipTo(ParseElementEnhance):
 
         return loc, ParseResults(self, skipresult)
 
+
 class Forward(ParseElementEnhance):
     """Forward declaration of an expression to be defined later -
     used for recursive grammars, such as algebraic infix notation.
@@ -494,6 +518,7 @@ class Forward(ParseElementEnhance):
     See :class:`ParseResults.pprint` for an example of a recursive
     parser created using ``Forward``.
     """
+
     def __init__(self, expr=None):
         super(Forward, self).__init__(expr, savelist=False)
         self.expr = expr
@@ -555,7 +580,7 @@ class Forward(ParseElementEnhance):
         self.strRepr = self_name + ": ..."
 
         # Use the string representation of main expression.
-        retString = '...'
+        retString = "..."
         try:
             if self.expr is not None:
                 retString = _ustr(self.expr)[:1000]
@@ -586,11 +611,13 @@ class Forward(ParseElementEnhance):
     def _setResultsName(self, name, listAllMatches=False):
         if __diag__.warn_name_set_on_empty_Forward:
             if self.expr is None:
-                warnings.warn("{0}: setting results name {0!r} on {1} expression "
-                              "that has no contained expression".format("warn_name_set_on_empty_Forward",
-                                                                        name,
-                                                                        type(self).__name__),
-                              stacklevel=3)
+                warnings.warn(
+                    "{0}: setting results name {0!r} on {1} expression "
+                    "that has no contained expression".format(
+                        "warn_name_set_on_empty_Forward", name, type(self).__name__
+                    ),
+                    stacklevel=3,
+                )
 
         return super(Forward, self)._setResultsName(name, listAllMatches)
 
@@ -599,6 +626,7 @@ class TokenConverter(ParseElementEnhance):
     """
     Abstract subclass of :class:`ParseExpression`, for converting parsed results.
     """
+
     def __init__(self, expr, savelist=False):
         super(TokenConverter, self).__init__(expr)  # , savelist)
 
@@ -621,6 +649,7 @@ class Combine(TokenConverter):
         # no match when there are internal spaces
         print(real.parseString('3. 1416')) # -> Exception: Expected W:(0123...)
     """
+
     def __init__(self, expr, joinString="", adjacent=True):
         super(Combine, self).__init__(expr)
         # suppress whitespace-stripping in contained parse expressions, but re-enable it on the Combine itself
@@ -643,6 +672,7 @@ class Combine(TokenConverter):
 
         return retToks
 
+
 class Group(TokenConverter):
     """Converter to return the matched tokens as a list - useful for
     returning tokens of :class:`ZeroOrMore` and :class:`OneOrMore` expressions.
@@ -658,6 +688,7 @@ class Group(TokenConverter):
         func = ident + Group(Optional(delimitedList(term)))
         print(func.parseString("fn a, b, 100"))  # -> ['fn', ['a', 'b', '100']]
     """
+
     def __init__(self, expr):
         super(Group, self).__init__(expr)
 
@@ -707,6 +738,7 @@ class Dict(TokenConverter):
 
     See more examples at :class:`ParseResults` of accessing fields by results name.
     """
+
     def __init__(self, expr):
         super(Dict, self).__init__(expr)
 
@@ -746,6 +778,7 @@ class Suppress(TokenConverter):
 
     (See also :class:`delimitedList`.)
     """
+
     def postParse(self, instring, loc, tokenlist):
         return ParseResults(self, [])
 
@@ -784,6 +817,7 @@ class PrecededBy(ParseElementEnhance):
         str_var = PrecededBy("$") + identifier
 
     """
+
     def __init__(self, expr, retreat=None):
         super(PrecededBy, self).__init__(expr)
         self.expr = self.expr().leaveWhitespace()
@@ -834,15 +868,17 @@ class PrecededBy(ParseElementEnhance):
 
 # export
 from mo_parsing import core
+
 core.SkipTo = SkipTo
-core.ZeroOrMore=ZeroOrMore
-core.OneOrMore=OneOrMore
-core.Optional=Optional
-core.NotAny=NotAny
-core.Suppress=Suppress
-core.Group=Group
+core.ZeroOrMore = ZeroOrMore
+core.OneOrMore = OneOrMore
+core.Optional = Optional
+core.NotAny = NotAny
+core.Suppress = Suppress
+core.Group = Group
 
 from mo_parsing import results
+
 results.Forward = Forward
 results.Group = Group
 results.Dict = Dict

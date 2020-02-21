@@ -19,8 +19,8 @@ from mo_parsing import (
     opAssoc,
     restOfLine,
     CaselessKeyword,
-
-    upcaseTokens)
+    upcaseTokens,
+)
 
 # define SQL tokens
 from mo_parsing.helpers import real, signed_integer

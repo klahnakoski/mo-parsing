@@ -7,7 +7,11 @@ from mo_parsing import core
 from mo_parsing.core import (
     ParserElement,
     ParseException,
-    __diag__, DEFAULT_WHITE_CHARS, CURRENT_WHITE_CHARS, default_literal)
+    __diag__,
+    DEFAULT_WHITE_CHARS,
+    CURRENT_WHITE_CHARS,
+    default_literal,
+)
 from mo_parsing.tokens import Keyword
 from mo_parsing.utils import __compat__
 
@@ -41,9 +45,7 @@ class reset_parsing_context:
     def save(self):
         self._save_context["default_whitespace"] = DEFAULT_WHITE_CHARS
         self._save_context["default_keyword_chars"] = Keyword.DEFAULT_KEYWORD_CHARS
-        self._save_context[
-            "literal_string_class"
-        ] = core.CURRENT_LITERAL
+        self._save_context["literal_string_class"] = core.CURRENT_LITERAL
         self._save_context["packrat_parse"] = ParserElement._parse
         self._save_context["__diag__"] = {
             name: getattr(__diag__, name) for name in __diag__._all_names
@@ -55,17 +57,12 @@ class reset_parsing_context:
 
     def restore(self):
         # reset mo_parsing global state
-        if (
-            CURRENT_WHITE_CHARS
-            != self._save_context["default_whitespace"]
-        ):
+        if CURRENT_WHITE_CHARS != self._save_context["default_whitespace"]:
             ParserElement.setDefaultWhitespaceChars(
                 self._save_context["default_whitespace"]
             )
         Keyword.DEFAULT_KEYWORD_CHARS = self._save_context["default_keyword_chars"]
-        default_literal(
-            self._save_context["literal_string_class"]
-        )
+        default_literal(self._save_context["literal_string_class"])
         for name, value in self._save_context["__diag__"].items():
             (__diag__.enable if value else __diag__.disable)(name)
         ParserElement._parse = self._save_context["packrat_parse"]
@@ -142,9 +139,7 @@ class TestParseResultsAsserts(TestCase):
                 # expected should be a tuple containing a list and/or a dict or an exception,
                 # and optional failure message string
                 # an empty tuple will skip any result validation
-                fail_msg = next(
-                    (exp for exp in expected if isinstance(exp, str)), None
-                )
+                fail_msg = next((exp for exp in expected if isinstance(exp, str)), None)
                 expected_exception = next(
                     (
                         exp

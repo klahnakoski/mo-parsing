@@ -6,7 +6,15 @@ import warnings
 from mo_parsing.exceptions import ParseException
 from mo_parsing.core import ParserElement, CURRENT_WHITE_CHARS
 from mo_parsing.results import ParseResults
-from mo_parsing.utils import _MAX_INT, _ustr, alphanums, basestring, col, printables, _bslash
+from mo_parsing.utils import (
+    _MAX_INT,
+    _ustr,
+    alphanums,
+    basestring,
+    col,
+    printables,
+    _bslash,
+)
 
 
 def _escapeRegexRangeChars(s):
@@ -22,6 +30,7 @@ class Token(ParserElement):
     """Abstract :class:`ParserElement` subclass, for defining atomic
     matching patterns.
     """
+
     def __init__(self):
         super(Token, self).__init__(savelist=False)
 
@@ -29,6 +38,7 @@ class Token(ParserElement):
 class Empty(Token):
     """An empty token, will always match.
     """
+
     def __init__(self):
         super(Empty, self).__init__()
         self.name = "Empty"
@@ -39,6 +49,7 @@ class Empty(Token):
 class NoMatch(Token):
     """A token that will never match.
     """
+
     def __init__(self):
         super(NoMatch, self).__init__()
         self.name = "NoMatch"
@@ -64,6 +75,7 @@ class Literal(Token):
     For keyword matching (force word break before and after the matched string),
     use :class:`Keyword` or :class:`CaselessKeyword`.
     """
+
     def __init__(self, matchString):
         super(Literal, self).__init__()
         self.match = matchString
@@ -71,8 +83,11 @@ class Literal(Token):
         try:
             self.firstMatchChar = matchString[0]
         except IndexError:
-            warnings.warn("null string passed to Literal; use Empty() instead",
-                            SyntaxWarning, stacklevel=2)
+            warnings.warn(
+                "null string passed to Literal; use Empty() instead",
+                SyntaxWarning,
+                stacklevel=2,
+            )
             self.__class__ = Empty
         self.name = '"%s"' % _ustr(self.match)
         self.parser_config.error_message = "Expected " + self.name
@@ -85,14 +100,17 @@ class Literal(Token):
             self.__class__ = _SingleCharLiteral
 
     def parseImpl(self, instring, loc, doActions=True):
-        if instring[loc] == self.firstMatchChar and instring.startswith(self.match, loc):
-            return loc + self.matchLen,  ParseResults(self, [self.match])
+        if instring[loc] == self.firstMatchChar and instring.startswith(
+            self.match, loc
+        ):
+            return loc + self.matchLen, ParseResults(self, [self.match])
         raise ParseException(instring, loc, self.parser_config.error_message, self)
+
 
 class _SingleCharLiteral(Literal):
     def parseImpl(self, instring, loc, doActions=True):
         if instring[loc] == self.firstMatchChar:
-            return loc + 1,  ParseResults(self, [self.match])
+            return loc + 1, ParseResults(self, [self.match])
         raise ParseException(instring, loc, self.parser_config.error_message, self)
 
 
@@ -121,6 +139,7 @@ class Keyword(Token):
 
     For case-insensitive matching, use :class:`CaselessKeyword`.
     """
+
     DEFAULT_KEYWORD_CHARS = alphanums + "_$"
 
     def __init__(self, matchString, identChars=None, caseless=False):
@@ -132,8 +151,11 @@ class Keyword(Token):
         try:
             self.firstMatchChar = matchString[0]
         except IndexError:
-            warnings.warn("null string passed to Keyword; use Empty() instead",
-                          SyntaxWarning, stacklevel=2)
+            warnings.warn(
+                "null string passed to Keyword; use Empty() instead",
+                SyntaxWarning,
+                stacklevel=2,
+            )
         self.name = '"%s"' % self.match
         self.parser_config.error_message = "Expected " + self.name
         self.parser_config.mayReturnEmpty = False
@@ -146,19 +168,26 @@ class Keyword(Token):
 
     def parseImpl(self, instring, loc, doActions=True):
         if self.caseless:
-            if ((instring[loc:loc + self.matchLen].upper() == self.caselessmatch)
-                    and (loc >= len(instring) - self.matchLen
-                         or instring[loc + self.matchLen].upper() not in self.identChars)
-                    and (loc == 0
-                         or instring[loc - 1].upper() not in self.identChars)):
+            if (
+                (instring[loc : loc + self.matchLen].upper() == self.caselessmatch)
+                and (
+                    loc >= len(instring) - self.matchLen
+                    or instring[loc + self.matchLen].upper() not in self.identChars
+                )
+                and (loc == 0 or instring[loc - 1].upper() not in self.identChars)
+            ):
                 return loc + self.matchLen, ParseResults(self, [self.match])
 
         else:
             if instring[loc] == self.firstMatchChar:
-                if ((self.matchLen == 1 or instring.startswith(self.match, loc))
-                        and (loc >= len(instring) - self.matchLen
-                             or instring[loc + self.matchLen] not in self.identChars)
-                        and (loc == 0 or instring[loc - 1] not in self.identChars)):
+                if (
+                    (self.matchLen == 1 or instring.startswith(self.match, loc))
+                    and (
+                        loc >= len(instring) - self.matchLen
+                        or instring[loc + self.matchLen] not in self.identChars
+                    )
+                    and (loc == 0 or instring[loc - 1] not in self.identChars)
+                ):
                     return loc + self.matchLen, ParseResults(self, [self.match])
 
         raise ParseException(instring, loc, self.parser_config.error_message, self)
@@ -174,6 +203,7 @@ class Keyword(Token):
         """
         Keyword.DEFAULT_KEYWORD_CHARS = chars
 
+
 class CaselessLiteral(Literal):
     """Token to match a specified string, ignoring case of letters.
     Note: the matched results will always be in the case of the given
@@ -185,6 +215,7 @@ class CaselessLiteral(Literal):
 
     (Contrast with example for :class:`CaselessKeyword`.)
     """
+
     def __init__(self, matchString):
         super(CaselessLiteral, self).__init__(matchString.upper())
         # Preserve the defining literal.
@@ -193,9 +224,10 @@ class CaselessLiteral(Literal):
         self.parser_config.error_message = "Expected " + self.name
 
     def parseImpl(self, instring, loc, doActions=True):
-        if instring[loc:loc + self.matchLen].upper() == self.match:
+        if instring[loc : loc + self.matchLen].upper() == self.match:
             return loc + self.matchLen, ParseResults(self, [self.returnString])
         raise ParseException(instring, loc, self.parser_config.error_message, self)
+
 
 class CaselessKeyword(Keyword):
     """
@@ -207,8 +239,10 @@ class CaselessKeyword(Keyword):
 
     (Contrast with example for :class:`CaselessLiteral`.)
     """
+
     def __init__(self, matchString, identChars=None):
         super(CaselessKeyword, self).__init__(matchString, identChars, caseless=True)
+
 
 class CloseMatch(Token):
     """A variation on :class:`Literal` which matches "close" matches,
@@ -243,12 +277,16 @@ class CloseMatch(Token):
         patt = CloseMatch("ATCATCGAATGGA", maxMismatches=2)
         patt.parseString("ATCAXCGAAXGGA") # -> (['ATCAXCGAAXGGA'], {'mismatches': [[4, 9]], 'original': ['ATCATCGAATGGA']})
     """
+
     def __init__(self, match_string, maxMismatches=1):
         super(CloseMatch, self).__init__()
         self.name = match_string
         self.match_string = match_string
         self.maxMismatches = maxMismatches
-        self.parser_config.error_message = "Expected %r (with up to %d mismatches)" % (self.match_string, self.maxMismatches)
+        self.parser_config.error_message = "Expected %r (with up to %d mismatches)" % (
+            self.match_string,
+            self.maxMismatches,
+        )
         self.parser_config.mayIndexError = False
         self.parser_config.mayReturnEmpty = False
 
@@ -263,7 +301,9 @@ class CloseMatch(Token):
             mismatches = []
             maxMismatches = self.maxMismatches
 
-            for match_stringloc, s_m in enumerate(zip(instring[loc:maxloc], match_string)):
+            for match_stringloc, s_m in enumerate(
+                zip(instring[loc:maxloc], match_string)
+            ):
                 src, mat = s_m
                 if src != mat:
                     mismatches.append(match_stringloc)
@@ -272,8 +312,8 @@ class CloseMatch(Token):
             else:
                 loc = match_stringloc + 1
                 results = ParseResults(self, [instring[start:loc]])
-                results['original'] = match_string
-                results['mismatches'] = mismatches
+                results["original"] = match_string
+                results["mismatches"] = mismatches
                 return loc, results
 
         raise ParseException(instring, loc, self.parser_config.error_message, self)
@@ -332,13 +372,23 @@ class Word(Token):
         # any string of non-whitespace characters, except for ','
         csv_value = Word(printables, excludeChars=",")
     """
-    def __init__(self, initChars, bodyChars=None, min=1, max=0, exact=0, asKeyword=False, excludeChars=None):
+
+    def __init__(
+        self,
+        initChars,
+        bodyChars=None,
+        min=1,
+        max=0,
+        exact=0,
+        asKeyword=False,
+        excludeChars=None,
+    ):
         super(Word, self).__init__()
         if excludeChars:
             excludeChars = set(excludeChars)
-            initChars = ''.join(c for c in initChars if c not in excludeChars)
+            initChars = "".join(c for c in initChars if c not in excludeChars)
             if bodyChars:
-                bodyChars = ''.join(c for c in bodyChars if c not in excludeChars)
+                bodyChars = "".join(c for c in bodyChars if c not in excludeChars)
         self.initCharsOrig = initChars
         self.initChars = set(initChars)
         if bodyChars:
@@ -351,7 +401,9 @@ class Word(Token):
         self.maxSpecified = max > 0
 
         if min < 1:
-            raise ValueError("cannot specify a minimum length < 1; use Optional(Word()) if zero-length word is permitted")
+            raise ValueError(
+                "cannot specify a minimum length < 1; use Optional(Word()) if zero-length word is permitted"
+            )
 
         self.minLen = min
 
@@ -369,15 +421,21 @@ class Word(Token):
         self.parser_config.mayIndexError = False
         self.asKeyword = asKeyword
 
-        if ' ' not in self.initCharsOrig + self.bodyCharsOrig and (min == 1 and max == 0 and exact == 0):
+        if " " not in self.initCharsOrig + self.bodyCharsOrig and (
+            min == 1 and max == 0 and exact == 0
+        ):
             if self.bodyCharsOrig == self.initCharsOrig:
                 self.reString = "[%s]+" % _escapeRegexRangeChars(self.initCharsOrig)
             elif len(self.initCharsOrig) == 1:
-                self.reString = "%s[%s]*" % (re.escape(self.initCharsOrig),
-                                             _escapeRegexRangeChars(self.bodyCharsOrig),)
+                self.reString = "%s[%s]*" % (
+                    re.escape(self.initCharsOrig),
+                    _escapeRegexRangeChars(self.bodyCharsOrig),
+                )
             else:
-                self.reString = "[%s][%s]*" % (_escapeRegexRangeChars(self.initCharsOrig),
-                                               _escapeRegexRangeChars(self.bodyCharsOrig),)
+                self.reString = "[%s][%s]*" % (
+                    _escapeRegexRangeChars(self.initCharsOrig),
+                    _escapeRegexRangeChars(self.bodyCharsOrig),
+                )
             if self.asKeyword:
                 self.reString = r"\b" + self.reString + r"\b"
 
@@ -408,8 +466,12 @@ class Word(Token):
         elif self.maxSpecified and loc < instrlen and instring[loc] in bodychars:
             throwException = True
         elif self.asKeyword:
-            if (start > 0 and instring[start - 1] in bodychars
-                    or loc < instrlen and instring[loc] in bodychars):
+            if (
+                start > 0
+                and instring[start - 1] in bodychars
+                or loc < instrlen
+                and instring[loc] in bodychars
+            ):
                 throwException = True
 
         if throwException:
@@ -430,9 +492,13 @@ class Word(Token):
                 return s
 
         if self.initCharsOrig != self.bodyCharsOrig:
-            return "W:(%s, %s)" % (charsAsStr(self.initCharsOrig), charsAsStr(self.bodyCharsOrig))
+            return "W:(%s, %s)" % (
+                charsAsStr(self.initCharsOrig),
+                charsAsStr(self.bodyCharsOrig),
+            )
         else:
             return "W:(%s)" % charsAsStr(self.initCharsOrig)
+
 
 class _WordRegex(Word):
     def parseImpl(self, instring, loc, doActions=True):
@@ -449,9 +515,12 @@ class Char(_WordRegex):
     when defining a match of any single character in a string of
     characters.
     """
+
     def __init__(self, charset, asKeyword=False, excludeChars=None):
-        super(Char, self).__init__(charset, exact=1, asKeyword=asKeyword, excludeChars=excludeChars)
-        self.reString = "[%s]" % _escapeRegexRangeChars(''.join(self.initChars))
+        super(Char, self).__init__(
+            charset, exact=1, asKeyword=asKeyword, excludeChars=excludeChars
+        )
+        self.reString = "[%s]" % _escapeRegexRangeChars("".join(self.initChars))
         if asKeyword:
             self.reString = r"\b%s\b" % self.reString
         self.re = re.compile(self.reString)
@@ -484,8 +553,11 @@ class Regex(Token):
 
         if isinstance(pattern, basestring):
             if not pattern:
-                warnings.warn("null string passed to Regex; use Empty() instead",
-                              SyntaxWarning, stacklevel=2)
+                warnings.warn(
+                    "null string passed to Regex; use Empty() instead",
+                    SyntaxWarning,
+                    stacklevel=2,
+                )
 
             self.pattern = pattern
             self.flags = flags
@@ -494,8 +566,11 @@ class Regex(Token):
                 self.re = re.compile(self.pattern, self.flags)
                 self.reString = self.pattern
             except sre_constants.error:
-                warnings.warn("invalid pattern (%s) passed to Regex" % pattern,
-                              SyntaxWarning, stacklevel=2)
+                warnings.warn(
+                    "invalid pattern (%s) passed to Regex" % pattern,
+                    SyntaxWarning,
+                    stacklevel=2,
+                )
                 raise
 
         elif isinstance(pattern, Regex.compiledREtype):
@@ -504,7 +579,9 @@ class Regex(Token):
             self.flags = flags
 
         else:
-            raise ValueError("Regex may only be constructed with a string or a compiled RE object")
+            raise ValueError(
+                "Regex may only be constructed with a string or a compiled RE object"
+            )
 
         self.re_match = self.re.match
 
@@ -570,22 +647,33 @@ class Regex(Token):
             # prints "<h1>main title</h1>"
         """
         if self.asGroupList:
-            warnings.warn("cannot use sub() with Regex(asGroupList=True)",
-                          SyntaxWarning, stacklevel=2)
+            warnings.warn(
+                "cannot use sub() with Regex(asGroupList=True)",
+                SyntaxWarning,
+                stacklevel=2,
+            )
             raise SyntaxError()
 
         if self.asMatch and callable(repl):
-            warnings.warn("cannot use sub() with a callable with Regex(asMatch=True)",
-                          SyntaxWarning, stacklevel=2)
+            warnings.warn(
+                "cannot use sub() with a callable with Regex(asMatch=True)",
+                SyntaxWarning,
+                stacklevel=2,
+            )
             raise SyntaxError()
 
         if self.asMatch:
+
             def pa(tokens):
                 return tokens[0].expand(repl)
+
         else:
+
             def pa(tokens):
                 return self.re.sub(repl, tokens[0])
+
         return self.addParseAction(pa)
+
 
 class QuotedString(Token):
     r"""
@@ -626,14 +714,25 @@ class QuotedString(Token):
         [['This is the "quote"']]
         [['This is the quote with "embedded" quotes']]
     """
-    def __init__(self, quoteChar, escChar=None, escQuote=None, multiline=False,
-                 unquoteResults=True, endQuoteChar=None, convertWhitespaceEscapes=True):
+
+    def __init__(
+        self,
+        quoteChar,
+        escChar=None,
+        escQuote=None,
+        multiline=False,
+        unquoteResults=True,
+        endQuoteChar=None,
+        convertWhitespaceEscapes=True,
+    ):
         super(QuotedString, self).__init__()
 
         # remove white space from quote chars - wont work anyway
         quoteChar = quoteChar.strip()
         if not quoteChar:
-            warnings.warn("quoteChar cannot be the empty string", SyntaxWarning, stacklevel=2)
+            warnings.warn(
+                "quoteChar cannot be the empty string", SyntaxWarning, stacklevel=2
+            )
             raise SyntaxError()
 
         if endQuoteChar is None:
@@ -641,7 +740,11 @@ class QuotedString(Token):
         else:
             endQuoteChar = endQuoteChar.strip()
             if not endQuoteChar:
-                warnings.warn("endQuoteChar cannot be the empty string", SyntaxWarning, stacklevel=2)
+                warnings.warn(
+                    "endQuoteChar cannot be the empty string",
+                    SyntaxWarning,
+                    stacklevel=2,
+                )
                 raise SyntaxError()
 
         self.quoteChar = quoteChar
@@ -656,34 +759,49 @@ class QuotedString(Token):
 
         if multiline:
             self.flags = re.MULTILINE | re.DOTALL
-            self.pattern = r'%s(?:[^%s%s]' % (re.escape(self.quoteChar),
-                                              _escapeRegexRangeChars(self.endQuoteChar[0]),
-                                              (escChar is not None and _escapeRegexRangeChars(escChar) or ''))
+            self.pattern = r"%s(?:[^%s%s]" % (
+                re.escape(self.quoteChar),
+                _escapeRegexRangeChars(self.endQuoteChar[0]),
+                (escChar is not None and _escapeRegexRangeChars(escChar) or ""),
+            )
         else:
             self.flags = 0
-            self.pattern = r'%s(?:[^%s\n\r%s]' % (re.escape(self.quoteChar),
-                                                  _escapeRegexRangeChars(self.endQuoteChar[0]),
-                                                  (escChar is not None and _escapeRegexRangeChars(escChar) or ''))
+            self.pattern = r"%s(?:[^%s\n\r%s]" % (
+                re.escape(self.quoteChar),
+                _escapeRegexRangeChars(self.endQuoteChar[0]),
+                (escChar is not None and _escapeRegexRangeChars(escChar) or ""),
+            )
         if len(self.endQuoteChar) > 1:
             self.pattern += (
-                '|(?:' + ')|(?:'.join("%s[^%s]" % (re.escape(self.endQuoteChar[:i]),
-                                                   _escapeRegexRangeChars(self.endQuoteChar[i]))
-                                      for i in range(len(self.endQuoteChar) - 1, 0, -1)) + ')')
+                "|(?:"
+                + ")|(?:".join(
+                    "%s[^%s]"
+                    % (
+                        re.escape(self.endQuoteChar[:i]),
+                        _escapeRegexRangeChars(self.endQuoteChar[i]),
+                    )
+                    for i in range(len(self.endQuoteChar) - 1, 0, -1)
+                )
+                + ")"
+            )
 
         if escQuote:
-            self.pattern += (r'|(?:%s)' % re.escape(escQuote))
+            self.pattern += r"|(?:%s)" % re.escape(escQuote)
         if escChar:
-            self.pattern += (r'|(?:%s.)' % re.escape(escChar))
+            self.pattern += r"|(?:%s.)" % re.escape(escChar)
             self.escCharReplacePattern = re.escape(self.escChar) + "(.)"
-        self.pattern += (r')*%s' % re.escape(self.endQuoteChar))
+        self.pattern += r")*%s" % re.escape(self.endQuoteChar)
 
         try:
             self.re = re.compile(self.pattern, self.flags)
             self.reString = self.pattern
             self.re_match = self.re.match
         except sre_constants.error:
-            warnings.warn("invalid pattern (%s) passed to Regex" % self.pattern,
-                          SyntaxWarning, stacklevel=2)
+            warnings.warn(
+                "invalid pattern (%s) passed to Regex" % self.pattern,
+                SyntaxWarning,
+                stacklevel=2,
+            )
             raise
 
         self.name = _ustr(self)
@@ -692,7 +810,11 @@ class QuotedString(Token):
         self.parser_config.mayReturnEmpty = True
 
     def parseImpl(self, instring, loc, doActions=True):
-        result = instring[loc] == self.firstQuoteChar and self.re_match(instring, loc) or None
+        result = (
+            instring[loc] == self.firstQuoteChar
+            and self.re_match(instring, loc)
+            or None
+        )
         if not result:
             raise ParseException(instring, loc, self.parser_config.error_message, self)
 
@@ -702,16 +824,16 @@ class QuotedString(Token):
         if self.unquoteResults:
 
             # strip off quotes
-            ret = ret[self.quoteCharLen: -self.endQuoteCharLen]
+            ret = ret[self.quoteCharLen : -self.endQuoteCharLen]
 
             if isinstance(ret, basestring):
                 # replace escaped whitespace
-                if '\\' in ret and self.convertWhitespaceEscapes:
+                if "\\" in ret and self.convertWhitespaceEscapes:
                     ws_map = {
-                        r'\t': '\t',
-                        r'\n': '\n',
-                        r'\f': '\f',
-                        r'\r': '\r',
+                        r"\t": "\t",
+                        r"\n": "\n",
+                        r"\f": "\f",
+                        r"\r": "\r",
                     }
                     for wslit, wschar in ws_map.items():
                         ret = ret.replace(wslit, wschar)
@@ -732,7 +854,10 @@ class QuotedString(Token):
         except Exception:
             pass
 
-        return "quoted string, starting with %s ending with %s" % (self.quoteChar, self.endQuoteChar)
+        return "quoted string, starting with %s ending with %s" % (
+            self.quoteChar,
+            self.endQuoteChar,
+        )
 
 
 class CharsNotIn(Token):
@@ -755,14 +880,17 @@ class CharsNotIn(Token):
 
         ['dkls', 'lsdkjf', 's12 34', '@!#', '213']
     """
+
     def __init__(self, notChars, min=1, max=0, exact=0):
         super(CharsNotIn, self).__init__()
         self.parser_config.skipWhitespace = False
         self.notChars = "".join(notChars)
 
         if min < 1:
-            raise ValueError("cannot specify a minimum length < 1; use "
-                             "Optional(CharsNotIn()) if zero-length char group is permitted")
+            raise ValueError(
+                "cannot specify a minimum length < 1; use "
+                "Optional(CharsNotIn()) if zero-length char group is permitted"
+            )
 
         self.minLen = min
 
@@ -777,7 +905,7 @@ class CharsNotIn(Token):
 
         self.name = _ustr(self)
         self.parser_config.error_message = "Expected " + self.name
-        self.parser_config.mayReturnEmpty = (self.minLen == 0)
+        self.parser_config.mayReturnEmpty = self.minLen == 0
         self.parser_config.mayIndexError = False
 
     def parseImpl(self, instring, loc, doActions=True):
@@ -817,37 +945,43 @@ class White(Token):
     ``max``, and ``exact`` arguments, as defined for the
     :class:`Word` class.
     """
+
     whiteStrs = {
-        ' ' : '<SP>',
-        '\t': '<TAB>',
-        '\n': '<LF>',
-        '\r': '<CR>',
-        '\f': '<FF>',
-        'u\00A0': '<NBSP>',
-        'u\1680': '<OGHAM_SPACE_MARK>',
-        'u\180E': '<MONGOLIAN_VOWEL_SEPARATOR>',
-        'u\2000': '<EN_QUAD>',
-        'u\2001': '<EM_QUAD>',
-        'u\2002': '<EN_SPACE>',
-        'u\2003': '<EM_SPACE>',
-        'u\2004': '<THREE-PER-EM_SPACE>',
-        'u\2005': '<FOUR-PER-EM_SPACE>',
-        'u\2006': '<SIX-PER-EM_SPACE>',
-        'u\2007': '<FIGURE_SPACE>',
-        'u\2008': '<PUNCTUATION_SPACE>',
-        'u\2009': '<THIN_SPACE>',
-        'u\200A': '<HAIR_SPACE>',
-        'u\200B': '<ZERO_WIDTH_SPACE>',
-        'u\202F': '<NNBSP>',
-        'u\205F': '<MMSP>',
-        'u\3000': '<IDEOGRAPHIC_SPACE>',
-        }
+        " ": "<SP>",
+        "\t": "<TAB>",
+        "\n": "<LF>",
+        "\r": "<CR>",
+        "\f": "<FF>",
+        "u\00A0": "<NBSP>",
+        "u\1680": "<OGHAM_SPACE_MARK>",
+        "u\180E": "<MONGOLIAN_VOWEL_SEPARATOR>",
+        "u\2000": "<EN_QUAD>",
+        "u\2001": "<EM_QUAD>",
+        "u\2002": "<EN_SPACE>",
+        "u\2003": "<EM_SPACE>",
+        "u\2004": "<THREE-PER-EM_SPACE>",
+        "u\2005": "<FOUR-PER-EM_SPACE>",
+        "u\2006": "<SIX-PER-EM_SPACE>",
+        "u\2007": "<FIGURE_SPACE>",
+        "u\2008": "<PUNCTUATION_SPACE>",
+        "u\2009": "<THIN_SPACE>",
+        "u\200A": "<HAIR_SPACE>",
+        "u\200B": "<ZERO_WIDTH_SPACE>",
+        "u\202F": "<NNBSP>",
+        "u\205F": "<MMSP>",
+        "u\3000": "<IDEOGRAPHIC_SPACE>",
+    }
+
     def __init__(self, ws=" \t\r\n", min=1, max=0, exact=0):
         super(White, self).__init__()
         self.matchWhite = ws
-        self.setWhitespaceChars("".join(c for c in self.parser_config.whiteChars if c not in self.matchWhite))
+        self.setWhitespaceChars(
+            "".join(
+                c for c in self.parser_config.whiteChars if c not in self.matchWhite
+            )
+        )
         # ~ self.leaveWhitespace()
-        self.name = ("".join(White.whiteStrs[c] for c in self.matchWhite))
+        self.name = "".join(White.whiteStrs[c] for c in self.matchWhite)
         self.parser_config.mayReturnEmpty = True
         self.parser_config.error_message = "Expected " + self.name
 
@@ -885,10 +1019,12 @@ class _PositionToken(Token):
         self.parser_config.mayReturnEmpty = True
         self.parser_config.mayIndexError = False
 
+
 class GoToColumn(_PositionToken):
     """Token to advance to a specific column of input text; useful for
     tabular report scraping.
     """
+
     def __init__(self, colno):
         super(GoToColumn, self).__init__()
         self.col = colno
@@ -898,7 +1034,11 @@ class GoToColumn(_PositionToken):
             instrlen = len(instring)
             if self.ignoreExprs:
                 loc = self._skipIgnorables(instring, loc)
-            while loc < instrlen and instring[loc].isspace() and col(loc, instring) != self.col:
+            while (
+                loc < instrlen
+                and instring[loc].isspace()
+                and col(loc, instring) != self.col
+            ):
                 loc += 1
         return loc
 
@@ -907,7 +1047,7 @@ class GoToColumn(_PositionToken):
         if thiscol > self.col:
             raise ParseException(instring, loc, "Text not in expected column", self)
         newloc = loc + self.col - thiscol
-        ret = instring[loc: newloc]
+        ret = instring[loc:newloc]
         return newloc, ret
 
 
@@ -933,6 +1073,7 @@ class LineStart(_PositionToken):
         ['AAA', ' and this line']
 
     """
+
     def __init__(self):
         super(LineStart, self).__init__()
         self.parser_config.error_message = "Expected start of line"
@@ -942,13 +1083,15 @@ class LineStart(_PositionToken):
             return loc, ParseResults(self, [])
         raise ParseException(instring, loc, self.parser_config.error_message, self)
 
+
 class LineEnd(_PositionToken):
     """Matches if current position is at the end of a line within the
     parse string
     """
+
     def __init__(self):
         super(LineEnd, self).__init__()
-        self.setWhitespaceChars([w for w in CURRENT_WHITE_CHARS if w!='\n'])
+        self.setWhitespaceChars([w for w in CURRENT_WHITE_CHARS if w != "\n"])
         self.parser_config.error_message = "Expected end of line"
 
     def parseImpl(self, instring, loc, doActions=True):
@@ -956,16 +1099,20 @@ class LineEnd(_PositionToken):
             if instring[loc] == "\n":
                 return loc + 1, ParseResults(self, ["\n"])
             else:
-                raise ParseException(instring, loc, self.parser_config.error_message, self)
+                raise ParseException(
+                    instring, loc, self.parser_config.error_message, self
+                )
         elif loc == len(instring):
             return loc + 1, ParseResults(self, [])
         else:
             raise ParseException(instring, loc, self.parser_config.error_message, self)
 
+
 class StringStart(_PositionToken):
     """Matches if current position is at the beginning of the parse
     string
     """
+
     def __init__(self):
         super(StringStart, self).__init__()
         self.parser_config.error_message = "Expected start of text"
@@ -974,12 +1121,16 @@ class StringStart(_PositionToken):
         if loc != 0:
             # see if entire string up to here is just whitespace and ignoreables
             if loc != self.preParse(instring, 0):
-                raise ParseException(instring, loc, self.parser_config.error_message, self)
+                raise ParseException(
+                    instring, loc, self.parser_config.error_message, self
+                )
         return loc, []
+
 
 class StringEnd(_PositionToken):
     """Matches if current position is at the end of the parse string
     """
+
     def __init__(self):
         super(StringEnd, self).__init__()
         self.parser_config.error_message = "Expected end of text"
@@ -994,6 +1145,7 @@ class StringEnd(_PositionToken):
         else:
             raise ParseException(instring, loc, self.parser_config.error_message, self)
 
+
 class WordStart(_PositionToken):
     """Matches if the current position is at the beginning of a Word,
     and is not preceded by any character in a given set of
@@ -1003,6 +1155,7 @@ class WordStart(_PositionToken):
     the beginning of the string being parsed, or at the beginning of
     a line.
     """
+
     def __init__(self, wordChars=printables):
         super(WordStart, self).__init__()
         self.wordChars = set(wordChars)
@@ -1010,10 +1163,15 @@ class WordStart(_PositionToken):
 
     def parseImpl(self, instring, loc, doActions=True):
         if loc != 0:
-            if (instring[loc - 1] in self.wordChars
-                    or instring[loc] not in self.wordChars):
-                raise ParseException(instring, loc, self.parser_config.error_message, self)
+            if (
+                instring[loc - 1] in self.wordChars
+                or instring[loc] not in self.wordChars
+            ):
+                raise ParseException(
+                    instring, loc, self.parser_config.error_message, self
+                )
         return loc, ParseResults(self, [])
+
 
 class WordEnd(_PositionToken):
     """Matches if the current position is at the end of a Word, and is
@@ -1023,6 +1181,7 @@ class WordEnd(_PositionToken):
     will also match at the end of the string being parsed, or at the end
     of a line.
     """
+
     def __init__(self, wordChars=printables):
         super(WordEnd, self).__init__()
         self.wordChars = set(wordChars)
@@ -1032,9 +1191,13 @@ class WordEnd(_PositionToken):
     def parseImpl(self, instring, loc, doActions=True):
         instrlen = len(instring)
         if instrlen > 0 and loc < instrlen:
-            if (instring[loc] in self.wordChars or
-                    instring[loc - 1] not in self.wordChars):
-                raise ParseException(instring, loc, self.parser_config.error_message, self)
+            if (
+                instring[loc] in self.wordChars
+                or instring[loc - 1] not in self.wordChars
+            ):
+                raise ParseException(
+                    instring, loc, self.parser_config.error_message, self
+                )
         return loc, ParseResults(self, [])
 
 
@@ -1057,4 +1220,5 @@ enhancement.StringEnd = StringEnd
 
 
 from mo_parsing import results
+
 results.Token = Token

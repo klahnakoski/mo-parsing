@@ -2,7 +2,16 @@
 from unittest import TestCase
 import uuid
 
-from mo_parsing import CaselessLiteral, Group, Word, alphanums, alphas, delimitedList, tokenMap, upcaseTokens
+from mo_parsing import (
+    CaselessLiteral,
+    Group,
+    Word,
+    alphanums,
+    alphas,
+    delimitedList,
+    tokenMap,
+    upcaseTokens,
+)
 from mo_parsing.helpers import number, hex_integer, fnumber, uuid as helper_uuid
 from tests import runTests
 
@@ -14,17 +23,26 @@ class TestBasic(TestCase):
 
         ident = Word(alphas, alphanums + "_$")
 
-        columnName = delimitedList(ident, ".", combine=True).setParseAction(upcaseTokens)
+        columnName = delimitedList(ident, ".", combine=True).setParseAction(
+            upcaseTokens
+        )
         columnNameList = Group(delimitedList(columnName)).setName("columns")
-        columnSpec = ('*' | columnNameList)
+        columnSpec = "*" | columnNameList
 
         tableName = delimitedList(ident, ".", combine=True).setParseAction(upcaseTokens)
         tableNameList = Group(delimitedList(tableName)).setName("tables")
 
-        simpleSQL = selectToken("command") + columnSpec("columns") + fromToken + tableNameList("tables")
+        simpleSQL = (
+            selectToken("command")
+            + columnSpec("columns")
+            + fromToken
+            + tableNameList("tables")
+        )
 
         # demo runTests method, including embedded comments in test string
-        runTests(simpleSQL, """
+        runTests(
+            simpleSQL,
+            """
             # '*' as column list and dotted table name
             select * from SYS.XYZZY
     
@@ -36,9 +54,12 @@ class TestBasic(TestCase):
     
             # multiple tables
             Select A, B, C from Sys.dual, Table2
-        """)
+        """,
+        )
 
-        runTests(simpleSQL, """            
+        runTests(
+            simpleSQL,
+            """            
             # invalid SELECT keyword - should fail
             Xelect A, B, C from Sys.dual
     
@@ -48,33 +69,47 @@ class TestBasic(TestCase):
             # invalid column name - should fail
             Select ^^^ frox Sys.dual
     
-            """, failureTests=True)
+            """,
+            failureTests=True,
+        )
 
-        runTests(number, """
+        runTests(
+            number,
+            """
             100
             -100
             +100
             3.14159
             6.02e23
             1e-12
-            """)
+            """,
+        )
 
         # any int or real number, returned as float
-        runTests(fnumber, """
+        runTests(
+            fnumber,
+            """
             100
             -100
             +100
             3.14159
             6.02e23
             1e-12
-            """)
+            """,
+        )
 
-        runTests(hex_integer, """
+        runTests(
+            hex_integer,
+            """
             100
             FF
-            """)
+            """,
+        )
 
         helper_uuid.setParseAction(tokenMap(uuid.UUID))
-        runTests(helper_uuid, """
+        runTests(
+            helper_uuid,
+            """
             12345678-1234-5678-1234-567812345678
-            """)
+            """,
+        )

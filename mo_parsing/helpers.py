@@ -37,7 +37,7 @@ from mo_parsing.tokens import (
     White,
     Word,
     Literal,
-    _escapeRegexRangeChars
+    _escapeRegexRangeChars,
 )
 from mo_parsing.utils import (
     Iterable,
@@ -67,8 +67,9 @@ quotedString = Combine(
     Regex(r'"(?:[^"\n\r\\]|(?:"")|(?:\\(?:[^x]|x[0-9a-fA-F]+)))*') + '"'
     | Regex(r"'(?:[^'\n\r\\]|(?:'')|(?:\\(?:[^x]|x[0-9a-fA-F]+)))*") + "'"
 ).setName("quotedString using single or double quotes")
-unicodeString = Combine(Literal("u") + quotedString.copy()).setName("unicode string literal")
-
+unicodeString = Combine(Literal("u") + quotedString.copy()).setName(
+    "unicode string literal"
+)
 
 
 def delimitedList(expr, delim=",", combine=False):
@@ -512,10 +513,7 @@ def nestedExpr(opener="(", closer=")", content=None, ignoreExpr=quotedString.cop
                         OneOrMore(
                             ~ignoreExpr
                             + CharsNotIn(
-                                opener
-                                + closer
-                                + "".join(CURRENT_WHITE_CHARS),
-                                exact=1,
+                                opener + closer + "".join(CURRENT_WHITE_CHARS), exact=1,
                             )
                         )
                     ).setParseAction(lambda t: t[0].strip())
@@ -1470,9 +1468,7 @@ ipv4_address = Regex(
 "IPv4 address (``0.0.0.0 - 255.255.255.255``)"
 
 _ipv6_part = Regex(r"[0-9a-fA-F]{1,4}").setName("hex_integer")
-_full_ipv6_address = (_ipv6_part + (":" + _ipv6_part) * 7).setName(
-    "full IPv6 address"
-)
+_full_ipv6_address = (_ipv6_part + (":" + _ipv6_part) * 7).setName("full IPv6 address")
 _short_ipv6_address = (
     Optional(_ipv6_part + (":" + _ipv6_part) * (0, 6))
     + "::"
@@ -1493,6 +1489,7 @@ mac_address = Regex(
     r"[0-9a-fA-F]{2}([:.-])[0-9a-fA-F]{2}(?:\1[0-9a-fA-F]{2}){4}"
 ).setName("MAC address")
 "MAC address xx:xx:xx:xx:xx (may also have '-' or '.' delimiters)"
+
 
 @staticmethod
 def convertToDate(fmt="%Y-%m-%d"):
@@ -1521,6 +1518,7 @@ def convertToDate(fmt="%Y-%m-%d"):
 
     return cvt_fn
 
+
 @staticmethod
 def convertToDatetime(fmt="%Y-%m-%dT%H:%M:%S.%f"):
     """Helper to create a parse action for converting parsed
@@ -1548,6 +1546,7 @@ def convertToDatetime(fmt="%Y-%m-%dT%H:%M:%S.%f"):
 
     return cvt_fn
 
+
 iso8601_date = Regex(
     r"(?P<year>\d{4})(?:-(?P<month>\d\d)(?:-(?P<day>\d\d))?)?"
 ).setName("ISO8601 date")
@@ -1562,6 +1561,7 @@ uuid = Regex(r"[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}").setName("UUI
 "UUID (``xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx``)"
 
 _html_stripper = anyOpenTag.suppress() | anyCloseTag.suppress()
+
 
 @staticmethod
 def stripHTMLTags(s, l, tokens):
@@ -1580,6 +1580,7 @@ def stripHTMLTags(s, l, tokens):
         More info at the mo_parsing wiki page
     """
     return _html_stripper.transformString(tokens[0])
+
 
 _commasepitem = (
     Combine(

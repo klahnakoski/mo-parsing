@@ -72,9 +72,7 @@ raw = Group(decimal("len") + COLON + bytes).setParseAction(verify_length)
 base64_ = Group(
     Optional(decimal | hexadecimal, default=None)("len")
     + VBAR
-    + Word(alphanums + "+/=")[1, ...].setParseAction(
-        lambda t: b64decode("".join(t))
-    )
+    + Word(alphanums + "+/=")[1, ...].setParseAction(lambda t: b64decode("".join(t)))
     + VBAR
 ).setParseAction(verify_length)
 

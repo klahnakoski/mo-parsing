@@ -6,7 +6,11 @@ from mo_logs import Log
 
 from mo_parsing.core import ParserElement, _PendingSkip
 from mo_parsing.enhancement import OneOrMore, Optional, SkipTo, Suppress, ZeroOrMore
-from mo_parsing.exceptions import ParseBaseException, ParseException, ParseSyntaxException
+from mo_parsing.exceptions import (
+    ParseBaseException,
+    ParseException,
+    ParseSyntaxException,
+)
 from mo_parsing.results import ParseResults
 from mo_parsing.tokens import Empty
 from mo_parsing.utils import Iterable, __compat__, _generatorType, _ustr, __diag__
@@ -16,6 +20,7 @@ class ParseExpression(ParserElement):
     """Abstract subclass of ParserElement, for combining and
     post-processing parsed tokens.
     """
+
     def __init__(self, exprs, savelist=False):
         super(ParseExpression, self).__init__(savelist)
 
@@ -73,22 +78,26 @@ class ParseExpression(ParserElement):
         # (likewise for Or's and MatchFirst's)
         if len(self.exprs) == 2:
             other = self.exprs[0]
-            if (isinstance(other, self.__class__)
-                    and not other.parseAction
-                    and other.resultsName is None
-                    and not other.parser_config.parser_config.debug):
+            if (
+                isinstance(other, self.__class__)
+                and not other.parseAction
+                and other.resultsName is None
+                and not other.parser_config.parser_config.debug
+            ):
                 self.exprs = other.exprs[:] + [self.exprs[1]]
                 self.parser_config.mayReturnEmpty |= other.parser_config.mayReturnEmpty
-                self.parser_config.mayIndexError  |= other.parser_config.mayIndexError
+                self.parser_config.mayIndexError |= other.parser_config.mayIndexError
 
             other = self.exprs[-1]
-            if (isinstance(other, self.__class__)
-                    and not other.parseAction
-                    and other.resultsName is None
-                    and not other.parser_config.parser_config.debug):
+            if (
+                isinstance(other, self.__class__)
+                and not other.parseAction
+                and other.resultsName is None
+                and not other.parser_config.parser_config.debug
+            ):
                 self.exprs = self.exprs[:-1] + other.exprs[:]
                 self.parser_config.mayReturnEmpty |= other.parser_config.mayReturnEmpty
-                self.parser_config.mayIndexError  |= other.parser_config.mayIndexError
+                self.parser_config.mayIndexError |= other.parser_config.mayIndexError
 
         self.parser_config.error_message = "Expected " + _ustr(self)
 
@@ -109,12 +118,16 @@ class ParseExpression(ParserElement):
         if __diag__.warn_ungrouped_named_tokens_in_collection:
             for e in self.exprs:
                 if isinstance(e, ParserElement) and e.resultsName:
-                    warnings.warn("{0}: setting results name {1!r} on {2} expression "
-                                  "collides with {3!r} on contained expression".format("warn_ungrouped_named_tokens_in_collection",
-                                                                                       name,
-                                                                                       type(self).__name__,
-                                                                                       e.resultsName),
-                                  stacklevel=3)
+                    warnings.warn(
+                        "{0}: setting results name {1!r} on {2} expression "
+                        "collides with {3!r} on contained expression".format(
+                            "warn_ungrouped_named_tokens_in_collection",
+                            name,
+                            type(self).__name__,
+                            e.resultsName,
+                        ),
+                        stacklevel=3,
+                    )
 
         return super(ParseExpression, self)._setResultsName(name, listAllMatches)
 
@@ -140,7 +153,7 @@ class And(ParseExpression):
     class _ErrorStop(Empty):
         def __init__(self, *args, **kwargs):
             super(And._ErrorStop, self).__init__(*args, **kwargs)
-            self.name = '-'
+            self.name = "-"
             self.leaveWhitespace()
 
     def __init__(self, exprs, savelist=True):
@@ -152,12 +165,16 @@ class And(ParseExpression):
                         skipto_arg = (Empty() + exprs[i + 1]).exprs[-1]
                         tmp.append(SkipTo(skipto_arg)("_skipped*"))
                     else:
-                        raise Exception("cannot construct And with sequence ending in ...")
+                        raise Exception(
+                            "cannot construct And with sequence ending in ..."
+                        )
                 else:
                     tmp.append(expr)
             exprs[:] = tmp
         super(And, self).__init__(exprs, savelist)
-        self.parser_config.mayReturnEmpty = all(e.parser_config.mayReturnEmpty for e in self.exprs)
+        self.parser_config.mayReturnEmpty = all(
+            e.parser_config.mayReturnEmpty for e in self.exprs
+        )
         self.setWhitespaceChars(self.exprs[0].parser_config.whiteChars)
         self.parser_config.skipWhitespace = self.exprs[0].parser_config.skipWhitespace
         self.parser_config.callPreparse = True
@@ -165,19 +182,28 @@ class And(ParseExpression):
     def streamline(self):
         # collapse any _PendingSkip's
         if self.exprs:
-            if any(isinstance(e, ParseExpression) and e.exprs and isinstance(e.exprs[-1], _PendingSkip)
-                   for e in self.exprs[:-1]):
+            if any(
+                isinstance(e, ParseExpression)
+                and e.exprs
+                and isinstance(e.exprs[-1], _PendingSkip)
+                for e in self.exprs[:-1]
+            ):
                 for i, e in enumerate(self.exprs[:-1]):
                     if e is None:
                         continue
-                    if (isinstance(e, ParseExpression)
-                            and e.exprs and isinstance(e.exprs[-1], _PendingSkip)):
+                    if (
+                        isinstance(e, ParseExpression)
+                        and e.exprs
+                        and isinstance(e.exprs[-1], _PendingSkip)
+                    ):
                         e.exprs[-1] = e.exprs[-1] + self.exprs[i + 1]
                         self.exprs[i + 1] = None
                 self.exprs = [e for e in self.exprs if e is not None]
 
         super(And, self).streamline()
-        self.parser_config.mayReturnEmpty = all(e.parser_config.mayReturnEmpty for e in self.exprs)
+        self.parser_config.mayReturnEmpty = all(
+            e.parser_config.mayReturnEmpty for e in self.exprs
+        )
         return self
 
     def parseImpl(self, instring, loc, doActions=True):
@@ -195,14 +221,20 @@ class And(ParseExpression):
                 except ParseSyntaxException:
                     raise
                 except ParseBaseException as pe:
-                    raise ParseSyntaxException(pe.pstr, pe.loc, pe.msg, pe.parserElement)
+                    raise ParseSyntaxException(
+                        pe.pstr, pe.loc, pe.msg, pe.parserElement
+                    )
                 except IndexError:
-                    raise ParseSyntaxException(instring, len(instring), self.parser_config.error_message, self)
+                    raise ParseSyntaxException(
+                        instring, len(instring), self.parser_config.error_message, self
+                    )
             else:
                 loc, exprtokens = e._parse(instring, loc, doActions)
 
             if not isinstance(exprtokens, ParseResults):
-                Log.error("expecting {{type}} to emit parseresults", type=e.__class__.__name__)
+                Log.error(
+                    "expecting {{type}} to emit parseresults", type=e.__class__.__name__
+                )
             acc.append(exprtokens)
 
         return loc, ParseResults(self, acc)
@@ -251,10 +283,13 @@ class Or(ParseExpression):
 
         [['123'], ['3.1416'], ['789']]
     """
+
     def __init__(self, exprs, savelist=False):
         super(Or, self).__init__(exprs, savelist)
         if self.exprs:
-            self.parser_config.mayReturnEmpty = any(e.parser_config.mayReturnEmpty for e in self.exprs)
+            self.parser_config.mayReturnEmpty = any(
+                e.parser_config.mayReturnEmpty for e in self.exprs
+            )
         else:
             self.parser_config.mayReturnEmpty = True
 
@@ -276,7 +311,9 @@ class Or(ParseExpression):
                     maxExcLoc = err.loc
             except IndexError:
                 if len(instring) > maxExcLoc:
-                    maxException = ParseException(instring, len(instring), e.parser_config.error_message, self)
+                    maxException = ParseException(
+                        instring, len(instring), e.parser_config.error_message, self
+                    )
                     maxExcLoc = len(instring)
             else:
                 # save match among all matches, to retry longest to shortest
@@ -321,8 +358,9 @@ class Or(ParseExpression):
             maxException.msg = self.parser_config.error_message
             raise maxException
         else:
-            raise ParseException(instring, loc, "no defined alternatives to match", self)
-
+            raise ParseException(
+                instring, loc, "no defined alternatives to match", self
+            )
 
     def __ixor__(self, other):
         return self.append(self.normalize(other))  # Or([self, other])
@@ -339,14 +377,21 @@ class Or(ParseExpression):
             e.checkRecursion(subRecCheckList)
 
     def _setResultsName(self, name, listAllMatches=False):
-        if (not __compat__.collect_all_And_tokens
-                and __diag__.warn_multiple_tokens_in_named_alternation):
+        if (
+            not __compat__.collect_all_And_tokens
+            and __diag__.warn_multiple_tokens_in_named_alternation
+        ):
             if any(isinstance(e, And) for e in self.exprs):
-                warnings.warn("{0}: setting results name {1!r} on {2} expression "
-                              "may only return a single token for an And alternative, "
-                              "in future will return the full list of tokens".format(
-                    "warn_multiple_tokens_in_named_alternation", name, type(self).__name__),
-                    stacklevel=3)
+                warnings.warn(
+                    "{0}: setting results name {1!r} on {2} expression "
+                    "may only return a single token for an And alternative, "
+                    "in future will return the full list of tokens".format(
+                        "warn_multiple_tokens_in_named_alternation",
+                        name,
+                        type(self).__name__,
+                    ),
+                    stacklevel=3,
+                )
 
         return super(Or, self)._setResultsName(name, listAllMatches)
 
@@ -368,10 +413,13 @@ class MatchFirst(ParseExpression):
         number = Combine(Word(nums) + '.' + Word(nums)) | Word(nums)
         print(number.searchString("123 3.1416 789")) #  Better -> [['123'], ['3.1416'], ['789']]
     """
+
     def __init__(self, exprs, savelist=False):
         super(MatchFirst, self).__init__(exprs, savelist)
         if self.exprs:
-            self.parser_config.mayReturnEmpty = any(e.parser_config.mayReturnEmpty for e in self.exprs)
+            self.parser_config.mayReturnEmpty = any(
+                e.parser_config.mayReturnEmpty for e in self.exprs
+            )
         else:
             self.parser_config.mayReturnEmpty = True
 
@@ -392,7 +440,9 @@ class MatchFirst(ParseExpression):
                     maxExcLoc = err.loc
             except IndexError:
                 if len(instring) > maxExcLoc:
-                    maxException = ParseException(instring, len(instring), e.parser_config.error_message, self)
+                    maxException = ParseException(
+                        instring, len(instring), e.parser_config.error_message, self
+                    )
                     maxExcLoc = len(instring)
 
         # only got here if no expression matched, raise exception for match that made it the furthest
@@ -401,7 +451,9 @@ class MatchFirst(ParseExpression):
                 maxException.msg = self.parser_config.error_message
                 raise maxException
             else:
-                raise ParseException(instring, loc, "no defined alternatives to match", self)
+                raise ParseException(
+                    instring, loc, "no defined alternatives to match", self
+                )
 
     def __or__(self, other):
         if other is Ellipsis:
@@ -431,7 +483,7 @@ class MatchFirst(ParseExpression):
         if hasattr(self, "name"):
             return self.name
 
-        return  " | ".join("{" + _ustr(e) + "}" for e in self.exprs)
+        return " | ".join("{" + _ustr(e) + "}" for e in self.exprs)
 
     def checkRecursion(self, parseElementList):
         subRecCheckList = parseElementList[:] + [self]
@@ -439,14 +491,21 @@ class MatchFirst(ParseExpression):
             e.checkRecursion(subRecCheckList)
 
     def _setResultsName(self, name, listAllMatches=False):
-        if (not __compat__.collect_all_And_tokens
-                and __diag__.warn_multiple_tokens_in_named_alternation):
+        if (
+            not __compat__.collect_all_And_tokens
+            and __diag__.warn_multiple_tokens_in_named_alternation
+        ):
             if any(isinstance(e, And) for e in self.exprs):
-                warnings.warn("{0}: setting results name {1!r} on {2} expression "
-                              "may only return a single token for an And alternative, "
-                              "in future will return the full list of tokens".format(
-                    "warn_multiple_tokens_in_named_alternation", name, type(self).__name__),
-                    stacklevel=3)
+                warnings.warn(
+                    "{0}: setting results name {1!r} on {2} expression "
+                    "may only return a single token for an And alternative, "
+                    "in future will return the full list of tokens".format(
+                        "warn_multiple_tokens_in_named_alternation",
+                        name,
+                        type(self).__name__,
+                    ),
+                    stacklevel=3,
+                )
 
         return super(MatchFirst, self)._setResultsName(name, listAllMatches)
 
@@ -508,31 +567,50 @@ class Each(ParseExpression):
         - shape: TRIANGLE
         - size: 20
     """
+
     def __init__(self, exprs, savelist=True):
         super(Each, self).__init__(exprs, savelist)
-        self.parser_config.mayReturnEmpty = all(e.parser_config.mayReturnEmpty for e in self.exprs)
+        self.parser_config.mayReturnEmpty = all(
+            e.parser_config.mayReturnEmpty for e in self.exprs
+        )
         self.parser_config.skipWhitespace = True
         self.initExprGroups = True
 
     def streamline(self):
         super(Each, self).streamline()
-        self.parser_config.mayReturnEmpty = all(e.parser_config.mayReturnEmpty for e in self.exprs)
+        self.parser_config.mayReturnEmpty = all(
+            e.parser_config.mayReturnEmpty for e in self.exprs
+        )
         return self
 
     def parseImpl(self, instring, loc, doActions=True):
         if self.initExprGroups:
-            self.opt1map = dict((id(e.expr), e) for e in self.exprs if isinstance(e, Optional))
+            self.opt1map = dict(
+                (id(e.expr), e) for e in self.exprs if isinstance(e, Optional)
+            )
             opt1 = [e.expr for e in self.exprs if isinstance(e, Optional)]
-            opt2 = [e for e in self.exprs if e.parser_config.mayReturnEmpty and not isinstance(e, Optional)]
+            opt2 = [
+                e
+                for e in self.exprs
+                if e.parser_config.mayReturnEmpty and not isinstance(e, Optional)
+            ]
             self.optionals = opt1 + opt2
-            self.multioptionals = [e.expr for e in self.exprs if isinstance(e, ZeroOrMore)]
-            self.multirequired = [e.expr for e in self.exprs if isinstance(e, OneOrMore)]
-            self.required = [e for e in self.exprs if not isinstance(e, (Optional, ZeroOrMore, OneOrMore))]
+            self.multioptionals = [
+                e.expr for e in self.exprs if isinstance(e, ZeroOrMore)
+            ]
+            self.multirequired = [
+                e.expr for e in self.exprs if isinstance(e, OneOrMore)
+            ]
+            self.required = [
+                e
+                for e in self.exprs
+                if not isinstance(e, (Optional, ZeroOrMore, OneOrMore))
+            ]
             self.required += self.multirequired
             self.initExprGroups = False
         tmpLoc = loc
         tmpReqd = self.required[:]
-        tmpOpt  = self.optionals[:]
+        tmpOpt = self.optionals[:]
         matchOrder = []
 
         keepMatching = True
@@ -555,10 +633,14 @@ class Each(ParseExpression):
 
         if tmpReqd:
             missing = ", ".join(_ustr(e) for e in tmpReqd)
-            raise ParseException(instring, loc, "Missing one or more required elements (%s)" % missing)
+            raise ParseException(
+                instring, loc, "Missing one or more required elements (%s)" % missing
+            )
 
         # add any unmatched Optionals, in case they have default values defined
-        matchOrder += [e for e in self.exprs if isinstance(e, Optional) and e.expr in tmpOpt]
+        matchOrder += [
+            e for e in self.exprs if isinstance(e, Optional) and e.expr in tmpOpt
+        ]
 
         resultlist = []
         for e in matchOrder:
@@ -572,7 +654,7 @@ class Each(ParseExpression):
         if hasattr(self, "name"):
             return self.name
 
-        return  "{" + " & ".join(_ustr(e) for e in self.exprs) + "}"
+        return "{" + " & ".join(_ustr(e) for e in self.exprs) + "}"
 
     def checkRecursion(self, parseElementList):
         subRecCheckList = parseElementList[:] + [self]
@@ -589,5 +671,6 @@ core.Each = Each
 core.MatchFirst = MatchFirst
 
 from mo_parsing import helpers
+
 helpers.MatchFirst = MatchFirst
 helpers.And = And

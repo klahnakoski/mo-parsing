@@ -4,6 +4,7 @@ from threading import RLock, Lock
 
 from mo_dots import Data
 
+
 class FiFoCache(object):
     def __init__(self, size):
         cache = OrderedDict()

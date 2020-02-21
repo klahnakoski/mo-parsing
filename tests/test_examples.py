@@ -27,4 +27,3 @@ def _single_test(name):
 for f in File("examples").children:
     if f.extension == "py":
         setattr(TestAllExamples, "test_" + f.name, _single_test(f.name))
-

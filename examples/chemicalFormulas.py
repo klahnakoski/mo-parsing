@@ -40,9 +40,7 @@ formula.runTests(
 print()
 
 # Version 2 - access parsed items by results name
-elementRef = Group(
-    element("symbol") + Optional(Word(digits), default="1")("qty")
-)
+elementRef = Group(element("symbol") + Optional(Word(digits), default="1")("qty"))
 formula = elementRef[...]
 
 fn = lambda elemList: sum(

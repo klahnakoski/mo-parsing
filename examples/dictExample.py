@@ -26,9 +26,7 @@ heading = (
 ).suppress()
 vert = Literal("|").suppress()
 number = Word(nums)
-rowData = Group(
-    vert + Word(alphas) + vert + delimitedList(number, "|") + vert
-)
+rowData = Group(vert + Word(alphas) + vert + delimitedList(number, "|") + vert)
 trailing = Literal(
     "+-------+------+------+------+------+------+------+------+------+"
 ).suppress()

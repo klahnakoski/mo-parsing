@@ -9,9 +9,17 @@ from mo_parsing.tokens import Literal
 from mo_parsing.utils import basestring
 
 
-def runTests(self, tests, parseAll=True, comment='#',
-             fullDump=True, printResults=True, failureTests=False, postParse=None,
-             file=None):
+def runTests(
+    self,
+    tests,
+    parseAll=True,
+    comment="#",
+    fullDump=True,
+    printResults=True,
+    failureTests=False,
+    postParse=None,
+    file=None,
+):
     """
     Execute the parse expression on a series of test strings, showing each
     test, the parsed results or where the parse failed. Quick and easy way to
@@ -112,8 +120,8 @@ def runTests(self, tests, parseAll=True, comment='#',
         comment = Literal(comment)
 
     allResults = []
-    NL = Literal(r'\n').addParseAction(replaceWith('\n')).ignore(quotedString)
-    BOM = u'\ufeff'
+    NL = Literal(r"\n").addParseAction(replaceWith("\n")).ignore(quotedString)
+    BOM = u"\ufeff"
     for t in tests:
         if comment is not None and comment.matches(t, False):
             Log.note(t)
@@ -150,7 +158,11 @@ def runTests(self, tests, parseAll=True, comment='#',
                         Log.note(result.dump())
                 except Exception as e:
                     Log.note(result.dump(full=fullDump))
-                    Log.note("{0} failed: {1}: {2}".format(postParse.__name__, type(e).__name__, e))
+                    Log.note(
+                        "{0} failed: {1}: {2}".format(
+                            postParse.__name__, type(e).__name__, e
+                        )
+                    )
             else:
                 Log.note(result.dump(full=fullDump))
 

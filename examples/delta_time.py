@@ -110,9 +110,7 @@ _24hour_time.setName("0000 time")
 ampm = am | pm
 timespec = (
     integer("HH")
-    + Optional(
-        CK("o'clock") | COLON + integer("MM") + Optional(COLON + integer("SS"))
-    )
+    + Optional(CK("o'clock") | COLON + integer("MM") + Optional(COLON + integer("SS")))
     + (am | pm)("ampm")
 ).addParseAction(fill_default_time_fields)
 absolute_time = _24hour_time | timespec

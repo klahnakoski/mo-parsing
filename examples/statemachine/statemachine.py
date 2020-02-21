@@ -347,9 +347,7 @@ class PystateImporter(SuffixImporter):
         # MATT-NOTE: re-worked :func:`get_state_machine`
 
         # convert any statemachine expressions
-        stateMachineExpr = (stateMachine | namedStateMachine).ignore(
-            pythonStyleComment
-        )
+        stateMachineExpr = (stateMachine | namedStateMachine).ignore(pythonStyleComment)
         generated_code = stateMachineExpr.transformString(data)
 
         if DEBUG:

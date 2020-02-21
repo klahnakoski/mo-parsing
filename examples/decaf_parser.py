@@ -41,11 +41,30 @@
     Constant ::= intConstant | doubleConstant | boolConstant |  stringConstant | null
 """
 from mo_parsing import *
-from mo_parsing import  Keyword, MatchFirst, Suppress, Regex, alphas, alphanums, Group, \
-    ZeroOrMore, Forward, Optional, OneOrMore
+from mo_parsing import (
+    Keyword,
+    MatchFirst,
+    Suppress,
+    Regex,
+    alphas,
+    alphanums,
+    Group,
+    ZeroOrMore,
+    Forward,
+    Optional,
+    OneOrMore,
+)
 
 # keywords
-from mo_parsing.helpers import integer, real, dblQuotedString, delimitedList, infixNotation, oneOf, opAssoc
+from mo_parsing.helpers import (
+    integer,
+    real,
+    dblQuotedString,
+    delimitedList,
+    infixNotation,
+    oneOf,
+    opAssoc,
+)
 
 keywords = (
     VOID,
@@ -178,9 +197,7 @@ if_stmt = Group(
     + Group(stmt)("then_statement")
     + Group(Optional(ELSE + stmt))("else_statement")
 )
-stmt_block = Group(
-    LBRACE + ZeroOrMore(variable_decl) + ZeroOrMore(stmt) + RBRACE
-)
+stmt_block = Group(LBRACE + ZeroOrMore(variable_decl) + ZeroOrMore(stmt) + RBRACE)
 stmt <<= (
     if_stmt
     | while_stmt

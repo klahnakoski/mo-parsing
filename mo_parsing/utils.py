@@ -13,7 +13,6 @@ def noop(*args):
     return
 
 
-
 try:
     # Python 3
     from itertools import filterfalse
@@ -45,15 +44,28 @@ if PY_3:
     _ustr = str
 
     # build list of single arg builtins, that can be used as parse actions
-    singleArgBuiltins = [sum, len, sorted, reversed, list, tuple, set, any, all, min, max]
+    singleArgBuiltins = [
+        sum,
+        len,
+        sorted,
+        reversed,
+        list,
+        tuple,
+        set,
+        any,
+        all,
+        min,
+        max,
+    ]
 
     builtin_lookup = {"".join.__name__: ("iterable",)}
 
     def get_function_arguments(func):
         try:
-            return func.__code__.co_varnames[:func.__code__.co_argcount]
+            return func.__code__.co_varnames[: func.__code__.co_argcount]
         except Exception as e:
             return builtin_lookup.get(func.__name__, ("unknown",))
+
 
 else:
     from __builtin__ import unicode
@@ -62,7 +74,6 @@ else:
     range = xrange
     basestring = basestring
     unichr = unichr
-
 
     def _ustr(obj):
         """Drop-in replacement for str(obj) that tries to be Unicode
@@ -82,9 +93,10 @@ else:
         except UnicodeEncodeError:
             # Else encode it
             from mo_parsing import Regex
-            ret = unicode(obj).encode(sys.getdefaultencoding(), 'xmlcharrefreplace')
-            xmlcharref = Regex(r'&#\d+;')
-            xmlcharref.setParseAction(lambda t: '\\u' + hex(int(t[0][2:-1]))[2:])
+
+            ret = unicode(obj).encode(sys.getdefaultencoding(), "xmlcharrefreplace")
+            xmlcharref = Regex(r"&#\d+;")
+            xmlcharref.setParseAction(lambda t: "\\u" + hex(int(t[0][2:-1]))[2:])
             return xmlcharref.transformString(ret)
 
     # build list of single arg builtins, tolerant of Python version, that can be used as parse actions
@@ -97,9 +109,8 @@ else:
         except AttributeError:
             continue
 
-
     def get_function_arguments(func):
-        return func.func_code.co_varnames[:func.func_code.co_argcount]
+        return func.func_code.co_varnames[: func.func_code.co_argcount]
 
 
 _generatorType = type((y for y in range(1)))
@@ -198,9 +209,7 @@ _bslash = chr(92)
 printables = "".join(c for c in string.printable if c not in string.whitespace)
 
 
-
-
-def col (loc, strg):
+def col(loc, strg):
     """Returns current column within a string, counting newlines as line separators.
    The first column is number 1.
 
@@ -212,7 +221,8 @@ def col (loc, strg):
    location, and line and column positions within the parsed string.
    """
     s = strg
-    return 1 if 0 < loc < len(s) and s[loc-1] == '\n' else loc - s.rfind("\n", 0, loc)
+    return 1 if 0 < loc < len(s) and s[loc - 1] == "\n" else loc - s.rfind("\n", 0, loc)
+
 
 def lineno(loc, strg):
     """Returns current line number within a string, counting newlines as line separators.
@@ -226,18 +236,21 @@ def lineno(loc, strg):
     """
     return strg.count("\n", 0, loc) + 1
 
+
 def line(loc, strg):
     """Returns the line of text containing loc within a string, counting newlines as line separators.
        """
     lastCR = strg.rfind("\n", 0, loc)
     nextCR = strg.find("\n", loc)
     if nextCR >= 0:
-        return strg[lastCR + 1:nextCR]
+        return strg[lastCR + 1 : nextCR]
     else:
-        return strg[lastCR + 1:]
+        return strg[lastCR + 1 :]
 
 
-'decorator to trim function calls to match the arity of the target'
+"decorator to trim function calls to match the arity of the target"
+
+
 def _trim_arity(func):
     if func in singleArgBuiltins:
         return lambda s, l, t: func(t)
@@ -277,24 +290,29 @@ def _trim_arity(func):
         else:
             start = 3 + self_arg - len(spec.args)
 
-
     def wrapper(*args):
         try:
             ret = func(*args[start:])
             return ret
         except Exception as e:
-            if isinstance(e, TypeError) and spec.args[0] == "self" and "required positional argument" in e.args[0]:
-                Log.error("Did you provide a `self` argument to a static function?", cause=e)
+            if (
+                isinstance(e, TypeError)
+                and spec.args[0] == "self"
+                and "required positional argument" in e.args[0]
+            ):
+                Log.error(
+                    "Did you provide a `self` argument to a static function?", cause=e
+                )
             # Log.warning("function failure", cause=e)
             from mo_parsing.exceptions import ParseException
+
             f = ParseException("function failed")
             f.__cause__ = e
             raise f
 
     # copy func name to wrapper for sensible debug output
     try:
-        func_name = getattr(func, '__name__',
-                            getattr(func, '__class__').__name__)
+        func_name = getattr(func, "__name__", getattr(func, "__class__").__name__)
     except Exception:
         func_name = str(func)
     wrapper.__name__ = func_name
@@ -306,24 +324,35 @@ def _xml_escape(data):
     """Escape &, <, >, ", ', etc. in a string of data."""
 
     # ampersand must be replaced first
-    from_symbols = '&><"\''
-    to_symbols = ('&' + s + ';' for s in "amp gt lt quot apos".split())
+    from_symbols = "&><\"'"
+    to_symbols = ("&" + s + ";" for s in "amp gt lt quot apos".split())
     for from_, to_ in zip(from_symbols, to_symbols):
         data = data.replace(from_, to_)
     return data
 
+
 def _defaultStartDebugAction(instring, loc, expr):
-    print("Match " + _ustr(expr) + " at loc " + _ustr(loc) + "(%d,%d)" % (lineno(loc, instring), col(loc, instring)))
+    print(
+        "Match "
+        + _ustr(expr)
+        + " at loc "
+        + _ustr(loc)
+        + "(%d,%d)" % (lineno(loc, instring), col(loc, instring))
+    )
+
 
 def _defaultSuccessDebugAction(instring, startloc, endloc, expr, toks):
     print("Matched " + _ustr(expr) + " -> " + str(toks))
 
+
 def _defaultExceptionDebugAction(instring, loc, expr, exc):
     print("Exception raised:" + _ustr(exc))
+
 
 def nullDebugAction(*args):
     """'Do-nothing' debug action, to suppress debugging output during parsing."""
     pass
+
 
 def traceParseAction(f):
     """Decorator for debugging parse actions.
@@ -351,12 +380,15 @@ def traceParseAction(f):
         ['dfjkls']
     """
     f = _trim_arity(f)
+
     def z(*paArgs):
         thisFunc = f.__name__
         s, l, t = paArgs[-3:]
         if len(paArgs) > 3:
-            thisFunc = paArgs[0].__class__.__name__ + '.' + thisFunc
-        sys.stderr.write(">>entering %s(line: '%s', %d, %r)\n" % (thisFunc, line(l, s), l, t))
+            thisFunc = paArgs[0].__class__.__name__ + "." + thisFunc
+        sys.stderr.write(
+            ">>entering %s(line: '%s', %d, %r)\n" % (thisFunc, line(l, s), l, t)
+        )
         try:
             ret = f(*paArgs)
         except Exception as exc:
@@ -364,6 +396,7 @@ def traceParseAction(f):
             raise
         sys.stderr.write("<<leaving %s (ret: %r)\n" % (thisFunc, ret))
         return ret
+
     try:
         z.__name__ = f.__name__
     except AttributeError:
@@ -380,8 +413,10 @@ class _lazyclassproperty(object):
     def __get__(self, obj, cls):
         if cls is None:
             cls = type(obj)
-        if not hasattr(cls, '_intern') or any(cls._intern is getattr(superclass, '_intern', [])
-                                              for superclass in cls.__mro__[1:]):
+        if not hasattr(cls, "_intern") or any(
+            cls._intern is getattr(superclass, "_intern", [])
+            for superclass in cls.__mro__[1:]
+        ):
             cls._intern = {}
         attrname = self.fn.__name__
         if attrname not in cls._intern:
@@ -403,6 +438,7 @@ class unicode_set(object):
         class CJK(Chinese, Japanese, Korean):
             pass
     """
+
     _ranges = []
 
     @classmethod
@@ -418,17 +454,17 @@ class unicode_set(object):
     @_lazyclassproperty
     def printables(cls):
         "all non-whitespace characters in this range"
-        return u''.join(filterfalse(unicode.isspace, cls._get_chars_for_ranges()))
+        return "".join(filterfalse(unicode.isspace, cls._get_chars_for_ranges()))
 
     @_lazyclassproperty
     def alphas(cls):
         "all alphabetic characters in this range"
-        return u''.join(filter(unicode.isalpha, cls._get_chars_for_ranges()))
+        return "".join(filter(unicode.isalpha, cls._get_chars_for_ranges()))
 
     @_lazyclassproperty
     def nums(cls):
         "all numeric digit characters in this range"
-        return u''.join(filter(unicode.isdigit, cls._get_chars_for_ranges()))
+        return "".join(filter(unicode.isdigit, cls._get_chars_for_ranges()))
 
     @_lazyclassproperty
     def alphanums(cls):
@@ -440,35 +476,60 @@ class parsing_unicode(unicode_set):
     """
     A namespace class for defining common language unicode_sets.
     """
+
     _ranges = [(32, sys.maxunicode)]
 
     class Latin1(unicode_set):
         "Unicode set for Latin-1 Unicode Character Range"
-        _ranges = [(0x0020, 0x007e), (0x00a0, 0x00ff),]
+        _ranges = [
+            (0x0020, 0x007E),
+            (0x00A0, 0x00FF),
+        ]
 
     class LatinA(unicode_set):
         "Unicode set for Latin-A Unicode Character Range"
-        _ranges = [(0x0100, 0x017f),]
+        _ranges = [
+            (0x0100, 0x017F),
+        ]
 
     class LatinB(unicode_set):
         "Unicode set for Latin-B Unicode Character Range"
-        _ranges = [(0x0180, 0x024f),]
+        _ranges = [
+            (0x0180, 0x024F),
+        ]
 
     class Greek(unicode_set):
         "Unicode set for Greek Unicode Character Ranges"
         _ranges = [
-            (0x0370, 0x03ff), (0x1f00, 0x1f15), (0x1f18, 0x1f1d), (0x1f20, 0x1f45), (0x1f48, 0x1f4d),
-            (0x1f50, 0x1f57), (0x1f59,), (0x1f5b,), (0x1f5d,), (0x1f5f, 0x1f7d), (0x1f80, 0x1fb4), (0x1fb6, 0x1fc4),
-            (0x1fc6, 0x1fd3), (0x1fd6, 0x1fdb), (0x1fdd, 0x1fef), (0x1ff2, 0x1ff4), (0x1ff6, 0x1ffe),
+            (0x0370, 0x03FF),
+            (0x1F00, 0x1F15),
+            (0x1F18, 0x1F1D),
+            (0x1F20, 0x1F45),
+            (0x1F48, 0x1F4D),
+            (0x1F50, 0x1F57),
+            (0x1F59,),
+            (0x1F5B,),
+            (0x1F5D,),
+            (0x1F5F, 0x1F7D),
+            (0x1F80, 0x1FB4),
+            (0x1FB6, 0x1FC4),
+            (0x1FC6, 0x1FD3),
+            (0x1FD6, 0x1FDB),
+            (0x1FDD, 0x1FEF),
+            (0x1FF2, 0x1FF4),
+            (0x1FF6, 0x1FFE),
         ]
 
     class Cyrillic(unicode_set):
         "Unicode set for Cyrillic Unicode Character Range"
-        _ranges = [(0x0400, 0x04ff)]
+        _ranges = [(0x0400, 0x04FF)]
 
     class Chinese(unicode_set):
         "Unicode set for Chinese Unicode Character Range"
-        _ranges = [(0x4e00, 0x9fff), (0x3000, 0x303f),]
+        _ranges = [
+            (0x4E00, 0x9FFF),
+            (0x3000, 0x303F),
+        ]
 
     class Japanese(unicode_set):
         "Unicode set for Japanese Unicode Character Range, combining Kanji, Hiragana, and Katakana ranges"
@@ -476,19 +537,33 @@ class parsing_unicode(unicode_set):
 
         class Kanji(unicode_set):
             "Unicode set for Kanji Unicode Character Range"
-            _ranges = [(0x4E00, 0x9Fbf), (0x3000, 0x303f),]
+            _ranges = [
+                (0x4E00, 0x9FBF),
+                (0x3000, 0x303F),
+            ]
 
         class Hiragana(unicode_set):
             "Unicode set for Hiragana Unicode Character Range"
-            _ranges = [(0x3040, 0x309f),]
+            _ranges = [
+                (0x3040, 0x309F),
+            ]
 
         class Katakana(unicode_set):
             "Unicode set for Katakana  Unicode Character Range"
-            _ranges = [(0x30a0, 0x30ff),]
+            _ranges = [
+                (0x30A0, 0x30FF),
+            ]
 
     class Korean(unicode_set):
         "Unicode set for Korean Unicode Character Range"
-        _ranges = [(0xac00, 0xd7af), (0x1100, 0x11ff), (0x3130, 0x318f), (0xa960, 0xa97f), (0xd7b0, 0xd7ff), (0x3000, 0x303f),]
+        _ranges = [
+            (0xAC00, 0xD7AF),
+            (0x1100, 0x11FF),
+            (0x3130, 0x318F),
+            (0xA960, 0xA97F),
+            (0xD7B0, 0xD7FF),
+            (0x3000, 0x303F),
+        ]
 
     class CJK(Chinese, Japanese, Korean):
         "Unicode set for combined Chinese, Japanese, and Korean (CJK) Unicode Character Range"
@@ -496,39 +571,47 @@ class parsing_unicode(unicode_set):
 
     class Thai(unicode_set):
         "Unicode set for Thai Unicode Character Range"
-        _ranges = [(0x0e01, 0x0e3a), (0x0e3f, 0x0e5b),]
+        _ranges = [
+            (0x0E01, 0x0E3A),
+            (0x0E3F, 0x0E5B),
+        ]
 
     class Arabic(unicode_set):
         "Unicode set for Arabic Unicode Character Range"
-        _ranges = [(0x0600, 0x061b), (0x061e, 0x06ff), (0x0700, 0x077f),]
+        _ranges = [
+            (0x0600, 0x061B),
+            (0x061E, 0x06FF),
+            (0x0700, 0x077F),
+        ]
 
     class Hebrew(unicode_set):
         "Unicode set for Hebrew Unicode Character Range"
-        _ranges = [(0x0590, 0x05ff),]
+        _ranges = [
+            (0x0590, 0x05FF),
+        ]
 
     class Devanagari(unicode_set):
         "Unicode set for Devanagari Unicode Character Range"
-        _ranges = [(0x0900, 0x097f), (0xa8e0, 0xa8ff)]
+        _ranges = [(0x0900, 0x097F), (0xA8E0, 0xA8FF)]
 
 
 parsing_unicode.Japanese._ranges = (
-        parsing_unicode.Japanese.Kanji._ranges
-        + parsing_unicode.Japanese.Hiragana._ranges
-        + parsing_unicode.Japanese.Katakana._ranges
+    parsing_unicode.Japanese.Kanji._ranges
+    + parsing_unicode.Japanese.Hiragana._ranges
+    + parsing_unicode.Japanese.Katakana._ranges
 )
 
 # define ranges in language character sets
 if PY_3:
-    setattr(parsing_unicode, u"العربية", parsing_unicode.Arabic)
-    setattr(parsing_unicode, u"中文", parsing_unicode.Chinese)
-    setattr(parsing_unicode, u"кириллица", parsing_unicode.Cyrillic)
-    setattr(parsing_unicode, u"Ελληνικά", parsing_unicode.Greek)
-    setattr(parsing_unicode, u"עִברִית", parsing_unicode.Hebrew)
-    setattr(parsing_unicode, u"日本語", parsing_unicode.Japanese)
-    setattr(parsing_unicode.Japanese, u"漢字", parsing_unicode.Japanese.Kanji)
-    setattr(parsing_unicode.Japanese, u"カタカナ", parsing_unicode.Japanese.Katakana)
-    setattr(parsing_unicode.Japanese, u"ひらがな", parsing_unicode.Japanese.Hiragana)
-    setattr(parsing_unicode, u"한국어", parsing_unicode.Korean)
-    setattr(parsing_unicode, u"ไทย", parsing_unicode.Thai)
-    setattr(parsing_unicode, u"देवनागरी", parsing_unicode.Devanagari)
-
+    setattr(parsing_unicode, "العربية", parsing_unicode.Arabic)
+    setattr(parsing_unicode, "中文", parsing_unicode.Chinese)
+    setattr(parsing_unicode, "кириллица", parsing_unicode.Cyrillic)
+    setattr(parsing_unicode, "Ελληνικά", parsing_unicode.Greek)
+    setattr(parsing_unicode, "עִברִית", parsing_unicode.Hebrew)
+    setattr(parsing_unicode, "日本語", parsing_unicode.Japanese)
+    setattr(parsing_unicode.Japanese, "漢字", parsing_unicode.Japanese.Kanji)
+    setattr(parsing_unicode.Japanese, "カタカナ", parsing_unicode.Japanese.Katakana)
+    setattr(parsing_unicode.Japanese, "ひらがな", parsing_unicode.Japanese.Hiragana)
+    setattr(parsing_unicode, "한국어", parsing_unicode.Korean)
+    setattr(parsing_unicode, "ไทย", parsing_unicode.Thai)
+    setattr(parsing_unicode, "देवनागरी", parsing_unicode.Devanagari)

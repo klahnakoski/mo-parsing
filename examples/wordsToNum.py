@@ -80,9 +80,9 @@ numPart = (
     )
     + Optional(units)
 ).setParseAction(sum)
-numWords = (
-    (numPart + Optional(mag)).setParseAction(wordprod)[1, ...]
-).setParseAction(sum)
+numWords = ((numPart + Optional(mag)).setParseAction(wordprod)[1, ...]).setParseAction(
+    sum
+)
 numWords.setName("num word parser")
 
 numWords.ignore(Literal("-"))
@@ -107,11 +107,7 @@ tests = """
 """
 
 # use '| ...' to indicate "if omitted, skip to next" logic
-test_expr = (
-    (numWords("result") | ...)
-    + ","
-    + (integer("expected") | "None")
-)
+test_expr = (numWords("result") | ...) + "," + (integer("expected") | "None")
 
 
 def verify_result(t):
