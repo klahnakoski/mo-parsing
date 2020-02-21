@@ -40,10 +40,13 @@
     Actuals ::=  Expr+, | e
     Constant ::= intConstant | doubleConstant | boolConstant |  stringConstant | null
 """
-import mo_parsing as pp
-from mo_parsing import mo_parsing_common as ppc
+from mo_parsing import *
+from mo_parsing import  Keyword, MatchFirst, Suppress, Regex, alphas, alphanums, Group, \
+    ZeroOrMore, Forward, Optional, OneOrMore
 
 # keywords
+from mo_parsing.helpers import integer, real, dblQuotedString, delimitedList, infixNotation, oneOf, opAssoc
+
 keywords = (
     VOID,
     INT,
@@ -70,65 +73,65 @@ keywords = (
     TRUE,
     FALSE,
 ) = map(
-    pp.Keyword,
+    Keyword,
     """void int double bool string class interface null this extends implements or while
                if else return break new NewArray Print ReadInteger ReadLine true false""".split(),
 )
-keywords = pp.MatchFirst(list(keywords))
+keywords = MatchFirst(list(keywords))
 
 LPAR, RPAR, LBRACE, RBRACE, LBRACK, RBRACK, DOT, EQ, COMMA, SEMI = map(
-    pp.Suppress, "(){}[].=,;"
+    Suppress, "(){}[].=,;"
 )
-hexConstant = pp.Regex(r"0[xX][0-9a-fA-F]+").addParseAction(lambda t: int(t[0][2:], 16))
-intConstant = hexConstant | ppc.integer
-doubleConstant = ppc.real
+hexConstant = Regex(r"0[xX][0-9a-fA-F]+").addParseAction(lambda t: int(t[0][2:], 16))
+intConstant = hexConstant | integer
+doubleConstant = real
 boolConstant = TRUE | FALSE
-stringConstant = pp.dblQuotedString
+stringConstant = dblQuotedString
 null = NULL
 constant = doubleConstant | boolConstant | intConstant | stringConstant | null
-ident = ~keywords + pp.Word(pp.alphas, pp.alphanums + "_")
-type_ = pp.Group((INT | DOUBLE | BOOL | STRING | ident) + pp.ZeroOrMore("[]"))
+ident = ~keywords + Word(alphas, alphanums + "_")
+type_ = Group((INT | DOUBLE | BOOL | STRING | ident) + ZeroOrMore("[]"))
 
 variable = type_ + ident
 variable_decl = variable + SEMI
 
-expr = pp.Forward()
-expr_parens = pp.Group(LPAR + expr + RPAR)
-actuals = pp.Optional(pp.delimitedList(expr))
-call = pp.Group(
+expr = Forward()
+expr_parens = Group(LPAR + expr + RPAR)
+actuals = Optional(delimitedList(expr))
+call = Group(
     ident("call_ident") + LPAR + actuals("call_args") + RPAR
-    | (expr_parens + pp.ZeroOrMore(DOT + ident))("call_ident_expr")
+    | (expr_parens + ZeroOrMore(DOT + ident))("call_ident_expr")
     + LPAR
     + actuals("call_args")
     + RPAR
 )
 lvalue = (
     (ident | expr_parens)
-    + pp.ZeroOrMore(DOT + (ident | expr_parens))
-    + pp.ZeroOrMore(LBRACK + expr + RBRACK)
+    + ZeroOrMore(DOT + (ident | expr_parens))
+    + ZeroOrMore(LBRACK + expr + RBRACK)
 )
-assignment = pp.Group(lvalue("lhs") + EQ + expr("rhs"))
-read_integer = pp.Group(READINTEGER + LPAR + RPAR)
-read_line = pp.Group(READLINE + LPAR + RPAR)
-new_statement = pp.Group(NEW + ident)
-new_array = pp.Group(NEWARRAY + LPAR + expr + COMMA + type_ + RPAR)
+assignment = Group(lvalue("lhs") + EQ + expr("rhs"))
+read_integer = Group(READINTEGER + LPAR + RPAR)
+read_line = Group(READLINE + LPAR + RPAR)
+new_statement = Group(NEW + ident)
+new_array = Group(NEWARRAY + LPAR + expr + COMMA + type_ + RPAR)
 rvalue = constant | call | read_integer | read_line | new_statement | new_array | ident
-arith_expr = pp.infixNotation(
+arith_expr = infixNotation(
     rvalue,
     [
-        ("-", 1, pp.opAssoc.RIGHT,),
-        (pp.oneOf("* / %"), 2, pp.opAssoc.LEFT,),
-        (pp.oneOf("+ -"), 2, pp.opAssoc.LEFT,),
+        ("-", 1, opAssoc.RIGHT,),
+        (oneOf("* / %"), 2, opAssoc.LEFT,),
+        (oneOf("+ -"), 2, opAssoc.LEFT,),
     ],
 )
-comparison_expr = pp.infixNotation(
+comparison_expr = infixNotation(
     arith_expr,
     [
-        ("!", 1, pp.opAssoc.RIGHT,),
-        (pp.oneOf("< > <= >="), 2, pp.opAssoc.LEFT,),
-        (pp.oneOf("== !="), 2, pp.opAssoc.LEFT,),
-        (pp.oneOf("&&"), 2, pp.opAssoc.LEFT,),
-        (pp.oneOf("||"), 2, pp.opAssoc.LEFT,),
+        ("!", 1, opAssoc.RIGHT,),
+        (oneOf("< > <= >="), 2, opAssoc.LEFT,),
+        (oneOf("== !="), 2, opAssoc.LEFT,),
+        (oneOf("&&"), 2, opAssoc.LEFT,),
+        (oneOf("||"), 2, opAssoc.LEFT,),
     ],
 )
 expr <<= (
@@ -145,38 +148,38 @@ expr <<= (
     | new_array
 )
 
-stmt = pp.Forward()
-print_stmt = pp.Group(
+stmt = Forward()
+print_stmt = Group(
     PRINT("statement")
     + LPAR
-    + pp.Group(pp.Optional(pp.delimitedList(expr)))("args")
+    + Group(Optional(delimitedList(expr)))("args")
     + RPAR
     + SEMI
 )
-break_stmt = pp.Group(BREAK("statement") + SEMI)
-return_stmt = pp.Group(RETURN("statement") + expr + SEMI)
-for_stmt = pp.Group(
+break_stmt = Group(BREAK("statement") + SEMI)
+return_stmt = Group(RETURN("statement") + expr + SEMI)
+for_stmt = Group(
     FOR("statement")
     + LPAR
-    + pp.Optional(expr)
+    + Optional(expr)
     + SEMI
     + expr
     + SEMI
-    + pp.Optional(expr)
+    + Optional(expr)
     + RPAR
     + stmt
 )
-while_stmt = pp.Group(WHILE("statement") + LPAR + expr + RPAR + stmt)
-if_stmt = pp.Group(
+while_stmt = Group(WHILE("statement") + LPAR + expr + RPAR + stmt)
+if_stmt = Group(
     IF("statement")
     + LPAR
-    + pp.Group(expr)("condition")
+    + Group(expr)("condition")
     + RPAR
-    + pp.Group(stmt)("then_statement")
-    + pp.Group(pp.Optional(ELSE + stmt))("else_statement")
+    + Group(stmt)("then_statement")
+    + Group(Optional(ELSE + stmt))("else_statement")
 )
-stmt_block = pp.Group(
-    LBRACE + pp.ZeroOrMore(variable_decl) + pp.ZeroOrMore(stmt) + RBRACE
+stmt_block = Group(
+    LBRACE + ZeroOrMore(variable_decl) + ZeroOrMore(stmt) + RBRACE
 )
 stmt <<= (
     if_stmt
@@ -186,11 +189,11 @@ stmt <<= (
     | return_stmt
     | print_stmt
     | stmt_block
-    | pp.Group(expr + SEMI)
+    | Group(expr + SEMI)
 )
 
-formals = pp.Optional(pp.delimitedList(variable))
-prototype = pp.Group(
+formals = Optional(delimitedList(variable))
+prototype = Group(
     (type_ | VOID)("return_type")
     + ident("function_name")
     + LPAR
@@ -198,7 +201,7 @@ prototype = pp.Group(
     + RPAR
     + SEMI
 )("prototype")
-function_decl = pp.Group(
+function_decl = Group(
     (type_ | VOID)("return_type")
     + ident("function_name")
     + LPAR
@@ -207,26 +210,26 @@ function_decl = pp.Group(
     + stmt_block("body")
 )("function_decl")
 
-interface_decl = pp.Group(
+interface_decl = Group(
     INTERFACE
     + ident("interface_name")
     + LBRACE
-    + pp.ZeroOrMore(prototype)("prototypes")
+    + ZeroOrMore(prototype)("prototypes")
     + RBRACE
 )("interface")
 field = variable_decl | function_decl
-class_decl = pp.Group(
+class_decl = Group(
     CLASS
     + ident("class_name")
-    + pp.Optional(EXTENDS + ident)("extends")
-    + pp.Optional(IMPLEMENTS + pp.delimitedList(ident))("implements")
+    + Optional(EXTENDS + ident)("extends")
+    + Optional(IMPLEMENTS + delimitedList(ident))("implements")
     + LBRACE
-    + pp.ZeroOrMore(field)("fields")
+    + ZeroOrMore(field)("fields")
     + RBRACE
 )("class_decl")
 
 decl = variable_decl | function_decl | class_decl | interface_decl | prototype
-program = pp.OneOrMore(pp.Group(decl))
+program = OneOrMore(Group(decl))
 decaf_parser = program
 
 stmt.runTests(

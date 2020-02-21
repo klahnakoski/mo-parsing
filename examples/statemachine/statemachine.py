@@ -14,7 +14,7 @@ from urllib.parse import urlparse
 DEBUG = False
 
 
-import mo_parsing as pp
+from mo_parsing import *
 
 # define basic exception for invalid state transitions - state machine classes will subclass to
 # define their own specific exception type
@@ -22,7 +22,7 @@ class InvalidTransitionException(Exception):
     pass
 
 
-ident = pp.Word(pp.alphas + "_", pp.alphanums + "_$")
+ident = Word(alphas + "_", alphanums + "_$")
 
 # add parse-time condition to make sure we do not allow any Python keywords to be used as
 # statemachine identifiers
@@ -38,20 +38,20 @@ ident.addCondition(
 
 stateTransition = ident("from_state") + "->" + ident("to_state")
 stateMachine = (
-    pp.Keyword("statemachine")
+    Keyword("statemachine")
     + ident("name")
     + ":"
-    + pp.OneOrMore(pp.Group(stateTransition))("transitions")
+    + OneOrMore(Group(stateTransition))("transitions")
 )
 
 namedStateTransition = (
     ident("from_state") + "-(" + ident("transition") + ")->" + ident("to_state")
 )
 namedStateMachine = (
-    pp.Keyword("statemachine")
+    Keyword("statemachine")
     + ident("name")
     + ":"
-    + pp.OneOrMore(pp.Group(namedStateTransition))("transitions")
+    + OneOrMore(Group(namedStateTransition))("transitions")
 )
 
 
@@ -59,7 +59,7 @@ def expand_state_definition(source, loc, tokens):
     """
     Parse action to convert statemachine to corresponding Python classes and methods
     """
-    indent = " " * (pp.col(loc, source) - 1)
+    indent = " " * (col(loc, source) - 1)
     statedef = []
 
     # build list of states
@@ -127,7 +127,7 @@ def expand_named_state_definition(source, loc, tokens):
     Parse action to convert statemachine with named transitions to corresponding Python
     classes and methods
     """
-    indent = " " * (pp.col(loc, source) - 1)
+    indent = " " * (col(loc, source) - 1)
     statedef = []
     # build list of states and transitions
     states = set()
@@ -348,7 +348,7 @@ class PystateImporter(SuffixImporter):
 
         # convert any statemachine expressions
         stateMachineExpr = (stateMachine | namedStateMachine).ignore(
-            pp.pythonStyleComment
+            pythonStyleComment
         )
         generated_code = stateMachineExpr.transformString(data)
 

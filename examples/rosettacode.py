@@ -34,46 +34,46 @@ BNF = """
                           ;
 """
 
-import mo_parsing as pp
+from mo_parsing import *
 
 
-LBRACE, RBRACE, LPAR, RPAR, SEMI = map(pp.Suppress, "{}();")
-EQ = pp.Literal("=")
+LBRACE, RBRACE, LPAR, RPAR, SEMI = map(Suppress, "{}();")
+EQ = Literal("=")
 
 keywords = (WHILE, IF, PRINT, PUTC, ELSE) = map(
-    pp.Keyword, "while if print putc else".split()
+    Keyword, "while if print putc else".split()
 )
-any_keyword = pp.MatchFirst(keywords)
-identifier = ~any_keyword + pp.mo_parsing_common.identifier
-integer = pp.mo_parsing_common.integer
-string = pp.QuotedString('"', convertWhitespaceEscapes=False).setName("quoted string")
-char = pp.Regex(r"'\\?.'")
+any_keyword = MatchFirst(keywords)
+identifier = ~any_keyword + identifier
+integer = integer
+string = QuotedString('"', convertWhitespaceEscapes=False).setName("quoted string")
+char = Regex(r"'\\?.'")
 
-expr = pp.infixNotation(
+expr = infixNotation(
     identifier | integer | char,
     [
-        (pp.oneOf("+ - !"), 1, pp.opAssoc.RIGHT,),
-        (pp.oneOf("* / %"), 2, pp.opAssoc.LEFT,),
-        (pp.oneOf("+ -"), 2, pp.opAssoc.LEFT,),
-        (pp.oneOf("< <= > >="), 2, pp.opAssoc.LEFT,),
-        (pp.oneOf("== !="), 2, pp.opAssoc.LEFT,),
-        (pp.oneOf("&&"), 2, pp.opAssoc.LEFT,),
-        (pp.oneOf("||"), 2, pp.opAssoc.LEFT,),
+        (oneOf("+ - !"), 1, opAssoc.RIGHT,),
+        (oneOf("* / %"), 2, opAssoc.LEFT,),
+        (oneOf("+ -"), 2, opAssoc.LEFT,),
+        (oneOf("< <= > >="), 2, opAssoc.LEFT,),
+        (oneOf("== !="), 2, opAssoc.LEFT,),
+        (oneOf("&&"), 2, opAssoc.LEFT,),
+        (oneOf("||"), 2, opAssoc.LEFT,),
     ],
 )
 
-prt_list = pp.Group(pp.delimitedList(string | expr))
-paren_expr = pp.Group(LPAR + expr + RPAR)
+prt_list = Group(delimitedList(string | expr))
+paren_expr = Group(LPAR + expr + RPAR)
 
-stmt = pp.Forward()
-assignment_stmt = pp.Group(identifier + EQ + expr + SEMI)
-while_stmt = pp.Group(WHILE - paren_expr + stmt)
-if_stmt = pp.Group(IF - paren_expr + stmt + pp.Optional(ELSE + stmt))
-print_stmt = pp.Group(PRINT - pp.Group(LPAR + prt_list + RPAR) + SEMI)
-putc_stmt = pp.Group(PUTC - paren_expr + SEMI)
-stmt_list = pp.Group(LBRACE + stmt[...] + RBRACE)
+stmt = Forward()
+assignment_stmt = Group(identifier + EQ + expr + SEMI)
+while_stmt = Group(WHILE - paren_expr + stmt)
+if_stmt = Group(IF - paren_expr + stmt + Optional(ELSE + stmt))
+print_stmt = Group(PRINT - Group(LPAR + prt_list + RPAR) + SEMI)
+putc_stmt = Group(PUTC - paren_expr + SEMI)
+stmt_list = Group(LBRACE + stmt[...] + RBRACE)
 stmt <<= (
-    pp.Group(SEMI)
+    Group(SEMI)
     | assignment_stmt
     | while_stmt
     | if_stmt
@@ -83,7 +83,7 @@ stmt <<= (
 ).setName("statement")
 
 code = stmt[...]
-code.ignore(pp.cppStyleComment)
+code.ignore(cppStyleComment)
 
 
 tests = [
@@ -278,8 +278,8 @@ sys.setrecursionlimit(2000)
 for test in tests:
     try:
         results = code.parseString(test)
-    except pp.ParseException as pe:
-        pp.ParseException.explain(pe)
+    except ParseException as pe:
+        ParseException.explain(pe)
     else:
         results.pprint()
     print()

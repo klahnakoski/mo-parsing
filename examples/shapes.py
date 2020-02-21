@@ -33,9 +33,9 @@ class Circle(Shape):
         return 3.14159 * self.radius ** 2
 
 
-import mo_parsing as pp
+from mo_parsing import *
 
-number = pp.Regex(r"-?\d+(\.\d*)?").setParseAction(lambda t: float(t[0]))
+number = Regex(r"-?\d+(\.\d*)?").setParseAction(lambda t: float(t[0]))
 
 # Shape expressions:
 #   square : S <centerx> <centery> <side>

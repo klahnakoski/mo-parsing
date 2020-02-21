@@ -780,8 +780,8 @@ class PrecededBy(ParseElementEnhance):
     Example::
 
         # VB-style variable names with type prefixes
-        int_var = PrecededBy("#") + mo_parsing_common.identifier
-        str_var = PrecededBy("$") + mo_parsing_common.identifier
+        int_var = PrecededBy("#") + identifier
+        str_var = PrecededBy("$") + identifier
 
     """
     def __init__(self, expr, retreat=None):

@@ -4,7 +4,7 @@ import warnings
 from collections import namedtuple
 from contextlib import contextmanager
 from copy import copy
-from datetime import datetime
+from datetime import datetime, date
 
 from mo_dots import Data
 from mo_logs import Log
@@ -289,7 +289,7 @@ class ParserElement(object):
 
         See examples in :class:`copy`.
         """
-        self.parseAction += list(map(_trim_arity, list(fns)))
+        self.parseAction += list(map(_trim_arity, fns))
         self.callDuringTry = self.callDuringTry or kwargs.get("callDuringTry", False)
         return self
 
@@ -421,16 +421,16 @@ class ParserElement(object):
                             exc.__cause__ = parse_action_exc
                             raise exc
 
-                        if isinstance(tokens, (list, tuple)):
+                        if isinstance(tokens, list):
                             tokens = ParseResults(self, tokens)
-                        elif isinstance(tokens, ParseResults):
-                            pass
-                        elif isinstance(tokens, (basestring, int, float, datetime, set, dict)):
-                            tokens = ParseResults(self, [tokens])
+                        elif isinstance(tokens, tuple):
+                            tokens = ParseResults(self, tokens)
                         elif tokens is None:
                             tokens = ParseResults(self, [])
+                        elif isinstance(tokens, ParseResults):
+                            pass
                         else:
-                            Log.error("not understood")
+                            tokens = ParseResults(self, [tokens])
 
                         retTokens = tokens
                 except Exception as err:

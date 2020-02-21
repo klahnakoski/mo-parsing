@@ -925,7 +925,7 @@ if __name__ == "__main__":
         if len(tokens):
             print("OK", elapsed)
             # ~ print "tokens="
-            # ~ pp.pprint( tokens.asList() )
+            # ~ pprint( tokens.asList() )
             # ~ print
 
             ofnam = fileDir + "/parseOutput/" + vfile + ".parsed.txt"
@@ -933,7 +933,7 @@ if __name__ == "__main__":
             outfile.write(teststr)
             outfile.write("\n")
             outfile.write("\n")
-            outfile.write(pp.pformat(tokens.asList()))
+            outfile.write(pformat(tokens.asList()))
             outfile.write("\n")
             outfile.close()
         else:

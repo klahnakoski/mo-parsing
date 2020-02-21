@@ -2,7 +2,7 @@
 #
 #  Example showing how to use the CloseMatch class, to find strings in a gene with up to 'n' mismatches
 #
-import mo_parsing as pp
+from mo_parsing import *
 
 from urllib.request import urlopen
 
@@ -16,19 +16,19 @@ with urlopen(data_url) as datafile:
 Sample header:
 >NC_001799-6-2978-2778 | organism=Toxoplasma_gondii_RH | location=NC_001799:2778-2978(-) | length=201
 """
-integer = pp.mo_parsing_common.integer
-genebit = pp.Group(
+integer = integer
+genebit = Group(
     ">"
-    + pp.Word(pp.alphanums.upper() + "-_")("gene_id")
+    + Word(alphanums.upper() + "-_")("gene_id")
     + "|"
-    + pp.Word(pp.printables)("organism")
+    + Word(printables)("organism")
     + "|"
-    + pp.Word(pp.printables)("location")
+    + Word(printables)("location")
     + "|"
     + "length="
     + integer("gene_len")
-    + pp.LineEnd()
-    + pp.Word("ACGTN")[1, ...].addParseAction("".join)("gene")
+    + LineEnd()
+    + Word("ACGTN")[1, ...].addParseAction("".join)("gene")
 )
 
 # read gene data from .fasta file - takes just a few seconds
@@ -39,7 +39,7 @@ genebit = pp.Group(
 genedata = genebit[1, ...].parseString(fastasrc)
 
 # using the genedata extracted above, look for close matches of a gene sequence
-searchseq = pp.CloseMatch("TTAAATCTAGAAGAT", 3)
+searchseq = CloseMatch("TTAAATCTAGAAGAT", 3)
 
 for g in genedata:
     show_header = True

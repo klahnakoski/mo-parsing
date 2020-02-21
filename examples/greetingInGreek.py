@@ -5,10 +5,10 @@
 #
 # Copyright 2004-2016, by Paul McGuire
 #
-from mo_parsing import Word, mo_parsing_unicode as ppu
+from mo_parsing import Word, parsing_unicode as ppu, parsing_unicode
 
 # define grammar
-alphas = ppu.Greek.alphas
+alphas = parsing_unicode.Greek.alphas
 greet = Word(alphas) + "," + Word(alphas) + "!"
 
 # input string

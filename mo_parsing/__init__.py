@@ -91,20 +91,34 @@ classes inherit from. Use the docstrings for examples of how to:
    object
  - find some helpful expression short-cuts like :class:`delimitedList`
    and :class:`oneOf`
- - find more useful common expressions in the :class:`mo_parsing_common`
+ - find more useful common expressions in the :class:`parsing_common`
    namespace class
 """
 )
 
-from mo_parsing.exceptions import OnlyOnce, ParseBaseException, ParseException, ParseFatalException, ParseSyntaxException, RecursiveGrammarException, conditionAsParseAction
-from mo_parsing.expressions import And, Each, MatchFirst, Or, ParseExpression
 from mo_parsing.core import ParserElement, _PendingSkip, __diag__
-from mo_parsing.enhancement import CharsNotIn, Combine, Dict, FollowedBy, Forward, Group, Keyword, Literal, NotAny, OneOrMore, Optional, ParseElementEnhance, PrecededBy, SkipTo, StringEnd, Suppress, Token, TokenConverter, ZeroOrMore
-from mo_parsing.helpers import alphas8bit, anyCloseTag, anyOpenTag, cStyleComment, commaSeparatedList, commonHTMLEntity, countedArray, cppStyleComment, dblQuotedString, dblSlashComment, delimitedList, dictOf, downcaseTokens, downcaseTokens, empty, empty, hexnums, htmlComment, htmlComment, indentedBlock, infixNotation, javaStyleComment, javaStyleComment, lineEnd, lineEnd, lineStart, lineStart, locatedExpr, makeHTMLTags, makeXMLTags, matchOnlyAtCol, matchPreviousExpr, matchPreviousLiteral, nestedExpr, nums, oneOf, opAssoc, opAssoc, operatorPrecedence, operatorPrecedence, originalTextFor, printables, punc8bit, punc8bit, mo_parsing_common, mo_parsing_common, pythonStyleComment, pythonStyleComment, quotedString, quotedString, removeQuotes, replaceHTMLEntity, replaceWith, replaceWith, restOfLine, restOfLine, sglQuotedString, sglQuotedString, srange, stringEnd, stringEnd, stringStart, stringStart, tokenMap, tokenMap, ungroup, unicodeString, unicodeString, upcaseTokens, upcaseTokens, \
+from mo_parsing.enhancement import Combine, Dict, FollowedBy, Forward, Group, NotAny, \
+    OneOrMore, Optional, ParseElementEnhance, PrecededBy, SkipTo, Suppress, TokenConverter, ZeroOrMore
+from mo_parsing.exceptions import OnlyOnce, ParseBaseException, ParseException, ParseFatalException, \
+    ParseSyntaxException, RecursiveGrammarException, conditionAsParseAction
+from mo_parsing.expressions import And, Each, MatchFirst, Or, ParseExpression
+from mo_parsing.helpers import alphas8bit, anyCloseTag, anyOpenTag, cStyleComment, commaSeparatedList, commonHTMLEntity, \
+    countedArray, cppStyleComment, dblQuotedString, dblSlashComment, delimitedList, dictOf, downcaseTokens, \
+    downcaseTokens, empty, empty, hexnums, htmlComment, htmlComment, indentedBlock, infixNotation, javaStyleComment, \
+    javaStyleComment, lineEnd, lineEnd, lineStart, lineStart, locatedExpr, makeHTMLTags, makeXMLTags, matchOnlyAtCol, \
+    matchPreviousExpr, matchPreviousLiteral, nestedExpr, nums, oneOf, opAssoc, opAssoc, operatorPrecedence, \
+    operatorPrecedence, originalTextFor, printables, punc8bit, punc8bit, pythonStyleComment, pythonStyleComment, \
+    quotedString, quotedString, removeQuotes, replaceHTMLEntity, replaceWith, replaceWith, restOfLine, restOfLine, \
+    sglQuotedString, sglQuotedString, srange, stringEnd, stringEnd, stringStart, stringStart, tokenMap, tokenMap, \
+    ungroup, unicodeString, unicodeString, upcaseTokens, upcaseTokens, \
     withAttribute, withAttribute, withClass, commaSeparatedList
 from mo_parsing.results import ParseResults
-from mo_parsing.tokens import CaselessKeyword, CaselessLiteral, Char, CloseMatch, Empty, GoToColumn, LineEnd, LineStart, NoMatch, QuotedString, Regex, StringStart, White, Word, WordEnd, WordStart
-from mo_parsing.utils import PY_3, _MAX_INT, __compat__, _generatorType, _trim_arity, _ustr, alphanums, alphas, basestring, col, hexnums, line, lineno, nullDebugAction, nums, printables, mo_parsing_unicode, singleArgBuiltins, system_version, traceParseAction, unichr, unicode, unicode_set
+from mo_parsing.tokens import CaselessKeyword, CaselessLiteral, Char, CloseMatch, Empty, GoToColumn, LineEnd, LineStart, \
+    NoMatch, QuotedString, Regex, StringStart, White, Word, WordEnd, WordStart, CharsNotIn, Keyword, Literal, \
+    StringEnd, Token
+from mo_parsing.utils import PY_3, _MAX_INT, __compat__, _generatorType, _trim_arity, _ustr, alphanums, alphas, \
+    basestring, col, hexnums, line, lineno, nullDebugAction, nums, printables, parsing_unicode, singleArgBuiltins, \
+    system_version, traceParseAction, unichr, unicode, unicode_set
 
 __all__ = ['__compat__', '__diag__',
            'And', 'CaselessKeyword', 'CaselessLiteral', 'CharsNotIn', 'Combine', 'Dict', 'Each', 'Empty',
@@ -124,6 +138,6 @@ __all__ = ['__compat__', '__diag__',
            'replaceWith', 'restOfLine', 'sglQuotedString', 'srange', 'stringEnd',
            'stringStart', 'traceParseAction', 'unicodeString', 'upcaseTokens', 'withAttribute',
            'indentedBlock', 'originalTextFor', 'ungroup', 'infixNotation', 'locatedExpr', 'withClass',
-           'CloseMatch', 'tokenMap', 'mo_parsing_common', 'mo_parsing_unicode', 'unicode_set',
+           'CloseMatch', 'tokenMap', 'parsing_unicode', 'unicode_set',
            'conditionAsParseAction',
            ]

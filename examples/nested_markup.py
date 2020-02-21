@@ -5,9 +5,9 @@
 #
 # Copyright 2019, Paul McGuire
 #
-import mo_parsing as pp
+from mo_parsing import *
 
-wiki_markup = pp.Forward()
+wiki_markup = Forward()
 
 # a method that will construct and return a parse action that will
 # do the proper wrapping in opening and closing HTML, and recursively call
@@ -22,7 +22,7 @@ def convert_markup_to_html(opening, closing):
 # use a nestedExpr with originalTextFor to parse nested braces, but return the
 # parsed text as a single string containing the outermost nested braces instead
 # of a nested list of parsed tokens
-markup_body = pp.originalTextFor(pp.nestedExpr("{", "}"))
+markup_body = originalTextFor(nestedExpr("{", "}"))
 italicized = ("ital" + markup_body).setParseAction(
     convert_markup_to_html("<I>", "</I>")
 )
@@ -37,7 +37,7 @@ def convert_link_to_html(s, l, t):
     return '<A href="{url}">{link_text}</A>'.format_map(t)
 
 
-urlRef = (pp.Keyword("link") + "{" + ... + "->" + ... + "}").setParseAction(
+urlRef = (Keyword("link") + "{" + ... + "->" + ... + "}").setParseAction(
     convert_link_to_html
 )
 

@@ -26,7 +26,7 @@ any_keyword = MatchFirst(keywords.values())
 
 quoted_identifier = QuotedString('"', escQuote='""')
 identifier = (~any_keyword + Word(alphas, alphanums + "_")).setParseAction(
-    mo_parsing_common.downcaseTokens
+    downcaseTokens
 ) | quoted_identifier
 collation_name = identifier.copy()
 column_name = identifier.copy()
@@ -43,7 +43,7 @@ comment = "--" + restOfLine
 # expression
 expr = Forward().setName("expression")
 
-numeric_literal = mo_parsing_common.number
+numeric_literal = number
 string_literal = QuotedString("'", escQuote="''")
 blob_literal = Regex(r"[xX]'[0-9A-Fa-f]+'")
 literal_value = (

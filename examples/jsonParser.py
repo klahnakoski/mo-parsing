@@ -10,6 +10,8 @@
 #
 # Updated 9 Aug 2016 - use more current mo_parsing constructs/idioms
 #
+from mo_parsing.helpers import number
+
 json_bnf = """
 object
     { members }
@@ -33,33 +35,32 @@ value
     null
 """
 
-import mo_parsing as pp
-from mo_parsing import mo_parsing_common as ppc
+from mo_parsing import *
 
 
 def make_keyword(kwd_str, kwd_value):
-    return pp.Keyword(kwd_str).setParseAction(pp.replaceWith(kwd_value))
+    return Keyword(kwd_str).setParseAction(replaceWith(kwd_value))
 
 
 TRUE = make_keyword("true", True)
 FALSE = make_keyword("false", False)
 NULL = make_keyword("null", None)
 
-LBRACK, RBRACK, LBRACE, RBRACE, COLON = map(pp.Suppress, "[]{}:")
+LBRACK, RBRACK, LBRACE, RBRACE, COLON = map(Suppress, "[]{}:")
 
-jsonString = pp.dblQuotedString().setParseAction(pp.removeQuotes)
-jsonNumber = ppc.number()
+jsonString = dblQuotedString().setParseAction(removeQuotes)
+jsonNumber = number()
 
-jsonObject = pp.Forward()
-jsonValue = pp.Forward()
-jsonElements = pp.delimitedList(jsonValue)
-jsonArray = pp.Group(LBRACK + pp.Optional(jsonElements, []) + RBRACK)
+jsonObject = Forward()
+jsonValue = Forward()
+jsonElements = delimitedList(jsonValue)
+jsonArray = Group(LBRACK + Optional(jsonElements, []) + RBRACK)
 jsonValue << (
-    jsonString | jsonNumber | pp.Group(jsonObject) | jsonArray | TRUE | FALSE | NULL
+    jsonString | jsonNumber | Group(jsonObject) | jsonArray | TRUE | FALSE | NULL
 )
-memberDef = pp.Group(jsonString + COLON + jsonValue)
-jsonMembers = pp.delimitedList(memberDef)
-jsonObject << pp.Dict(LBRACE + pp.Optional(jsonMembers) + RBRACE)
+memberDef = Group(jsonString + COLON + jsonValue)
+jsonMembers = delimitedList(memberDef)
+jsonObject << Dict(LBRACE + Optional(jsonMembers) + RBRACE)
 
-jsonComment = pp.cppStyleComment
+jsonComment = cppStyleComment
 jsonObject.ignore(jsonComment)

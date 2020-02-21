@@ -5,7 +5,7 @@
 #
 # Copyright (c) 2003, Paul McGuire
 #
-import mo_parsing as pp
+from mo_parsing import *
 
 testData = """
 +-------+------+------+------+------+------+------+------+------+
@@ -20,20 +20,20 @@ testData = """
 
 # define grammar for datatable
 heading = (
-    pp.Literal("+-------+------+------+------+------+------+------+------+------+")
+    Literal("+-------+------+------+------+------+------+------+------+------+")
     + "|       |  A1  |  B1  |  C1  |  D1  |  A2  |  B2  |  C2  |  D2  |"
     + "+=======+======+======+======+======+======+======+======+======+"
 ).suppress()
-vert = pp.Literal("|").suppress()
-number = pp.Word(pp.nums)
-rowData = pp.Group(
-    vert + pp.Word(pp.alphas) + vert + pp.delimitedList(number, "|") + vert
+vert = Literal("|").suppress()
+number = Word(nums)
+rowData = Group(
+    vert + Word(alphas) + vert + delimitedList(number, "|") + vert
 )
-trailing = pp.Literal(
+trailing = Literal(
     "+-------+------+------+------+------+------+------+------+------+"
 ).suppress()
 
-datatable = heading + pp.Dict(pp.ZeroOrMore(rowData)) + trailing
+datatable = heading + Dict(ZeroOrMore(rowData)) + trailing
 
 # now parse data and print results
 data = datatable.parseString(testData)

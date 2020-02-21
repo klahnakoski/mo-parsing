@@ -6,33 +6,33 @@
 # Copyright 2019, Paul McGuire
 #
 
-import mo_parsing as pp
+from mo_parsing import *
 import urllib.request
 
 
 # define basic HTML tags, and compose into a Table
-table, table_end = pp.makeHTMLTags("table")
-thead, thead_end = pp.makeHTMLTags("thead")
-tbody, tbody_end = pp.makeHTMLTags("tbody")
-tr, tr_end = pp.makeHTMLTags("tr")
-th, th_end = pp.makeHTMLTags("th")
-td, td_end = pp.makeHTMLTags("td")
-a, a_end = pp.makeHTMLTags("a")
+table, table_end = makeHTMLTags("table")
+thead, thead_end = makeHTMLTags("thead")
+tbody, tbody_end = makeHTMLTags("tbody")
+tr, tr_end = makeHTMLTags("tr")
+th, th_end = makeHTMLTags("th")
+td, td_end = makeHTMLTags("td")
+a, a_end = makeHTMLTags("a")
 
 # method to strip HTML tags from a string - will be used to clean up content of table cells
-strip_html = (pp.anyOpenTag | pp.anyCloseTag).suppress().transformString
+strip_html = (anyOpenTag | anyCloseTag).suppress().transformString
 
 # expression for parsing <a href="url">text</a> links, returning a (text, url) tuple
-link = pp.Group(a + a.tag_body("text") + a_end.suppress())
+link = Group(a + a.tag_body("text") + a_end.suppress())
 link.addParseAction(lambda t: (t[0].text, t[0].href))
 
 # method to create table rows of header and data tags
 def table_row(start_tag, end_tag):
     body = start_tag.tag_body
-    body.addParseAction(pp.tokenMap(str.strip), pp.tokenMap(strip_html))
-    row = pp.Group(
+    body.addParseAction(tokenMap(str.strip), tokenMap(strip_html))
+    row = Group(
         tr.suppress()
-        + pp.ZeroOrMore(start_tag.suppress() + body + end_tag.suppress())
+        + ZeroOrMore(start_tag.suppress() + body + end_tag.suppress())
         + tr_end.suppress()
     )
     return row
@@ -45,8 +45,8 @@ td_row = table_row(td, td_end)
 html_table = (
     table
     + tbody
-    + pp.Optional(th_row("headers"))
-    + pp.ZeroOrMore(td_row)("rows")
+    + Optional(th_row("headers"))
+    + ZeroOrMore(td_row)("rows")
     + tbody_end
     + table_end
 )

@@ -2,7 +2,7 @@
 #
 # Copyright, 2006, by Paul McGuire
 #
-import mo_parsing as pp
+from mo_parsing import *
 
 
 cvtBool = lambda t: t[0] == "True"
@@ -14,45 +14,45 @@ cvtList = lambda toks: [toks.asList()]
 
 # define punctuation as suppressed literals
 lparen, rparen, lbrack, rbrack, lbrace, rbrace, colon, comma = map(
-    pp.Suppress, "()[]{}:,"
+    Suppress, "()[]{}:,"
 )
 
-integer = pp.Regex(r"[+-]?\d+").setName("integer").setParseAction(cvtInt)
-real = pp.Regex(r"[+-]?\d+\.\d*([Ee][+-]?\d+)?").setName("real").setParseAction(cvtReal)
-tupleStr = pp.Forward()
-listStr = pp.Forward()
-dictStr = pp.Forward()
+integer = Regex(r"[+-]?\d+").setName("integer").setParseAction(cvtInt)
+real = Regex(r"[+-]?\d+\.\d*([Ee][+-]?\d+)?").setName("real").setParseAction(cvtReal)
+tupleStr = Forward()
+listStr = Forward()
+dictStr = Forward()
 
-pp.unicodeString.setParseAction(lambda t: t[0][2:-1])
-pp.quotedString.setParseAction(lambda t: t[0][1:-1])
-boolLiteral = pp.oneOf("True False").setParseAction(cvtBool)
-noneLiteral = pp.Literal("None").setParseAction(pp.replaceWith(None))
+unicodeString.setParseAction(lambda t: t[0][2:-1])
+quotedString.setParseAction(lambda t: t[0][1:-1])
+boolLiteral = oneOf("True False").setParseAction(cvtBool)
+noneLiteral = Literal("None").setParseAction(replaceWith(None))
 
 listItem = (
     real
     | integer
-    | pp.quotedString
-    | pp.unicodeString
+    | quotedString
+    | unicodeString
     | boolLiteral
     | noneLiteral
-    | pp.Group(listStr)
+    | Group(listStr)
     | tupleStr
     | dictStr
 )
 
 tupleStr << (
-    lparen + pp.Optional(pp.delimitedList(listItem)) + pp.Optional(comma) + rparen
+    lparen + Optional(delimitedList(listItem)) + Optional(comma) + rparen
 )
 tupleStr.setParseAction(cvtTuple)
 
 listStr << (
-    lbrack + pp.Optional(pp.delimitedList(listItem) + pp.Optional(comma)) + rbrack
+    lbrack + Optional(delimitedList(listItem) + Optional(comma)) + rbrack
 )
 listStr.setParseAction(cvtList, lambda t: t[0])
 
-dictEntry = pp.Group(listItem + colon + listItem)
+dictEntry = Group(listItem + colon + listItem)
 dictStr << (
-    lbrace + pp.Optional(pp.delimitedList(dictEntry) + pp.Optional(comma)) + rbrace
+    lbrace + Optional(delimitedList(dictEntry) + Optional(comma)) + rbrace
 )
 dictStr.setParseAction(cvtDict)
 

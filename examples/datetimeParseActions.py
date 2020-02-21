@@ -6,12 +6,13 @@
 # Copyright 2012, Paul T. McGuire
 #
 from datetime import datetime
-import mo_parsing as pp
-from mo_parsing import mo_parsing_common as ppc
 
 # define an integer string, and a parse action to convert it
 # to an integer at parse time
-integer = pp.Word(pp.nums).setName("integer")
+from mo_parsing import Word, nums, pythonStyleComment, ParseException
+from mo_parsing.helpers import iso8601_date, convertToDate
+
+integer = Word(nums).setName("integer")
 
 
 def convertToInt(tokens):
@@ -26,7 +27,7 @@ integer.setParseAction(convertToInt)
 
 # define a pattern for a year/month/day date
 date_expr = integer("year") + "/" + integer("month") + "/" + integer("day")
-date_expr.ignore(pp.pythonStyleComment)
+date_expr.ignore(pythonStyleComment)
 
 
 def convertToDatetime(s, loc, tokens):
@@ -42,7 +43,7 @@ def convertToDatetime(s, loc, tokens):
             tokens.day,
             ve,
         )
-        raise pp.ParseException(s, loc, errmsg)
+        raise ParseException(s, loc, errmsg)
 
 
 date_expr.setParseAction(convertToDatetime)
@@ -64,9 +65,8 @@ date_expr.runTests(
 )
 
 
-# if dates conform to ISO8601, use definitions in mo_parsing_common
-date_expr = ppc.iso8601_date.setParseAction(ppc.convertToDate())
-date_expr.ignore(pp.pythonStyleComment)
+date_expr = iso8601_date.setParseAction(convertToDate())
+date_expr.ignore(pythonStyleComment)
 
 date_expr.runTests(
     """\

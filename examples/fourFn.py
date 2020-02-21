@@ -13,18 +13,7 @@
 import math
 import operator
 
-from mo_parsing import (
-    Literal,
-    Word,
-    Group,
-    Forward,
-    alphas,
-    alphanums,
-    Regex,
-    CaselessKeyword,
-    Suppress,
-    delimitedList,
-)
+from mo_parsing import *
 
 exprStack = []
 
@@ -65,8 +54,8 @@ def BNF():
         # fnumber = Combine(Word("+-"+nums, nums) +
         #                    Optional("." + Optional(Word(nums))) +
         #                    Optional(e + Word("+-"+nums, nums)))
-        # or use provided mo_parsing_common.number, but convert back to str:
-        # fnumber = ppc.number().addParseAction(lambda t: str(t[0]))
+        # or use provided number, but convert back to str:
+        # fnumber = number().addParseAction(lambda t: str(t[0]))
         fnumber = Regex(r"[+-]?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?")
         ident = Word(alphas, alphanums + "_$")
 

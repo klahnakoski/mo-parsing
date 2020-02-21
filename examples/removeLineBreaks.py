@@ -11,9 +11,9 @@
 #
 # Copyright 2006, by Paul McGuire
 #
-import mo_parsing as pp
+from mo_parsing import *
 
-line_end = pp.LineEnd()
+line_end = LineEnd()
 
 # define an expression for the body of a line of text - use a predicate condition to
 # accept only lines with some content.
@@ -23,15 +23,15 @@ def mustBeNonBlank(t):
     # return bool(t[0])
 
 
-lineBody = pp.SkipTo(line_end).addCondition(
+lineBody = SkipTo(line_end).addCondition(
     mustBeNonBlank, message="line body can't be empty"
 )
 
 # now define a line with a trailing lineEnd, to be replaced with a space character
-textLine = lineBody + line_end().setParseAction(pp.replaceWith(" "))
+textLine = lineBody + line_end().setParseAction(replaceWith(" "))
 
 # define a paragraph, with a separating lineEnd, to be replaced with a double newline
-para = pp.OneOrMore(textLine) + line_end().setParseAction(pp.replaceWith("\n\n"))
+para = OneOrMore(textLine) + line_end().setParseAction(replaceWith("\n\n"))
 
 # run a test
 test = """

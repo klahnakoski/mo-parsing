@@ -3,14 +3,14 @@
 #
 # Sample parser grammar to read a number given in words, and return the numeric value.
 #
-import mo_parsing as pp
+from mo_parsing import *
 from operator import mul
 from functools import reduce
 
 
 def makeLit(s, val):
-    ret = pp.CaselessLiteral(s)
-    return ret.setParseAction(pp.replaceWith(val))
+    ret = CaselessLiteral(s)
+    return ret.setParseAction(replaceWith(val))
 
 
 unitDefinitions = [
@@ -40,7 +40,7 @@ unitDefinitions = [
     ("eighteen", 18),
     ("nineteen", 19),
 ]
-units = pp.MatchFirst(
+units = MatchFirst(
     makeLit(s, v) for s, v in sorted(unitDefinitions, key=lambda d: -len(d[0]))
 )
 
@@ -56,7 +56,7 @@ tensDefinitions = [
     ("eighty", 80),
     ("ninety", 90),
 ]
-tens = pp.MatchFirst(makeLit(s, v) for s, v in tensDefinitions)
+tens = MatchFirst(makeLit(s, v) for s, v in tensDefinitions)
 
 hundreds = makeLit("hundred", 100)
 
@@ -68,25 +68,25 @@ majorDefinitions = [
     ("quadrillion", int(1e15)),
     ("quintillion", int(1e18)),
 ]
-mag = pp.MatchFirst(makeLit(s, v) for s, v in majorDefinitions)
+mag = MatchFirst(makeLit(s, v) for s, v in majorDefinitions)
 
 wordprod = lambda t: reduce(mul, t)
 numPart = (
     (
         (
-            (units + pp.Optional(hundreds)).setParseAction(wordprod) + pp.Optional(tens)
+            (units + Optional(hundreds)).setParseAction(wordprod) + Optional(tens)
         ).setParseAction(sum)
         ^ tens
     )
-    + pp.Optional(units)
+    + Optional(units)
 ).setParseAction(sum)
 numWords = (
-    (numPart + pp.Optional(mag)).setParseAction(wordprod)[1, ...]
+    (numPart + Optional(mag)).setParseAction(wordprod)[1, ...]
 ).setParseAction(sum)
 numWords.setName("num word parser")
 
-numWords.ignore(pp.Literal("-"))
-numWords.ignore(pp.CaselessLiteral("and"))
+numWords.ignore(Literal("-"))
+numWords.ignore(CaselessLiteral("and"))
 
 tests = """
     one hundred twenty hundred, None
@@ -110,7 +110,7 @@ tests = """
 test_expr = (
     (numWords("result") | ...)
     + ","
-    + (pp.mo_parsing_common.integer("expected") | "None")
+    + (integer("expected") | "None")
 )
 
 

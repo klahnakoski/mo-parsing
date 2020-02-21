@@ -1,18 +1,10 @@
 # escrito por Marco Alfonso, 2004 Noviembre
 
 # importamos los símbolos requeridos desde el módulo
-from mo_parsing import (
-    Word,
-    alphas,
-    oneOf,
-    nums,
-    Group,
-    OneOrMore,
-    mo_parsing_unicode as ppu,
-)
+from mo_parsing import *
 
 # usamos las letras en latin1, que incluye las como 'ñ', 'á', 'é', etc.
-alphas = ppu.Latin1.alphas
+alphas = parsing_unicode.Latin1.alphas
 
 # Aqui decimos que la gramatica "saludo" DEBE contener
 # una palabra compuesta de caracteres alfanumericos

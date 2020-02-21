@@ -6,17 +6,8 @@
 #
 # Copyright (c) 2004, Paul McGuire
 #
-from mo_parsing import (
-    Literal,
-    Word,
-    Group,
-    Dict,
-    ZeroOrMore,
-    alphas,
-    nums,
-    delimitedList,
-    mo_parsing_common as ppc,
-)
+from mo_parsing import *
+from mo_parsing.helpers import integer
 
 testData = """
 +-------+------+------+------+------+------+------+------+------+
@@ -31,7 +22,7 @@ testData = """
 
 # define grammar for datatable
 underline = Word("-=")
-number = ppc.integer
+number = integer
 
 vert = Literal("|").suppress()
 

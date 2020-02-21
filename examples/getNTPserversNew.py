@@ -6,15 +6,15 @@
 # Copyright 2004-2010, by Paul McGuire
 # September, 2010 - updated to more current use of setResultsName, new NIST URL
 #
-import mo_parsing as pp
-
-ppc = pp.mo_parsing_common
 from urllib.request import urlopen
 
-integer = pp.Word(pp.nums)
-ipAddress = ppc.ipv4_address()
-hostname = pp.delimitedList(pp.Word(pp.alphas, pp.alphanums + "-_"), ".", combine=True)
-tdStart, tdEnd = pp.makeHTMLTags("td")
+from mo_parsing import *
+from mo_parsing.helpers import ipv4_address
+
+integer = Word(nums)
+ipAddress = ipv4_address()
+hostname = delimitedList(Word(alphas, alphanums + "-_"), ".", combine=True)
+tdStart, tdEnd = makeHTMLTags("td")
 timeServerPattern = (
     tdStart
     + hostname("hostname")

@@ -5,9 +5,9 @@
 #
 # Copyright 2004-2016, by Paul McGuire
 #
-from mo_parsing import Word, mo_parsing_unicode as ppu
+from mo_parsing import Word, parsing_unicode as ppu, parsing_unicode
 
-koreanChars = ppu.Korean.alphas
+koreanChars = parsing_unicode.Korean.alphas
 koreanWord = Word(koreanChars, min=2)
 
 # define grammar

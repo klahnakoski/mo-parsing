@@ -4,27 +4,7 @@
 #
 # A partial implementation of a parser of Excel formula expressions.
 #
-from mo_parsing import (
-    CaselessKeyword,
-    Suppress,
-    Word,
-    alphas,
-    alphanums,
-    nums,
-    Optional,
-    Group,
-    oneOf,
-    Forward,
-    infixNotation,
-    opAssoc,
-    dblQuotedString,
-    delimitedList,
-    Combine,
-    Literal,
-    QuotedString,
-    ParserElement,
-    mo_parsing_common as ppc,
-)
+from mo_parsing import *
 
 EQ, LPAR, RPAR, COLON, COMMA = map(Suppress, "=():,")
 EXCL, DOLLAR = map(Literal, "!$")
@@ -68,7 +48,7 @@ funcCall = ifFunc | sumFunc | minFunc | maxFunc | aveFunc
 
 multOp = oneOf("* /")
 addOp = oneOf("+ -")
-numericLiteral = ppc.number
+numericLiteral = number
 operand = numericLiteral | funcCall | cellRange | cellRef
 arithExpr = infixNotation(
     operand, [(multOp, 2, opAssoc.LEFT), (addOp, 2, opAssoc.LEFT),]

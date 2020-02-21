@@ -10,11 +10,12 @@
 from __future__ import division
 
 import unittest
-import mo_parsing as pp
 from collections import namedtuple
 from datetime import datetime
 
-# Test spec data class for specifying simple mo_parsing test cases
+from mo_parsing import *
+from mo_parsing.helpers import number, identifier, ipv4_address, integer, fnumber
+
 PpTestSpec = namedtuple(
     "PpTestSpec",
     "desc expr text parse_fn " "expected_list expected_dict expected_fail_locn",
@@ -25,7 +26,7 @@ class PyparsingExpressionTestCase(unittest.TestCase):
     def runTest(
         self,
         desc="",
-        expr=pp.Empty(),
+        expr=Empty(),
         text="",
         parse_fn="parseString",
         expected_list=None,
@@ -81,7 +82,7 @@ class PyparsingExpressionTestCase(unittest.TestCase):
 
                     etype, value, traceback = exc_info()
                     exc.__traceback__ = traceback
-                print(pp.ParseException.explain(exc))
+                print(ParseException.explain(exc))
                 self.assertEqual(exc.loc, test_spec.expected_fail_locn)
             else:
                 self.assertTrue(False, "failed to raise expected exception")
@@ -94,7 +95,7 @@ class TestLiteral(PyparsingExpressionTestCase):
     def test_simple_match(self):
         self.runTest(
             desc="Simple match",
-            expr=pp.Literal("xyz"),
+            expr=Literal("xyz"),
             text="xyz",
             expected_list=["xyz"],
         )
@@ -102,7 +103,7 @@ class TestLiteral(PyparsingExpressionTestCase):
     def test_simple_match_after_skipping_whitespace(self):
         self.runTest(
             desc="Simple match after skipping whitespace",
-            expr=pp.Literal("xyz"),
+            expr=Literal("xyz"),
             text="  xyz",
             expected_list=["xyz"],
         )
@@ -110,7 +111,7 @@ class TestLiteral(PyparsingExpressionTestCase):
     def test_simple_fail_parse_an_empty_string(self):
         self.runTest(
             desc="Simple fail - parse an empty string",
-            expr=pp.Literal("xyz"),
+            expr=Literal("xyz"),
             text="",
             expected_fail_locn=0,
         )
@@ -118,7 +119,7 @@ class TestLiteral(PyparsingExpressionTestCase):
     def test_Simple_fail___parse_a_mismatching_string(self):
         self.runTest(
             desc="Simple fail - parse a mismatching string",
-            expr=pp.Literal("xyz"),
+            expr=Literal("xyz"),
             text="xyu",
             expected_fail_locn=0,
         )
@@ -126,7 +127,7 @@ class TestLiteral(PyparsingExpressionTestCase):
     def test_simple_fail_parse_a_partially_matching_string(self):
         self.runTest(
             desc="Simple fail - parse a partially matching string",
-            expr=pp.Literal("xyz"),
+            expr=Literal("xyz"),
             text="xy",
             expected_fail_locn=0,
         )
@@ -136,7 +137,7 @@ class TestLiteral(PyparsingExpressionTestCase):
     ):
         self.runTest(
             desc="Fail - parse a partially matching string by matching individual letters",
-            expr=pp.Literal("x") + pp.Literal("y") + pp.Literal("z"),
+            expr=Literal("x") + Literal("y") + Literal("z"),
             text="xy",
             expected_fail_locn=2,
         )
@@ -147,9 +148,9 @@ class TestCaselessLiteral(PyparsingExpressionTestCase):
         self.runTest(
             desc="Match colors, converting to consistent case",
             expr=(
-                pp.CaselessLiteral("RED")
-                | pp.CaselessLiteral("GREEN")
-                | pp.CaselessLiteral("BLUE")
+                CaselessLiteral("RED")
+                | CaselessLiteral("GREEN")
+                | CaselessLiteral("BLUE")
             )[...],
             text="red Green BluE blue GREEN green rEd",
             expected_list=["RED", "GREEN", "BLUE", "BLUE", "GREEN", "GREEN", "RED"],
@@ -160,7 +161,7 @@ class TestWord(PyparsingExpressionTestCase):
     def test_Simple_Word_match(self):
         self.runTest(
             desc="Simple Word match",
-            expr=pp.Word("xy"),
+            expr=Word("xy"),
             text="xxyxxyy",
             expected_list=["xxyxxyy"],
         )
@@ -168,7 +169,7 @@ class TestWord(PyparsingExpressionTestCase):
     def test_Simple_Word_match_of_two_separate_Words(self):
         self.runTest(
             desc="Simple Word match of two separate Words",
-            expr=pp.Word("x") + pp.Word("y"),
+            expr=Word("x") + Word("y"),
             text="xxxxxyy",
             expected_list=["xxxxx", "yy"],
         )
@@ -178,7 +179,7 @@ class TestWord(PyparsingExpressionTestCase):
     ):
         self.runTest(
             desc="Simple Word match of two separate Words - implicitly skips whitespace",
-            expr=pp.Word("x") + pp.Word("y"),
+            expr=Word("x") + Word("y"),
             text="xxxxx yy",
             expected_list=["xxxxx", "yy"],
         )
@@ -188,7 +189,7 @@ class TestCombine(PyparsingExpressionTestCase):
     def test_1(self):
         self.runTest(
             desc="Parsing real numbers - fail, parsed numbers are in pieces",
-            expr=(pp.Word(pp.nums) + "." + pp.Word(pp.nums))[...],
+            expr=(Word(nums) + "." + Word(nums))[...],
             text="1.2 2.3 3.1416 98.6",
             expected_list=[
                 "1",
@@ -209,7 +210,7 @@ class TestCombine(PyparsingExpressionTestCase):
     def test_2(self):
         self.runTest(
             desc="Parsing real numbers - better, use Combine to combine multiple tokens into one",
-            expr=pp.Combine(pp.Word(pp.nums) + "." + pp.Word(pp.nums))[...],
+            expr=Combine(Word(nums) + "." + Word(nums))[...],
             text="1.2 2.3 3.1416 98.6",
             expected_list=["1.2", "2.3", "3.1416", "98.6"],
         )
@@ -219,7 +220,7 @@ class TestRepetition(PyparsingExpressionTestCase):
     def test_Match_several_words(self):
         self.runTest(
             desc="Match several words",
-            expr=(pp.Word("x") | pp.Word("y"))[...],
+            expr=(Word("x") | Word("y"))[...],
             text="xxyxxyyxxyxyxxxy",
             expected_list=["xx", "y", "xx", "yy", "xx", "y", "x", "y", "xxx", "y"],
         )
@@ -227,7 +228,7 @@ class TestRepetition(PyparsingExpressionTestCase):
     def test_Match_several_words_skipping_whitespace(self):
         self.runTest(
             desc="Match several words, skipping whitespace",
-            expr=(pp.Word("x") | pp.Word("y"))[...],
+            expr=(Word("x") | Word("y"))[...],
             text="x x  y xxy yxx y xyx  xxy",
             expected_list=[
                 "x",
@@ -249,7 +250,7 @@ class TestRepetition(PyparsingExpressionTestCase):
     def test_Match_several_words_skipping_whitespace_old_style(self):
         self.runTest(
             desc="Match several words, skipping whitespace (old style)",
-            expr=pp.OneOrMore(pp.Word("x") | pp.Word("y")),
+            expr=OneOrMore(Word("x") | Word("y")),
             text="x x  y xxy yxx y xyx  xxy",
             expected_list=[
                 "x",
@@ -273,7 +274,7 @@ class TestRepetition(PyparsingExpressionTestCase):
     ):
         self.runTest(
             desc="Match words and numbers - show use of results names to collect types of tokens",
-            expr=(pp.Word(pp.alphas)("alpha*") | pp.mo_parsing_common.integer("int*"))[
+            expr=(Word(alphas)("alpha*") | integer("int*"))[
                 ...
             ],
             text="sdlfj23084ksdfs08234kjsdlfkjd0934",
@@ -287,7 +288,7 @@ class TestRepetition(PyparsingExpressionTestCase):
     def test_Using_delimitedList_comma_is_the_default_delimiter(self):
         self.runTest(
             desc="Using delimitedList (comma is the default delimiter)",
-            expr=pp.delimitedList(pp.Word(pp.alphas)),
+            expr=delimitedList(Word(alphas)),
             text="xxyx,xy,y,xxyx,yxx, xy",
             expected_list=["xxyx", "xy", "y", "xxyx", "yxx", "xy"],
         )
@@ -295,8 +296,8 @@ class TestRepetition(PyparsingExpressionTestCase):
     def test_Using_delimitedList_with_colon_delimiter(self):
         self.runTest(
             desc="Using delimitedList, with ':' delimiter",
-            expr=pp.delimitedList(
-                pp.Word(pp.hexnums, exact=2), delim=":", combine=True
+            expr=delimitedList(
+                Word(hexnums, exact=2), delim=":", combine=True
             ),
             text="0A:4B:73:21:FE:76",
             expected_list=["0A:4B:73:21:FE:76"],
@@ -307,7 +308,7 @@ class TestResultsName(PyparsingExpressionTestCase):
     def test_Match_with_results_name(self):
         self.runTest(
             desc="Match with results name",
-            expr=pp.Literal("xyz").setResultsName("value"),
+            expr=Literal("xyz").setResultsName("value"),
             text="xyz",
             expected_dict={"value": "xyz"},
             expected_list=["xyz"],
@@ -316,7 +317,7 @@ class TestResultsName(PyparsingExpressionTestCase):
     def test_Match_with_results_name___using_naming_short_cut(self):
         self.runTest(
             desc="Match with results name - using naming short-cut",
-            expr=pp.Literal("xyz")("value"),
+            expr=Literal("xyz")("value"),
             text="xyz",
             expected_dict={"value": "xyz"},
             expected_list=["xyz"],
@@ -325,9 +326,9 @@ class TestResultsName(PyparsingExpressionTestCase):
     def test_Define_multiple_results_names(self):
         self.runTest(
             desc="Define multiple results names",
-            expr=pp.Word(pp.alphas, pp.alphanums)("key")
+            expr=Word(alphas, alphanums)("key")
             + "="
-            + pp.mo_parsing_common.integer("value"),
+            + integer("value"),
             text="range=5280",
             expected_dict={"key": "range", "value": 5280},
             expected_list=["range", "=", 5280],
@@ -335,15 +336,15 @@ class TestResultsName(PyparsingExpressionTestCase):
 
 
 class TestGroups(PyparsingExpressionTestCase):
-    EQ = pp.Suppress("=")
+    EQ = Suppress("=")
 
     def test_Define_multiple_results_names_in_groups(self):
         self.runTest(
             desc="Define multiple results names in groups",
-            expr=pp.Group(
-                pp.Word(pp.alphas)("key")
+            expr=Group(
+                Word(alphas)("key")
                 + self.EQ
-                + pp.mo_parsing_common.number("value")
+                + number("value")
             )[...],
             text="range=5280 long=-138.52 lat=46.91",
             expected_list=[["range", 5280], ["long", -138.52], ["lat", 46.91]],
@@ -354,8 +355,8 @@ class TestGroups(PyparsingExpressionTestCase):
     ):
         self.runTest(
             desc="Define multiple results names in groups - use Dict to define results names using parsed keys",
-            expr=pp.Dict(
-                pp.Group(pp.Word(pp.alphas) + self.EQ + pp.mo_parsing_common.number)[...]
+            expr=Dict(
+                Group(Word(alphas) + self.EQ + number)[...]
             ),
             text="range=5280 long=-138.52 lat=46.91",
             expected_list=[["range", 5280], ["long", -138.52], ["lat", 46.91]],
@@ -365,14 +366,14 @@ class TestGroups(PyparsingExpressionTestCase):
     def test_Define_multiple_value_types(self):
         self.runTest(
             desc="Define multiple value types",
-            expr=pp.Dict(
-                pp.Group(
-                    pp.Word(pp.alphas)
+            expr=Dict(
+                Group(
+                    Word(alphas)
                     + self.EQ
                     + (
-                        pp.mo_parsing_common.number
-                        | pp.oneOf("True False")
-                        | pp.QuotedString("'")
+                        number
+                        | oneOf("True False")
+                        | QuotedString("'")
                     )
                 )[...]
             ),
@@ -396,7 +397,7 @@ class TestParseAction(PyparsingExpressionTestCase):
     def test_(self):
         self.runTest(
             desc="Parsing real numbers - use parse action to convert to float at parse time",
-            expr=pp.Combine(pp.Word(pp.nums) + "." + pp.Word(pp.nums)).addParseAction(
+            expr=Combine(Word(nums) + "." + Word(nums)).addParseAction(
                 lambda t: float(t[0])
             )[...],
             text="1.2 2.3 3.1416 98.6",
@@ -411,7 +412,7 @@ class TestParseAction(PyparsingExpressionTestCase):
     def test_Match_with_numeric_string_converted_to_int(self):
         self.runTest(
             desc="Match with numeric string converted to int",
-            expr=pp.Word("0123456789").addParseAction(lambda t: int(t[0])),
+            expr=Word("0123456789").addParseAction(lambda t: int(t[0])),
             text="12345",
             expected_list=[12345],  # note - result is type int, not str
         )
@@ -421,7 +422,7 @@ class TestParseAction(PyparsingExpressionTestCase):
     ):
         self.runTest(
             desc="Use two parse actions to convert numeric string, then convert to datetime",
-            expr=pp.Word(pp.nums).addParseAction(
+            expr=Word(nums).addParseAction(
                 lambda t: int(t[0]), lambda t: datetime.utcfromtimestamp(t[0])
             ),
             text="1537415628",
@@ -431,8 +432,8 @@ class TestParseAction(PyparsingExpressionTestCase):
     def test_Use_tokenMap_for_parse_actions_that_operate_on_a_single_length_token(self):
         self.runTest(
             desc="Use tokenMap for parse actions that operate on a single-length token",
-            expr=pp.Word(pp.nums).addParseAction(
-                pp.tokenMap(int), pp.tokenMap(datetime.utcfromtimestamp)
+            expr=Word(nums).addParseAction(
+                tokenMap(int), tokenMap(datetime.utcfromtimestamp)
             ),
             text="1537415628",
             expected_list=[datetime(2018, 9, 20, 3, 53, 48)],
@@ -443,7 +444,7 @@ class TestParseAction(PyparsingExpressionTestCase):
     ):
         self.runTest(
             desc="Using a built-in function that takes a sequence of strs as a parse action",
-            expr=pp.Word(pp.hexnums, exact=2)[...].addParseAction(":".join),
+            expr=Word(hexnums, exact=2)[...].addParseAction(":".join),
             text="0A4B7321FE76",
             expected_list=["0A:4B:73:21:FE:76"],
         )
@@ -453,7 +454,7 @@ class TestParseAction(PyparsingExpressionTestCase):
     ):
         self.runTest(
             desc="Using a built-in function that takes a sequence of strs as a parse action",
-            expr=pp.Word(pp.hexnums, exact=2)[...].addParseAction(sorted),
+            expr=Word(hexnums, exact=2)[...].addParseAction(sorted),
             text="0A4B7321FE76",
             expected_list=["0A", "21", "4B", "73", "76", "FE"],
         )
@@ -473,7 +474,7 @@ class TestResultsModifyingParseAction(PyparsingExpressionTestCase):
     def test_A_parse_action_that_adds_new_key_values(self):
         self.runTest(
             desc="A parse action that adds new key-values",
-            expr=pp.mo_parsing_common.integer[...].addParseAction(
+            expr=integer[...].addParseAction(
                 self.compute_stats_parse_action
             ),
             text="27 1 14 22 89",
@@ -486,7 +487,7 @@ class TestRegex(PyparsingExpressionTestCase):
     def test_parsing_real_numbers_using_regex_instead_of_combine(self):
         self.runTest(
             desc="Parsing real numbers - using Regex instead of Combine",
-            expr=pp.Regex(r"\d+\.\d+").addParseAction(lambda t: float(t[0]))[...],
+            expr=Regex(r"\d+\.\d+").addParseAction(lambda t: float(t[0]))[...],
             text="1.2 2.3 3.1416 98.6",
             expected_list=[
                 1.2,
@@ -503,7 +504,7 @@ class TestParseCondition(PyparsingExpressionTestCase):
     ):
         self.runTest(
             desc="Define a condition to only match numeric values that are multiples of 7",
-            expr=pp.Word(pp.nums).addCondition(lambda t: int(t[0]) % 7 == 0)[...],
+            expr=Word(nums).addCondition(lambda t: int(t[0]) % 7 == 0)[...],
             text="14 35 77 12 28",
             expected_list=["14", "35", "77"],
         )
@@ -513,7 +514,7 @@ class TestParseCondition(PyparsingExpressionTestCase):
     ):
         self.runTest(
             desc="Separate conversion to int and condition into separate parse action/conditions",
-            expr=pp.Word(pp.nums)
+            expr=Word(nums)
             .addParseAction(lambda t: int(t[0]))
             .addCondition(lambda t: t[0] % 7 == 0)[...],
             text="14 35 77 12 28",
@@ -532,9 +533,9 @@ class TestTransformStringUsingParseActions(PyparsingExpressionTestCase):
         self.runTest(
             desc="Use transformString to convert simple markup to HTML",
             expr=(
-                pp.oneOf(self.markup_convert_map)("markup_symbol")
+                oneOf(self.markup_convert_map)("markup_symbol")
                 + "("
-                + pp.CharsNotIn(")")("body")
+                + CharsNotIn(")")("body")
                 + ")"
             ).addParseAction(self.markup_convert),
             text="Show in *(bold), _(underscore), or /(italic) type",
@@ -549,7 +550,7 @@ class TestCommonHelperExpressions(PyparsingExpressionTestCase):
     def test_A_comma_delimited_list_of_words(self):
         self.runTest(
             desc="A comma-delimited list of words",
-            expr=pp.delimitedList(pp.Word(pp.alphas)),
+            expr=delimitedList(Word(alphas)),
             text="this, that, blah,foo,   bar",
             expected_list=["this", "that", "blah", "foo", "bar"],
         )
@@ -557,7 +558,7 @@ class TestCommonHelperExpressions(PyparsingExpressionTestCase):
     def test_A_counted_array_of_words(self):
         self.runTest(
             desc="A counted array of words",
-            expr=pp.countedArray(pp.Word("ab"))[...],
+            expr=countedArray(Word("ab"))[...],
             text="2 aaa bbb 0 3 abab bbaa abbab",
             expected_list=[["aaa", "bbb"], [], ["abab", "bbaa", "abbab"]],
         )
@@ -566,26 +567,26 @@ class TestCommonHelperExpressions(PyparsingExpressionTestCase):
         self.runTest(
             desc="skipping comments with ignore",
             expr=(
-                pp.mo_parsing_common.identifier("lhs")
+                identifier("lhs")
                 + "="
-                + pp.mo_parsing_common.fnumber("rhs")
-            ).ignore(pp.cppStyleComment),
+                + fnumber("rhs")
+            ).ignore(cppStyleComment),
             text="abc_100 = /* value to be tested */ 3.1416",
             expected_list=["abc_100", "=", 3.1416],
             expected_dict={"lhs": "abc_100", "rhs": 3.1416},
         )
 
-    def test_some_pre_defined_expressions_in_mo_parsing_common_and_building_a_dotted_identifier_with_delimted_list(
+    def test_some_pre_defined_expressions_in_parsing_common_and_building_a_dotted_identifier_with_delimted_list(
         self
     ):
         self.runTest(
-            desc="some pre-defined expressions in mo_parsing_common, and building a dotted identifier with delimted_list",
+            desc="some pre-defined expressions in parsing_common, and building a dotted identifier with delimted_list",
             expr=(
-                pp.mo_parsing_common.number("id_num")
-                + pp.delimitedList(pp.mo_parsing_common.identifier, ".", combine=True)(
+                number("id_num")
+                + delimitedList(identifier, ".", combine=True)(
                     "name"
                 )
-                + pp.mo_parsing_common.ipv4_address("ip_address")
+                + ipv4_address("ip_address")
             ),
             text="1001 www.google.com 192.168.10.199",
             expected_list=[1001, "www.google.com", "192.168.10.199"],
@@ -599,7 +600,7 @@ class TestCommonHelperExpressions(PyparsingExpressionTestCase):
     def test_using_oneOf_shortcut_for_a_b_c(self):
         self.runTest(
             desc="using oneOf (shortcut for Literal('a') | Literal('b') | Literal('c'))",
-            expr=pp.oneOf("a b c")[...],
+            expr=oneOf("a b c")[...],
             text="a b a b b a c c a b b",
             expected_list=["a", "b", "a", "b", "b", "a", "c", "c", "a", "b", "b"],
         )
@@ -607,7 +608,7 @@ class TestCommonHelperExpressions(PyparsingExpressionTestCase):
     def test_parsing_nested_parentheses(self):
         self.runTest(
             desc="parsing nested parentheses",
-            expr=pp.nestedExpr(),
+            expr=nestedExpr(),
             text="(a b (c) d (e f g ()))",
             expected_list=[["a", "b", ["c"], "d", ["e", "f", "g", []]]],
         )
@@ -616,9 +617,9 @@ class TestCommonHelperExpressions(PyparsingExpressionTestCase):
         self.runTest(
             desc="parsing nested braces",
             expr=(
-                pp.Keyword("if")
-                + pp.nestedExpr()("condition")
-                + pp.nestedExpr("{", "}")("body")
+                Keyword("if")
+                + nestedExpr()("condition")
+                + nestedExpr("{", "}")("body")
             ),
             text='if ((x == y) || !z) {printf("{}");}',
             expected_list=[

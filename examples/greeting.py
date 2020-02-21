@@ -5,10 +5,10 @@
 #
 # Copyright 2003, 2019 by Paul McGuire
 #
-import mo_parsing as pp
+from mo_parsing import *
 
 # define grammar
-greet = pp.Word(pp.alphas) + "," + pp.Word(pp.alphas) + pp.oneOf("! ? .")
+greet = Word(alphas) + "," + Word(alphas) + oneOf("! ? .")
 
 # input string
 hello = "Hello, World!"

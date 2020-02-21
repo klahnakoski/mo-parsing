@@ -43,7 +43,7 @@ BNF reference: http://theory.lcs.mit.edu/~rivest/sexp.txt
 <null>        	:: "" ;
 """
 
-import mo_parsing as pp
+from mo_parsing import *
 from base64 import b64decode
 
 
@@ -52,7 +52,7 @@ def verify_length(s, l, t):
     if t.len is not None:
         t1len = len(t[1])
         if t1len != t.len:
-            raise pp.ParseFatalException(
+            raise ParseFatalException(
                 s, l, "invalid data of length {}, expected {}".format(t1len, t.len)
             )
     return t[1]
@@ -60,40 +60,40 @@ def verify_length(s, l, t):
 
 # define punctuation literals
 LPAR, RPAR, LBRK, RBRK, LBRC, RBRC, VBAR, COLON = (
-    pp.Suppress(c).setName(c) for c in "()[]{}|:"
+    Suppress(c).setName(c) for c in "()[]{}|:"
 )
 
-decimal = pp.Regex(r"-?0|[1-9]\d*").setParseAction(lambda t: int(t[0]))
-hexadecimal = ("#" + pp.Word(pp.hexnums)[1, ...] + "#").setParseAction(
+decimal = Regex(r"-?0|[1-9]\d*").setParseAction(lambda t: int(t[0]))
+hexadecimal = ("#" + Word(hexnums)[1, ...] + "#").setParseAction(
     lambda t: int("".join(t[1:-1]), 16)
 )
-bytes = pp.Word(pp.printables)
-raw = pp.Group(decimal("len") + COLON + bytes).setParseAction(verify_length)
-base64_ = pp.Group(
-    pp.Optional(decimal | hexadecimal, default=None)("len")
+bytes = Word(printables)
+raw = Group(decimal("len") + COLON + bytes).setParseAction(verify_length)
+base64_ = Group(
+    Optional(decimal | hexadecimal, default=None)("len")
     + VBAR
-    + pp.Word(pp.alphanums + "+/=")[1, ...].setParseAction(
+    + Word(alphanums + "+/=")[1, ...].setParseAction(
         lambda t: b64decode("".join(t))
     )
     + VBAR
 ).setParseAction(verify_length)
 
-real = pp.Regex(r"[+-]?\d+\.\d*([eE][+-]?\d+)?").setParseAction(
+real = Regex(r"[+-]?\d+\.\d*([eE][+-]?\d+)?").setParseAction(
     lambda tokens: float(tokens[0])
 )
-token = pp.Word(pp.alphanums + "-./_:*+=!<>")
-qString = pp.Group(
-    pp.Optional(decimal, default=None)("len")
-    + pp.dblQuotedString.setParseAction(pp.removeQuotes)
+token = Word(alphanums + "-./_:*+=!<>")
+qString = Group(
+    Optional(decimal, default=None)("len")
+    + dblQuotedString.setParseAction(removeQuotes)
 ).setParseAction(verify_length)
 
 simpleString = real | base64_ | raw | decimal | token | hexadecimal | qString
 
 display = LBRK + simpleString + RBRK
-string_ = pp.Optional(display) + simpleString
+string_ = Optional(display) + simpleString
 
-sexp = pp.Forward()
-sexpList = pp.Group(LPAR + sexp[...] + RPAR)
+sexp = Forward()
+sexpList = Group(LPAR + sexp[...] + RPAR)
 sexp <<= string_ | sexpList
 
 

@@ -6,7 +6,8 @@ import string
 import sys
 import warnings
 
-from mo_logs import Log
+from mo_logs import Log, Except
+
 
 def noop(*args):
     return
@@ -242,7 +243,16 @@ def _trim_arity(func):
         return lambda s, l, t: func(t)
 
     try:
-        if isinstance(func, type):
+        if func.__class__.__name__ == "staticmethod":
+            func = func.__func__
+            spec = inspect.getfullargspec(func)
+
+            self_arg = 1 if spec.args and spec.args[0] in ("self", "cls") else 0
+            if spec.varargs:
+                start = 0
+            else:
+                start = 3 + self_arg - len(spec.args)
+        elif isinstance(func, type):
             # use __init__., assume the self is already bound
             spec = inspect.getfullargspec(func.__init__)
             if spec.varargs:
@@ -258,6 +268,7 @@ def _trim_arity(func):
             else:
                 start = 3 + self_arg - len(spec.args)
     except Exception as e:
+        e = Except.wrap(e)
         func = func.__call__
         spec = inspect.getfullargspec(func)
         self_arg = 1 if spec.args and spec.args[0] == "self" else 0
@@ -425,7 +436,7 @@ class unicode_set(object):
         return cls.alphas + cls.nums
 
 
-class mo_parsing_unicode(unicode_set):
+class parsing_unicode(unicode_set):
     """
     A namespace class for defining common language unicode_sets.
     """
@@ -499,22 +510,25 @@ class mo_parsing_unicode(unicode_set):
         "Unicode set for Devanagari Unicode Character Range"
         _ranges = [(0x0900, 0x097f), (0xa8e0, 0xa8ff)]
 
-mo_parsing_unicode.Japanese._ranges = (mo_parsing_unicode.Japanese.Kanji._ranges
-                                      + mo_parsing_unicode.Japanese.Hiragana._ranges
-                                      + mo_parsing_unicode.Japanese.Katakana._ranges)
+
+parsing_unicode.Japanese._ranges = (
+        parsing_unicode.Japanese.Kanji._ranges
+        + parsing_unicode.Japanese.Hiragana._ranges
+        + parsing_unicode.Japanese.Katakana._ranges
+)
 
 # define ranges in language character sets
 if PY_3:
-    setattr(mo_parsing_unicode, u"العربية", mo_parsing_unicode.Arabic)
-    setattr(mo_parsing_unicode, u"中文", mo_parsing_unicode.Chinese)
-    setattr(mo_parsing_unicode, u"кириллица", mo_parsing_unicode.Cyrillic)
-    setattr(mo_parsing_unicode, u"Ελληνικά", mo_parsing_unicode.Greek)
-    setattr(mo_parsing_unicode, u"עִברִית", mo_parsing_unicode.Hebrew)
-    setattr(mo_parsing_unicode, u"日本語", mo_parsing_unicode.Japanese)
-    setattr(mo_parsing_unicode.Japanese, u"漢字", mo_parsing_unicode.Japanese.Kanji)
-    setattr(mo_parsing_unicode.Japanese, u"カタカナ", mo_parsing_unicode.Japanese.Katakana)
-    setattr(mo_parsing_unicode.Japanese, u"ひらがな", mo_parsing_unicode.Japanese.Hiragana)
-    setattr(mo_parsing_unicode, u"한국어", mo_parsing_unicode.Korean)
-    setattr(mo_parsing_unicode, u"ไทย", mo_parsing_unicode.Thai)
-    setattr(mo_parsing_unicode, u"देवनागरी", mo_parsing_unicode.Devanagari)
+    setattr(parsing_unicode, u"العربية", parsing_unicode.Arabic)
+    setattr(parsing_unicode, u"中文", parsing_unicode.Chinese)
+    setattr(parsing_unicode, u"кириллица", parsing_unicode.Cyrillic)
+    setattr(parsing_unicode, u"Ελληνικά", parsing_unicode.Greek)
+    setattr(parsing_unicode, u"עִברִית", parsing_unicode.Hebrew)
+    setattr(parsing_unicode, u"日本語", parsing_unicode.Japanese)
+    setattr(parsing_unicode.Japanese, u"漢字", parsing_unicode.Japanese.Kanji)
+    setattr(parsing_unicode.Japanese, u"カタカナ", parsing_unicode.Japanese.Katakana)
+    setattr(parsing_unicode.Japanese, u"ひらがな", parsing_unicode.Japanese.Hiragana)
+    setattr(parsing_unicode, u"한국어", parsing_unicode.Korean)
+    setattr(parsing_unicode, u"ไทย", parsing_unicode.Thai)
+    setattr(parsing_unicode, u"देवनागरी", parsing_unicode.Devanagari)
 

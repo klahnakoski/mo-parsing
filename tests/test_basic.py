@@ -2,7 +2,8 @@
 from unittest import TestCase
 import uuid
 
-from mo_parsing import CaselessLiteral, Group, Word, alphanums, alphas, delimitedList, mo_parsing_common, tokenMap, upcaseTokens
+from mo_parsing import CaselessLiteral, Group, Word, alphanums, alphas, delimitedList, tokenMap, upcaseTokens
+from mo_parsing.helpers import number, hex_integer, fnumber, uuid as helper_uuid
 from tests import runTests
 
 
@@ -49,7 +50,7 @@ class TestBasic(TestCase):
     
             """, failureTests=True)
 
-        runTests(mo_parsing_common.number, """
+        runTests(number, """
             100
             -100
             +100
@@ -59,7 +60,7 @@ class TestBasic(TestCase):
             """)
 
         # any int or real number, returned as float
-        runTests(mo_parsing_common.fnumber, """
+        runTests(fnumber, """
             100
             -100
             +100
@@ -68,12 +69,12 @@ class TestBasic(TestCase):
             1e-12
             """)
 
-        runTests(mo_parsing_common.hex_integer, """
+        runTests(hex_integer, """
             100
             FF
             """)
 
-        mo_parsing_common.uuid.setParseAction(tokenMap(uuid.UUID))
-        runTests(mo_parsing_common.uuid, """
+        helper_uuid.setParseAction(tokenMap(uuid.UUID))
+        runTests(helper_uuid, """
             12345678-1234-5678-1234-567812345678
             """)

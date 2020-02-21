@@ -19,10 +19,12 @@ from mo_parsing import (
     opAssoc,
     restOfLine,
     CaselessKeyword,
-    mo_parsing_common as ppc,
-)
+
+    upcaseTokens)
 
 # define SQL tokens
+from mo_parsing.helpers import real, signed_integer
+
 selectStmt = Forward()
 SELECT, FROM, WHERE, AND, OR, IN, IS, NOT, NULL = map(
     CaselessKeyword, "select from where and or in is not null".split()
@@ -31,15 +33,15 @@ NOT_NULL = NOT + NULL
 
 ident = Word(alphas, alphanums + "_$").setName("identifier")
 columnName = delimitedList(ident, ".", combine=True).setName("column name")
-columnName.addParseAction(ppc.upcaseTokens)
+columnName.addParseAction(upcaseTokens)
 columnNameList = Group(delimitedList(columnName))
 tableName = delimitedList(ident, ".", combine=True).setName("table name")
-tableName.addParseAction(ppc.upcaseTokens)
+tableName.addParseAction(upcaseTokens)
 tableNameList = Group(delimitedList(tableName))
 
 binop = oneOf("= != < > >= <= eq ne lt le gt ge", caseless=True)
-realNum = ppc.real()
-intNum = ppc.signed_integer()
+realNum = real()
+intNum = signed_integer()
 
 columnRval = (
     realNum | intNum | quotedString | columnName

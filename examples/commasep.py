@@ -8,10 +8,7 @@
 #
 # Copyright (c) 2004-2016, Paul McGuire
 #
-
-import mo_parsing as pp
-
-ppc = pp.mo_parsing_common
+from mo_parsing.helpers import comma_separated_list
 
 testData = [
     "a,b,c,100.2,,3",
@@ -22,4 +19,4 @@ testData = [
     "",
 ]
 
-ppc.comma_separated_list.runTests(testData)
+comma_separated_list.runTests(testData)

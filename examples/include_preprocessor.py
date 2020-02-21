@@ -5,14 +5,14 @@
 #
 # Copyright 2019, Paul McGuire
 #
-import mo_parsing as pp
+from mo_parsing import *
 from pathlib import Path
 
 # parser elements to be used to assemble into #include parser
-SEMI = pp.Suppress(";")
-INCLUDE = pp.Keyword("#include")
-quoted_string = pp.quotedString.addParseAction(pp.removeQuotes)
-file_ref = quoted_string | pp.Word(pp.printables, excludeChars=";")
+SEMI = Suppress(";")
+INCLUDE = Keyword("#include")
+quoted_string = quotedString.addParseAction(removeQuotes)
+file_ref = quoted_string | Word(printables, excludeChars=";")
 
 # parser for parsing "#include xyz.dat;" directives
 include_directive = INCLUDE + file_ref("include_file_name") + SEMI
@@ -25,7 +25,7 @@ seen = set()
 
 def read_include_contents(s, l, t):
     include_file_ref = t.include_file_name
-    include_echo = "/* {} */".format(pp.line(l, s).strip())
+    include_echo = "/* {} */".format(line(l, s).strip())
 
     # guard against recursive includes
     if include_file_ref not in seen:
@@ -37,7 +37,7 @@ def read_include_contents(s, l, t):
             + include_directive.transformString(included_file_contents)
         )
     else:
-        lead = " " * (pp.col(l, s) - 1)
+        lead = " " * (col(l, s) - 1)
         return "/* recursive include! */\n{}{}".format(lead, include_echo)
 
 

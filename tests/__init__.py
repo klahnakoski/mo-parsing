@@ -37,7 +37,7 @@ def runTests(self, tests, parseAll=True, comment='#',
 
     Example::
 
-        number_expr = mo_parsing_common.number.copy()
+        number_expr = number.copy()
 
         result = test.runTests(number_expr, '''
             # unsigned integer

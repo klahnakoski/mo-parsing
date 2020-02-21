@@ -3,11 +3,11 @@
 # Copyright (c) 2006, 2019, Paul McGuire
 #
 
-import mo_parsing as pp
+from mo_parsing import *
 
 
 def romanNumeralLiteral(numeralString, value):
-    return pp.Literal(numeralString).setParseAction(pp.replaceWith(value))
+    return Literal(numeralString).setParseAction(replaceWith(value))
 
 
 one = romanNumeralLiteral("I", 1)

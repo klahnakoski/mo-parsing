@@ -1,13 +1,15 @@
 # URL extractor
 # Copyright 2004, Paul McGuire
-from mo_parsing import makeHTMLTags, mo_parsing_common as ppc
-from urllib.request import urlopen
 import pprint
+from urllib.request import urlopen
+
+from mo_parsing import makeHTMLTags
+from mo_parsing.helpers import stripHTMLTags
 
 linkOpenTag, linkCloseTag = makeHTMLTags("a")
 
 linkBody = linkOpenTag.tag_body
-linkBody.setParseAction(ppc.stripHTMLTags)
+linkBody.setParseAction(stripHTMLTags)
 linkBody.addParseAction(lambda toks: " ".join(toks[0].strip().split()))
 
 link = linkOpenTag + linkBody("body") + linkCloseTag.suppress()

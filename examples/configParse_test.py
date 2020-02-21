@@ -9,8 +9,6 @@ import pprint
 
 from examples.configParse import inifile_BNF
 
-pp = pprint.PrettyPrinter(2)
-
 
 def test(strng):
     print(strng)
@@ -18,7 +16,7 @@ def test(strng):
     iniData = "".join(iniFile.readlines())
     bnf = inifile_BNF()
     tokens = bnf.parseString(iniData)
-    pp.pprint(tokens.asList())
+    pprint(tokens.asList())
 
     iniFile.close()
     print()
