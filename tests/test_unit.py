@@ -1501,8 +1501,10 @@ class TestParsing(TestParseResultsAsserts, TestCase):
 
         def test(expr, test_string, expected_list, expected_dict):
             if (expected_list, expected_dict) == (None, None):
-                with self.assertRaises(
-                    Exception, msg="{} failed to parse {!r}".format(expr, test_string)
+                with TestCase.assertRaises(
+                    self,
+                    Exception,
+                    msg="{} failed to parse {!r}".format(expr, test_string)
                 ):
                     expr.parseString(test_string)
             else:
@@ -1755,7 +1757,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
             r"""==sdf\:j=lz::--djf: sl=^^=kfsjf
             sdlfjs ==sdf\:j=ls::--djf: sl==kfsjf""",
         )
-        with self.assertRaises(SyntaxError):
+        with TestCase.assertRaises(self, SyntaxError):
             QuotedString("", "\\")
 
     def testRecursiveCombine(self):
@@ -2412,13 +2414,13 @@ class TestParsing(TestParseResultsAsserts, TestCase):
             "incorrect Regex.sub result with callable",
         )
 
-        with self.assertRaises(SyntaxError):
+        with TestCase.assertRaises(self, SyntaxError):
             Regex(r"<(.*?)>", asMatch=True).sub(lambda m: m.group(1).upper())
 
-        with self.assertRaises(SyntaxError):
+        with TestCase.assertRaises(self, SyntaxError):
             Regex(r"<(.*?)>", asGroupList=True).sub(lambda m: m.group(1).upper())
 
-        with self.assertRaises(SyntaxError):
+        with TestCase.assertRaises(self, SyntaxError):
             Regex(r"<(.*?)>", asGroupList=True).sub("")
 
     def testPrecededBy(self):
@@ -3497,7 +3499,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
             )
             print(result)
 
-        with self.assertRaises(ParseException):
+        with TestCase.assertRaises(self, ParseException):
             exp.parseString("{bar}")
 
     def testOptionalEachTest4(self):
@@ -5356,7 +5358,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
 
     def testInvalidDiagSetting(self):
 
-        with self.assertRaises(
+        with TestCase.assertRaises(self,
             ValueError,
             msg="failed to raise exception when setting non-existent __diag__",
         ):

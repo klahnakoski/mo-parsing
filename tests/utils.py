@@ -89,10 +89,8 @@ class TestParseResultsAsserts(FuzzyTestCase):
         Unit test assertion to compare a ParseResults object with an optional expected_list,
         and compare any defined results names with an optional expected_dict.
         """
-        if expected_list is not None:
-            self.assertEqual(result, expected_list, msg=msg)
-        if expected_dict is not None:
-            self.assertEqual(result, expected_dict, msg=msg)
+        self.assertEqual(result, expected_list, msg=msg)
+        self.assertEqual(result, expected_dict, msg=msg)
 
     def assertParseAndCheckList(
         self, expr, test_string, expected_list, msg=None, verbose=True
@@ -151,7 +149,7 @@ class TestParseResultsAsserts(FuzzyTestCase):
                     None,
                 )
                 if expected_exception is not None:
-                    with self.assertRaises(
+                    with TestCase.assertRaises(self,
                         expected_exception=expected_exception, msg=fail_msg or msg
                     ):
                         if isinstance(result, Exception):
