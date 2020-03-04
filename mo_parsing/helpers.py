@@ -1491,7 +1491,6 @@ mac_address = Regex(
 "MAC address xx:xx:xx:xx:xx (may also have '-' or '.' delimiters)"
 
 
-@staticmethod
 def convertToDate(fmt="%Y-%m-%d"):
     """
     Helper to create a parse action for converting parsed date string to Python datetime.date
@@ -1519,7 +1518,6 @@ def convertToDate(fmt="%Y-%m-%d"):
     return cvt_fn
 
 
-@staticmethod
 def convertToDatetime(fmt="%Y-%m-%dT%H:%M:%S.%f"):
     """Helper to create a parse action for converting parsed
     datetime string to Python datetime.datetime
@@ -1563,7 +1561,6 @@ uuid = Regex(r"[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}").setName("UUI
 _html_stripper = anyOpenTag.suppress() | anyCloseTag.suppress()
 
 
-@staticmethod
 def stripHTMLTags(s, l, tokens):
     """Parse action to remove HTML tags from web page HTML source
 

@@ -2609,7 +2609,6 @@ class TestParsing(TestParseResultsAsserts, TestCase):
                 )
 
     def testLineAndStringEnd(self):
-
         NLs = OneOrMore(lineEnd)
         bnf1 = delimitedList(Word(alphanums).leaveWhitespace(), NLs)
         bnf2 = Word(alphanums) + stringEnd
@@ -5741,180 +5740,6 @@ class TestParsing(TestParseResultsAsserts, TestCase):
                 "__diag__.{} not set to True".format(diag_name),
             )
 
-    def testWordInternalReRanges(self):
-        self.assertEqual(
-            Word(printables).reString,
-            "[!-~]+",
-            "failed to generate correct internal re",
-        )
-        self.assertEqual(
-            Word(alphanums).reString,
-            "[0-9A-Za-z]+",
-            "failed to generate correct internal re",
-        )
-        self.assertEqual(
-            Word(parsing_unicode.Latin1.printables).reString,
-            "[!-~¡-ÿ]+",
-            "failed to generate correct internal re",
-        )
-        self.assertEqual(
-            Word(alphas8bit).reString,
-            "[À-ÖØ-öø-ÿ]+",
-            "failed to generate correct internal re",
-        )
-
-        esc_chars = r"\^-]"
-        esc_chars2 = r"*+.?["
-        for esc_char in esc_chars + esc_chars2:
-            # test escape char as first character in range
-            next_char = chr(ord(esc_char) + 1)
-            prev_char = chr(ord(esc_char) - 1)
-            esc_word = Word(esc_char + next_char)
-            expected = r"[{}{}-{}{}]+".format(
-                "\\" if esc_char in esc_chars else "",
-                esc_char,
-                "\\" if next_char in esc_chars else "",
-                next_char,
-            )
-            print(
-                "Testing escape char: {} -> {} re: '{}')".format(
-                    esc_char, esc_word, esc_word.reString
-                )
-            )
-            self.assertEqual(
-                esc_word.reString, expected, "failed to generate correct internal re"
-            )
-            import random
-
-            test_string = "".join(
-                random.choice([esc_char, next_char]) for __ in range(16)
-            )
-            print(
-                "Match '{}' -> {}".format(
-                    test_string, test_string == esc_word.parseString(test_string)[0]
-                )
-            )
-            self.assertEqual(
-                esc_word.parseString(test_string)[0],
-                test_string,
-                "Word using escaped range char failed to parse",
-            )
-
-            # test escape char as last character in range
-            esc_word = Word(prev_char + esc_char)
-            expected = r"[{}{}-{}{}]+".format(
-                "\\" if prev_char in esc_chars else "",
-                prev_char,
-                "\\" if esc_char in esc_chars else "",
-                esc_char,
-            )
-            print(
-                "Testing escape char: {} -> {} re: '{}')".format(
-                    esc_char, esc_word, esc_word.reString
-                )
-            )
-            self.assertEqual(
-                esc_word.reString, expected, "failed to generate correct internal re"
-            )
-            test_string = "".join(
-                random.choice([esc_char, prev_char]) for __ in range(16)
-            )
-            print(
-                "Match '{}' -> {}".format(
-                    test_string, test_string == esc_word.parseString(test_string)[0]
-                )
-            )
-            self.assertEqual(
-                esc_word.parseString(test_string)[0],
-                test_string,
-                "Word using escaped range char failed to parse",
-            )
-
-            # test escape char as first character in range
-            next_char = chr(ord(esc_char) + 1)
-            prev_char = chr(ord(esc_char) - 1)
-            esc_word = Word(esc_char + next_char)
-            expected = r"[{}{}-{}{}]+".format(
-                "\\" if esc_char in esc_chars else "",
-                esc_char,
-                "\\" if next_char in esc_chars else "",
-                next_char,
-            )
-            print(
-                "Testing escape char: {} -> {} re: '{}')".format(
-                    esc_char, esc_word, esc_word.reString
-                )
-            )
-            self.assertEqual(
-                esc_word.reString, expected, "failed to generate correct internal re"
-            )
-            test_string = "".join(
-                random.choice([esc_char, next_char]) for __ in range(16)
-            )
-            print(
-                "Match '{}' -> {}".format(
-                    test_string, test_string == esc_word.parseString(test_string)[0]
-                )
-            )
-            self.assertEqual(
-                esc_word.parseString(test_string)[0],
-                test_string,
-                "Word using escaped range char failed to parse",
-            )
-
-            # test escape char as only character in range
-            esc_word = Word(esc_char + esc_char, alphas.upper())
-            expected = r"[{}{}][A-Z]*".format(
-                "\\" if esc_char in esc_chars else "", esc_char
-            )
-            print(
-                "Testing escape char: {} -> {} re: '{}')".format(
-                    esc_char, esc_word, esc_word.reString
-                )
-            )
-            self.assertEqual(
-                esc_word.reString, expected, "failed to generate correct internal re"
-            )
-            test_string = esc_char + "".join(
-                random.choice(alphas.upper()) for __ in range(16)
-            )
-            print(
-                "Match '{}' -> {}".format(
-                    test_string, test_string == esc_word.parseString(test_string)[0]
-                )
-            )
-            self.assertEqual(
-                esc_word.parseString(test_string)[0],
-                test_string,
-                "Word using escaped range char failed to parse",
-            )
-
-            # test escape char as only character
-            esc_word = Word(esc_char, alphas.upper())
-            expected = r"{}[A-Z]*".format(re.escape(esc_char))
-            print(
-                "Testing escape char: {} -> {} re: '{}')".format(
-                    esc_char, esc_word, esc_word.reString
-                )
-            )
-            self.assertEqual(
-                esc_word.reString, expected, "failed to generate correct internal re"
-            )
-            test_string = esc_char + "".join(
-                random.choice(alphas.upper()) for __ in range(16)
-            )
-            print(
-                "Match '{}' -> {}".format(
-                    test_string, test_string == esc_word.parseString(test_string)[0]
-                )
-            )
-            self.assertEqual(
-                esc_word.parseString(test_string)[0],
-                test_string,
-                "Word using escaped range char failed to parse",
-            )
-            print()
-
     def testChainedTernaryOperator(self):
         print(CURRENT_LITERAL.__name__)
 
@@ -6072,6 +5897,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
 
         def getNameTester(s, l, t):
             print(t, t.getName())
+            return t
 
         ident.addParseAction(getNameTester)
         scanner.parseString("lsjd sldkjf IF Saslkj AND lsdjf")

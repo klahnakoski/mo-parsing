@@ -293,6 +293,9 @@ def _trim_arity(func):
     def wrapper(*args):
         try:
             ret = func(*args[start:])
+            if ret is None:
+                s, i, t = args
+                return t
             return ret
         except Exception as e:
             if (

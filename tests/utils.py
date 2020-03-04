@@ -3,6 +3,8 @@
 from contextlib import contextmanager
 from unittest import TestCase
 
+from mo_testing.fuzzytestcase import FuzzyTestCase
+
 from mo_parsing import core
 from mo_parsing.core import (
     ParserElement,
@@ -75,7 +77,7 @@ class reset_parsing_context:
         return self.restore()
 
 
-class TestParseResultsAsserts(TestCase):
+class TestParseResultsAsserts(FuzzyTestCase):
     """
     A mixin class to add parse results assertion methods to normal unittest.TestCase classes.
     """
@@ -88,9 +90,9 @@ class TestParseResultsAsserts(TestCase):
         and compare any defined results names with an optional expected_dict.
         """
         if expected_list is not None:
-            self.assertEqual(expected_list, result.asList(), msg=msg)
+            self.assertEqual(result, expected_list, msg=msg)
         if expected_dict is not None:
-            self.assertEqual(expected_dict, result.asDict(), msg=msg)
+            self.assertEqual(result, expected_dict, msg=msg)
 
     def assertParseAndCheckList(
         self, expr, test_string, expected_list, msg=None, verbose=True
@@ -179,5 +181,5 @@ class TestParseResultsAsserts(TestCase):
 
     @contextmanager
     def assertRaisesParseException(self, exc_type=ParseException, msg=None):
-        with self.assertRaises(exc_type, msg=msg):
+        with TestCase.assertRaises(self, exc_type, msg=msg):
             yield

@@ -451,6 +451,7 @@ class TestResultsModifyingParseAction(PyparsingExpressionTestCase):
         t["ave"] = sum(t) / len(t)
         t["min"] = min(t)
         t["max"] = max(t)
+        return t
 
     def test_A_parse_action_that_adds_new_key_values(self):
         self.runTest(
