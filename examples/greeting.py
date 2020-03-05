@@ -14,7 +14,7 @@ greet = Word(alphas) + "," + Word(alphas) + oneOf("! ? .")
 hello = "Hello, World!"
 
 # parse input string
-print(hello, "->", greet.parseString(hello))
+
 
 # parse a bunch of input strings
 greet.runTests(

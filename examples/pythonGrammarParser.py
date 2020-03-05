@@ -230,9 +230,9 @@ assert len(bnfDefs) == expected, "Error, found %d BNF defns, expected %d" % (
 
 # list out defns in order they were parsed (to verify accuracy of parsing)
 for k, v in bnfDefs:
-    print(k, "=", v)
-print()
+
+
 
 # list out parsed grammar defns (demonstrates dictionary access to parsed tokens)
 for k in list(bnfDefs.keys()):
-    print(k, "=", bnfDefs[k])
+

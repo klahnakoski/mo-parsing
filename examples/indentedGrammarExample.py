@@ -50,6 +50,5 @@ stmt << (funcDef | assignment | identifier)
 
 module_body = OneOrMore(stmt)
 
-print(data)
 parseTree = module_body.parseString(data)
-print(parseTree)
+

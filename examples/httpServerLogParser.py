@@ -96,8 +96,8 @@ for line in testdata.split("\n"):
     if not line:
         continue
     fields = getLogLineBNF().parseString(line)
-    print(fields)
+
     # ~ print repr(fields)
     # ~ for k in fields.keys():
     # ~ print "fields." + k + " =", fields[k]
-    print()
+

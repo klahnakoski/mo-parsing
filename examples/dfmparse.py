@@ -173,7 +173,7 @@ nested_object << Group(object_definition)
 
 
 def printer(s, loc, tok):
-    print(tok, end=" ")
+
     return tok
 
 
@@ -202,7 +202,7 @@ def main(testfiles=None, action=printer):
     Otherwise, a simple ParseResults is returned.
     """
     testfiles = get_filename_list(testfiles)
-    print(testfiles)
+
 
     if action:
         for i in (simple_identifier, value, item_list):
@@ -220,8 +220,8 @@ def main(testfiles=None, action=printer):
             failures.append(f)
 
     if failures:
-        print("\nfailed while processing %s" % ", ".join(failures))
-    print("\nsucceeded on %d of %d files" % (success, len(testfiles)))
+
+
 
     if len(retval) == 1 and len(testfiles) == 1:
         # if only one file is parsed, return the parseResults directly

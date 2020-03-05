@@ -1009,7 +1009,7 @@ class White(Token):
         if loc - start < self.minLen:
             raise ParseException(instring, loc, self.parser_config.error_message, self)
 
-        return loc, instring[start:loc]
+        return loc, ParseResults(self, [instring[start:loc]])
 
 
 class _PositionToken(Token):

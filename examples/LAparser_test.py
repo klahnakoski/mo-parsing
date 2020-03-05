@@ -17,7 +17,7 @@ def test():
    an AssertError if the output is not what is expected. Prints the
    input, expected output, and actual output for all tests.
    """
-    print("Testing LAParser")
+
     testcases = [
         ("Scalar addition", "a = b+c", "a=(b+c)"),
         ("Vector addition", "V3_a = V3_b + V3_c", "vCopy(a,vAdd(b,c))"),
@@ -92,7 +92,7 @@ def test():
 
             # Create final assignment and print it.
             if debug_flag:
-                print("var=", targetvar)
+
             if targetvar != None:
                 try:
                     result = _assignfunc(targetvar, result)
@@ -112,7 +112,7 @@ def test():
                     raise
 
             else:
-                print("Empty left side in '%s'" % input_string, file=sys.stderr)
+
                 raise TypeError
 
             parsed["result"] = result
@@ -120,13 +120,12 @@ def test():
 
         finally:
             all_passed[0] = all_passed[0] and this_test_passed
-            print("\n" + name)
+
 
     equation.runTests((t[1] for t in testcases), postParse=post_test)
 
     ##TODO: Write testcases with invalid expressions and test that the expected
     ## exceptions are raised.
 
-    print("Tests completed!")
-    print("PASSED" if all_passed[0] else "FAILED")
+
     assert all_passed[0]

@@ -287,22 +287,22 @@ def main():
         t = t.strip()
         if not t:
             continue
-        print("-" * 50)
-        print(t)
+
+
         try:
             num = count(invert(t))
-            print(num)
+
             maxprint = 30
             for s in invert(t):
-                print(s)
+
                 maxprint -= 1
                 if not maxprint:
                     break
         except ParseFatalException as pfe:
-            print(pfe.msg)
-            print("")
+
+
             continue
-        print("")
+
 
 
 main()

@@ -277,4 +277,3 @@ test_program = """
     }
 """
 
-print(decaf_parser.parseString(test_program))

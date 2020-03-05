@@ -36,38 +36,38 @@ class RestrictedBook(Book):
 def run_demo():
     book = Book()
     book.shelve()
-    print(book)
+
     book.checkout()
-    print(book)
+
     book.checkin()
-    print(book)
+
     book.reserve()
-    print(book)
+
     try:
         book.checkout()
     except Exception as e:  # statemachine.InvalidTransitionException:
-        print(e)
-        print("..cannot check out reserved book")
+
+
     book.release()
-    print(book)
+
     book.checkout()
-    print(book)
-    print()
+
+
 
     restricted_book = RestrictedBook()
     restricted_book.authorize("BOB")
     restricted_book.restrict()
-    print(restricted_book)
+
     for name in [None, "BILL", "BOB"]:
         try:
             restricted_book.checkout(name)
         except Exception as e:
-            print(".." + str(e))
+
         else:
-            print("checkout to", name)
-    print(restricted_book)
+
+
     restricted_book.checkin()
-    print(restricted_book)
+
 
 
 run_demo()

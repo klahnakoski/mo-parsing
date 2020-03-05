@@ -21,8 +21,8 @@ data = """
 
 # use {}'s for nested lists
 nestedItems = nestedExpr("{", "}")
-print((nestedItems + stringEnd).parseString(data))
+
 
 # use default delimiters of ()'s
 mathExpr = nestedExpr()
-print(mathExpr.parseString("((( ax + by)*C) *(Z | (E^F) & D))"))
+

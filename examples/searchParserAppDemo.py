@@ -38,6 +38,6 @@ tests = """\
     prune and grape""".splitlines()
 
 for t in tests:
-    print(t.strip())
-    print(parser.Parse(t))
-    print("")
+
+
+

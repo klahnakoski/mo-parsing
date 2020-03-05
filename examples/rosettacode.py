@@ -281,5 +281,5 @@ for test in tests:
     except ParseException as pe:
         ParseException.explain(pe)
     else:
-        print(results)
-    print()
+
+

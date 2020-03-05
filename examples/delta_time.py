@@ -415,6 +415,4 @@ def verify_offset(instring, parsed):
         else:
             parsed["verify_offset"] = "FAIL"
 
-
-print("(relative to %s)" % datetime.now())
 time_expression.runTests(tests, postParse=verify_offset)

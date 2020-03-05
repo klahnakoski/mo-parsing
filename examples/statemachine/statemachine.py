@@ -351,7 +351,7 @@ class PystateImporter(SuffixImporter):
         generated_code = stateMachineExpr.transformString(data)
 
         if DEBUG:
-            print(generated_code)
+
 
         # compile code object from generated code
         # (strip trailing spaces and tabs, compile doesn't like
@@ -366,4 +366,4 @@ class PystateImporter(SuffixImporter):
 PystateImporter.register()
 
 if DEBUG:
-    print("registered {!r} importer".format(PystateImporter.suffix))
+

@@ -5,6 +5,7 @@ from copy import copy
 from datetime import datetime
 
 from mo_dots import Data
+from mo_future import text
 
 from mo_parsing.core import CURRENT_WHITE_CHARS
 from mo_parsing.enhancement import (
@@ -1246,6 +1247,9 @@ _commasepitem = (
             Word(printables, excludeChars=",")
             + Optional(Word(" \t") + ~Literal(",") + ~LineEnd())
         )
+    )
+    .addParseAction(
+        lambda t: text(t).strip()
     )
     .streamline()
     .setName("commaItem")

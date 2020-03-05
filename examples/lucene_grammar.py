@@ -329,6 +329,6 @@ success2, _ = expression.runTests(failtests, failureTests=True)
 
 
 if success1 and success2:
-    print("All tests: OK")
+
 else:
     raise Exception("All tests: FAIL")

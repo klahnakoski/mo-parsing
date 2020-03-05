@@ -21,7 +21,7 @@ with urlopen("https://www.cnn.com/") as serverListPage:
 # match yields the tokens and start and end locations (for this application, we are
 # not interested in the start and end values).
 for toks, strt, end in link.scanString(htmlText):
-    print(toks.startA.href, "->", toks.body)
+
 
 # Create dictionary from list comprehension, assembled from each pair of tokens returned
 # from a matched URL.

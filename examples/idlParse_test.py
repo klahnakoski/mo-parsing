@@ -16,20 +16,20 @@ testnum = 1
 
 def test(strng):
     global testnum
-    print(strng)
+
     try:
         bnf = CORBA_IDL_BNF()
         tokens = bnf.parseString(strng)
-        print("tokens = ")
-        print(tokens)
+
+
         imgname = "idlParse%02d.bmp" % testnum
         testnum += 1
         # ~ tree2image.str2image( str(tokens), imgname )
     except ParseException as err:
-        print(err.line)
-        print(" " * (err.column - 1) + "^")
-        print(err)
-    print()
+
+
+
+
 
 
 test(

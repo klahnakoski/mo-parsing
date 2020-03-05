@@ -20,7 +20,7 @@ if __name__ == "__main__":
     v = Video("Die Hard.mp4")
 
     while True:
-        print(v.state)
+
         cmd = (
             input(
                 "Command ({})> ".format(
@@ -37,8 +37,8 @@ if __name__ == "__main__":
             print(
                 "enter a transition {!r}".format(videostate.VideoState.transition_names)
             )
-            print(" q - quit")
-            print(" ?, h, help - this message")
+
+
             continue
 
         # quitting out
@@ -49,11 +49,11 @@ if __name__ == "__main__":
         state_transition_fn = getattr(v, cmd, None)
 
         if state_transition_fn is None:
-            print("???")
+
             continue
 
         # invoke the input transition, handle invalid commands
         try:
             state_transition_fn()
         except videostate.VideoState.InvalidTransitionException as e:
-            print(e)
+

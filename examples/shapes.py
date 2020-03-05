@@ -67,6 +67,6 @@ S -1 5 10""".splitlines()
 
 for t in tests:
     shape = shapeExpr.parseString(t)[0]
-    print(shape)
-    print("Area:", shape.area())
-    print()
+
+
+

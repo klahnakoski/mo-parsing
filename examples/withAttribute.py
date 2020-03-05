@@ -23,4 +23,4 @@ patt = td + font + NBSP + realNum("value") + NBSP + fontEnd + tdEnd
 td.addParseAction(withAttribute(align="right", width="80"))
 
 for s in patt.searchString(data):
-    print(s.value)
+

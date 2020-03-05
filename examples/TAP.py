@@ -124,7 +124,7 @@ class TAPSummary:
             testnum = i + 1
             if res.testNumber != "":
                 if testnum != int(res.testNumber):
-                    print("ERROR! test %(testNumber)s out of sequence" % res)
+
                 testnum = int(res.testNumber)
             res["testNumber"] = testnum
 
@@ -236,7 +236,7 @@ test6 = """\
     """
 
 for test in (test1, test2, test3, test4, test5, test6):
-    print(test)
+
     tapResult = tapOutputParser.parseString(test)[0]
-    print(tapResult.summary(showAll=True))
-    print()
+
+

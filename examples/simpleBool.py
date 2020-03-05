@@ -103,11 +103,10 @@ tests = [
     ("(p or q or r) and False", False),
 ]
 
-print("p =", p)
-print("q =", q)
-print("r =", r)
-print()
+
+
+
 for t, expected in tests:
     res = boolExpr.parseString(t)[0]
     success = "PASS" if bool(res) == expected else "FAIL"
-    print(t, "\n", res, "=", bool(res), "\n", success, "\n")
+

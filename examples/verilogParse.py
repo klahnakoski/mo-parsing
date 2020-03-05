@@ -102,7 +102,6 @@ packratOn = False
 def dumpTokens(s, l, t):
     import pprint
 
-    print(t)
 
 
 verilogbnf = None
@@ -882,12 +881,11 @@ def Verilog_BNF():
 
 if __name__ == "__main__":
 
-    print("Verilog parser test (V %s)" % __version__)
-    print(" - using mo_parsing version", mo_parsing.__version__)
-    print(" - using Python version", sys.version)
+
+
     if packratOn:
-        print(" - using packrat parsing")
-    print()
+
+
 
     import os
     import gc
@@ -915,7 +913,7 @@ if __name__ == "__main__":
         infile = open(fnam)
         filelines = infile.readlines()
         infile.close()
-        print(fnam, len(filelines), end=" ")
+
         numlines += len(filelines)
         teststr = "".join(filelines)
         time1 = time.clock()
@@ -924,7 +922,7 @@ if __name__ == "__main__":
         elapsed = time2 - time1
         totalTime += elapsed
         if len(tokens):
-            print("OK", elapsed)
+
             # ~ print "tokens="
             # ~ print( tokens )
             # ~ print
@@ -938,18 +936,18 @@ if __name__ == "__main__":
             outfile.write("\n")
             outfile.close()
         else:
-            print("failed", elapsed)
+
             failCount += 1
             for i, line in enumerate(filelines, 1):
-                print("%4d: %s" % (i, line.rstrip()))
+
     endTime = time.clock()
-    print("Total parse time:", totalTime)
-    print("Total source lines:", numlines)
-    print("Average lines/sec:", ("%.1f" % (float(numlines) / (totalTime + 0.05))))
+
+
+
     if failCount:
-        print("FAIL - %d files failed to parse" % failCount)
+
     else:
-        print("SUCCESS - all files parsed")
+
 
     # ~ from line_profiler import LineProfiler
     # ~ from mo_parsing import ParseResults

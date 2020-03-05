@@ -11,19 +11,19 @@ from examples.configParse import inifile_BNF
 
 
 def test(strng):
-    print(strng)
+
     iniFile = open(strng)
     iniData = "".join(iniFile.readlines())
     bnf = inifile_BNF()
     tokens = bnf.parseString(iniData)
-    print(tokens)
+
 
     iniFile.close()
-    print()
+
     return tokens
 
 
 ini = test("examples/setup.ini")
-print("ini['Startup']['modemid'] =", ini["Startup"]["modemid"])
-print("ini.Startup =", ini.Startup)
-print("ini.Startup.modemid =", ini.Startup.modemid)
+
+
+

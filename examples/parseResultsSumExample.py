@@ -24,6 +24,6 @@ for test in (
     samplestr4,
 ):
     person = sum(person_data.searchString(test))
-    print(person.id)
-    print(person)
-    print()
+
+
+

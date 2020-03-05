@@ -230,6 +230,6 @@ tests = """\
 
 success, _ = select_stmt.runTests(tests)
 if success:
-    print("\n{}".format("OK"))
+
 else:
     raise Exception("FAIL")

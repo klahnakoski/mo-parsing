@@ -85,7 +85,7 @@ targetvar = None  # Holds variable name to left of '=' sign in LA equation.
 
 def _pushFirst(str, loc, toks):
     if debug_flag:
-        print("pushing ", toks[0], "str is ", str)
+
     exprStack.append(toks[0])
 
 
@@ -296,7 +296,7 @@ def _evaluateStack(s):
         op1 = _evaluateStack(s)
         result = opn[op](op1, op2)
         if debug_flag:
-            print(result)
+
         return result
     else:
         return op
@@ -323,16 +323,16 @@ def parse(input_string):
         try:
             L = equation.parseString(input_string)
         except ParseException as err:
-            print("Parse Failure", file=sys.stderr)
-            print(err.line, file=sys.stderr)
-            print(" " * (err.column - 1) + "^", file=sys.stderr)
-            print(err, file=sys.stderr)
+
+
+
+
             raise
 
         # show result of parsing the input string
         if debug_flag:
-            print(input_string, "->", L)
-            print("exprStack=", exprStack)
+
+
 
         # Evaluate the stack of parsed operands, emitting C code.
         try:
@@ -354,7 +354,7 @@ def parse(input_string):
 
         # Create final assignment and print it.
         if debug_flag:
-            print("var=", targetvar)
+
         if targetvar != None:
             try:
                 result = _assignfunc(targetvar, result)
@@ -374,7 +374,7 @@ def parse(input_string):
 
             return result
         else:
-            print("Empty left side in '%s'" % input_string, file=sys.stderr)
+
             raise TypeError
 
 
@@ -420,7 +420,7 @@ if __name__ == "__main__":
       Type 'debug on' to print parsing details as each string is processed.
       Type 'debug off' to stop printing parsing details
       """
-    print(interactiveusage)
+
     input_string = input("> ")
 
     while input_string != "quit":
@@ -430,7 +430,7 @@ if __name__ == "__main__":
             debug_flag = False
         else:
             try:
-                print(parse(input_string))
+
             except Exception:
                 pass
 
@@ -438,4 +438,4 @@ if __name__ == "__main__":
         input_string = input("> ")
 
     # if user types 'quit' then say goodbye
-    print("Good bye!")
+

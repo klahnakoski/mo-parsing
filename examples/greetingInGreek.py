@@ -15,4 +15,4 @@ greet = Word(alphas) + "," + Word(alphas) + "!"
 hello = "Καλημέρα, κόσμε!"
 
 # parse input string
-print(greet.parseString(hello))
+

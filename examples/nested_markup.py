@@ -53,4 +53,4 @@ Here is a simple Wiki input:
   bold{This is in ital{bold italics}! But this is just bold.}
   Here's a URL to link{Pyparsing's bold{Wiki Page}!->https://github.com/mo_parsing/mo_parsing/wiki}
 """
-print(wiki_markup.transformString(wiki_input))
+

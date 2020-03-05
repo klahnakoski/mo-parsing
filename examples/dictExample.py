@@ -35,16 +35,16 @@ datatable = heading + Dict(ZeroOrMore(rowData)) + trailing
 
 # now parse data and print results
 data = datatable.parseString(testData)
-print(data)
+
 
 # shortcut for import pprint; print(data)
-print(data)
+
 
 # access all data keys
-print("data keys=", list(data.keys()))
+
 
 # use dict-style access to values
-print("data['min']=", data["min"])
+
 
 # use attribute-style access to values (if key is a valid Python identifier)
-print("data.max", data.max)
+

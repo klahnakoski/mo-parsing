@@ -74,7 +74,7 @@ class PyparsingExpressionTestCase(FuzzyTestCase):
 
                     etype, value, traceback = exc_info()
                     exc.__traceback__ = traceback
-                print(ParseException.explain(exc))
+
                 self.assertEqual(exc.loc, test_spec.expected_fail_locn)
             else:
                 self.assertTrue(False, "failed to raise expected exception")

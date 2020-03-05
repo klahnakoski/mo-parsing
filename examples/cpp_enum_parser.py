@@ -49,5 +49,5 @@ for item, start, stop in enum.scanString(sample):
     for entry in item.names:
         if entry.value != "":
             id = int(entry.value)
-        print("%s_%s = %d" % (item.enum.upper(), entry.name.upper(), id))
+
         id += 1

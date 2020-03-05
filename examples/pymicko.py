@@ -1159,7 +1159,7 @@ class MicroC:
         msg += ": %s" % message
         if print_location and (exshared.location != None):
             msg += "\n%s" % wtext
-        print(msg)
+
 
     def data_begin_action(self):
         """Inserts text at start of data segment"""
@@ -1173,7 +1173,7 @@ class MicroC:
         """Code executed after recognising a global variable"""
         exshared.setpos(loc, text)
         if DEBUG > 0:
-            print("GLOBAL_VAR:", var)
+
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
@@ -1186,7 +1186,7 @@ class MicroC:
         """Code executed after recognising a local variable"""
         exshared.setpos(loc, text)
         if DEBUG > 0:
-            print("LOCAL_VAR:", var, var.name, var.type)
+
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
@@ -1201,7 +1201,7 @@ class MicroC:
         """Code executed after recognising a parameter"""
         exshared.setpos(loc, text)
         if DEBUG > 0:
-            print("PARAM:", par)
+
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
@@ -1214,7 +1214,7 @@ class MicroC:
         """Code executed after recognising a constant"""
         exshared.setpos(loc, text)
         if DEBUG > 0:
-            print("CONST:", const)
+
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
@@ -1225,7 +1225,7 @@ class MicroC:
         """Code executed after recognising a function definition (type and function name)"""
         exshared.setpos(loc, text)
         if DEBUG > 0:
-            print("FUN_BEGIN:", fun)
+
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
@@ -1240,7 +1240,7 @@ class MicroC:
         """Code executed after recognising the beginning of function's body"""
         exshared.setpos(loc, text)
         if DEBUG > 0:
-            print("FUN_BODY:", fun)
+
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
@@ -1250,7 +1250,7 @@ class MicroC:
     def function_end_action(self, text, loc, fun):
         """Code executed at the end of function definition"""
         if DEBUG > 0:
-            print("FUN_END:", fun)
+
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
@@ -1267,7 +1267,7 @@ class MicroC:
         """Code executed after recognising a return statement"""
         exshared.setpos(loc, text)
         if DEBUG > 0:
-            print("RETURN:", ret)
+
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
@@ -1288,7 +1288,7 @@ class MicroC:
         """Code executed after recognising an identificator in expression"""
         exshared.setpos(loc, text)
         if DEBUG > 0:
-            print("EXP_VAR:", var)
+
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
@@ -1309,7 +1309,7 @@ class MicroC:
         """Code executed after recognising an assignment statement"""
         exshared.setpos(loc, text)
         if DEBUG > 0:
-            print("ASSIGN:", assign)
+
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
@@ -1332,7 +1332,7 @@ class MicroC:
         """Code executed after recognising a mulexp expression (something *|/ something)"""
         exshared.setpos(loc, text)
         if DEBUG > 0:
-            print("MUL_EXP:", mul)
+
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
@@ -1351,7 +1351,7 @@ class MicroC:
         """Code executed after recognising a numexp expression (something +|- something)"""
         exshared.setpos(loc, text)
         if DEBUG > 0:
-            print("NUM_EXP:", num)
+
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
@@ -1370,7 +1370,7 @@ class MicroC:
         """Code executed after recognising a function call (type and function name)"""
         exshared.setpos(loc, text)
         if DEBUG > 0:
-            print("FUN_PREP:", fun)
+
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
@@ -1389,7 +1389,7 @@ class MicroC:
         """Code executed after recognising each of function's arguments"""
         exshared.setpos(loc, text)
         if DEBUG > 0:
-            print("ARGUMENT:", arg.exp)
+
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
@@ -1409,7 +1409,7 @@ class MicroC:
         """Code executed after recognising the whole function call"""
         exshared.setpos(loc, text)
         if DEBUG > 0:
-            print("FUN_CALL:", fun)
+
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
@@ -1437,7 +1437,7 @@ class MicroC:
     def relexp_action(self, text, loc, arg):
         """Code executed after recognising a relexp expression (something relop something)"""
         if DEBUG > 0:
-            print("REL_EXP:", arg)
+
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
@@ -1454,7 +1454,7 @@ class MicroC:
         """Code executed after recognising a andexp expression (something and something)"""
         exshared.setpos(loc, text)
         if DEBUG > 0:
-            print("AND+EXP:", arg)
+
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
@@ -1470,7 +1470,7 @@ class MicroC:
         """Code executed after recognising logexp expression (something or something)"""
         exshared.setpos(loc, text)
         if DEBUG > 0:
-            print("LOG_EXP:", arg)
+
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
@@ -1486,7 +1486,7 @@ class MicroC:
         """Code executed after recognising an if statement (if keyword)"""
         exshared.setpos(loc, text)
         if DEBUG > 0:
-            print("IF_BEGIN:", arg)
+
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
@@ -1499,7 +1499,7 @@ class MicroC:
         """Code executed after recognising if statement's body"""
         exshared.setpos(loc, text)
         if DEBUG > 0:
-            print("IF_BODY:", arg)
+
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
@@ -1519,7 +1519,7 @@ class MicroC:
         """Code executed after recognising if statement's else body"""
         exshared.setpos(loc, text)
         if DEBUG > 0:
-            print("IF_ELSE:", arg)
+
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
@@ -1536,7 +1536,7 @@ class MicroC:
         """Code executed after recognising a whole if statement"""
         exshared.setpos(loc, text)
         if DEBUG > 0:
-            print("IF_END:", arg)
+
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
@@ -1547,7 +1547,7 @@ class MicroC:
         """Code executed after recognising a while statement (while keyword)"""
         exshared.setpos(loc, text)
         if DEBUG > 0:
-            print("WHILE_BEGIN:", arg)
+
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
@@ -1560,7 +1560,7 @@ class MicroC:
         """Code executed after recognising while statement's body"""
         exshared.setpos(loc, text)
         if DEBUG > 0:
-            print("WHILE_BODY:", arg)
+
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
@@ -1579,7 +1579,7 @@ class MicroC:
         """Code executed after recognising a whole while statement"""
         exshared.setpos(loc, text)
         if DEBUG > 0:
-            print("WHILE_END:", arg)
+
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
@@ -1596,7 +1596,7 @@ class MicroC:
         """Checks if there is a 'main' function and the type of 'main' function"""
         exshared.setpos(loc, text)
         if DEBUG > 0:
-            print("PROGRAM_END:", arg)
+
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
@@ -1636,12 +1636,12 @@ if 0:
     If input file is omitted, stdin is used""".format(
             argv[0]
         )
-        print(usage)
+
         exit(1)
     try:
         parse = stdin if input_file == stdin else open(input_file, "r")
     except Exception:
-        print("Input file '%s' open error" % input_file)
+
         exit(2)
     mc.parse_file(parse)
     # if you want to see the final symbol table, uncomment next line
@@ -1651,7 +1651,7 @@ if 0:
         out.write(mc.codegen.code)
         out.close
     except Exception:
-        print("Output file '%s' open error" % output_file)
+
         exit(2)
 
 ##########################################################################################
@@ -1695,4 +1695,4 @@ test_program_example = """
 
 mc = MicroC()
 mc.parse_text(test_program_example)
-print(mc.codegen.code)
+

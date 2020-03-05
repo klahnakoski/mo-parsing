@@ -26,7 +26,7 @@ initialConsWord = Word(consonants, alphas).suppress()
 # using scanString to locate where tokens are matched
 for t, start, end in (initialConsWord | initialVowelWord).scanString(text):
     if t:
-        print(start, ":", t[0])
+
 
 # add parse action to annotate the parsed tokens with their location in the
 # input string
@@ -40,7 +40,7 @@ initialVowelWord.setParseAction(addLocnToTokens)
 for ivowelInfo in (initialConsWord | initialVowelWord).searchString(text):
     if not ivowelInfo:
         continue
-    print(ivowelInfo.locn, ":", ivowelInfo.word)
+
 
 
 # alternative - add an Empty that will save the current location
@@ -54,4 +54,4 @@ locateInitialVowels = location("locn") + initialVowelWord("word")
 for ivowelInfo in (initialConsWord | locateInitialVowels).searchString(text):
     if not ivowelInfo:
         continue
-    print(ivowelInfo.locn, ":", ivowelInfo.word)
+

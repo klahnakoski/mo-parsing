@@ -5,11 +5,10 @@
 #
 # Submitted 2004 by Seo Sanghyeon
 #
-print("Importing mo_parsing...")
+
 from mo_parsing import *
 from examples import ebnf
 
-print("Constructing EBNF parser with mo_parsing...")
 
 grammar = """
 syntax = (syntax_rule), {(syntax_rule)};
@@ -39,7 +38,6 @@ table["terminal_string"] = sglQuotedString
 table["meta_identifier"] = Word(alphas + "_", alphas + "_" + nums)
 table["integer"] = Word(nums)
 
-print("Parsing EBNF grammar with EBNF parser...")
 parsers = ebnf.parse(grammar, table)
 ebnf_parser = parsers["syntax"]
 
@@ -61,14 +59,11 @@ def tallyCommentChars(s, l, t):
 ebnf.ebnfComment.setParseAction(tallyCommentChars)
 ebnf_parser.ignore(ebnf.ebnfComment)
 
-print("Parsing EBNF grammar with generated EBNF parser...\n")
 parsed_chars = ebnf_parser.parseString(grammar)
 parsed_char_len = len(parsed_chars)
 
-print("],\n".join(str(parsed_chars).split("],")))
 
 # ~ grammar_length = len(grammar) - len(filter(str.isspace, grammar))-commentcharcount
 
 # ~ assert parsed_char_len == grammar_length
 
-print("Ok!")

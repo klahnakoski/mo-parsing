@@ -47,14 +47,14 @@ for g in genedata:
     for t, startLoc, endLoc in searchseq.scanString(g.gene, overlap=True):
         if show_header:
             # only need to show the header once
-            print("%s/%s/%s (%d)" % (g.gene_id, g.organism, g.location, g.gene_len))
-            print("-" * 24)
+
+
             show_header = False
 
         matched = t[0]
         mismatches = t["mismatches"]
-        print("MATCH:", searchseq.match_string)
-        print("FOUND:", matched)
+
+
         if mismatches:
             print(
                 "      ",
@@ -64,6 +64,6 @@ for g in genedata:
                 ),
             )
         else:
-            print("<exact match>")
-        print("at location", startLoc)
-        print()
+
+
+

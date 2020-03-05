@@ -84,12 +84,12 @@ Path("c.txt").write_text(
 initial_file = Path("a.txt").read_text()
 
 # print original file
-print(initial_file)
-print("-----------------")
+
+
 
 # expand includes in source file (and any included files) and print the result
 expanded_source = include_directive.transformString(initial_file)
-print(expanded_source)
+
 
 # clean up
 for fname in "a.txt b.txt c.txt".split():

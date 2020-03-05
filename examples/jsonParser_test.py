@@ -43,15 +43,12 @@ testdata = """
 """
 
 results = jsonObject.parseString(testdata)
-print(results)
-print()
+
 
 
 def testPrint(x):
-    print(type(x), repr(x))
 
 
-print(list(results.glossary.GlossDiv.GlossList.keys()))
 testPrint(results.glossary.title)
 testPrint(results.glossary.GlossDiv.GlossList.ID)
 testPrint(results.glossary.GlossDiv.GlossList.FalseValue)

@@ -23,14 +23,14 @@ def test(s, expected):
         results = BNF().parseString(s, parseAll=True)
         val = evaluate_stack(exprStack[:])
     except ParseException as pe:
-        print(s, "failed parse:", str(pe))
+
     except Exception as e:
-        print(s, "failed eval:", str(e), exprStack)
+
     else:
         if val == expected:
-            print(s, "=", val, results, "=>", exprStack)
+
         else:
-            print(s + "!!!", val, "!=", expected, results, "=>", exprStack)
+
 
 
 test("9", 9)

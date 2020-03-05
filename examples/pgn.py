@@ -79,9 +79,9 @@ def parsePGN(pgn, bnf=pgnGrammar, fn=None):
     try:
         return bnf.parseString(pgn)
     except ParseException as err:
-        print(err.line)
-        print(" " * (err.column - 1) + "^")
-        print(err)
+
+
+
 
 
 # input string
@@ -108,4 +108,4 @@ Bxe5 Rxe5 21. Rg5 Rxe1# {Black wins} 0-1
 """
 # parse input string
 tokens = parsePGN(pgn, pgnGrammar)
-print(tokens)
+

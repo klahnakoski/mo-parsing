@@ -9,9 +9,9 @@ def test(strng):
     try:
         tokens = Verilog_BNF().parseString(strng)
     except ParseException as err:
-        print(err.line)
-        print(" " * (err.column - 1) + "^")
-        print(err)
+
+
+
     return tokens
 
 
@@ -21,4 +21,4 @@ toptest = """
     output [5:0] out;
     COUNT_BITS8 count_bits( .IN( in ), .C( out ) );
     endmodule"""
-print(test(toptest))
+

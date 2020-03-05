@@ -39,4 +39,3 @@ repeatedNewlines = LineEnd() * (2,)
 repeatedNewlines.setParseAction(replaceWith("\n\n"))
 secondPass = repeatedNewlines.transformString(firstPass)
 
-print(secondPass)

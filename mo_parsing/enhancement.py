@@ -697,7 +697,7 @@ class Group(TokenConverter):
         return tokenlist
 
 
-class Dict(TokenConverter):
+class Dict(Group):
     """Converter to return a repetitive expression as a list, but also
     as a dictionary. Each element can also be referenced using the first
     token in the expression as its key. Useful for tabular report
@@ -747,8 +747,8 @@ class Dict(TokenConverter):
                 if len(tok) == 0:
                     continue
                 ikey = tok[0]
-                rest = tok[1:]
-                new_tok = Annotation(ikey, rest)
+                rest = tok[1]
+                new_tok = Annotation(ikey, [rest])
                 acc.append(new_tok)
 
         return tokenlist

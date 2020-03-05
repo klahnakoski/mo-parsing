@@ -248,7 +248,7 @@ def main():
     for test, expected in tests:
         ret = comp_expr.parseString(test)[0]
         parsedvalue = ret.eval()
-        print(test, expected, parsedvalue)
+
         if parsedvalue != expected:
             raise Exception("<<< FAIL")
 

@@ -134,8 +134,7 @@ comment_def.setParseAction(replaceWith(""))
 statement_def = comment_def | create_table_def | add_fkey_def | other_statement_def
 defs = OneOrMore(statement_def)
 
-print("""digraph g { graph [ rankdir = "LR" ]; """)
 for i in defs.parseString(sampleSQL):
     if i != "":
-        print(i)
-print("}")
+
+

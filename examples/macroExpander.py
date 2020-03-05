@@ -57,5 +57,4 @@ testString = """
     typedef char[ALEN] Acharbuf;
     """
 
-print(macroExpander.transformString(testString))
-print(macros)
+

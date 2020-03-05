@@ -75,7 +75,7 @@ roman_int_map = {}
 for expected, (t, s, e) in enumerate(romanNumeral.scanString(tests), start=1):
     orig = tests[s:e]
     if t[0] != expected:
-        print("{} {} {}".format("==>", t, orig))
+
     roman_int_map[orig] = t[0]
 
 

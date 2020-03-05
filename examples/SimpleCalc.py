@@ -67,7 +67,7 @@ if __name__ == "__main__":
     input_string = ""
 
     # Display instructions on how to quit the program
-    print("Type in the string to be parsed or 'quit' to exit the program")
+
     input_string = input("> ")
 
     while input_string.strip().lower() != "quit":
@@ -88,10 +88,10 @@ if __name__ == "__main__":
 
             # show result of parsing the input string
             if debug_flag:
-                print(input_string, "->", L)
+
             if len(L) == 0 or L[0] != "Parse Failure":
                 if debug_flag:
-                    print("exprStack=", exprStack)
+
 
                 for i, ob in enumerate(exprStack):
                     if isinstance(ob, str) and ob in variables:
@@ -101,25 +101,25 @@ if __name__ == "__main__":
                 try:
                     result = evaluate_stack(exprStack)
                 except Exception as e:
-                    print(str(e))
+
                 else:
                     variables["ans"] = result
-                    print(result)
+
 
                     # Assign result to a variable if required
                     if L.varname:
                         variables[L.varname] = result
                     if debug_flag:
-                        print("variables=", variables)
+
             else:
-                print("Parse Failure")
+
                 err_str, err_line, err_col = L[-1]
-                print(err_line)
-                print(" " * (err_col - 1) + "^")
-                print(err_str)
+
+
+
 
         # obtain new input string
         input_string = input("> ")
 
     # if user type 'quit' then say goodbye
-    print("Good bye!")
+

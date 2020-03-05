@@ -22,10 +22,10 @@ def reportLongWords(st, locn, toks):
             "Found '%s' on line %d at column %d"
             % (word, lineno(locn, st), col(locn, st))
         )
-        print("The full line of text was:")
-        print("'%s'" % line(locn, st))
-        print((" " * col(locn, st)) + " ^")
-        print()
+
+
+
+
 
 
 wd = Word(alphas).setParseAction(reportLongWords)
@@ -53,4 +53,4 @@ def createTokenObject(st, locn, toks):
 wd = Word(alphas).setParseAction(createTokenObject)
 
 for tokenObj in OneOrMore(wd).parseString(data):
-    print(tokenObj)
+

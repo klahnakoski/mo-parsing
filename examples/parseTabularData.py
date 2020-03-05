@@ -54,6 +54,6 @@ row = (
 
 # parse the sample text - skip over the header and counter lines
 for line in table.splitlines()[3:]:
-    print(line)
-    print(row.parseString(line))
-    print("")
+
+
+

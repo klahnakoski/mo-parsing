@@ -133,4 +133,4 @@ Some introductory text
   number = {2}
 }
 """
-    print("\n\n".join(defn for defn in parse_str(txt)))
+

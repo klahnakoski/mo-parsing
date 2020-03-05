@@ -68,4 +68,3 @@ tz_db = {row["TZ database name"]: row for row in rows}
 
 from pprint import pprint
 
-print(tz_db["America/Chicago"])

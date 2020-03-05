@@ -45,13 +45,13 @@ class VendingMachine(VendingMachineStateMixin):
             self._pressed = button
             self.press_digit_button()
         else:
-            print("Did not recognize button {!r}".format(str(button)))
+
 
     def press_alpha_button(self):
         try:
             super().press_alpha_button()
         except VendingMachineState.InvalidTransitionException as ite:
-            print(ite)
+
         else:
             self._alpha_pressed = self._pressed
 
@@ -59,7 +59,7 @@ class VendingMachine(VendingMachineStateMixin):
         try:
             super().press_digit_button()
         except VendingMachineState.InvalidTransitionException as ite:
-            print(ite)
+
         else:
             self._digit_pressed = self._pressed
             self.dispense()
@@ -68,14 +68,14 @@ class VendingMachine(VendingMachineStateMixin):
         try:
             super().dispense()
         except VendingMachineState.InvalidTransitionException as ite:
-            print(ite)
+
         else:
-            print("Dispensing at {}{}".format(self._alpha_pressed, self._digit_pressed))
+
             self._alpha_pressed = self._digit_pressed = None
 
 
 vm = VendingMachine()
 for button in "1 A B 1".split():
-    print(">> pressing {!r}".format(button))
+
     vm.press_button(button)
-    print("Vending machine is now in {} state".format(vm.state))
+

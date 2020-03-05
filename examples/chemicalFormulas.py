@@ -37,7 +37,7 @@ formula.runTests(
     fullDump=False,
     postParse=lambda _, tokens: "Molecular weight: {}".format(fn(tokens)),
 )
-print()
+
 
 # Version 2 - access parsed items by results name
 elementRef = Group(element("symbol") + Optional(Word(digits), default="1")("qty"))
@@ -55,7 +55,7 @@ formula.runTests(
     fullDump=False,
     postParse=lambda _, tokens: "Molecular weight: {}".format(fn(tokens)),
 )
-print()
+
 
 # Version 3 - convert integers during parsing process
 integer = Word(digits).setParseAction(lambda t: int(t[0]))
@@ -72,7 +72,7 @@ formula.runTests(
     fullDump=False,
     postParse=lambda _, tokens: "Molecular weight: {}".format(fn(tokens)),
 )
-print()
+
 
 # Version 4 - parse and convert integers as subscript digits
 subscript_digits = "₀₁₂₃₄₅₆₇₈₉"
@@ -99,4 +99,4 @@ formula.runTests(
     fullDump=False,
     postParse=lambda _, tokens: "Molecular weight: {}".format(fn(tokens)),
 )
-print()
+

@@ -165,12 +165,11 @@ for en_, _, _ in enum_def.scanString(c_header):
     for ev in en_.evalues:
         enum_constants.append((ev.name, ev.value))
 
-print("from ctypes import *")
-print("{} = CDLL('{}.dll')".format(module, module))
-print()
-print("# user defined types")
+
+
+
 for tdname, tdtyp in typedefs:
-    print("{} = {}".format(tdname, typemap[tdtyp]))
+
 for fntd in fn_typedefs:
     print(
         "{} = CFUNCTYPE({})".format(
@@ -178,21 +177,18 @@ for fntd in fn_typedefs:
         )
     )
 for udtype in user_defined_types:
-    print("class %s(Structure): pass" % typemap[udtype])
 
-print()
-print("# constant definitions")
+
+
 for en, ev in enum_constants:
-    print("{} = {}".format(en, ev))
 
-print()
-print("# functions")
+
+
 for fn in functions:
     prefix = "{}.{}".format(module, fn.fn_name)
 
-    print("{}.restype = {}".format(prefix, typeAsCtypes(fn.fn_type)))
     if fn.varargs:
-        print("# warning - %s takes variable argument list" % prefix)
+
         del fn.fn_args[-1]
 
     if fn.fn_args != [["void"]]:
@@ -202,4 +198,4 @@ for fn in functions:
             )
         )
     else:
-        print("%s.argtypes = ()" % (prefix))
+

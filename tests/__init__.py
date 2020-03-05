@@ -57,7 +57,7 @@ def runTests(
             # integer with scientific notation
             1e-12
             ''')
-        print("Success" if result[0] else "Failed!")
+
 
         result = test.runTests(number_expr, '''
             # stray character
@@ -67,7 +67,7 @@ def runTests(
             # too many '.'
             3.14.159
             ''', failureTests=True)
-        print("Success" if result[0] else "Failed!")
+
 
     prints::
 

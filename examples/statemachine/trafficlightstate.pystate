@@ -26,7 +26,7 @@ Green.cars_can_go = True
 # setup some class level methods
 def flash_crosswalk(s):
     def flash():
-        print("%s...%s...%s" % (s, s, s))
+
 
     return flash
 
@@ -38,7 +38,7 @@ Green.crossing_signal = staticmethod(flash_crosswalk("DONT WALK"))
 # setup some instance methods
 def wait(nSeconds):
     def waitFn(self):
-        print("<wait %d seconds>" % nSeconds)
+
 
     return waitFn
 

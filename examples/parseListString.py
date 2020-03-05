@@ -19,7 +19,6 @@ listStr = lbrack + delimitedList(listItem) + rbrack
 
 test = "['a', 100, 3.14]"
 
-print(listStr.parseString(test))
 
 
 # second pass, cleanup and add converters
@@ -35,7 +34,6 @@ listStr = lbrack + delimitedList(listItem) + rbrack
 
 test = "['a', 100, 3.14]"
 
-print(listStr.parseString(test))
 
 # third pass, add nested list support, and tuples, too!
 cvtInt = lambda s, l, toks: int(toks[0])
@@ -61,7 +59,7 @@ tupleStr.setParseAction(lambda t: tuple(t))
 listStr << lbrack + delimitedList(listItem) + Optional(Suppress(",")) + rbrack
 
 test = "['a', 100, ('A', [101,102]), 3.14, [ +2.718, 'xyzzy', -1.414] ]"
-print(listStr.parseString(test))
+
 
 # fourth pass, add parsing of dicts
 cvtInt = lambda s, l, toks: int(toks[0])
@@ -109,4 +107,4 @@ dictStr.setParseAction(
 )
 
 test = "[{0: [2], 1: []}, {0: [], 1: [], 2: [,]}, {0: [1, 2,],}]"
-print(listStr.parseString(test))
+
