@@ -8,6 +8,7 @@ from threading import RLock
 
 from mo_dots import Data
 from mo_logs import Log
+from mo_future import text
 
 from mo_parsing.cache import packrat_cache
 from mo_parsing.exceptions import (
@@ -24,7 +25,6 @@ from mo_parsing.utils import (
     _defaultStartDebugAction,
     _defaultSuccessDebugAction,
     _trim_arity,
-    _ustr,
     basestring,
     __diag__,
     noop,
@@ -628,7 +628,7 @@ class ParserElement(object):
                 e.streamline()
 
         if not self.parser_config.keepTabs:
-            instring = _ustr(instring).expandtabs()
+            instring = text(instring).expandtabs()
         instrlen = len(instring)
         loc = 0
         preparseFn = self.preParse
@@ -693,7 +693,7 @@ class ParserElement(object):
             lastE = e
         out.append(instring[lastE:])
         out = [o for o in out if o]
-        return "".join(map(_ustr, _flatten(out)))
+        return "".join(map(text, _flatten(out)))
 
     def searchString(self, instring, maxMatches=_MAX_INT):
         """
@@ -1083,7 +1083,7 @@ class ParserElement(object):
         return self.name
 
     def __repr__(self):
-        return _ustr(self)
+        return text(self)
 
     def streamline(self):
         self.streamlined = True
@@ -1149,7 +1149,7 @@ class ParserElement(object):
             assert expr.matches("100")
         """
         try:
-            self.parseString(_ustr(testString), parseAll=parseAll)
+            self.parseString(text(testString), parseAll=parseAll)
             return True
         except ParseBaseException:
             return False

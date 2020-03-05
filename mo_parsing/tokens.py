@@ -3,12 +3,13 @@ import re
 import sre_constants
 import warnings
 
+from mo_future import text
+
 from mo_parsing.exceptions import ParseException
 from mo_parsing.core import ParserElement, CURRENT_WHITE_CHARS
 from mo_parsing.results import ParseResults
 from mo_parsing.utils import (
     _MAX_INT,
-    _ustr,
     alphanums,
     basestring,
     col,
@@ -23,7 +24,7 @@ def _escapeRegexRangeChars(s):
         s = s.replace(c, _bslash + c)
     s = s.replace("\n", r"\n")
     s = s.replace("\t", r"\t")
-    return _ustr(s)
+    return text(s)
 
 
 class Token(ParserElement):
@@ -89,7 +90,7 @@ class Literal(Token):
                 stacklevel=2,
             )
             self.__class__ = Empty
-        self.name = '"%s"' % _ustr(self.match)
+        self.name = '"%s"' % text(self.match)
         self.parser_config.error_message = "Expected " + self.name
         self.parser_config.mayReturnEmpty = False
         self.parser_config.mayIndexError = False
@@ -416,7 +417,7 @@ class Word(Token):
             self.maxLen = exact
             self.minLen = exact
 
-        self.name = _ustr(self)
+        self.name = text(self)
         self.parser_config.error_message = "Expected " + self.name
         self.parser_config.mayIndexError = False
         self.asKeyword = asKeyword
@@ -585,7 +586,7 @@ class Regex(Token):
 
         self.re_match = self.re.match
 
-        self.name = _ustr(self)
+        self.name = text(self)
         self.parser_config.error_message = "Expected " + self.name
         self.parser_config.mayIndexError = False
         self.parser_config.mayReturnEmpty = True
@@ -804,7 +805,7 @@ class QuotedString(Token):
             )
             raise
 
-        self.name = _ustr(self)
+        self.name = text(self)
         self.parser_config.error_message = "Expected " + self.name
         self.parser_config.mayIndexError = False
         self.parser_config.mayReturnEmpty = True
@@ -903,7 +904,7 @@ class CharsNotIn(Token):
             self.maxLen = exact
             self.minLen = exact
 
-        self.name = _ustr(self)
+        self.name = text(self)
         self.parser_config.error_message = "Expected " + self.name
         self.parser_config.mayReturnEmpty = self.minLen == 0
         self.parser_config.mayIndexError = False

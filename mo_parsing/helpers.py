@@ -43,7 +43,6 @@ from mo_parsing.tokens import (
 from mo_parsing.utils import (
     Iterable,
     _bslash,
-    _ustr,
     alphanums,
     alphas,
     basestring,
@@ -88,7 +87,7 @@ def delimitedList(expr, delim=",", combine=False):
         delimitedList(Word(alphas)).parseString("aa,bb,cc") # -> ['aa', 'bb', 'cc']
         delimitedList(Word(hexnums), delim=':', combine=True).parseString("AA:BB:CC:DD:EE") # -> ['AA:BB:CC:DD:EE']
     """
-    dlName = _ustr(expr) + " [" + _ustr(delim) + " " + _ustr(expr) + "]..."
+    dlName = text(expr) + " [" + text(delim) + " " + text(expr) + "]..."
     if combine:
         return Combine(expr + ZeroOrMore(delim + expr)).setName(dlName)
     else:
@@ -131,7 +130,7 @@ def countedArray(expr, intExpr=None):
         intExpr = intExpr.copy()
     intExpr.setName("arrayLen")
     intExpr.addParseAction(countFieldParseAction, callDuringTry=True)
-    return (intExpr + arrayExpr).setName("(len) " + _ustr(expr) + "...")
+    return (intExpr + arrayExpr).setName("(len) " + text(expr) + "...")
 
 
 def _flatten(L):
@@ -173,7 +172,7 @@ def matchPreviousLiteral(expr):
             rep << Empty()
 
     expr.addParseAction(copyTokenToRepeater, callDuringTry=True)
-    rep.setName("(prev) " + _ustr(expr))
+    rep.setName("(prev) " + text(expr))
     return rep
 
 
@@ -207,7 +206,7 @@ def matchPreviousExpr(expr):
         rep.setParseAction(mustMatchTheseTokens, callDuringTry=True)
 
     expr.addParseAction(copyTokenToRepeater, callDuringTry=True)
-    rep.setName("(prev) " + _ustr(expr))
+    rep.setName("(prev) " + text(expr))
     return rep
 
 
@@ -693,11 +692,11 @@ def tokenMap(func, *args):
     return pa
 
 
-upcaseTokens = tokenMap(lambda t: _ustr(t).upper())
+upcaseTokens = tokenMap(lambda t: text(t).upper())
 """(Deprecated) Helper parse action to convert tokens to upper case.
 Deprecated in favor of :class:`upcaseTokens`"""
 
-downcaseTokens = tokenMap(lambda t: _ustr(t).lower())
+downcaseTokens = tokenMap(lambda t: text(t).lower())
 """(Deprecated) Helper parse action to convert tokens to lower case.
 Deprecated in favor of :class:`downcaseTokens`"""
 

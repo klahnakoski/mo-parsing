@@ -6,7 +6,7 @@ from mo_dots import is_many
 from mo_future import is_text, text
 from mo_logs import Log
 
-from mo_parsing.utils import PY_3, _ustr, __compat__
+from mo_parsing.utils import PY_3, __compat__
 
 Suppress, ParserElement, Forward, Group, Dict, Token = [None] * 6
 
@@ -519,7 +519,7 @@ class ParseResults(object):
         return (
             "["
             + ", ".join(
-                _ustr(v) if isinstance(v, ParseResults) else repr(v)
+                text(v) if isinstance(v, ParseResults) else repr(v)
                 for v in self.tokens_for_result
             )
             + "]"

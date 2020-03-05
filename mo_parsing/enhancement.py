@@ -1,6 +1,7 @@
 # encoding: utf-8
 import warnings
 
+from mo_future import text
 from mo_logs import Log
 
 from mo_parsing.exceptions import (
@@ -10,7 +11,7 @@ from mo_parsing.exceptions import (
 )
 from mo_parsing.core import ParserElement
 from mo_parsing.results import ParseResults, Annotation
-from mo_parsing.utils import _MAX_INT, _ustr, __diag__
+from mo_parsing.utils import _MAX_INT, __diag__
 
 # import later
 Token, Literal, Keyword, Word, CharsNotIn, _PositionToken, StringEnd = [None] * 7
@@ -97,7 +98,7 @@ class ParseElementEnhance(ParserElement):
             return super(ParseElementEnhance, self).__str__()
         except Exception:
             pass
-        return "%s:(%s)" % (self.__class__.__name__, _ustr(self.expr))
+        return "%s:(%s)" % (self.__class__.__name__, text(self.expr))
 
 
 class FollowedBy(ParseElementEnhance):
@@ -165,7 +166,7 @@ class NotAny(ParseElementEnhance):
         # do NOT use self.leaveWhitespace(), don't want to propagate to exprs
         self.parser_config.skipWhitespace = False
         self.parser_config.mayReturnEmpty = True
-        self.parser_config.error_message = "Found unwanted token, " + _ustr(self.expr)
+        self.parser_config.error_message = "Found unwanted token, " + text(self.expr)
 
     def parseImpl(self, instring, loc, doActions=True):
         if self.expr.canParseNext(instring, loc):
@@ -175,7 +176,7 @@ class NotAny(ParseElementEnhance):
     def __str__(self):
         if hasattr(self, "name"):
             return self.name
-        return "~{" + _ustr(self.expr) + "}"
+        return "~{" + text(self.expr) + "}"
 
 
 class _MultipleMatch(ParseElementEnhance):
@@ -269,7 +270,7 @@ class OneOrMore(_MultipleMatch):
         if hasattr(self, "name"):
             return self.name
 
-        return "{" + _ustr(self.expr) + "}..."
+        return "{" + text(self.expr) + "}..."
 
 
 class ZeroOrMore(_MultipleMatch):
@@ -298,7 +299,7 @@ class ZeroOrMore(_MultipleMatch):
         if hasattr(self, "name"):
             return self.name
 
-        return "[" + _ustr(self.expr) + "]..."
+        return "[" + text(self.expr) + "]..."
 
 
 class Optional(ParseElementEnhance):
@@ -365,7 +366,7 @@ class Optional(ParseElementEnhance):
         if hasattr(self, "name"):
             return self.name
 
-        return "[" + _ustr(self.expr) + "]"
+        return "[" + text(self.expr) + "]"
 
 
 class SkipTo(ParseElementEnhance):
@@ -434,7 +435,7 @@ class SkipTo(ParseElementEnhance):
         self.parser_config.mayIndexError = False
         self.includeMatch = include
         self.failOn = self.normalize(failOn)
-        self.parser_config.error_message = "No match found for " + _ustr(self.expr)
+        self.parser_config.error_message = "No match found for " + text(self.expr)
 
     def parseImpl(self, instring, loc, doActions=True):
         startloc = loc
@@ -581,7 +582,7 @@ class Forward(ParseElementEnhance):
         retString = "..."
         try:
             if self.expr is not None:
-                retString = _ustr(self.expr)[:1000]
+                retString = text(self.expr)[:1000]
             else:
                 retString = "None"
         finally:
@@ -784,7 +785,7 @@ class Suppress(TokenConverter):
         return self
 
     def __str__(self):
-        return _ustr(self.expr)
+        return text(self.expr)
 
 
 class PrecededBy(ParseElementEnhance):

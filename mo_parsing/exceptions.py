@@ -2,7 +2,7 @@
 from functools import wraps
 import sys
 
-from mo_parsing.utils import _trim_arity, _ustr, col, line, lineno
+from mo_parsing.utils import _trim_arity, col, line, lineno
 
 
 class ParseBaseException(Exception):
@@ -55,7 +55,7 @@ class ParseBaseException(Exception):
         )
 
     def __repr__(self):
-        return _ustr(self)
+        return text(self)
 
     def markInputline(self, markerString=">!<"):
         """Extracts the exception line from the input string, and marks

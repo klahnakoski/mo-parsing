@@ -225,7 +225,6 @@ from mo_parsing.utils import (
     __compat__,
     _generatorType,
     _trim_arity,
-    _ustr,
     alphanums,
     alphas,
     basestring,

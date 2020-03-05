@@ -2,6 +2,7 @@
 import warnings
 from operator import itemgetter
 
+from mo_future import text
 from mo_logs import Log
 
 from mo_parsing.core import ParserElement, _PendingSkip
@@ -13,7 +14,7 @@ from mo_parsing.exceptions import (
 )
 from mo_parsing.results import ParseResults
 from mo_parsing.tokens import Empty
-from mo_parsing.utils import Iterable, __compat__, _generatorType, _ustr, __diag__
+from mo_parsing.utils import Iterable, __compat__, _generatorType, __diag__
 
 
 class ParseExpression(ParserElement):
@@ -64,7 +65,7 @@ class ParseExpression(ParserElement):
         except Exception:
             pass
 
-        return "%s:(%s)" % (self.__class__.__name__, _ustr(self.exprs))
+        return "%s:(%s)" % (self.__class__.__name__, text(self.exprs))
 
     def streamline(self):
         super(ParseExpression, self).streamline()
@@ -98,7 +99,7 @@ class ParseExpression(ParserElement):
                 self.parser_config.mayReturnEmpty |= other.parser_config.mayReturnEmpty
                 self.parser_config.mayIndexError |= other.parser_config.mayIndexError
 
-        self.parser_config.error_message = "Expected " + _ustr(self)
+        self.parser_config.error_message = "Expected " + text(self)
 
         return self
 
@@ -257,7 +258,7 @@ class And(ParseExpression):
         if hasattr(self, "name"):
             return self.name
 
-        return "{" + " ".join(_ustr(e) for e in self.exprs) + "}"
+        return "{" + " ".join(text(e) for e in self.exprs) + "}"
 
 
 class Or(ParseExpression):
@@ -363,7 +364,7 @@ class Or(ParseExpression):
         if hasattr(self, "name"):
             return self.name
 
-        return "{" + " ^ ".join(_ustr(e) for e in self.exprs) + "}"
+        return "{" + " ^ ".join(text(e) for e in self.exprs) + "}"
 
     def checkRecursion(self, parseElementList):
         subRecCheckList = parseElementList[:] + [self]
@@ -477,7 +478,7 @@ class MatchFirst(ParseExpression):
         if hasattr(self, "name"):
             return self.name
 
-        return " | ".join("{" + _ustr(e) + "}" for e in self.exprs)
+        return " | ".join("{" + text(e) + "}" for e in self.exprs)
 
     def checkRecursion(self, parseElementList):
         subRecCheckList = parseElementList[:] + [self]
@@ -626,7 +627,7 @@ class Each(ParseExpression):
                 keepMatching = False
 
         if tmpReqd:
-            missing = ", ".join(_ustr(e) for e in tmpReqd)
+            missing = ", ".join(text(e) for e in tmpReqd)
             raise ParseException(
                 instring, loc, "Missing one or more required elements (%s)" % missing
             )
@@ -648,7 +649,7 @@ class Each(ParseExpression):
         if hasattr(self, "name"):
             return self.name
 
-        return "{" + " & ".join(_ustr(e) for e in self.exprs) + "}"
+        return "{" + " & ".join(text(e) for e in self.exprs) + "}"
 
     def checkRecursion(self, parseElementList):
         subRecCheckList = parseElementList[:] + [self]

@@ -41,7 +41,6 @@ if PY_3:
     basestring = str
     unichr = chr
     unicode = str
-    _ustr = str
 
     # build list of single arg builtins, that can be used as parse actions
     singleArgBuiltins = [
@@ -74,30 +73,6 @@ else:
     range = xrange
     basestring = basestring
     unichr = unichr
-
-    def _ustr(obj):
-        """Drop-in replacement for str(obj) that tries to be Unicode
-        friendly. It first tries str(obj). If that fails with
-        a UnicodeEncodeError, then it tries unicode(obj). It then
-        < returns the unicode object | encodes it with the default
-        encoding | ... >.
-        """
-        if isinstance(obj, unicode):
-            return obj
-
-        try:
-            # If this works, then _ustr(obj) has the same behaviour as str(obj), so
-            # it won't break any existing code.
-            return str(obj)
-
-        except UnicodeEncodeError:
-            # Else encode it
-            from mo_parsing import Regex
-
-            ret = unicode(obj).encode(sys.getdefaultencoding(), "xmlcharrefreplace")
-            xmlcharref = Regex(r"&#\d+;")
-            xmlcharref.setParseAction(lambda t: "\\u" + hex(int(t[0][2:-1]))[2:])
-            return xmlcharref.transformString(ret)
 
     # build list of single arg builtins, tolerant of Python version, that can be used as parse actions
     singleArgBuiltins = []
@@ -337,19 +312,19 @@ def _xml_escape(data):
 def _defaultStartDebugAction(instring, loc, expr):
     print(
         "Match "
-        + _ustr(expr)
+        + text(expr)
         + " at loc "
-        + _ustr(loc)
+        + text(loc)
         + "(%d,%d)" % (lineno(loc, instring), col(loc, instring))
     )
 
 
 def _defaultSuccessDebugAction(instring, startloc, endloc, expr, toks):
-    print("Matched " + _ustr(expr) + " -> " + str(toks))
+    print("Matched " + text(expr) + " -> " + str(toks))
 
 
 def _defaultExceptionDebugAction(instring, loc, expr, exc):
-    print("Exception raised:" + _ustr(exc))
+    print("Exception raised:" + text(exc))
 
 
 def nullDebugAction(*args):
