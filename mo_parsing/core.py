@@ -956,26 +956,8 @@ class ParserElement(object):
         Note that ``expr[..., n]`` and ``expr[m, n]``do not raise an exception
         if more than ``n`` ``expr``s exist in the input stream.  If this behavior is
         desired, then write ``expr[..., n] + ~expr``.
-       """
-
-        # convert single arg keys to tuples
-        try:
-            if isinstance(key, str):
-                key = (key,)
-            iter(key)
-        except TypeError:
-            key = (key, key)
-
-        if len(key) > 2:
-            warnings.warn(
-                "only 1 or 2 index arguments supported ({0}{1})".format(
-                    key[:5], "... [{0}]".format(len(key)) if len(key) > 5 else ""
-                )
-            )
-
-        # clip to 2 elements
-        ret = self * tuple(key[:2])
-        return ret
+        """
+        return self * key
 
     def __call__(self, name=None):
         """

@@ -204,13 +204,13 @@ class And(ParseExpression):
     def parseImpl(self, instring, loc, doActions=True):
         # pass False as last arg to _parse for first element, since we already
         # pre-parsed the string as part of our And pre-parsing
-        errorStop = False
+        encountered_error_stop = False
         acc = []
         for e in self.exprs:
             if isinstance(e, And._ErrorStop):
-                errorStop = True
+                encountered_error_stop = True
                 continue
-            if errorStop:
+            if encountered_error_stop:
                 try:
                     loc, exprtokens = e._parse(instring, loc, doActions)
                 except ParseSyntaxException:

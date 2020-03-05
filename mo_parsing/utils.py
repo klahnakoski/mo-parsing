@@ -6,6 +6,7 @@ import string
 import sys
 import warnings
 
+from mo_future import text
 from mo_logs import Log, Except
 
 
