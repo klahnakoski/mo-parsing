@@ -338,7 +338,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
     def testParseSQL(self):
         def test(s, numToks, errloc=-1):
             try:
-                sqlToks = flatten(simpleSQL.parseString(s).asList())
+                sqlToks = flatten(simpleSQL.parseString(s))
                 print(s, sqlToks, len(sqlToks))
                 self.assertEqual(
                     len(sqlToks),
@@ -381,10 +381,10 @@ class TestParsing(TestParseResultsAsserts, TestCase):
             with open(fnam) as infile:
                 iniFileLines = "\n".join(infile.read().splitlines())
             iniData = configParse.inifile_BNF().parseString(iniFileLines)
-            print(len(flatten(iniData.asList())))
+            print(len(flatten(iniData)))
             print(list(iniData.keys()))
             self.assertEqual(
-                len(flatten(iniData.asList())),
+                len(flatten(iniData)),
                 numToks,
                 "file %s not parsed correctly" % fnam,
             )
@@ -422,7 +422,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         expected = [["glossary", [["title", "example glossary"]]]]
         result = jsonObject.parseString(jsons)
         print(result)
-        self.assertEqual(result.asList(), expected, "failed test {}".format(jsons))
+        self.assertEqual(result, expected, "failed test {}".format(jsons))
 
     def testParseJSONData(self):
         expected = [
@@ -767,7 +767,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         for t, exp in zip((test1, test2, test3, test4, test5), expected):
             result = jsonObject.parseString(t)
             print(result)
-            self.assertEqual(result.asList(), exp, "failed test {}".format(t))
+            self.assertEqual(result, exp, "failed test {}".format(t))
 
     def testParseCommaSeparatedValues(self):
 
@@ -802,7 +802,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
                 self.assertTrue(
                     len(results) > t[0] and results[t[0]] == t[1],
                     "failed on %s, item %d s/b '%s', got '%s'"
-                    % (line, t[0], t[1], str(results.asList())),
+                    % (line, t[0], t[1], str(results)),
                 )
 
     def testParseEBNF(self):
@@ -846,9 +846,9 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         parsed_chars = ebnf_parser.parseString(grammar)
         parsed_char_len = len(parsed_chars)
 
-        print("],\n".join(str(parsed_chars.asList()).split("],")))
+        print("],\n".join(str(parsed_chars).split("],")))
         self.assertEqual(
-            len(flatten(parsed_chars.asList())),
+            len(flatten(parsed_chars)),
             98,
             "failed to tokenize grammar correctly",
         )
@@ -861,7 +861,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
                 tokens = bnf.parseString(strng)
                 print("tokens = ")
                 print(tokens)
-                tokens = flatten(tokens.asList())
+                tokens = flatten(tokens)
                 print(len(tokens))
                 self.assertEqual(
                     len(tokens),
@@ -1387,7 +1387,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         self.assertParseResultsEquals(
             queryRes.pred,
             expected_list=[["y", ">", "28"], ["x", "<", "12"], ["x", ">", "3"]],
-            msg="Incorrect list for attribute pred, %s" % str(queryRes.pred.asList()),
+            msg="Incorrect list for attribute pred, %s" % str(queryRes.pred),
         )
 
     def testReStringRange(self):
@@ -1834,7 +1834,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
                 result,
                 expected_list=exp_list,
                 msg="mismatched results for infixNotation: got %s, expected %s"
-                % (result.asList(), exp_list),
+                % (result, exp_list),
             )
 
     def testInfixNotationGrammarTest2(self):
@@ -2655,7 +2655,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
                 "Failed lineEnd/stringEnd test (3): "
                 + repr(test)
                 + " -> "
-                + str(res3.asList()),
+                + str(res3),
             )
             print()
 
@@ -2795,7 +2795,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         class ClassAsPAStarNew(tuple):
             def __new__(cls, *args):
                 print("make a ClassAsPAStarNew", args)
-                return tuple.__new__(cls, *args[2].asList())
+                return tuple.__new__(cls, *args[2])
 
             def __str__(self):
                 return "".join(self)
@@ -2969,9 +2969,9 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         program = varDec | funcDef
         input = "int f(){}"
         results = program.parseString(input)
-        print("Parsed '{}' as {}".format(input, results.asList()))
+        print("Parsed '{}' as {}".format(input, results))
         self.assertEqual(
-            results.asList(), ["int", "f", "(", ")", "{}"], "Error in packrat parsing"
+            results, ["int", "f", "(", ")", "{}"], "Error in packrat parsing"
         )
 
     def testPackratParsingCacheCopyTest2(self):
@@ -2992,7 +2992,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
 
         stmt = DO + Group(delimitedList(identifier + ".*" | expr))
         result = stmt.parseString("DO Z")
-        print(result.asList())
+        print(result)
         self.assertEqual(
             len(result[1]), 1, "packrat parsing is duplicating And term exprs"
         )
@@ -3002,14 +3002,14 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         grammar = OneOrMore(Word(nums))("ints") + OneOrMore(Word(alphas))("words")
         res = grammar.parseString("123 456 ABC DEF")
         print(res)
-        origInts = res.ints.asList()
-        origWords = res.words.asList()
+        origInts = res.ints
+        origWords = res.words
         del res[1]
         del res["words"]
         print(res)
         self.assertEqual(res[1], "ABC", "failed to delete 0'th element correctly")
         self.assertEqual(
-            res.ints.asList(),
+            res.ints,
             origInts,
             "updated named attributes, should have updated list only",
         )
@@ -3070,9 +3070,9 @@ class TestParsing(TestParseResultsAsserts, TestCase):
 
             print(result)
             self.assertEqual(
-                result.asList(),
+                result,
                 exp,
-                "Failed test, expected {}, got {}".format(expected, result.asList()),
+                "Failed test, expected {}, got {}".format(expected, result),
             )
 
     def testNestedExpressions(self):
@@ -3102,7 +3102,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         result = expr.parseString(teststring)
         print(result)
         self.assertEqual(
-            result.asList(),
+            result,
             expected,
             "Defaults didn't work. That's a bad sign. Expected: {}, got: {}".format(
                 expected, result
@@ -3121,7 +3121,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         result = expr.parseString(teststring)
         print(result)
         self.assertEqual(
-            result.asList(),
+            result,
             expected,
             "Non-default opener didn't work. Expected: {}, got: {}".format(
                 expected, result
@@ -3137,7 +3137,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         result = expr.parseString(teststring)
         print(result)
         self.assertEqual(
-            result.asList(),
+            result,
             expected,
             "Non-default closer didn't work. Expected: {}, got: {}".format(
                 expected, result
@@ -3158,7 +3158,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         result = expr.parseString(teststring)
         print(result)
         self.assertEqual(
-            result.asList(),
+            result,
             expected,
             "Multicharacter opener and closer didn't work. Expected: {}, got: {}".format(
                 expected, result
@@ -3185,7 +3185,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         result = expr.parseString(teststring)
         print(result)
         self.assertEqual(
-            result.asList(),
+            result,
             expected,
             'Lisp-ish comments (";; <...> $") didn\'t work. Expected: {}, got: {}'.format(
                 expected, result
@@ -3214,7 +3214,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         result = expr.parseString(teststring)
         print(result)
         self.assertEqual(
-            result.asList(),
+            result,
             expected,
             'Lisp-ish comments (";; <...> $") and quoted strings didn\'t work. Expected: {}, got: {}'.format(
                 expected, result
@@ -3226,7 +3226,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         allButPunc = Word(printables, excludeChars=".,:;-_!?")
 
         test = "Hello, Mr. Ed, it's Wilbur!"
-        result = allButPunc.searchString(test).asList()
+        result = allButPunc.searchString(test)
         print(result)
         self.assertEqual(
             result,
@@ -3396,7 +3396,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         for t, expected in zip(tests, expectedResult):
             print(t)
             results = [
-                flatten(e.searchString(t).asList())
+                flatten(e.searchString(t))
                 for e in [
                     leadingConsonant,
                     leadingVowel,
@@ -3421,9 +3421,9 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         parser = Keyword("bam") & Keyword("boo")
         try:
             res1 = parser.parseString("bam boo")
-            print(res1.asList())
+            print(res1)
             res2 = parser.parseString("boo bam")
-            print(res2.asList())
+            print(res2)
         except ParseException:
             failed = True
         else:
@@ -3434,9 +3434,9 @@ class TestParsing(TestParseResultsAsserts, TestCase):
                 set(res1),
                 set(res2),
                 "Failed RequiredEachTest, expected "
-                + str(res1.asList())
+                + str(res1)
                 + " and "
-                + str(res2.asList())
+                + str(res2)
                 + "to contain same words in any order",
             )
 
@@ -3448,12 +3448,12 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         p1res = parser1.parseString(the_input)
         p2res = parser2.parseString(the_input)
         self.assertEqual(
-            p1res.asList(),
-            p2res.asList(),
+            p1res,
+            p2res,
             "Each failed to match with nested Optionals, "
-            + str(p1res.asList())
+            + str(p1res)
             + " should match "
-            + str(p2res.asList()),
+            + str(p2res),
         )
 
     def testOptionalEachTest2(self):
@@ -3491,9 +3491,9 @@ class TestParsing(TestParseResultsAsserts, TestCase):
             if not test:
                 continue
             result = exp.parseString(test)
-            print(test, "->", result.asList())
+            print(test, "->", result)
             self.assertEqual(
-                result.asList(),
+                result,
                 test.strip("{}").split(),
                 "failed to parse Each expression %r" % test,
             )
@@ -3582,12 +3582,6 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         for test, expected in zip(tests, results):
             person = sum(person_data.searchString(test))
             result = "ID:{} DOB:{} INFO:{}".format(person.id, person.dob, person.info)
-            print(test)
-            print(expected)
-            print(result)
-            for pd in person_data.searchString(test):
-                print(pd)
-            print()
             self.assertEqual(
                 expected,
                 result,
@@ -3651,26 +3645,26 @@ class TestParsing(TestParseResultsAsserts, TestCase):
             else:
                 ret = result.pop()
             print("EXP:", val, remaining)
-            print("GOT:", ret, result.asList())
-            print(ret, result.asList())
+            print("GOT:", ret, result)
+            print(ret, result)
             self.assertEqual(
                 ret,
                 val,
                 "wrong value returned, got {!r}, expected {!r}".format(ret, val),
             )
             self.assertEqual(
+                result,
                 remaining,
-                result.asList(),
                 "list is in wrong state after pop, got {!r}, expected {!r}".format(
-                    result.asList(), remaining
+                    result, remaining
                 ),
             )
             print()
 
-        prevlist = result.asList()
+        prevlist = result
         ret = result.pop("name", default="noname")
         print(ret)
-        print(result.asList())
+        print(result)
         self.assertEqual(
             ret,
             "noname",
@@ -3679,10 +3673,10 @@ class TestParsing(TestParseResultsAsserts, TestCase):
             ),
         )
         self.assertEqual(
-            result.asList(),
+            result,
             prevlist,
             "list is in wrong state after pop, got {!r}, expected {!r}".format(
-                result.asList(), remaining
+                result, remaining
             ),
         )
 
@@ -3693,9 +3687,9 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         numParser.addCondition(lambda s, l, t: t[0] >= 7)
 
         result = numParser.searchString("1 2 3 4 5 6 7 8 9 10")
-        print(result.asList())
+        print(result)
         self.assertEqual(
-            result.asList(), [[7], [9]], "failed to properly process conditions"
+            result, [[7], [9]], "failed to properly process conditions"
         )
 
         numParser = Word(nums)
@@ -3703,9 +3697,9 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         rangeParser = numParser("from_") + Suppress("-") + numParser("to")
 
         result = rangeParser.searchString("1-4 2-4 4-3 5 6 7 8 9 10")
-        print(result.asList())
+        print(result)
         self.assertEqual(
-            result.asList(),
+            result,
             [[1, 4], [2, 4], [4, 3]],
             "failed to properly process conditions",
         )
@@ -3714,9 +3708,9 @@ class TestParsing(TestParseResultsAsserts, TestCase):
             lambda t: t.to > t.from_, message="from must be <= to", fatal=False
         )
         result = rangeParser.searchString("1-4 2-4 4-3 5 6 7 8 9 10")
-        print(result.asList())
+        print(result)
         self.assertEqual(
-            result.asList(), [[1, 4], [2, 4]], "failed to properly process conditions"
+            result, [[1, 4], [2, 4]], "failed to properly process conditions"
         )
 
         rangeParser = numParser("from_") + Suppress("-") + numParser("to")
@@ -3751,7 +3745,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         try:
             result = (a ^ b ^ c).parseString("def")
             self.assertEqual(
-                result.asList(),
+                result,
                 ["de"],
                 "failed to select longest match, chose %s" % result,
             )
@@ -3775,10 +3769,10 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         print(c)
         test_string = "foo bar temp"
         result = c.parseString(test_string)
-        print(test_string, "->", result.asList())
+        print(test_string, "->", result)
 
         self.assertEqual(
-            result.asList(), test_string.split(), "failed to match longest choice"
+            result, test_string.split(), "failed to match longest choice"
         )
 
     def testEachWithOptionalWithResultsName(self):
@@ -3925,17 +3919,19 @@ class TestParsing(TestParseResultsAsserts, TestCase):
 
     def testOneOrMoreStop(self):
         test = "BEGIN aaa bbb ccc END"
-        BEGIN, END = map(Keyword, "BEGIN,END".split(","))
+        BEGIN, END = map(Keyword, ["BEGIN", "END"])
         body_word = Word(alphas).setName("word")
         for ender in (END, "END", CaselessKeyword("END")):
             expr = BEGIN + OneOrMore(body_word, stopOn=ender) + END
+            result = expr.parseString(test)
             self.assertEqual(
-                test, expr, "Did not successfully stop on ending expression %r" % ender
+                result, test.split(), "Did not successfully stop on ending expression %r" % ender
             )
 
             expr = BEGIN + body_word[...].stopOn(ender) + END
+            result = expr.parseString(test)
             self.assertEqual(
-                test, expr, "Did not successfully stop on ending expression %r" % ender
+                result, test.split(), "Did not successfully stop on ending expression %r" % ender
             )
 
         number = Word(nums + ",.()").setName("number with optional commas")
@@ -3944,7 +3940,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         ) + number("data")
         result = parser.parseString("        XXX Y/123          1,234.567890")
         self.assertEqual(
-            result.asList(),
+            result,
             ["XXX Y/123", "1,234.567890"],
             "Did not successfully stop on ending expression %r" % number,
         )
@@ -3977,7 +3973,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
 
         value = value_list ^ value_dict ^ value_string
         values = Group(delimitedList(value, ","))
-        # ~ values              = delimitedList(value, ",").setParseAction(lambda toks: [toks.asList()])
+        # ~ values              = delimitedList(value, ",").setParseAction(lambda toks: [toks])
 
         value_list << lbracket + values + rbracket
 
@@ -3988,13 +3984,11 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         value_dict << lbrace + assignments + rbrace
 
         response = assignments
-
-        rsp = (
-            "username=goat; errors={username=[already taken, too short]}; empty_field="
-        )
+        #      0         1         2         3         4         5         6         7
+        #      0123456789012345678901234567890123456789012345678901234567890123456789012
+        rsp = "username=goat; errors={username=[already taken, too short]}; empty_field="
         result = response.parseString(rsp)
-        result_dict = result.asDict()
-        print(result_dict)
+        result_dict = result
         self.assertEqual(
             result_dict["username"],
             "goat",
@@ -4028,7 +4022,9 @@ class TestParsing(TestParseResultsAsserts, TestCase):
             message="invalid range, start must be <= end",
             fatal=True,
         )
-        intrange.addParseAction(lambda t: list(range(t.start, t.end + 1)))
+        def _range(s, i , t):
+            return list(range(t.start, t.end + 1))
+        intrange.addParseAction(_range)
 
         indices = delimitedList(intrange | integer)
         indices.addParseAction(lambda t: sorted(set(t)))
@@ -4039,22 +4035,22 @@ class TestParsing(TestParseResultsAsserts, TestCase):
 
             # lone integer
             11"""
-        results = indices.runTests(tests, printResults=False)[1]
+        success, results = indices.runTests(tests, printResults=False)
 
         expectedResults = [
             [1, 2, 3, 4, 6, 8, 9, 10, 16],
             [11],
         ]
-        for res, expected in zip(results, expectedResults):
-            print(res[1].asList())
+        for (test, result), expected in zip(results, expectedResults):
+            print(result)
             print(expected)
-            self.assertEqual(res[1].asList(), expected, "failed test: " + str(expected))
+            self.assertEqual(result, expected, "failed test: " + str(expected))
 
         tests = """\
             # invalid range
             1-2, 3-1, 4-6, 7, 12
             """
-        success = indices.runTests(tests, printResults=False, failureTests=True)[0]
+        success, results = indices.runTests(tests, printResults=False, failureTests=True)
         self.assertTrue(success, "failed to raise exception on improper range test")
 
     def testRunTestsPostParse(self):
@@ -4063,7 +4059,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         accum = []
 
         def eval_fraction(test, result):
-            accum.append((test, result.asList()))
+            accum.append((test, result))
             return "eval: {}".format(result.numerator / result.denominator)
 
         success = fraction.runTests(
@@ -4434,7 +4430,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         # WAS:
         # self.assertTrue(success, "failed to parse hex integers")
         # print(results)
-        # self.assertEqual(results[0][-1].asList(), [0, 17, 34, 170, 255, 10, 13, 26], "tokenMap parse action failed")
+        # self.assertEqual(results[0][-1], [0, 17, 34, 170, 255, 10, 13, 26], "tokenMap parse action failed")
 
         # USING JUST assertParseResultsEquals
         # results = [rpt[1] for rpt in report]
@@ -4449,7 +4445,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
             msg="failed to parse hex integers",
         )
 
-    def testParseFile(self, integer=None):
+    def testParseFile(self):
 
         s = """
         123 456 789
@@ -4647,7 +4643,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         default_literal(CaselessKeyword)
         # WAS:
         # result = ("SELECT" + wd + "FROM" + wd).parseString("select color from colors")
-        # self.assertEqual(result.asList(), "SELECT color FROM colors".split(),
+        # self.assertEqual(result, "SELECT color FROM colors".split(),
         #                  "default_literal(CaselessKeyword) failed!")
         self.assertParseAndCheckList(
             "SELECT" + wd + "FROM" + wd,
@@ -4658,7 +4654,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
 
         default_literal(CaselessLiteral)
         # result = ("SELECT" + wd + "FROM" + wd).parseString("select color from colors")
-        # self.assertEqual(result.asList(), "SELECT color FROM colors".split(),
+        # self.assertEqual(result, "SELECT color FROM colors".split(),
         #                  "default_literal(CaselessLiteral) failed!")
         self.assertParseAndCheckList(
             "SELECT" + wd + "FROM" + wd,
@@ -4671,7 +4667,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         default_literal(Literal)
         date_str = integer("year") + "/" + integer("month") + "/" + integer("day")
         # result = date_str.parseString("1999/12/31")
-        # self.assertEqual(result.asList(), ['1999', '/', '12', '/', '31'], "default_literal(example 1) failed!")
+        # self.assertEqual(result, ['1999', '/', '12', '/', '31'], "default_literal(example 1) failed!")
         self.assertParseAndCheckList(
             date_str,
             "1999/12/31",
@@ -4684,7 +4680,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         date_str = integer("year") + "/" + integer("month") + "/" + integer("day")
 
         # result = date_str.parseString("1999/12/31")  # -> ['1999', '12', '31']
-        # self.assertEqual(result.asList(), ['1999', '12', '31'], "default_literal(example 2) failed!")
+        # self.assertEqual(result, ['1999', '12', '31'], "default_literal(example 2) failed!")
         self.assertParseAndCheckList(
             date_str,
             "1999/12/31",
@@ -4860,12 +4856,12 @@ class TestParsing(TestParseResultsAsserts, TestCase):
 
         print("### before parse action is added ###")
         print("result1:\n" + result1 + "\n")
-        before_pa_dict = result1.asDict()
+        before_pa_dict = result1
 
         line1.setParseAction(lambda t: t)
 
         result1 = line1.parseString("Mauney 46.5")
-        after_pa_dict = result1.asDict()
+        after_pa_dict = result1
 
         print("### after parse action was added ###")
         print("result1:\n" + result1 + "\n")
@@ -4926,7 +4922,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         print(result)
         self.assertTrue("qty" in result, "failed to capture results name in FollowedBy")
         self.assertEqual(
-            result.asDict(),
+            result,
             {"item": "balloon", "qty": 99},
             "invalid results name structure from FollowedBy",
         )
@@ -5092,7 +5088,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         parseTree = module_body.parseString(data)
         print(parseTree)
         self.assertEqual(
-            parseTree.asList(),
+            parseTree,
             [
                 [
                     "def",

@@ -102,7 +102,7 @@ packratOn = False
 def dumpTokens(s, l, t):
     import pprint
 
-    print(t.asList())
+    print(t)
 
 
 verilogbnf = None
@@ -926,7 +926,7 @@ if __name__ == "__main__":
         if len(tokens):
             print("OK", elapsed)
             # ~ print "tokens="
-            # ~ print( tokens.asList() )
+            # ~ print( tokens )
             # ~ print
 
             ofnam = fileDir + "/parseOutput/" + vfile + ".parsed.txt"
@@ -934,7 +934,7 @@ if __name__ == "__main__":
             outfile.write(teststr)
             outfile.write("\n")
             outfile.write("\n")
-            outfile.write(pformat(tokens.asList()))
+            outfile.write(pformat(tokens))
             outfile.write("\n")
             outfile.close()
         else:

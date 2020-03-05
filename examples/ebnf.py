@@ -112,7 +112,7 @@ def do_syntactic_term(str, loc, toks):
 
 
 def do_single_definition(str, loc, toks):
-    toks = toks.asList()
+    toks = toks
     if len(toks) > 1:
         # syntactic_term , syntactic_term , ...
         return And(toks)
@@ -122,7 +122,7 @@ def do_single_definition(str, loc, toks):
 
 
 def do_definitions_list(str, loc, toks):
-    toks = toks.asList()
+    toks = toks
     if len(toks) > 1:
         # single_definition | single_definition | ...
         return Or(toks)

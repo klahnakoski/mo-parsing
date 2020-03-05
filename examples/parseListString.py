@@ -57,7 +57,7 @@ listItem = (
 tupleStr << (
     Suppress("(") + delimitedList(listItem) + Optional(Suppress(",")) + Suppress(")")
 )
-tupleStr.setParseAction(lambda t: tuple(t.asList()))
+tupleStr.setParseAction(lambda t: tuple(t))
 listStr << lbrack + delimitedList(listItem) + Optional(Suppress(",")) + rbrack
 
 test = "['a', 100, ('A', [101,102]), 3.14, [ +2.718, 'xyzzy', -1.414] ]"
@@ -90,7 +90,7 @@ listItem = (
 tupleStr <<= (
     Suppress("(") + delimitedList(listItem) + Optional(Suppress(",")) + Suppress(")")
 )
-tupleStr.setParseAction(lambda t: tuple(t.asList()))
+tupleStr.setParseAction(lambda t: tuple(t))
 listStr <<= (
     lbrack + Optional(delimitedList(listItem)) + Optional(Suppress(",")) + rbrack
 )
@@ -103,7 +103,7 @@ dictStr <<= (
 )
 dictStr.setParseAction(
     lambda t: {
-        k_v[0]: (k_v[1].asList() if isinstance(k_v[1], ParseResults) else k_v[1])
+        k_v[0]: (k_v[1] if isinstance(k_v[1], ParseResults) else k_v[1])
         for k_v in t
     }
 )

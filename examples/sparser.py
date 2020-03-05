@@ -285,7 +285,7 @@ class ParseFileLineByLine:
         line = self.file.readline()
         if self.grammar and line:
             try:
-                return self.grammar.parseString(line).asDict()
+                return self.grammar.parseString(line)
             except ParseException:
                 return self.readline()
         else:

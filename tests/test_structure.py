@@ -41,14 +41,14 @@ class TestStructure(PyparsingExpressionTestCase):
         self.runTest(
             expr=Group(w + w)("name"),
             text="a b",
-            expected_list=[["a", "b"]],
+            expected_list=["a", "b"],
             expected_dict={"name": ["a", "b"]},
         )
 
         self.runTest(
             expr=Group(Group(w + w))("name"),
             text="a b",
-            expected_list=[[["a", "b"]]],
+            expected_list=[["a", "b"]],
             expected_dict={"name": [["a", "b"]]},
         )
 

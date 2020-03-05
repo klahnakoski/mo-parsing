@@ -13,6 +13,8 @@ import unittest
 from collections import namedtuple
 from datetime import datetime
 
+from mo_testing.fuzzytestcase import FuzzyTestCase
+
 from mo_parsing import *
 from mo_parsing.helpers import number, identifier, ipv4_address, integer, fnumber
 
@@ -22,7 +24,7 @@ PpTestSpec = namedtuple(
 )
 
 
-class PyparsingExpressionTestCase(unittest.TestCase):
+class PyparsingExpressionTestCase(FuzzyTestCase):
     def runTest(
         self,
         desc="",
@@ -55,22 +57,12 @@ class PyparsingExpressionTestCase(unittest.TestCase):
             # expect success
             result = parsefn(test_spec.text)
             if test_spec.parse_fn == "parseString":
-                print(result)
-                # compare results against given list and/or dict
-                if test_spec.expected_list is not None:
-                    self.assertEqual(result.asList(), test_spec.expected_list)
-                if test_spec.expected_dict is not None:
-                    self.assertEqual(result.asDict(), test_spec.expected_dict)
+                self.assertEqual(result, test_spec.expected_list)
+                self.assertEqual(result, test_spec.expected_dict)
             elif test_spec.parse_fn == "transformString":
-                print(result)
-                # compare results against given list and/or dict
-                if test_spec.expected_list is not None:
-                    self.assertEqual([result], test_spec.expected_list)
+                self.assertEqual([result], test_spec.expected_list)
             elif test_spec.parse_fn == "searchString":
-                print(result)
-                # compare results against given list and/or dict
-                if test_spec.expected_list is not None:
-                    self.assertEqual([result], test_spec.expected_list)
+                self.assertEqual([result], test_spec.expected_list)
         else:
             # expect fail
             try:
@@ -562,6 +554,7 @@ class TestCommonHelperExpressions(PyparsingExpressionTestCase):
                 + delimitedList(identifier, ".", combine=True)("name")
                 + ipv4_address("ip_address")
             ),
+            #     0123456789012345678901234567890123456789
             text="1001 www.google.com 192.168.10.199",
             expected_list=[1001, "www.google.com", "192.168.10.199"],
             expected_dict={
@@ -584,7 +577,7 @@ class TestCommonHelperExpressions(PyparsingExpressionTestCase):
             desc="parsing nested parentheses",
             expr=nestedExpr(),
             text="(a b (c) d (e f g ()))",
-            expected_list=[["a", "b", ["c"], "d", ["e", "f", "g", []]]],
+            expected_list=["a", "b", ["c"], "d", ["e", "f", "g", []]],
         )
 
     def test_parsing_nested_braces(self):
@@ -600,8 +593,8 @@ class TestCommonHelperExpressions(PyparsingExpressionTestCase):
                 ["printf(", '"{}"', ");"],
             ],
             expected_dict={
-                "condition": [[["x", "==", "y"], "||", "!z"]],
-                "body": [["printf(", '"{}"', ");"]],
+                "condition": [["x", "==", "y"], "||", "!z"],
+                "body": ["printf(", '"{}"', ");"],
             },
         )
 

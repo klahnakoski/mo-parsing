@@ -21,7 +21,7 @@ data = """
 
 # use {}'s for nested lists
 nestedItems = nestedExpr("{", "}")
-print((nestedItems + stringEnd).parseString(data).asList())
+print((nestedItems + stringEnd).parseString(data))
 
 # use default delimiters of ()'s
 mathExpr = nestedExpr()

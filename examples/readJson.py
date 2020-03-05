@@ -1904,7 +1904,7 @@ from examples.jsonParser import jsonObject
 data = jsonObject.parseString(s)
 
 # ~ from pprint import pprint
-# ~ print( data[0].asList() )
+# ~ print( data[0] )
 # ~ print
 # ~ print data
 print(data.phedex.call_time)

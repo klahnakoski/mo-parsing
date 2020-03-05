@@ -195,7 +195,7 @@ for fn in functions:
         print("# warning - %s takes variable argument list" % prefix)
         del fn.fn_args[-1]
 
-    if fn.fn_args.asList() != [["void"]]:
+    if fn.fn_args != [["void"]]:
         print(
             "{}.argtypes = ({},)".format(
                 prefix, ",".join(typeAsCtypes(a.argtype) for a in fn.fn_args)

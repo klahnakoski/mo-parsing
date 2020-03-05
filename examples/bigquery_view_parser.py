@@ -658,7 +658,7 @@ class BigQueryViewParser:
         #  `project`.`dataset.name-with-dashes`
 
         def record_table_identifier(t):
-            identifier_list = t.asList()
+            identifier_list = t
             padded_list = [None] * (3 - len(identifier_list)) + identifier_list
             cls._table_identifiers.add(tuple(padded_list))
 
@@ -686,7 +686,7 @@ class BigQueryViewParser:
         ).setParseAction(lambda t: record_table_identifier(t))
 
         def record_quoted_table_identifier(t):
-            identifier_list = t.asList()[0].split(".")
+            identifier_list = t[0].split(".")
             first = ".".join(identifier_list[0:-2]) or None
             second = identifier_list[-2]
             third = identifier_list[-1]
@@ -800,7 +800,7 @@ class BigQueryViewParser:
         select_stmt.ignore(sql_comment)
 
         def record_with_alias(t):
-            identifier_list = t.asList()
+            identifier_list = t
             padded_list = [None] * (3 - len(identifier_list)) + identifier_list
             cls._with_aliases.add(tuple(padded_list))
 

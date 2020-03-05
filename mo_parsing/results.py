@@ -2,6 +2,8 @@
 from collections import MutableMapping
 from copy import copy
 
+from mo_dots import is_many
+from mo_future import is_text, text
 from mo_logs import Log
 
 from mo_parsing.utils import PY_3, _ustr, __compat__
@@ -114,6 +116,9 @@ class ParseResults(object):
                         for f in tok._get_item_by_name(i):
                             yield f
 
+    def __getattr__(self, item):
+        return self.__getitem__(item)
+
     def __getitem__(self, i):
         if not __compat__.collect_all_And_tokens:
             # pre 2.3
@@ -156,7 +161,7 @@ class ParseResults(object):
             else:
                 mv = tuple(zip(*self._get_item_by_name(i)))
                 if not mv:
-                    return ""  # TODO:  Make this None?
+                    return ""
                 modals, values = mv
                 if any(modals) != all(modals):
                     Log.error("complicated modal rules")
@@ -209,6 +214,21 @@ class ParseResults(object):
             return len(self.tokens_for_result[0])
         else:
             return sum(1 for t in self)
+
+    def __eq__(self, other):
+        if other == None:
+            return len(self) == 0
+        elif is_text(other):
+            try:
+                return "".join(self) == other
+            except Exception as e:
+                return False
+        elif is_many(other):
+            return all(s == o for s, o in zip(self.other))
+        elif len(self) == 1:
+            return self[0] == other
+        else:
+            Log.error("do not know how to handle")
 
     def __bool__(self):
         return not not self.tokens_for_result
@@ -315,26 +335,17 @@ class ParseResults(object):
 
     if PY_3:
         keys = iterkeys
-        """Returns an iterator of all named result keys."""
-
         values = itervalues
-        """Returns an iterator of all named result values."""
-
         items = iteritems
-        """Returns an iterator of all named result key-value tuples."""
-
     else:
 
         def keys(self):
-            """Returns all named result keys (as a list in Python 2.x, as an iterator in Python 3.x)."""
             return list(self.iterkeys())
 
         def values(self):
-            """Returns all named result values (as a list in Python 2.x, as an iterator in Python 3.x)."""
             return list(self.itervalues())
 
         def items(self):
-            """Returns all named result key-values (as a list of tuples in Python 2.x, as an iterator in Python 3.x)."""
             return list(self.iteritems())
 
     def haskeys(self):
@@ -472,12 +483,6 @@ class ParseResults(object):
     def __contains__(self, item):
         return bool(self[item])
 
-    def __getattr__(self, name):
-        try:
-            return self[name]
-        except KeyError:
-            return ""
-
     def __add__(self, other):
         return ParseResults(
             Group(None), self.tokens_for_result + other.tokens_for_result
@@ -503,6 +508,9 @@ class ParseResults(object):
         except Exception as e:
             Log.warning("problem", cause=e)
             return "[]"
+
+    def __data__(self):
+        return [v.__data__() if isinstance(v, ParserElement) else v for v in self.tokens_for_result]
 
     def __str__(self):
         # if len(self.tokens_for_result) == 1:
@@ -572,81 +580,6 @@ class ParseResults(object):
         #     return simpler(output)
         # else:
         return output
-
-    def asDict(self):
-        """
-        Returns the named parse results as a nested dictionary.
-
-        Example::
-
-            integer = Word(nums)
-            date_str = integer("year") + '/' + integer("month") + '/' + integer("day")
-
-            result = date_str.parseString('12/31/1999')
-            print(type(result), repr(result)) # -> <class 'mo_parsing.ParseResults'> (['12', '/', '31', '/', '1999'], {'day': [('1999', 4)], 'year': [('12', 0)], 'month': [('31', 2)]})
-
-            result_dict = result.asDict()
-            print(type(result_dict), repr(result_dict)) # -> <class 'dict'> {'day': '1999', 'year': '12', 'month': '31'}
-
-            # even though a ParseResults supports dict-like access, sometime you just need to have a dict
-            import json
-            print(json.dumps(result)) # -> Exception: TypeError: ... is not JSON serializable
-            print(json.dumps(result.asDict())) # -> {"month": "31", "day": "1999", "year": "12"}
-        """
-
-        def pack(objs):
-            # return an open dict, if possible
-            # otherwise return an open list
-            open_list = []
-            open_dict = {}
-            for obj in objs:
-                if isinstance(obj, ParseResults):
-                    name = get_name(obj)
-                    if name:
-                        # add(open_dict, name, pack(obj.tokens_for_result))
-                        od, ol = pack(obj.tokens_for_result)
-                        if isinstance(obj.type_for_result, Group):
-                            item = {
-                                k: s
-                                for k, v in od.items()
-                                for s in [simpler(v)]
-                                if s is not None
-                            } or ol
-                            add(open_dict, name, [ol])
-                            open_list.append(item)
-                        else:
-                            add(open_dict, name, ol)
-                            for k, v in od.items():
-                                add(open_dict, k, v)
-                    elif isinstance(obj.type_for_result, Group):
-                        od, ol = pack(obj.tokens_for_result)
-                        item = {
-                            k: s
-                            for k, v in od.items()
-                            for s in [simpler(v)]
-                            if s is not None
-                        } or ol
-                        open_list.append(item)
-                    elif isinstance(obj.type_for_result, Suppress):
-                        pass
-                    else:
-                        od, ol = pack(obj.tokens_for_result)
-                        open_list.extend(ol)
-                        for k, v in od.items():
-                            add(open_dict, k, v)
-                else:
-                    open_list.append(obj)
-
-            return open_dict, open_list
-
-        od, ol = pack([self])
-        if od:
-            item = {k: simpler(v) for k, v in od.items()}
-            return item
-        elif isinstance(self.type_for_result, Group) or get_name(self):
-            return ol[0]
-        else:
-            return ol
 
     def __copy__(self):
         """

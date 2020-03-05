@@ -9,7 +9,7 @@
 # define class hierarchy of Shape classes, with polymorphic area method
 class Shape:
     def __init__(self, tokens):
-        self.__dict__.update(tokens.asDict())
+        self.__dict__.update(tokens)
 
     def area(self):
         raise NotImplemented()

@@ -41,11 +41,10 @@ class ParseExpression(ParserElement):
     def leaveWhitespace(self):
         """Extends ``leaveWhitespace`` defined in base class, and also invokes ``leaveWhitespace`` on
            all contained expressions."""
-        self.parser_config.skipWhitespace = False
-        self.exprs = [e for e in self.exprs]
-        for e in self.exprs:
-            e.leaveWhitespace()
-        return self
+        output = self.copy()
+        output.parser_config.skipWhitespace = False
+        output.exprs = [e.leaveWhitespace() for e in self.exprs]
+        return output
 
     def ignore(self, other):
         if isinstance(other, Suppress):
@@ -108,11 +107,6 @@ class ParseExpression(ParserElement):
         for e in self.exprs:
             e.validate(tmp)
         self.checkRecursion([])
-
-    def copy(self):
-        ret = super(ParseExpression, self).copy()
-        ret.exprs = [e for e in self.exprs]
-        return ret
 
     def _setResultsName(self, name, listAllMatches=False):
         if __diag__.warn_ungrouped_named_tokens_in_collection:

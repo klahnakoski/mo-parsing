@@ -65,7 +65,7 @@ print("Parsing EBNF grammar with generated EBNF parser...\n")
 parsed_chars = ebnf_parser.parseString(grammar)
 parsed_char_len = len(parsed_chars)
 
-print("],\n".join(str(parsed_chars.asList()).split("],")))
+print("],\n".join(str(parsed_chars).split("],")))
 
 # ~ grammar_length = len(grammar) - len(filter(str.isspace, grammar))-commentcharcount
 

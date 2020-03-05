@@ -97,7 +97,7 @@ class TestParseResultsAsserts(FuzzyTestCase):
     ):
         """
         Convenience wrapper assert to test a parser element and input string, and assert that
-        the resulting ParseResults.asList() is equal to the expected_list.
+        the resulting ParseResults is equal to the expected_list.
         """
         result = expr.parseString(test_string, parseAll=True)
         if verbose:
@@ -109,7 +109,7 @@ class TestParseResultsAsserts(FuzzyTestCase):
     ):
         """
         Convenience wrapper assert to test a parser element and input string, and assert that
-        the resulting ParseResults.asDict() is equal to the expected_dict.
+        the resulting ParseResults is equal to the expected_dict.
         """
         result = expr.parseString(test_string, parseAll=True)
         if verbose:

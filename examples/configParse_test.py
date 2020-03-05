@@ -16,7 +16,7 @@ def test(strng):
     iniData = "".join(iniFile.readlines())
     bnf = inifile_BNF()
     tokens = bnf.parseString(iniData)
-    print(tokens.asList())
+    print(tokens)
 
     iniFile.close()
     print()

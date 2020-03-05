@@ -8,9 +8,9 @@ from mo_parsing import *
 cvtBool = lambda t: t[0] == "True"
 cvtInt = lambda toks: int(toks[0])
 cvtReal = lambda toks: float(toks[0])
-cvtTuple = lambda toks: tuple(toks.asList())
-cvtDict = lambda toks: dict(toks.asList())
-cvtList = lambda toks: [toks.asList()]
+cvtTuple = lambda toks: tuple(toks)
+cvtDict = lambda toks: dict(toks)
+cvtList = lambda toks: [toks]
 
 # define punctuation as suppressed literals
 lparen, rparen, lbrack, rbrack, lbrace, rbrace, colon, comma = map(Suppress, "()[]{}:,")

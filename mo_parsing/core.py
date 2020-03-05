@@ -209,6 +209,7 @@ class ParserElement(object):
             integerM = integer().addParseAction(lambda toks: toks[0] * 1024 * 1024) + Suppress("M")
         """
         cpy = copy(self)
+        cpy.parser_config = self.parser_config.copy()
         cpy.parseAction = self.parseAction[:]
         cpy.ignoreExprs = self.ignoreExprs[:]
         if self.parser_config.copyDefaultWhiteChars:
@@ -684,9 +685,9 @@ class ParserElement(object):
             out.append(instring[lastE:s])
             if t:
                 if isinstance(t, ParseResults):
-                    out += t.asList()
+                    out.append("".join(t))
                 elif isinstance(t, list):
-                    out += t
+                    out.append("".join(t))
                 else:
                     out.append(t)
             lastE = e
@@ -1009,8 +1010,9 @@ class ParserElement(object):
         :class:`ParserElement`'s defined pattern.  This is normally only used internally by
         the mo_parsing module, but may be needed in some whitespace-sensitive grammars.
         """
-        self.parser_config.skipWhitespace = False
-        return self
+        output = self.copy()
+        output.parser_config.skipWhitespace = False
+        return output
 
     def setWhitespaceChars(self, chars):
         """
@@ -1168,12 +1170,12 @@ class _PendingSkip(ParserElement):
         if self.must_skip:
 
             def must_skip(t):
-                if not t._skipped or t._skipped.asList() == [""]:
+                if not t._skipped or t._skipped == [""]:
                     del t[0]
                     t.pop("_skipped", None)
 
             def show_skip(t):
-                if t._skipped.asList()[-1:] == [""]:
+                if t._skipped[-1:] == [""]:
                     skipped = t.pop("_skipped")
                     t["_skipped"] = "missing <" + repr(self.anchor) + ">"
 

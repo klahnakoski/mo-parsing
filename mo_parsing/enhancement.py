@@ -54,11 +54,10 @@ class ParseElementEnhance(ParserElement):
             raise ParseException("", loc, self.parser_config.error_message, self)
 
     def leaveWhitespace(self):
-        self.parser_config.skipWhitespace = False
-        self.expr = self.expr.copy()
-        if self.expr is not None:
-            self.expr.leaveWhitespace()
-        return self
+        output = self.copy()
+        output.parser_config.skipWhitespace = False
+        output.expr = self.expr.leaveWhitespace()
+        return output
 
     def ignore(self, other):
         if isinstance(other, Suppress):
@@ -163,10 +162,8 @@ class NotAny(ParseElementEnhance):
 
     def __init__(self, expr):
         super(NotAny, self).__init__(expr)
-        # ~ self.leaveWhitespace()
-        self.parser_config.skipWhitespace = (
-            False  # do NOT use self.leaveWhitespace(), don't want to propagate to exprs
-        )
+        # do NOT use self.leaveWhitespace(), don't want to propagate to exprs
+        self.parser_config.skipWhitespace = False
         self.parser_config.mayReturnEmpty = True
         self.parser_config.error_message = "Found unwanted token, " + _ustr(self.expr)
 
@@ -538,8 +535,9 @@ class Forward(ParseElementEnhance):
         return self << other
 
     def leaveWhitespace(self):
-        self.parser_config.skipWhitespace = False
-        return self
+        output = self.copy()
+        output.parser_config.skipWhitespace = False
+        return output
 
     def streamline(self):
         if not self.streamlined:
@@ -723,7 +721,7 @@ class Dict(TokenConverter):
 
         # access named fields as dict entries, or output as dict
         print(result['shape'])
-        print(result.asDict())
+        print(result)
 
     prints::
 
@@ -749,8 +747,8 @@ class Dict(TokenConverter):
                 if len(tok) == 0:
                     continue
                 ikey = tok[0]
-                rest = tok[1]
-                new_tok = Annotation(ikey, [rest])
+                rest = tok[1:]
+                new_tok = Annotation(ikey, rest)
                 acc.append(new_tok)
 
         return tokenlist

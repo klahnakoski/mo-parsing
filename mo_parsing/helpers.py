@@ -166,7 +166,7 @@ def matchPreviousLiteral(expr):
                 rep << t[0]
             else:
                 # flatten t tokens
-                tflat = _flatten(t.asList())
+                tflat = _flatten(t)
                 rep << And(Literal(tt) for tt in tflat)
         else:
             rep << Empty()
@@ -196,10 +196,10 @@ def matchPreviousExpr(expr):
     rep <<= e2
 
     def copyTokenToRepeater(s, l, t):
-        matchTokens = _flatten(t.asList())
+        matchTokens = _flatten(t)
 
         def mustMatchTheseTokens(s, l, t):
-            theseTokens = _flatten(t.asList())
+            theseTokens = _flatten(t)
             if theseTokens != matchTokens:
                 raise ParseException("", 0, "")
 
@@ -337,7 +337,7 @@ def dictOf(key, value):
         print(result)
         print(result['shape'])
         print(result.shape)  # object attribute access works too
-        print(result.asDict())
+        print(result)
 
     prints::
 
