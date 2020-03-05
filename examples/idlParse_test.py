@@ -5,11 +5,9 @@
 #
 # Copyright (c) 2003, Paul McGuire
 #
-import pprint
-
-from mo_parsing import ParseException
 
 from examples.idlParse import CORBA_IDL_BNF
+from mo_parsing import ParseException
 
 testnum = 1
 
@@ -20,17 +18,10 @@ def test(strng):
     try:
         bnf = CORBA_IDL_BNF()
         tokens = bnf.parseString(strng)
-
-
         imgname = "idlParse%02d.bmp" % testnum
         testnum += 1
-        # ~ tree2image.str2image( str(tokens), imgname )
     except ParseException as err:
-
-
-
-
-
+        pass
 
 test(
     """

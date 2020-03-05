@@ -748,8 +748,8 @@ class Dict(Group):
                 if len(tok) == 0:
                     continue
                 ikey = tok[0]
-                rest = tok[1]
-                new_tok = Annotation(ikey, [rest])
+                rest = list(tok[1:])
+                new_tok = Annotation(text(ikey), rest)
                 acc.append(new_tok)
 
         return tokenlist

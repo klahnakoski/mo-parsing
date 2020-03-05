@@ -8,7 +8,7 @@ from threading import RLock
 
 from mo_dots import Data
 from mo_logs import Log
-from mo_future import text
+from mo_future import text, is_text
 
 from mo_parsing.cache import packrat_cache
 from mo_parsing.exceptions import (
@@ -256,7 +256,7 @@ class ParserElement(object):
 
     def _setResultsName(self, name, listAllMatches=False):
         newself = self.copy()
-        if not isinstance(name, str):
+        if not is_text(name):
             Log.error("not expected")
         if name.endswith("*"):
             name = name[:-1]

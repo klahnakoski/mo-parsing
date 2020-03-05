@@ -428,7 +428,6 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         jsons = json.dumps({"glossary": {"title": "example glossary"}})
         expected = [["glossary", [[["title", "example glossary"]]]]]
         result = jsonObject.parseString(jsons)
-        v = list(list(result[0])[1])
         self.assertEqual(result, expected, "failed test {}".format(jsons))
 
     def testParseJSONData(self):
@@ -1691,7 +1690,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
             """
         )
         expected = [
-            (["a", [1, 1]], {"label": "a", "points": [{"x": 1, "y": 1}]}),
+            (["a", [1, 1]], {"label": "a", "points": {"x": 1, "y": 1}}),
             (
                 ["b", [1, 1], [2, 2], [3, 3]],
                 {

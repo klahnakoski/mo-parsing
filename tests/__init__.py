@@ -131,7 +131,6 @@ def runTests(
         try:
             # convert newline marks to actual newlines, and strip leading BOM if present
             t = NL.transformString(t.lstrip(BOM))
-            Log.note("begin test on\n{{string|indent}}", string=t)
             result = self.parseString(t, parseAll=parseAll)
         except ParseBaseException as pe:
             if not failureTests:
