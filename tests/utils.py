@@ -100,8 +100,6 @@ class TestParseResultsAsserts(FuzzyTestCase):
         the resulting ParseResults is equal to the expected_list.
         """
         result = expr.parseString(test_string, parseAll=True)
-        if verbose:
-
         self.assertParseResultsEquals(result, expected_list=expected_list, msg=msg)
 
     def assertParseAndCheckDict(
@@ -112,8 +110,6 @@ class TestParseResultsAsserts(FuzzyTestCase):
         the resulting ParseResults is equal to the expected_dict.
         """
         result = expr.parseString(test_string, parseAll=True)
-        if verbose:
-
         self.assertParseResultsEquals(result, expected_dict=expected_dict, msg=msg)
 
     def assertRunTestResults(
@@ -168,9 +164,6 @@ class TestParseResultsAsserts(FuzzyTestCase):
                             expected_dict=expected_dict,
                             msg=fail_msg or msg,
                         )
-                    else:
-                        # warning here maybe?
-
 
         # do this last, in case some specific test results can be reported instead
         self.assertTrue(

@@ -426,8 +426,9 @@ class TestParsing(TestParseResultsAsserts, TestCase):
 
     def testParseJSONDataSimple(self):
         jsons = json.dumps({"glossary": {"title": "example glossary"}})
-        expected = [["glossary", [["title", "example glossary"]]]]
+        expected = [["glossary", [[["title", "example glossary"]]]]]
         result = jsonObject.parseString(jsons)
+        v = list(list(result[0])[1])
         self.assertEqual(result, expected, "failed test {}".format(jsons))
 
     def testParseJSONData(self):
@@ -1307,12 +1308,9 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         lit = Literal("if")
 
         def test(s, litShouldPass, kwShouldPass):
-
-
             try:
-
+                lit.parseString(s)
             except Exception:
-
                 if litShouldPass:
                     self.assertTrue(
                         False, "Literal failed to match %s, should have" % s
@@ -1322,7 +1320,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
                     self.assertTrue(False, "Literal matched %s, should not have" % s)
 
             try:
-
+                kw.parseString(s)
             except Exception:
 
                 if kwShouldPass:
@@ -1453,7 +1451,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
 
         def tryToParse(someText, fail_expected=False):
             try:
-
+                testExpr.parseString(someText)
                 self.assertFalse(
                     fail_expected, "expected failure but no exception raised"
                 )
@@ -1956,7 +1954,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         test = ["9"]
         for t in test:
             count = 0
-
+            expr.parseString(t)
             self.assertEqual(count, 1, "count evaluated too many times!")
 
     def testInfixNotationGrammarTest4(self):
@@ -2133,7 +2131,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
 
                 pass
             else:
-
+                Log.error("Bad")
 
     def testUpcaseDowncaseUnicode(self):
 
@@ -2148,11 +2146,11 @@ class TestParsing(TestParseResultsAsserts, TestCase):
             )
         uword = Word(ualphas).setParseAction(upcaseTokens)
 
-        print = lambda *args: None
-
+        uword.searchString(a)
 
         uword = Word(ualphas).setParseAction(downcaseTokens)
 
+        uword.searchString(a)
 
         kw = Keyword("mykey", caseless=True).setParseAction(upcaseTokens)("rname")
         ret = kw.parseString("mykey")
@@ -2319,7 +2317,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
             # ~ print "lets try an invalid RE"
             invRe = Regex("(\"[^\"]*\")|('[^']*'")
         except Exception as e:
-
+            pass
 
         else:
             self.assertTrue(False, "failed to reject invalid RE")
@@ -2444,7 +2442,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
 
         results = pattern.searchString(string_test)
         try:
-
+            str(results)
         except RecursionError:
             self.assertTrue(False, "got maximum excursion limit exception")
         else:
@@ -2534,7 +2532,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         ]
 
         test_patt = Word("A") - LineStart() + Word("B")
-
+        test_patt.streamline()
         success = test_patt.runTests(pass_tests)[0]
         self.assertTrue(success, "failed LineStart passing tests (1)")
 
@@ -2561,7 +2559,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
                 + Word("B")
                 + LineEnd().suppress()
             )
-
+            test_patt.streamline()
             success = test_patt.runTests(pass_tests)[0]
             self.assertTrue(success, "failed LineStart passing tests (3)")
 
@@ -2915,8 +2913,6 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         text = """_<img src="images/cal.png"
             alt="cal image" width="16" height="15">_"""
         s = start.transformString(text)
-        if VERBOSE:
-
         self.assertTrue(
             s.startswith("_images/cal.png:"), "failed to preserve input s properly"
         )
@@ -2926,7 +2922,6 @@ class TestParsing(TestParseResultsAsserts, TestCase):
 
         tag_fields = makeHTMLStartTag("IMG").searchString(text)[0]
         if VERBOSE:
-
             self.assertEqual(
                 sorted(tag_fields.keys()),
                 ["alt", "empty", "height", "src", "startImg", "tag", "width"],
@@ -3703,12 +3698,10 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         rangeParser.addCondition(
             lambda t: t.to > t.from_, message="from must be <= to", fatal=True
         )
-        try:
-            result = rangeParser.searchString("1-4 2-4 4-3 5 6 7 8 9 10")
-            self.assertTrue(
-                False, "failed to interrupt parsing on fatal condition failure"
-            )
-        except ParseFatalException:
+        result = rangeParser.searchString("1-4 2-4 4-3 5 6 7 8 9 10")
+        self.assertTrue(
+            False, "failed to interrupt parsing on fatal condition failure"
+        )
 
 
     def testPatientOr(self):
@@ -5178,7 +5171,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         stmt << pattern
 
         def key_parse_action(toks):
-
+            print("Parsing '%s'..." % toks[0])
 
         key.setParseAction(key_parse_action)
         header = Suppress("[") + Literal("test") + Suppress("]")
@@ -5493,9 +5486,9 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         )
 
         try:
-
+            key_value_dict.parseString("")
         except ParseException as pe:
-
+            pass # expected
         else:
             self.assertTrue(
                 False, "failed to raise exception when matching empty string"
@@ -5507,13 +5500,13 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         try:
             expr.parseString("123 355")
         except ParseException as pe:
-
+            pass
 
         expr = Word(nums).setName("int") - Word(alphas).setName("word")
         try:
             expr.parseString("123 355 (test using ErrorStop)")
         except ParseSyntaxException as pe:
-
+            pass
 
         integer = Word(nums).setName("int").addParseAction(lambda t: int(t[0]))
         expr = integer + integer
@@ -5527,10 +5520,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         try:
             expr.parseString("123 0")
         except ParseException as pe:
-
-        except Exception as exc:
-
-            raise
+            pass
 
     def testCaselessKeywordVsKeywordCaseless(self):
 
