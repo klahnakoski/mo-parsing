@@ -776,7 +776,6 @@ class TestParsing(TestParseResultsAsserts, TestCase):
             self.assertEqual(result, exp, "failed test {}".format(t))
 
     def testParseCommaSeparatedValues(self):
-
         testData = [
             "m  ",
             "a,b,c,100.2,,3",

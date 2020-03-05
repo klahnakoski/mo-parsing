@@ -6,6 +6,7 @@ from datetime import datetime
 
 from mo_dots import Data
 from mo_future import text
+from mo_logs import strings
 
 from mo_parsing.core import CURRENT_WHITE_CHARS
 from mo_parsing.enhancement import (
@@ -1582,6 +1583,9 @@ def stripHTMLTags(s, l, tokens):
     return _html_stripper.transformString(tokens[0])
 
 
+def _strip(tok):
+    return "".join(tok).strip()
+
 _commasepitem = (
     Combine(
         OneOrMore(
@@ -1593,10 +1597,14 @@ _commasepitem = (
     )
     .streamline()
     .setName("commaItem")
+    .addParseAction(_strip)
 )
-comma_separated_list = delimitedList(
-    Optional(quotedString.copy() | _commasepitem, default="")
-).setName("comma separated list")
+comma_separated_list = (
+    delimitedList(
+        Optional(quotedString.copy() | _commasepitem, default="")
+    )
+    .setName("comma separated list")
+)
 """Predefined expression of 1 or more printable words or quoted strings, separated by commas."""
 
 
