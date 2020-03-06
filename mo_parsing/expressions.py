@@ -433,7 +433,7 @@ class MatchFirst(ParseExpression):
 
     def __or__(self, other):
         if other is Ellipsis:
-            return _PendingSkip(self, must_skip=True)
+            return _PendingSkip(Optional(self))
 
         if isinstance(other, MatchFirst):
             return MatchFirst(self.exprs + other.exprs)

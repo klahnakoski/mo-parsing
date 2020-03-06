@@ -22,6 +22,8 @@ from itertools import product
 from textwrap import dedent
 from unittest import TestCase, skip
 
+from mo_dots import coalesce
+
 from mo_parsing import *
 from examples import fourFn, configParse, idlParse, ebnf
 from examples.jsonParser import jsonObject
@@ -1495,10 +1497,6 @@ class TestParsing(TestParseResultsAsserts, TestCase):
                     expected_dict=expected_dict
                 )
 
-        e = "start" + (num_word | ...) + "end"
-        result = e.parseString("start 123 456 end")
-        v = result[2]
-
         # ellipses for SkipTo
         e = ... + Literal("end")
         test(e, "start 123 end", ["start 123 ", "end"], {"_skipped": ["start 123 "]})
@@ -1523,10 +1521,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
             ["start", "123", "456 ", "end"],
             {"_skipped": ["456 "]},
         )
-        test(e, "start end", ["start", "", "end"], {"_skipped": ["missing <int>"]})
-
-        # e = define_expr('"start" + (num_word | ...)("inner") + "end"')
-        # test(e, "start 456 end", ['start', '456', 'end'], {'inner': '456'})
+        test(e, "start end", ["start", "end"], {"_skipped": ""})
 
         e = "start" + (alpha_word[...] & num_word[...] | ...) + "end"
         test(e, "start 456 red end", ["start", "456", "red", "end"], {})
@@ -1556,8 +1551,8 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         test(
             e,
             "start end",
-            ["start", "", "end"],
-            {"_skipped": ["missing <{{alpha}... & {int}...}>"]},
+            ["start", "end"],
+            {"_skipped": ""},
         )
         test(e, "start 456 + end", ["start", "456 + ", "end"], {"_skipped": ["456 + "]})
 
@@ -1566,14 +1561,14 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         test(
             e,
             "start red end",
-            ["start", "red", "", "end"],
-            {"_skipped": ["missing <int>"]},
+            ["start", "red", "end"],
+            {"_skipped": ""},
         )
         test(
             e,
             "start end",
-            ["start", "", "", "end"],
-            {"_skipped": ["missing <alpha>", "missing <int>"]},
+            ["start", "end"],
+            {"_skipped": ""},
         )
 
         e = Literal("start") + ... + "+" + ... + "end"
@@ -2599,13 +2594,12 @@ class TestParsing(TestParseResultsAsserts, TestCase):
 
             res3 = bnf3.parseString(test)
             first = res3[0]
-            rest = res3[1]
-            # ~ print res3
+            rest = coalesce(res3[1], "")
 
             self.assertEqual(
                 rest,
                 test[len(first) + 1 :],
-                "Failed lineEnd/stringEnd test (3): " + repr(test) + " -> " + str(res3),
+                "Failed lineEnd/stringEnd test"
             )
 
         k = Regex(r"a+", flags=re.S + re.M)
@@ -2941,27 +2935,6 @@ class TestParsing(TestParseResultsAsserts, TestCase):
 
         self.assertEqual(
             len(result[1]), 1, "packrat parsing is duplicating And term exprs"
-        )
-
-    def testParseResultsDel(self):
-
-        grammar = OneOrMore(Word(nums))("ints") + OneOrMore(Word(alphas))("words")
-        res = grammar.parseString("123 456 ABC DEF")
-
-        origInts = res.ints
-        origWords = res.words
-        del res[1]
-        del res["words"]
-
-        self.assertEqual(res[1], "ABC", "failed to delete 0'th element correctly")
-        self.assertEqual(
-            res.ints,
-            origInts,
-            "updated named attributes, should have updated list only",
-        )
-        self.assertEqual(res.words, "", "failed to update named attribute correctly")
-        self.assertEqual(
-            res[-1], "DEF", "updated list, should have updated named attributes only"
         )
 
     def testWithAttributeParseAction(self):
@@ -5238,29 +5211,6 @@ class TestParsing(TestParseResultsAsserts, TestCase):
             results[1], ["the", "bird"], {"rexp": ["the", "bird"]}
         )
 
-        # test compatibility mode, no longer restoring pre-2.3.1 behavior
-        with reset_parsing_context():
-            __diag__.enable("warn_multiple_tokens_in_named_alternation")
-            expr_a = Literal("not") + Literal("the") + Literal("bird")
-            expr_b = Literal("the") + Literal("bird")
-            with self.assertWarns(
-                UserWarning, msg="failed to warn of And within alternation"
-            ):
-                expr = (expr_a | expr_b)("rexp")
-
-            success, report = expr.runTests(
-                """
-                not the bird
-                the bird
-            """
-            )
-            results = [rpt[1] for rpt in report]
-            self.assertParseResultsEquals(
-                results[0], ["not", "the", "bird"], {"rexp": ["not", "the", "bird"]}
-            )
-            self.assertParseResultsEquals(
-                results[1], ["the", "bird"], {"rexp": ["the", "bird"]}
-            )
 
     def testParseResultsWithNameOr(self):
 
@@ -5298,29 +5248,6 @@ class TestParsing(TestParseResultsAsserts, TestCase):
             result, ["the", "bird"], {"rexp": ["the", "bird"]}
         )
 
-        # test compatibility mode, no longer restoring pre-2.3.1 behavior
-        with reset_parsing_context():
-            __diag__.enable("warn_multiple_tokens_in_named_alternation")
-            expr_a = Literal("not") + Literal("the") + Literal("bird")
-            expr_b = Literal("the") + Literal("bird")
-
-            with self.assertWarns(
-                UserWarning, msg="failed to warn of And within alternation"
-            ):
-                expr = (expr_a ^ expr_b)("rexp")
-
-            expr.runTests(
-                """\
-                not the bird
-                the bird
-            """
-            )
-            self.assertEqual(
-                list(expr.parseString("not the bird")["rexp"]), "not the bird".split()
-            )
-            self.assertEqual(
-                list(expr.parseString("the bird")["rexp"]), "the bird".split()
-            )
 
     def testEmptyDictDoesNotRaiseException(self):
 

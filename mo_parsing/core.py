@@ -894,7 +894,7 @@ class ParserElement(object):
         Implementation of | operator - returns :class:`MatchFirst`
         """
         if other is Ellipsis:
-            return _PendingSkip(self, must_skip=True)
+            return _PendingSkip(Optional(self))
 
         return MatchFirst([self, self.normalize(other)])
 
@@ -1140,41 +1140,17 @@ class ParserElement(object):
 class _PendingSkip(ParserElement):
     # internal placeholder class to hold a place were '...' is added to a parser element,
     # once another ParserElement is added, this placeholder will be replaced with a SkipTo
-    def __init__(self, expr, must_skip=False):
+    def __init__(self, expr):
         super(_PendingSkip, self).__init__()
-        self.strRepr = str(expr + Empty()).replace("Empty", "...")
-        self.name = self.strRepr
         self.anchor = expr
-        self.must_skip = must_skip
+        self.name = "pending_skip"
 
     def __add__(self, other):
         skipper = SkipTo(other).setName("...")("_skipped*")
-        if self.must_skip:
-
-            def must_skip(t):
-                if not t._skipped or t._skipped == [""]:
-                    del t[0]
-                    t.pop("_skipped", None)
-
-            def show_skip(t):
-                if t._skipped[-1:] == [""]:
-                    skipped = t.pop("_skipped")
-                    t["_skipped"] = "missing <" + repr(self.anchor) + ">"
-
-            return (
-                self.anchor + skipper().addParseAction(must_skip)
-                | skipper().addParseAction(show_skip)
-            ) + other
-
         return self.anchor + skipper + other
 
-    def __repr__(self):
-        return self.strRepr
-
     def parseImpl(self, *args):
-        raise Exception(
-            "use of `...` expression without following SkipTo target expression"
-        )
+        Log.error("use of `...` expression without following SkipTo target expression")
 
 
 # export

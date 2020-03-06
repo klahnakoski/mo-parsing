@@ -437,11 +437,10 @@ class SkipTo(ParseElementEnhance):
         self.failOn = self.normalize(failOn)
         self.parser_config.error_message = "No match found for " + text(self.expr)
 
-    def parseImpl(self, instring, loc, doActions=True):
-        startloc = loc
+    def parseImpl(self, instring, end, doActions=True):
+        start = end
         instrlen = len(instring)
-        expr = self.expr
-        expr_parse = self.expr._parse
+        end_parse = self.expr._parse
         self_failOn_canParseNext = (
             self.failOn.canParseNext if self.failOn is not None else None
         )
@@ -449,7 +448,7 @@ class SkipTo(ParseElementEnhance):
             self.ignoreExpr.tryParse if self.ignoreExpr is not None else None
         )
 
-        tmploc = loc
+        tmploc = end
         while tmploc <= instrlen:
             if self_failOn_canParseNext is not None:
                 # break if failOn expression matches
@@ -465,7 +464,7 @@ class SkipTo(ParseElementEnhance):
                         break
 
             try:
-                expr_parse(instring, tmploc, doActions=False, callPreParse=False)
+                end_parse(instring, tmploc, doActions=False, callPreParse=False)
             except (ParseException, IndexError):
                 # no match, advance loc in string
                 tmploc += 1
@@ -475,18 +474,20 @@ class SkipTo(ParseElementEnhance):
 
         else:
             # ran off the end of the input string without matching skipto expr, fail
-            raise ParseException(instring, loc, self.parser_config.error_message, self)
+            raise ParseException(instring, end, self.parser_config.error_message, self)
 
         # build up return values
-        loc = tmploc
-        skiptext = instring[startloc:loc]
-        skipresult = [skiptext]
+        end = tmploc
+        skiptext = instring[start:end]
+        skip_result = []
+        if skiptext:
+            skip_result.append(skiptext)
 
         if self.includeMatch:
-            loc, mat = expr_parse(instring, loc, doActions, callPreParse=False)
-            skipresult.append(mat)
+            end, end_result = end_parse(instring, end, doActions, callPreParse=False)
+            skip_result.append(end_result)
 
-        return loc, ParseResults(self, skipresult)
+        return end, ParseResults(self, skip_result)
 
 
 class Forward(ParseElementEnhance):
