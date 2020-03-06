@@ -1490,8 +1490,14 @@ class TestParsing(TestParseResultsAsserts, TestCase):
             else:
                 result = expr.parseString(test_string)
                 self.assertParseResultsEquals(
-                    result, expected_list=expected_list, expected_dict=expected_dict
+                    result,
+                    expected_list=expected_list,
+                    expected_dict=expected_dict
                 )
+
+        e = "start" + (num_word | ...) + "end"
+        result = e.parseString("start 123 456 end")
+        v = result[2]
 
         # ellipses for SkipTo
         e = ... + Literal("end")
@@ -3523,56 +3529,6 @@ class TestParsing(TestParseResultsAsserts, TestCase):
             "incorrect location calculation",
         )
 
-    def testPop(self):
-
-        source = "AAA 123 456 789 234"
-        patt = Word(alphas)("name") + Word(nums) * (1,)
-
-        result = patt.parseString(source)
-        tests = [
-            (0, "AAA", ["123", "456", "789", "234"]),
-            (None, "234", ["123", "456", "789"]),
-            ("name", "AAA", ["123", "456", "789"]),
-            (-1, "789", ["123", "456"]),
-        ]
-        for test in tests:
-            idx, val, remaining = test
-            if idx is not None:
-                ret = result.pop(idx)
-            else:
-                ret = result.pop()
-
-            self.assertEqual(
-                ret,
-                val,
-                "wrong value returned, got {!r}, expected {!r}".format(ret, val),
-            )
-            self.assertEqual(
-                result,
-                remaining,
-                "list is in wrong state after pop, got {!r}, expected {!r}".format(
-                    result, remaining
-                ),
-            )
-
-        prevlist = result
-        ret = result.pop("name", default="noname")
-
-        self.assertEqual(
-            ret,
-            "noname",
-            "default value not successfully returned, got {!r}, expected {!r}".format(
-                ret, "noname"
-            ),
-        )
-        self.assertEqual(
-            result,
-            prevlist,
-            "list is in wrong state after pop, got {!r}, expected {!r}".format(
-                result, remaining
-            ),
-        )
-
     def testAddCondition(self):
         numParser = Word(nums)
         numParser.addParseAction(lambda s, l, t: int(t[0]))
@@ -4750,7 +4706,6 @@ class TestParsing(TestParseResultsAsserts, TestCase):
 
         vals.addParseAction(add_total)
         results = vals.parseString("244 23 13 2343")
-
         self.assertParseResultsEquals(
             results,
             expected_dict={"int_values": [244, 23, 13, 2343], "total": 2623},
@@ -4778,7 +4733,6 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         )
 
     def testParseResultsNameBelowUngroupedName(self):
-
         rule_num = Regex("[0-9]+")("LIT_NUM*")
         list_num = Group(
             Literal("[")("START_LIST")
@@ -5263,10 +5217,6 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         ):
             __diag__.enable("xyzzy")
 
-        with self.assertWarns(
-            UserWarning, msg="failed to warn disabling 'collect_all_And_tokens"
-        ):
-            __compat__.disable("collect_all_And_tokens")
 
     def testParseResultsWithNameMatchFirst(self):
 
@@ -5290,7 +5240,6 @@ class TestParsing(TestParseResultsAsserts, TestCase):
 
         # test compatibility mode, no longer restoring pre-2.3.1 behavior
         with reset_parsing_context():
-            __compat__.collect_all_And_tokens = False
             __diag__.enable("warn_multiple_tokens_in_named_alternation")
             expr_a = Literal("not") + Literal("the") + Literal("bird")
             expr_b = Literal("the") + Literal("bird")
@@ -5351,7 +5300,6 @@ class TestParsing(TestParseResultsAsserts, TestCase):
 
         # test compatibility mode, no longer restoring pre-2.3.1 behavior
         with reset_parsing_context():
-            __compat__.collect_all_And_tokens = False
             __diag__.enable("warn_multiple_tokens_in_named_alternation")
             expr_a = Literal("not") + Literal("the") + Literal("bird")
             expr_b = Literal("the") + Literal("bird")

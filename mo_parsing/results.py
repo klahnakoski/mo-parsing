@@ -6,7 +6,7 @@ from mo_dots import is_many
 from mo_future import is_text, text
 from mo_logs import Log
 
-from mo_parsing.utils import PY_3, __compat__
+from mo_parsing.utils import PY_3
 
 Suppress, ParserElement, Forward, Group, Dict, Token = [None] * 6
 
@@ -68,7 +68,7 @@ class ParseResults(object):
         - year: 1999
     """
 
-    __slots__ = ["tokens_for_result", "type_for_result", "replaced_tokens"]
+    __slots__ = ["tokens_for_result", "type_for_result",]
 
     @property
     def name_for_result(self):
@@ -86,118 +86,53 @@ class ParseResults(object):
 
         self.tokens_for_result = toklist
         self.type_for_result = result_type
-        self.replaced_tokens = None
 
     def _get_item_by_name(self, i):
         # return open list of (modal, value) pairs
         # modal==True means only the last value is relevant
-        if not __compat__.collect_all_And_tokens:
-            # pre 2.3
-            if self.name_for_result == i:
-                yield self.type_for_result.parser_config.modalResults, list(self)
+        name = get_name(self)
+        if name == i:
+            if isinstance(self.type_for_result, Group):
+                yield self.type_for_result.parser_config.modalResults, self
+            elif len(self.tokens_for_result) == 1:
+                yield self.type_for_result.parser_config.modalResults, self.tokens_for_result[
+                    0
+                ]
             else:
-                for tok in self.tokens_for_result:
-                    if get_name(tok) == i:
-                        yield tok.type_for_result.parser_config.modalResults, list(self)
+                yield self.type_for_result.parser_config.modalResults, self
         else:
-            name = get_name(self)
-            if name == i:
-                if isinstance(self.type_for_result, Group):
-                    yield self.type_for_result.parser_config.modalResults, self
-                elif len(self.tokens_for_result) == 1:
-                    yield self.type_for_result.parser_config.modalResults, self.tokens_for_result[
-                        0
-                    ]
-                else:
-                    yield self.type_for_result.parser_config.modalResults, self
-            elif not name:
-                for tok in self.tokens_for_result:
-                    if isinstance(tok, ParseResults):
-                        for f in tok._get_item_by_name(i):
-                            yield f
+            for tok in self.tokens_for_result:
+                if isinstance(tok, ParseResults):
+                    for f in tok._get_item_by_name(i):
+                        yield f
 
     def __getattr__(self, item):
         return self.__getitem__(item)
 
     def __getitem__(self, i):
-        if not __compat__.collect_all_And_tokens:
-            # pre 2.3
-            if isinstance(i, int):
-                if isinstance(self.type_for_result, Group):
-                    return self.tokens_for_result[0][i]
-                else:
-                    for ii, v in enumerate(self):
-                        if i == ii:
-                            return v
-            elif self.name_for_result == i:
-                mv = tuple(zip(*self._get_item_by_name(i)))
-                if not mv:
-                    return ""  # TODO:  Make this None?
-                modals, values = mv
-                if any(modals) != all(modals):
-                    Log.error("complicated modal rules")
-                elif modals[0]:
-                    return values[-1]
-                else:
-                    return ParseResults(self.type_for_result, values)
-            else:
-                for tok in self.tokens_for_result:
-                    if get_name(tok) == i:
-                        return tok[0]
+        if isinstance(i, int):
+            if i < 0:
+                i = len(self) + i
+            for ii, v in enumerate(self):
+                if i == ii:
+                    return v
+        elif isinstance(i, slice):
+            return list(iter(self))[i]
         else:
-            if isinstance(i, int):
-                if self.replaced_tokens is not None:
-                    return self.replaced_tokens[i]
-
-                if i < 0:
-                    i = len(self) + i
-                for ii, v in enumerate(self):
-                    if i == ii:
-                        return v
-            elif isinstance(i, slice):
-                if self.replaced_tokens is not None:
-                    return self.replaced_tokens[i]
-                return list(iter(self))[i]
+            mv = tuple(zip(*self._get_item_by_name(i)))
+            if not mv:
+                return ""
+            modals, values = mv
+            if any(modals) != all(modals):
+                Log.error("complicated modal rules")
+            elif modals[0]:
+                return values[-1]
             else:
-                mv = tuple(zip(*self._get_item_by_name(i)))
-                if not mv:
-                    return ""
-                modals, values = mv
-                if any(modals) != all(modals):
-                    Log.error("complicated modal rules")
-                elif modals[0]:
-                    return values[-1]
-                else:
-                    return ParseResults(self.type_for_result, values)
-        # Log.error("No name by {{name|quote}}", name=i)
+                return ParseResults(self.type_for_result, values)
 
     def __setitem__(self, k, v):
-        if isinstance(k, slice):
-            if k.start is None and k.stop is None and k.step is None:
-                self.replaced_tokens = v
-            else:
-                Log.error("do not know how to handle")
-            return
-        elif isinstance(k, int):
-            if self.replaced_tokens is None:
-                self.replaced_tokens = list(self)
-            self.replaced_tokens[k] = v
-            # for i, t in enumerate(self.tokens_for_result):
-            #     if isinstance(t, ParseResults):
-            #         ii = len(t)
-            #         if k < ii:
-            #             t[k] = v
-            #             return
-            #         else:
-            #             k -= ii
-            #     else:
-            #         if k == 0:
-            #             self.tokens_for_result[i] = v
-            #             return
-            #         else:
-            #             k -= 1
-            #
-            # Log.error("index {{index}} beyond existing tokens", index=k)
+        if isinstance(k, (slice, int)):
+            Log.error("do not know how to handle")
         else:
             for i, vv in enumerate(self.tokens_for_result):
                 if get_name(vv) == k:
@@ -236,13 +171,8 @@ class ParseResults(object):
     __nonzero__ = __bool__
 
     def __iter__(self):
-        if self.replaced_tokens is not None:
-            for t in self.replaced_tokens:
-                yield t
-            return
         if isinstance(self, Annotation):
             return
-            # yield self
         elif isinstance(self.type_for_result, Suppress):
             return
         else:
@@ -252,8 +182,6 @@ class ParseResults(object):
                         return
                     elif isinstance(r.type_for_result, Group):
                         yield r
-                    # elif get_name(r):
-                    #     yield r
                     elif not isinstance(r.type_for_result, Group):
                         for mm in r:
                             yield mm
@@ -285,9 +213,7 @@ class ParseResults(object):
 
     def __delitem__(self, key):
         if isinstance(key, (int, slice)):
-            if self.replaced_tokens is None:
-                self.replaced_tokens = list(self)
-            del self.replaced_tokens[key]
+            Log.error("not allowed")
         else:
             if key == self.name_for_result:
                 new_type = copy(self.type_for_result)
@@ -417,68 +343,6 @@ class ParseResults(object):
         else:
             return defaultValue
 
-    def insert(self, index, insStr):
-        """
-        Inserts new element at location index in the list of parsed tokens.
-
-        Similar to ``list.insert()``.
-
-        Example::
-
-            print(OneOrMore(Word(nums)).parseString("0 123 321")) # -> ['0', '123', '321']
-
-            # use a parse action to insert the parse location in the front of the parsed results
-            def insert_locn(locn, tokens):
-                tokens.insert(0, locn)
-            print(OneOrMore(Word(nums)).addParseAction(insert_locn).parseString("0 123 321")) # -> [0, '0', '123', '321']
-        """
-        if self.replaced_tokens is None:
-            self.replaced_tokens = list(self)
-        self.replaced_tokens.insert(index, insStr)
-
-    def append(self, item):
-        """
-        Add single element to end of ParseResults list of elements.
-
-        Example::
-
-            print(OneOrMore(Word(nums)).parseString("0 123 321")) # -> ['0', '123', '321']
-
-            # use a parse action to compute the sum of the parsed integers, and add it to the end
-            def append_sum(tokens):
-                tokens.append(sum(map(int, tokens)))
-            print(OneOrMore(Word(nums)).addParseAction(append_sum).parseString("0 123 321")) # -> ['0', '123', '321', 444]
-        """
-        if self.replaced_tokens is None:
-            self.replaced_tokens = list(self)
-        self.replaced_tokens.append(item)
-
-    def extend(self, itemseq):
-        """
-        Add sequence of elements to end of ParseResults list of elements.
-
-        Example::
-
-            patt = OneOrMore(Word(alphas))
-
-            # use a parse action to append the reverse of the matched strings, to make a palindrome
-            def make_palindrome(tokens):
-                tokens.extend(reversed([t[::-1] for t in tokens]))
-                return ''.join(tokens)
-            print(patt.addParseAction(make_palindrome).parseString("lskdj sdlkjf lksd")) # -> 'lskdjsdlkjflksddsklfjkldsjdksl'
-        """
-        if self.replaced_tokens is None:
-            self.replaced_tokens = list(self)
-        if isinstance(itemseq, ParseResults):
-            self.__iadd__(itemseq)
-        else:
-            self.replaced_tokens.extend(itemseq)
-
-    def clear(self):
-        """
-        Clear all elements and results names.
-        """
-        self.replaced_tokens = []
 
     def __contains__(self, item):
         return bool(self[item])
@@ -495,12 +359,6 @@ class ParseResults(object):
         ret = copy(self)
         ret += other
         return ret
-
-    def __iadd__(self, other):
-        if self.replaced_tokens is None:
-            self.replaced_tokens = list(self)
-        self.replaced_tokens.append(other)
-        return self
 
     def __repr__(self):
         try:
@@ -560,10 +418,6 @@ class ParseResults(object):
             if isinstance(obj, Annotation):
                 return []
             elif isinstance(obj, ParseResults):
-                if obj.replaced_tokens:
-                    return [
-                        simpler(internal(o, depth + 1)) for o in obj.replaced_tokens
-                    ]
                 output = []
                 for t in obj.tokens_for_result:
                     inner = internal(t, depth + 1)

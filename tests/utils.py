@@ -15,7 +15,6 @@ from mo_parsing.core import (
     default_literal,
 )
 from mo_parsing.tokens import Keyword
-from mo_parsing.utils import __compat__
 
 
 class reset_parsing_context:
@@ -52,9 +51,6 @@ class reset_parsing_context:
         self._save_context["__diag__"] = {
             name: getattr(__diag__, name) for name in __diag__._all_names
         }
-        self._save_context["__compat__"] = {
-            "collect_all_And_tokens": __compat__.collect_all_And_tokens
-        }
         return self
 
     def restore(self):
@@ -68,7 +64,6 @@ class reset_parsing_context:
         for name, value in self._save_context["__diag__"].items():
             (__diag__.enable if value else __diag__.disable)(name)
         ParserElement._parse = self._save_context["packrat_parse"]
-        __compat__.collect_all_And_tokens = self._save_context["__compat__"]
 
     def __enter__(self):
         return self.save()

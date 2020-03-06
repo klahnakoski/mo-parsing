@@ -222,7 +222,6 @@ from mo_parsing.tokens import (
 from mo_parsing.utils import (
     PY_3,
     _MAX_INT,
-    __compat__,
     _generatorType,
     _trim_arity,
     alphanums,
@@ -245,7 +244,6 @@ from mo_parsing.utils import (
 )
 
 __all__ = [
-    "__compat__",
     "__diag__",
     "And",
     "CaselessKeyword",

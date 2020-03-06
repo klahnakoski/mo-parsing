@@ -14,7 +14,7 @@ from mo_parsing.exceptions import (
 )
 from mo_parsing.results import ParseResults
 from mo_parsing.tokens import Empty
-from mo_parsing.utils import Iterable, __compat__, _generatorType, __diag__
+from mo_parsing.utils import Iterable, _generatorType, __diag__
 
 
 class ParseExpression(ParserElement):
@@ -371,25 +371,6 @@ class Or(ParseExpression):
         for e in self.exprs:
             e.checkRecursion(subRecCheckList)
 
-    def _setResultsName(self, name, listAllMatches=False):
-        if (
-            not __compat__.collect_all_And_tokens
-            and __diag__.warn_multiple_tokens_in_named_alternation
-        ):
-            if any(isinstance(e, And) for e in self.exprs):
-                warnings.warn(
-                    "{0}: setting results name {1!r} on {2} expression "
-                    "may only return a single token for an And alternative, "
-                    "in future will return the full list of tokens".format(
-                        "warn_multiple_tokens_in_named_alternation",
-                        name,
-                        type(self).__name__,
-                    ),
-                    stacklevel=3,
-                )
-
-        return super(Or, self)._setResultsName(name, listAllMatches)
-
 
 class MatchFirst(ParseExpression):
     """Requires that at least one :class:`ParseExpression` is found. If
@@ -484,25 +465,6 @@ class MatchFirst(ParseExpression):
         subRecCheckList = parseElementList[:] + [self]
         for e in self.exprs:
             e.checkRecursion(subRecCheckList)
-
-    def _setResultsName(self, name, listAllMatches=False):
-        if (
-            not __compat__.collect_all_And_tokens
-            and __diag__.warn_multiple_tokens_in_named_alternation
-        ):
-            if any(isinstance(e, And) for e in self.exprs):
-                warnings.warn(
-                    "{0}: setting results name {1!r} on {2} expression "
-                    "may only return a single token for an And alternative, "
-                    "in future will return the full list of tokens".format(
-                        "warn_multiple_tokens_in_named_alternation",
-                        name,
-                        type(self).__name__,
-                    ),
-                    stacklevel=3,
-                )
-
-        return super(MatchFirst, self)._setResultsName(name, listAllMatches)
 
 
 class Each(ParseExpression):
