@@ -2,6 +2,8 @@
 from functools import wraps
 import sys
 
+from mo_dots import coalesce
+
 from mo_parsing.utils import _trim_arity, col, line, lineno
 
 
@@ -233,7 +235,7 @@ class OnlyOnce(object):
 
 
 def conditionAsParseAction(fn, message=None, fatal=False):
-    msg = message if message is not None else "failed user-defined condition"
+    msg = coalesce(message, "failed user-defined condition")
     exc_type = ParseFatalException if fatal else ParseException
     fn = _trim_arity(fn)
 

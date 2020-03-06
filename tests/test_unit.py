@@ -3606,8 +3606,8 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         rangeParser.addCondition(
             lambda t: t.to > t.from_, message="from must be <= to", fatal=True
         )
-        result = rangeParser.searchString("1-4 2-4 4-3 5 6 7 8 9 10")
-        self.assertTrue(False, "failed to interrupt parsing on fatal condition failure")
+        with TestCase.assertRaises(self, Exception):
+            rangeParser.searchString("1-4 2-4 4-3 5 6 7 8 9 10")
 
     def testPatientOr(self):
 
