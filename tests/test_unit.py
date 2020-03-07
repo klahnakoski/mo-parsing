@@ -23,11 +23,12 @@ from textwrap import dedent
 from unittest import TestCase, skip
 
 from mo_dots import coalesce
+from mo_logs import Log
 
-from mo_parsing import *
 from examples import fourFn, configParse, idlParse, ebnf
 from examples.jsonParser import jsonObject
 from examples.simpleSQL import simpleSQL
+from mo_parsing import *
 from mo_parsing import (
     ParseException,
     Word,
@@ -50,11 +51,9 @@ from mo_parsing import (
     helpers,
     CaselessLiteral,
     RecursiveGrammarException,
-)
+    white)
 from mo_parsing.core import (
-    CURRENT_WHITE_CHARS,
     default_literal,
-    CURRENT_LITERAL,
     quotedString,
     Suppress,
     StringEnd,
@@ -67,8 +66,6 @@ from mo_parsing.core import (
     ZeroOrMore,
     Empty,
 )
-from mo_parsing.utils import parsing_unicode, printables, traceParseAction, hexnums
-from tests.json_parser_tests import test1, test2, test3, test4, test5
 from mo_parsing.helpers import (
     real,
     sci_real,
@@ -118,7 +115,9 @@ from mo_parsing.helpers import (
     stripHTMLTags,
     indentedBlock,
 )
-
+from mo_parsing.utils import parsing_unicode, printables, traceParseAction, hexnums
+from mo_parsing.white import setDefaultWhitespaceChars
+from tests.json_parser_tests import test1, test2, test3, test4, test5
 # see which Python implementation we are running
 from tests.utils import TestParseResultsAsserts, reset_parsing_context
 
@@ -181,10 +180,10 @@ class TestParsing(TestParseResultsAsserts, TestCase):
 
     def testUpdateDefaultWhitespace(self):
 
-        prev_default_whitespace_chars = copy(CURRENT_WHITE_CHARS)
+        prev_default_whitespace_chars = copy(white.CURRENT_WHITE_CHARS)
         try:
             dblQuotedString.parser_config.copyDefaultWhiteChars = False
-            ParserElement.setDefaultWhitespaceChars(" \t")
+            setDefaultWhitespaceChars(" \t")
             self.assertEqual(
                 set(sglQuotedString.parser_config.whiteChars),
                 set(" \t"),
@@ -197,7 +196,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
             )
         finally:
             dblQuotedString.parser_config.copyDefaultWhiteChars = True
-            ParserElement.setDefaultWhitespaceChars(prev_default_whitespace_chars)
+            setDefaultWhitespaceChars(prev_default_whitespace_chars)
 
             self.assertEqual(
                 set(dblQuotedString.parser_config.whiteChars),
@@ -206,9 +205,9 @@ class TestParsing(TestParseResultsAsserts, TestCase):
             )
 
         with reset_parsing_context():
-            ParserElement.setDefaultWhitespaceChars(" \t")
+            setDefaultWhitespaceChars(" \t")
             self.assertNotEqual(
-                set(dblQuotedString.parser_config.whiteChars),
+                set(dblQuotedString.copy().parser_config.whiteChars),
                 set(prev_default_whitespace_chars),
                 "setDefaultWhitespaceChars updated dblQuotedString but should not",
             )
@@ -267,7 +266,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
 
                 self.assertEqual(len(result), 1, "failed {!r}".format(test_string))
 
-            ParserElement.setDefaultWhitespaceChars(" \t")
+            setDefaultWhitespaceChars(" \t")
 
             for expr, test_str in expr_tests:
                 parser = Group(expr[1, ...] + Optional(NL))[1, ...]
@@ -276,7 +275,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
 
                 self.assertEqual(len(result), 3, "failed {!r}".format(test_string))
 
-            ParserElement.setDefaultWhitespaceChars(" \n\t")
+            setDefaultWhitespaceChars(" \n\t")
 
             for expr, test_str in expr_tests:
                 parser = Group(expr[1, ...] + Optional(NL))[1, ...]
@@ -2504,7 +2503,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
 
         with reset_parsing_context():
 
-            ParserElement.setDefaultWhitespaceChars(" ")
+            setDefaultWhitespaceChars(" ")
 
             test_patt = Word("A") - LineStart() + Word("B")
 
@@ -2548,7 +2547,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
             )
 
         with reset_parsing_context():
-            ParserElement.setDefaultWhitespaceChars(" ")
+            setDefaultWhitespaceChars(" ")
             for t, s, e in (LineStart() + "AAA").scanString(test):
 
                 self.assertEqual(

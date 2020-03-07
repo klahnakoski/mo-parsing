@@ -11,6 +11,8 @@
 # - () grouping
 # - | alternation
 #
+from mo_parsing.white import setDefaultWhitespaceChars
+
 __all__ = ["count", "invert"]
 
 from mo_parsing import (
@@ -189,7 +191,7 @@ _parser = None
 def parser():
     global _parser
     if _parser is None:
-        ParserElement.setDefaultWhitespaceChars("")
+        setDefaultWhitespaceChars("")
         lbrack, rbrack, lbrace, rbrace, lparen, rparen, colon, qmark = map(
             Literal, "[]{}():?"
         )

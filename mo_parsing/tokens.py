@@ -6,7 +6,7 @@ import warnings
 from mo_future import text
 
 from mo_parsing.exceptions import ParseException
-from mo_parsing.core import ParserElement, CURRENT_WHITE_CHARS
+from mo_parsing.core import ParserElement
 from mo_parsing.results import ParseResults
 from mo_parsing.utils import (
     _MAX_INT,
@@ -1092,7 +1092,7 @@ class LineEnd(_PositionToken):
 
     def __init__(self):
         super(LineEnd, self).__init__()
-        self.setWhitespaceChars([w for w in CURRENT_WHITE_CHARS if w != "\n"])
+        self.setWhitespaceChars([w for w in white.CURRENT_WHITE_CHARS if w != "\n"])
         self.parser_config.error_message = "Expected end of line"
 
     def parseImpl(self, instring, loc, doActions=True):
@@ -1203,7 +1203,7 @@ class WordEnd(_PositionToken):
 
 
 # export
-from mo_parsing import core, enhancement
+from mo_parsing import core, enhancement, white
 
 core.Empty = Empty
 core.StringEnd = StringEnd

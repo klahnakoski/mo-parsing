@@ -2,13 +2,12 @@
 import copy
 import warnings
 from collections import namedtuple
-from contextlib import contextmanager
 from copy import copy
 from threading import RLock
 
 from mo_dots import Data
-from mo_logs import Log
 from mo_future import text, is_text
+from mo_logs import Log
 
 from mo_parsing.cache import packrat_cache
 from mo_parsing.exceptions import (
@@ -53,8 +52,6 @@ from mo_parsing.utils import (
 ) = [None] * 18
 
 DEBUG = False
-DEFAULT_WHITE_CHARS = " \n\t\r"
-CURRENT_WHITE_CHARS = list(DEFAULT_WHITE_CHARS)
 
 DebugActions = namedtuple("DebugActions", ["TRY", "MATCH", "FAIL"])
 
@@ -65,29 +62,6 @@ def entrypoint(func):
         with locker:
             return func(*args, **kwargs)
     return output
-
-
-@contextmanager
-def default_whitespace(chars):
-    r"""
-    Overrides the default whitespace chars
-
-    Example::
-
-        # default whitespace chars are space, <TAB> and newline
-        OneOrMore(Word(alphas)).parseString("abc def\nghi jkl")  # -> ['abc', 'def', 'ghi', 'jkl']
-
-        # change to just treat newline as significant
-        ParserElement.setDefaultWhitespaceChars(" \t")
-        OneOrMore(Word(alphas)).parseString("abc def\nghi jkl")  # -> ['abc', 'def']
-    """
-    old_value = CURRENT_WHITE_CHARS
-    CURRENT_WHITE_CHARS[:] = list(chars)
-    yield
-    CURRENT_WHITE_CHARS[:] = old_value
-
-
-CURRENT_LITERAL = None
 
 
 def default_literal(cls):
@@ -112,36 +86,10 @@ def default_literal(cls):
     global CURRENT_LITERAL
     CURRENT_LITERAL = cls
 
+CURRENT_LITERAL = None
 
 class ParserElement(object):
     """Abstract base level parser element class."""
-
-    @staticmethod
-    def setDefaultWhitespaceChars(chars):
-        r"""
-        Overrides the default whitespace chars
-
-        Example::
-
-            # default whitespace chars are space, <TAB> and newline
-            OneOrMore(Word(alphas)).parseString("abc def\nghi jkl")  # -> ['abc', 'def', 'ghi', 'jkl']
-
-            # change to just treat newline as significant
-            ParserElement.setDefaultWhitespaceChars(" \t")
-            OneOrMore(Word(alphas)).parseString("abc def\nghi jkl")  # -> ['abc', 'def']
-        """
-        return default_whitespace(chars).__enter__()
-
-    @property
-    def copyDefaultWhiteChars(self):
-        return self.parser_config.whiteChars is CURRENT_WHITE_CHARS
-
-    @copyDefaultWhiteChars.setter
-    def copyDefaultWhiteChars(self, do_copy):
-        if do_copy:
-            self.parser_config.whiteChars = CURRENT_WHITE_CHARS
-        else:
-            self.parser_config.whiteChars = copy(CURRENT_WHITE_CHARS)
 
     def __init__(self, savelist=False):
         self.parseAction = list()
@@ -150,8 +98,7 @@ class ParserElement(object):
         self.parser_config = Data()
         self.parser_config.failAction = None
         self.parser_config.skipWhitespace = True
-        self.parser_config.copyDefaultWhiteChars = True
-        self.parser_config.whiteChars = CURRENT_WHITE_CHARS
+        self.parser_config.whiteChars = white.CURRENT_WHITE_CHARS
         self.parser_config.mayReturnEmpty = (
             False  # used when checking for left-recursion
         )
@@ -211,10 +158,10 @@ class ParserElement(object):
         """
         cpy = copy(self)
         cpy.parser_config = self.parser_config.copy()
+        if cpy.parser_config.skipWhitespace:
+            cpy.parser_config.whiteChars = white.CURRENT_WHITE_CHARS
         cpy.parseAction = self.parseAction[:]
         cpy.ignoreExprs = self.ignoreExprs[:]
-        if self.parser_config.copyDefaultWhiteChars:
-            cpy.parser_config.whiteChars = CURRENT_WHITE_CHARS
         return cpy
 
     def set_parser_name(self, name):
@@ -979,10 +926,10 @@ class ParserElement(object):
         """
         Overrides the default whitespace chars
         """
-        self.parser_config.skipWhitespace = True
-        self.parser_config.copyDefaultWhiteChars = False
-        self.parser_config.whiteChars = chars
-        return self
+        output = self.copy()
+        output.parser_config.skipWhitespace = True
+        output.parser_config.whiteChars = chars
+        return output
 
     def parseWithTabs(self):
         """
@@ -1134,6 +1081,6 @@ class _PendingSkip(ParserElement):
 
 # export
 
-from mo_parsing import results, cache
+from mo_parsing import results, cache, white
 
 results.ParserElement = ParserElement

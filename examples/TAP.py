@@ -38,12 +38,13 @@ from mo_parsing import (
     FollowedBy,
     empty,
 )
+from mo_parsing.white import setDefaultWhitespaceChars
 
 __all__ = ["tapOutputParser", "TAPTest", "TAPSummary"]
 
 # newlines are significant whitespace, so set default skippable
 # whitespace to just spaces and tabs
-ParserElement.setDefaultWhitespaceChars(" \t")
+setDefaultWhitespaceChars(" \t")
 NL = LineEnd().suppress()
 
 integer = Word(nums)

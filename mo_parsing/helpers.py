@@ -6,9 +6,7 @@ from datetime import datetime
 
 from mo_dots import Data
 from mo_future import text
-from mo_logs import strings
 
-from mo_parsing.core import CURRENT_WHITE_CHARS
 from mo_parsing.enhancement import (
     Combine,
     Dict,
@@ -514,13 +512,13 @@ def nestedExpr(opener="(", closer=")", content=None, ignoreExpr=quotedString.cop
                         OneOrMore(
                             ~ignoreExpr
                             + CharsNotIn(
-                                opener + closer + "".join(CURRENT_WHITE_CHARS), exact=1,
+                                opener + closer + "".join(white.CURRENT_WHITE_CHARS), exact=1,
                             )
                         )
                     ).setParseAction(lambda t: t[0].strip())
                 else:
                     content = empty.copy() + CharsNotIn(
-                        opener + closer + "".join(CURRENT_WHITE_CHARS)
+                        opener + closer + "".join(white.CURRENT_WHITE_CHARS)
                     ).setParseAction(lambda t: t[0].strip())
             else:
                 if ignoreExpr is not None:
@@ -529,7 +527,7 @@ def nestedExpr(opener="(", closer=")", content=None, ignoreExpr=quotedString.cop
                             ~ignoreExpr
                             + ~Literal(opener)
                             + ~Literal(closer)
-                            + CharsNotIn(CURRENT_WHITE_CHARS, exact=1)
+                            + CharsNotIn(white.CURRENT_WHITE_CHARS, exact=1)
                         )
                     ).setParseAction(lambda t: t[0].strip())
                 else:
@@ -537,7 +535,7 @@ def nestedExpr(opener="(", closer=")", content=None, ignoreExpr=quotedString.cop
                         OneOrMore(
                             ~Literal(opener)
                             + ~Literal(closer)
-                            + CharsNotIn(CURRENT_WHITE_CHARS, exact=1)
+                            + CharsNotIn(white.CURRENT_WHITE_CHARS, exact=1)
                         )
                     ).setParseAction(lambda t: t[0].strip())
         else:
@@ -1609,7 +1607,7 @@ comma_separated_list = (
 
 
 # export
-from mo_parsing import core
+from mo_parsing import core, white
 
 core._flatten = _flatten
 core.replaceWith = replaceWith

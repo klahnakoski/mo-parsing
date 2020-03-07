@@ -3,17 +3,16 @@
 from contextlib import contextmanager
 from unittest import TestCase
 
+from mo_parsing.white import setDefaultWhitespaceChars
 from mo_testing.fuzzytestcase import FuzzyTestCase
 
-from mo_parsing import core
+from mo_parsing import core, white
 from mo_parsing.core import (
     ParserElement,
     ParseException,
     __diag__,
-    DEFAULT_WHITE_CHARS,
-    CURRENT_WHITE_CHARS,
     default_literal,
-)
+    )
 from mo_parsing.tokens import Keyword
 
 
@@ -44,7 +43,7 @@ class reset_parsing_context:
         self._save_context = {}
 
     def save(self):
-        self._save_context["default_whitespace"] = DEFAULT_WHITE_CHARS
+        self._save_context["default_whitespace"] = white.DEFAULT_WHITE_CHARS
         self._save_context["default_keyword_chars"] = Keyword.DEFAULT_KEYWORD_CHARS
         self._save_context["literal_string_class"] = core.CURRENT_LITERAL
         self._save_context["packrat_parse"] = ParserElement._parse
@@ -55,10 +54,7 @@ class reset_parsing_context:
 
     def restore(self):
         # reset mo_parsing global state
-        if CURRENT_WHITE_CHARS != self._save_context["default_whitespace"]:
-            ParserElement.setDefaultWhitespaceChars(
-                self._save_context["default_whitespace"]
-            )
+        setDefaultWhitespaceChars(self._save_context["default_whitespace"])
         Keyword.DEFAULT_KEYWORD_CHARS = self._save_context["default_keyword_chars"]
         default_literal(self._save_context["literal_string_class"])
         for name, value in self._save_context["__diag__"].items():
