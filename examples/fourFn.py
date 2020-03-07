@@ -30,64 +30,56 @@ def push_unary_minus(toks):
             break
 
 
-bnf = None
+"""
+expop   :: '^'
+multop  :: '*' | '/'
+addop   :: '+' | '-'
+integer :: ['+' | '-'] '0'..'9'+
+atom    :: PI | E | real | fn '(' expr ')' | '(' expr ')'
+factor  :: atom [ expop factor ]*
+term    :: factor [ multop factor ]*
+expr    :: term [ addop term ]*
+"""
 
+# use CaselessKeyword for e and pi, to avoid accidentally matching
+# functions that start with 'e' or 'pi' (such as 'exp'); Keyword
+# and CaselessKeyword only match whole words
+e = CaselessKeyword("E")
+pi = CaselessKeyword("PI")
+# fnumber = Combine(Word("+-"+nums, nums) +
+#                    Optional("." + Optional(Word(nums))) +
+#                    Optional(e + Word("+-"+nums, nums)))
+# or use provided number, but convert back to str:
+# fnumber = number().addParseAction(lambda t: str(t[0]))
+fnumber = Regex(r"[+-]?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?")
+ident = Word(alphas, alphanums + "_$")
 
-def BNF():
-    """
-    expop   :: '^'
-    multop  :: '*' | '/'
-    addop   :: '+' | '-'
-    integer :: ['+' | '-'] '0'..'9'+
-    atom    :: PI | E | real | fn '(' expr ')' | '(' expr ')'
-    factor  :: atom [ expop factor ]*
-    term    :: factor [ multop factor ]*
-    expr    :: term [ addop term ]*
-    """
-    global bnf
-    if not bnf:
-        # use CaselessKeyword for e and pi, to avoid accidentally matching
-        # functions that start with 'e' or 'pi' (such as 'exp'); Keyword
-        # and CaselessKeyword only match whole words
-        e = CaselessKeyword("E")
-        pi = CaselessKeyword("PI")
-        # fnumber = Combine(Word("+-"+nums, nums) +
-        #                    Optional("." + Optional(Word(nums))) +
-        #                    Optional(e + Word("+-"+nums, nums)))
-        # or use provided number, but convert back to str:
-        # fnumber = number().addParseAction(lambda t: str(t[0]))
-        fnumber = Regex(r"[+-]?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?")
-        ident = Word(alphas, alphanums + "_$")
+plus, minus, mult, div = map(Literal, "+-*/")
+lpar, rpar = map(Suppress, "()")
+addop = plus | minus
+multop = mult | div
+expop = Literal("^")
 
-        plus, minus, mult, div = map(Literal, "+-*/")
-        lpar, rpar = map(Suppress, "()")
-        addop = plus | minus
-        multop = mult | div
-        expop = Literal("^")
+expr = Forward()
+expr_list = delimitedList(Group(expr))
+# add parse action that replaces the function identifier with a (name, number of args) tuplefn_call = (ident + lpar - Group(expr_list) + rpar).setParseAction(
+    lambda t: (t[0], len(t[1])),
+)
+atom = (
+    addop[...]
+    + (
+        (fn_call | pi | e | fnumber | ident).setParseAction(push_first)
+        | Group(lpar + expr + rpar)
+    )
+).setParseAction(push_unary_minus)
 
-        expr = Forward()
-        expr_list = delimitedList(Group(expr))
-        # add parse action that replaces the function identifier with a (name, number of args) tuple
-        fn_call = (ident + lpar - Group(expr_list) + rpar).setParseAction(
-            lambda t: t.insert(0, (t.pop(0), len(t[0])))
-        )
-        atom = (
-            addop[...]
-            + (
-                (fn_call | pi | e | fnumber | ident).setParseAction(push_first)
-                | Group(lpar + expr + rpar)
-            )
-        ).setParseAction(push_unary_minus)
-
-        # by defining exponentiation as "atom [ ^ factor ]..." instead of "atom [ ^ atom ]...", we get right-to-left
-        # exponents, instead of left-to-right that is, 2^3^2 = 2^(3^2), not (2^3)^2.
-        factor = Forward()
-        factor <<= atom + (expop + factor).setParseAction(push_first)[...]
-        term = factor + (multop + factor).setParseAction(push_first)[...]
-        expr <<= term + (addop + term).setParseAction(push_first)[...]
-        bnf = expr
-    return bnf
-
+# by defining exponentiation as "atom [ ^ factor ]..." instead of "atom [ ^ atom ]...", we get right-to-left
+# exponents, instead of left-to-right that is, 2^3^2 = 2^(3^2), not (2^3)^2.
+factor = Forward()
+factor <<= atom + (expop + factor).setParseAction(push_first)[...]
+term = factor + (multop + factor).setParseAction(push_first)[...]
+expr <<= term + (addop + term).setParseAction(push_first)[...]
+bnf = expr
 
 # map operator symbols to corresponding arithmetic operations
 epsilon = 1e-12
@@ -117,7 +109,7 @@ def evaluate_stack(s):
         op, num_args = op
     if op == "unary -":
         return -evaluate_stack(s)
-    if op in "+-*/^":
+    if op in opn:
         # note: operands are pushed onto the stack in reverse order
         op2 = evaluate_stack(s)
         op1 = evaluate_stack(s)
@@ -128,7 +120,7 @@ def evaluate_stack(s):
         return math.e  # 2.718281828
     elif op in fn:
         # note: args are pushed onto the stack in reverse order
-        args = reversed([evaluate_stack(s) for _ in range(num_args)])
+        args = tuple(reversed([evaluate_stack(s) for _ in range(num_args)]))
         return fn[op](*args)
     elif op[0].isalpha():
         raise Exception("invalid identifier '%s'" % op)

@@ -20,7 +20,7 @@ from examples.fourFn import exprStack, BNF, evaluate_stack
 def test(s, expected):
     exprStack[:] = []
     try:
-        results = BNF().parseString(s, parseAll=True)
+        results = bnf.parseString(s, parseAll=True)
         val = evaluate_stack(exprStack[:])
     except ParseException as pe:
 

@@ -288,16 +288,13 @@ class TestParsing(TestParseResultsAsserts, TestCase):
     def testParseFourFn(self):
         def test(s, ans):
             fourFn.exprStack[:] = []
-            results = fourFn.BNF().parseString(s)
+            results = fourFn.bnf.parseString(s)
             try:
                 resultValue = fourFn.evaluate_stack(fourFn.exprStack)
             except Exception:
                 self.assertIsNone(ans, "exception raised for expression {!r}".format(s))
             else:
-                self.assertTrue(
-                    resultValue == ans,
-                    "failed to evaluate {}, got {:f}".format(s, resultValue),
-                )
+                self.assertEqual(resultValue, ans, "failed to evaluate")
 
         test("9", 9)
         test("-9", -9)
@@ -4717,10 +4714,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         list_num.runTests(test_string)
 
         U = list_num.parseString(test_string)
-        self.assertTrue(
-            "LIT_NUM" not in U.LIST.LIST_VALUES,
-            "results name retained as sub in ungrouped named result",
-        )
+        self.assertEqual(U.LIST.LIST_VALUES.LIT_NUM, ['1', '2', '3', '4', '5', '6'])
 
     def testParseResultsNamesInGroupWithDict(self):
 

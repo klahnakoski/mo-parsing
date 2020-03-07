@@ -56,7 +56,7 @@ from examples.fourFn import BNF, exprStack, evaluate_stack
 #     else:
 #         return float( op )
 
-arithExpr = BNF()
+arithExpr = bnf
 ident = Word(alphas, alphanums).set_parser_name("identifier")
 assignment = ident("varname") + "=" + arithExpr
 pattern = assignment | arithExpr
