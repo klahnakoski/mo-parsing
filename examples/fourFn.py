@@ -62,8 +62,9 @@ expop = Literal("^")
 
 expr = Forward()
 expr_list = delimitedList(Group(expr))
-# add parse action that replaces the function identifier with a (name, number of args) tuplefn_call = (ident + lpar - Group(expr_list) + rpar).setParseAction(
-    lambda t: (t[0], len(t[1])),
+# add parse action that replaces the function identifier with a (name, number of args) tuple
+fn_call = (ident + lpar - Group(expr_list) + rpar).setParseAction(
+    lambda t: ((t[0], len(t[1])),)
 )
 atom = (
     addop[...]
