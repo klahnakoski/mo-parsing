@@ -98,7 +98,7 @@ class ParserElement(object):
         self.parser_config = Data()
         self.parser_config.failAction = None
         self.parser_config.skipWhitespace = True
-        self.parser_config.whiteChars = white.CURRENT_WHITE_CHARS
+        self.parser_config.whiteChars = copy(white.CURRENT_WHITE_CHARS)
         self.parser_config.mayReturnEmpty = (
             False  # used when checking for left-recursion
         )
@@ -159,7 +159,7 @@ class ParserElement(object):
         cpy = copy(self)
         cpy.parser_config = self.parser_config.copy()
         if cpy.parser_config.skipWhitespace:
-            cpy.parser_config.whiteChars = white.CURRENT_WHITE_CHARS
+            cpy.parser_config.whiteChars = copy(white.CURRENT_WHITE_CHARS)
         cpy.parseAction = self.parseAction[:]
         cpy.ignoreExprs = self.ignoreExprs[:]
         return cpy
@@ -957,11 +957,8 @@ class ParserElement(object):
         if isinstance(other, basestring):
             other = Suppress(other)
 
-        if isinstance(other, Suppress):
-            if other not in self.ignoreExprs:
-                self.ignoreExprs.append(other)
-        else:
-            self.ignoreExprs.append(Suppress(other.copy()))
+        if other not in self.ignoreExprs:
+            self.ignoreExprs.append(other.suppress())
         return self
 
     def setDebugActions(self, startAction, successAction, exceptionAction):

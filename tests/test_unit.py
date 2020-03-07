@@ -179,30 +179,29 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         self.suite_context.restore()
 
     def testUpdateDefaultWhitespace(self):
-
         prev_default_whitespace_chars = copy(white.CURRENT_WHITE_CHARS)
-        try:
-            dblQuotedString.parser_config.copyDefaultWhiteChars = False
-            setDefaultWhitespaceChars(" \t")
-            self.assertEqual(
-                set(sglQuotedString.parser_config.whiteChars),
-                set(" \t"),
-                "setDefaultWhitespaceChars did not update sglQuotedString",
-            )
-            self.assertEqual(
-                set(dblQuotedString.parser_config.whiteChars),
-                set(prev_default_whitespace_chars),
-                "setDefaultWhitespaceChars updated dblQuotedString but should not",
-            )
-        finally:
-            dblQuotedString.parser_config.copyDefaultWhiteChars = True
-            setDefaultWhitespaceChars(prev_default_whitespace_chars)
 
-            self.assertEqual(
-                set(dblQuotedString.parser_config.whiteChars),
-                set(prev_default_whitespace_chars),
-                "setDefaultWhitespaceChars updated dblQuotedString",
-            )
+        setDefaultWhitespaceChars(" \t")
+        # IS HAS NEW WHITESPACE
+        self.assertEqual(
+            sglQuotedString.copy().parser_config.whiteChars,
+            " \t",
+            "setDefaultWhitespaceChars did not update sglQuotedString",
+        )
+        # OLD HAS OLD WHITESPACE
+        self.assertEqual(
+            set(sglQuotedString.parser_config.whiteChars),
+            set(prev_default_whitespace_chars),
+            "setDefaultWhitespaceChars updated dblQuotedString but should not",
+        )
+        setDefaultWhitespaceChars(prev_default_whitespace_chars)
+
+        # IS HAS NEW WHITESPACE
+        self.assertEqual(
+            set(dblQuotedString.copy().parser_config.whiteChars),
+            set(prev_default_whitespace_chars),
+            "setDefaultWhitespaceChars updated dblQuotedString",
+        )
 
         with reset_parsing_context():
             setDefaultWhitespaceChars(" \t")
@@ -218,13 +217,13 @@ class TestParsing(TestParseResultsAsserts, TestCase):
             identifier = Combine(Word(alphas) + Optional("$"))
 
             # Literals (number or double quoted string)
-            literal = number | dblQuotedString
-            expression = literal | identifier
+            literal = number.copy() | dblQuotedString.copy()
+            expression = literal.copy() | identifier.copy()
             # expression.set_parser_name("expression").setDebug()
             # number.setDebug()
             # integer.setDebug()
 
-            line_number = integer
+            line_number = integer("line number")
 
             # Keywords
             PRINT = CaselessKeyword("print")

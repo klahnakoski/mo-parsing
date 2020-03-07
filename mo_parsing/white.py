@@ -3,11 +3,13 @@ from contextlib import contextmanager
 from copy import copy
 
 DEFAULT_WHITE_CHARS = " \n\t\r"
-CURRENT_WHITE_CHARS = list(DEFAULT_WHITE_CHARS)
+CURRENT_WHITE_CHARS = copy(DEFAULT_WHITE_CHARS)
 
 
 def setDefaultWhitespaceChars(chars):
-    CURRENT_WHITE_CHARS[:] = list(chars)
+    global CURRENT_WHITE_CHARS
+
+    CURRENT_WHITE_CHARS = copy(chars)
 
 
 @contextmanager
@@ -24,7 +26,9 @@ def default_whitespace(chars):
         setDefaultWhitespaceChars(" \t")
         OneOrMore(Word(alphas)).parseString("abc def\nghi jkl")  # -> ['abc', 'def']
     """
+    global CURRENT_WHITE_CHARS
+
     old_value = CURRENT_WHITE_CHARS
     setDefaultWhitespaceChars(chars)
     yield
-    CURRENT_WHITE_CHARS[:] = old_value
+    CURRENT_WHITE_CHARS = old_value
