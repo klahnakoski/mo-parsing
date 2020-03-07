@@ -121,7 +121,7 @@ def Verilog_BNF():
                 "nounconnected_drive celldefine endcelldefine"
             )
             + restOfLine
-        ).setName("compilerDirective")
+        ).set_parser_name("compilerDirective")
 
         # primitives
         SEMI, COLON, LPAR, RPAR, LBRACE, RBRACE, LBRACK, RBRACK, DOT, COMMA, EQ = map(
@@ -140,44 +140,44 @@ def Verilog_BNF():
             + "]["
             + identBody
             + "]*)*"
-        ).setName("baseIdent")
+        ).set_parser_name("baseIdent")
         identifier2 = (
-            Regex(r"\\\S+").setParseAction(lambda t: t[0][1:]).setName("escapedIdent")
+            Regex(r"\\\S+").setParseAction(lambda t: t[0][1:]).set_parser_name("escapedIdent")
         )  # .setDebug()
         identifier = identifier1 | identifier2
         assert identifier2 == r"\abc"
 
         hexnums = nums + "abcdefABCDEF" + "_?"
-        base = Regex("'[bBoOdDhH]").setName("base")
+        base = Regex("'[bBoOdDhH]").set_parser_name("base")
         basedNumber = Combine(
             Optional(Word(nums + "_")) + base + Word(hexnums + "xXzZ"),
             joinString=" ",
             adjacent=False,
-        ).setName("basedNumber")
+        ).set_parser_name("basedNumber")
         # ~ number = ( basedNumber | Combine( Word( "+-"+spacedNums, spacedNums ) +
         # ~ Optional( DOT + Optional( Word( spacedNums ) ) ) +
-        # ~ Optional( e + Word( "+-"+spacedNums, spacedNums ) ) ).setName("numeric") )
+        # ~ Optional( e + Word( "+-"+spacedNums, spacedNums ) ) ).set_parser_name("numeric") )
         number = (
             basedNumber | Regex(r"[+-]?[0-9_]+(\.[0-9_]*)?([Ee][+-]?[0-9_]+)?")
-        ).setName("numeric")
+        ).set_parser_name("numeric")
         # ~ decnums = nums + "_"
         # ~ octnums = "01234567" + "_"
-        expr = Forward().setName("expr")
+        expr = Forward().set_parser_name("expr")
         concat = Group(LBRACE + delimitedList(expr) + RBRACE)
-        multiConcat = Group("{" + expr + concat + "}").setName("multiConcat")
+        multiConcat = Group("{" + expr + concat + "}").set_parser_name("multiConcat")
         funcCall = Group(
             identifier + LPAR + Optional(delimitedList(expr)) + RPAR
-        ).setName("funcCall")
+        ).set_parser_name("funcCall")
 
         subscrRef = Group(LBRACK + delimitedList(expr, COLON) + RBRACK)
         subscrIdentifier = Group(identifier + Optional(subscrRef))
         # ~ scalarConst = "0" | (( FollowedBy('1') + oneOf("1'b0 1'b1 1'bx 1'bX 1'B0 1'B1 1'Bx 1'BX 1") ))
         scalarConst = Regex("0|1('[Bb][01xX])?")
-        mintypmaxExpr = Group(expr + COLON + expr + COLON + expr).setName("mintypmax")
+        mintypmaxExpr = Group(expr + COLON + expr + COLON + expr).set_parser_name("mintypmax")
         primary = (
             number
             | (LPAR + mintypmaxExpr + RPAR)
-            | (LPAR + Group(expr) + RPAR).setName("nestedExpr")
+            | (LPAR + Group(expr) + RPAR).set_parser_name("nestedExpr")
             | multiConcat
             | concat
             | dblQuotedString
@@ -185,11 +185,11 @@ def Verilog_BNF():
             | subscrIdentifier
         )
 
-        unop = oneOf("+  -  !  ~  &  ~&  |  ^|  ^  ~^").setName("unop")
+        unop = oneOf("+  -  !  ~  &  ~&  |  ^|  ^  ~^").set_parser_name("unop")
         binop = oneOf(
             "+  -  *  /  %  ==  !=  ===  !==  &&  "
             "||  <  <=  >  >=  &  |  ^  ^~  >>  << ** <<< >>>"
-        ).setName("binop")
+        ).set_parser_name("binop")
 
         expr << (
             (unop + expr)
@@ -232,32 +232,32 @@ def Verilog_BNF():
         eventExpr << (Group(delimitedList(eventTerm, Keyword("or"))))
         eventControl = Group(
             "@" + ((LPAR + eventExpr + RPAR) | identifier | "*")
-        ).setName("eventCtrl")
+        ).set_parser_name("eventCtrl")
 
         delayArg = (
             number
             | Word(alphanums + "$_")
             | (LPAR + Group(delimitedList(mintypmaxExpr | expr)) + RPAR)  # identifier |
-        ).setName(
+        ).set_parser_name(
             "delayArg"
         )  # .setDebug()
-        delay = Group("#" + delayArg).setName("delay")  # .setDebug()
+        delay = Group("#" + delayArg).set_parser_name("delay")  # .setDebug()
         delayOrEventControl = delay | eventControl
 
-        assgnmt = Group(lvalue + EQ + Optional(delayOrEventControl) + expr).setName(
+        assgnmt = Group(lvalue + EQ + Optional(delayOrEventControl) + expr).set_parser_name(
             "assgnmt"
         )
         nbAssgnmt = Group(
             (lvalue + "<=" + Optional(delay) + expr)
             | (lvalue + "<=" + Optional(eventControl) + expr)
-        ).setName("nbassgnmt")
+        ).set_parser_name("nbassgnmt")
 
         range = LBRACK + expr + COLON + expr + RBRACK
 
-        paramAssgnmt = Group(identifier + EQ + expr).setName("paramAssgnmt")
+        paramAssgnmt = Group(identifier + EQ + expr).set_parser_name("paramAssgnmt")
         parameterDecl = Group(
             "parameter" + Optional(range) + delimitedList(paramAssgnmt) + SEMI
-        ).setName("paramDecl")
+        ).set_parser_name("paramDecl")
 
         inputDecl = Group("input" + Optional(range) + delimitedList(identifier) + SEMI)
         outputDecl = Group(
@@ -274,7 +274,7 @@ def Verilog_BNF():
             + Optional(range)
             + delimitedList(regIdentifier)
             + SEMI
-        ).setName("regDecl")
+        ).set_parser_name("regDecl")
         timeDecl = Group("time" + delimitedList(regIdentifier) + SEMI)
         integerDecl = Group("integer" + delimitedList(regIdentifier) + SEMI)
 
@@ -284,7 +284,7 @@ def Verilog_BNF():
             LPAR
             + ((strength0 + COMMA + strength1) | (strength1 + COMMA + strength0))
             + RPAR
-        ).setName("driveStrength")
+        ).set_parser_name("driveStrength")
         nettype = oneOf(
             "wire  tri  tri1  supply0  wand  triand  tri0  supply1  wor  trior  trireg"
         )
@@ -297,19 +297,19 @@ def Verilog_BNF():
             parameterDecl | regDecl | integerDecl | realDecl | timeDecl | eventDecl
         )
 
-        stmt = Forward().setName("stmt")  # .setDebug()
+        stmt = Forward().set_parser_name("stmt")  # .setDebug()
         stmtOrNull = stmt | SEMI
         caseItem = (delimitedList(expr) + COLON + stmtOrNull) | (
             default + Optional(":") + stmtOrNull
         )
         stmt << Group(
-            (begin + Group(ZeroOrMore(stmt)) + end).setName("begin-end")
+            (begin + Group(ZeroOrMore(stmt)) + end).set_parser_name("begin-end")
             | (
                 if_
                 + Group(LPAR + expr + RPAR)
                 + stmtOrNull
                 + Optional(else_ + stmtOrNull)
-            ).setName("if")
+            ).set_parser_name("if")
             | (delayOrEventControl + stmtOrNull)
             | (case + LPAR + expr + RPAR + OneOrMore(caseItem) + endcase)
             | (forever + stmt)
@@ -349,7 +349,7 @@ def Verilog_BNF():
                 + ZeroOrMore(blockDecl)
                 + ZeroOrMore(stmt)
                 + end
-            ).setName("begin:label-end")
+            ).set_parser_name("begin:label-end")
             |
             # these  *have* to go at the end of the list!!!
             (assgnmt + SEMI)
@@ -359,7 +359,7 @@ def Verilog_BNF():
                 + Optional(LPAR + delimitedList(expr | empty) + RPAR)
                 + SEMI
             )
-        ).setName("stmtBody")
+        ).set_parser_name("stmtBody")
         """
         x::=<blocking_assignment> ;
         x||= <non_blocking_assignment> ;
@@ -386,12 +386,12 @@ def Verilog_BNF():
         x||= force <assignment> ;
         x||= release <lvalue> ;
         """
-        alwaysStmt = Group("always" + Optional(eventControl) + stmt).setName(
+        alwaysStmt = Group("always" + Optional(eventControl) + stmt).set_parser_name(
             "alwaysStmt"
         )
-        initialStmt = Group("initial" + stmt).setName("initialStmt")
+        initialStmt = Group("initial" + stmt).set_parser_name("initialStmt")
 
-        chargeStrength = Group(LPAR + oneOf("small medium large") + RPAR).setName(
+        chargeStrength = Group(LPAR + oneOf("small medium large") + RPAR).set_parser_name(
             "chargeStrength"
         )
 
@@ -401,7 +401,7 @@ def Verilog_BNF():
             + Optional(delay)
             + delimitedList(assgnmt)
             + SEMI
-        ).setName("continuousAssign")
+        ).set_parser_name("continuousAssign")
 
         tfDecl = (
             parameterDecl
@@ -445,9 +445,9 @@ def Verilog_BNF():
             + Optional(delay)
             + Group(delimitedList(assgnmt))
         )
-        netDecl1 = Group(netDecl1Arg + SEMI).setName("netDecl1")
-        netDecl2 = Group(netDecl2Arg + SEMI).setName("netDecl2")
-        netDecl3 = Group(netDecl3Arg + SEMI).setName("netDecl3")
+        netDecl1 = Group(netDecl1Arg + SEMI).set_parser_name("netDecl1")
+        netDecl2 = Group(netDecl2Arg + SEMI).set_parser_name("netDecl2")
+        netDecl3 = Group(netDecl3Arg + SEMI).set_parser_name("netDecl3")
 
         gateType = oneOf(
             "and  nand  or  nor xor  xnor buf  bufif0 bufif1 "
@@ -481,12 +481,12 @@ def Verilog_BNF():
             + Optional(delay)
             + delimitedList(udpInstance)
             + SEMI
-        ).setName("udpInstantiation")
+        ).set_parser_name("udpInstantiation")
 
         parameterValueAssignment = Group(
             Literal("#") + LPAR + Group(delimitedList(expr)) + RPAR
         )
-        namedPortConnection = Group(DOT + identifier + LPAR + expr + RPAR).setName(
+        namedPortConnection = Group(DOT + identifier + LPAR + expr + RPAR).set_parser_name(
             "namedPortConnection"
         )  # .setDebug()
         assert r".\abc (abc )" == namedPortConnection
@@ -498,17 +498,17 @@ def Verilog_BNF():
             LPAR
             + (delimitedList(namedPortConnection) | delimitedList(modulePortConnection))
             + RPAR
-        ).setName("inst_args")
-        moduleInstance = Group(Group(identifier + Optional(range)) + inst_args).setName(
+        ).set_parser_name("inst_args")
+        moduleInstance = Group(Group(identifier + Optional(range)) + inst_args).set_parser_name(
             "moduleInstance"
         )  # .setDebug()
 
         moduleInstantiation = Group(
             identifier
             + Optional(parameterValueAssignment)
-            + delimitedList(moduleInstance).setName("moduleInstanceList")
+            + delimitedList(moduleInstance).set_parser_name("moduleInstanceList")
             + SEMI
-        ).setName("moduleInstantiation")
+        ).set_parser_name("moduleInstantiation")
 
         parameterOverride = Group("defparam" + delimitedList(paramAssgnmt) + SEMI)
         task = Group(
@@ -539,7 +539,7 @@ def Verilog_BNF():
         )
         pathDecl = Group(
             (pathDescr1 | pathDescr2 | pathDescr3) + EQ + pathDelayValue + SEMI
-        ).setName("pathDecl")
+        ).set_parser_name("pathDecl")
 
         portConditionExpr = Forward()
         portConditionTerm = Optional(unop) + subscrIdentifier
@@ -608,7 +608,7 @@ def Verilog_BNF():
         )
         edgeSensitivePathDecl = edgeSensitivePathDecl1 | edgeSensitivePathDecl2
 
-        edgeDescr = oneOf("01 10 0x x1 1x x0").setName("edgeDescr")
+        edgeDescr = oneOf("01 10 0x x1 1x x0").set_parser_name("edgeDescr")
 
         timCheckEventControl = Group(
             posedge | negedge | (edge + LBRACK + delimitedList(edgeDescr) + RBRACK)
@@ -721,7 +721,7 @@ def Verilog_BNF():
                 | systemTimingCheck6
                 | systemTimingCheck7
             )
-        ).setName("systemTimingCheck")
+        ).set_parser_name("systemTimingCheck")
         sdpd = (
             if_
             + Group(LPAR + expr + RPAR)
@@ -749,7 +749,7 @@ def Verilog_BNF():
         """
         specifyBlock = Group(
             "specify" + ZeroOrMore(specifyItem) + "endspecify"
-        ).setName("specifyBlock")
+        ).set_parser_name("specifyBlock")
 
         moduleItem = ~Keyword("endmodule") + (
             parameterDecl
@@ -822,21 +822,21 @@ def Verilog_BNF():
                 + RPAR
             )
             + SEMI
-        ).setName("moduleHdr")
+        ).set_parser_name("moduleHdr")
 
-        module = Group(moduleHdr + Group(ZeroOrMore(moduleItem)) + "endmodule").setName(
+        module = Group(moduleHdr + Group(ZeroOrMore(moduleItem)) + "endmodule").set_parser_name(
             "module"
         )  # .setDebug()
 
         udpDecl = outputDecl | inputDecl | regDecl
         # ~ udpInitVal = oneOf("1'b0 1'b1 1'bx 1'bX 1'B0 1'B1 1'Bx 1'BX 1 0 x X")
-        udpInitVal = (Regex("1'[bB][01xX]") | Regex("[01xX]")).setName("udpInitVal")
-        udpInitialStmt = Group("initial" + identifier + EQ + udpInitVal + SEMI).setName(
+        udpInitVal = (Regex("1'[bB][01xX]") | Regex("[01xX]")).set_parser_name("udpInitVal")
+        udpInitialStmt = Group("initial" + identifier + EQ + udpInitVal + SEMI).set_parser_name(
             "udpInitialStmt"
         )
 
         levelSymbol = oneOf("0   1   x   X   ?   b   B")
-        levelInputList = Group(OneOrMore(levelSymbol).setName("levelInpList"))
+        levelInputList = Group(OneOrMore(levelSymbol).set_parser_name("levelInpList"))
         outputSymbol = oneOf("0   1   x   X")
         combEntry = Group(levelInputList + COLON + outputSymbol + SEMI)
         edgeSymbol = oneOf("r   R   f   F   p   P   n   N   *")
@@ -845,10 +845,10 @@ def Verilog_BNF():
         inputList = levelInputList | edgeInputList
         seqEntry = Group(
             inputList + COLON + levelSymbol + COLON + (outputSymbol | "-") + SEMI
-        ).setName("seqEntry")
+        ).set_parser_name("seqEntry")
         udpTableDefn = Group(
             "table" + OneOrMore(combEntry | seqEntry) + "endtable"
-        ).setName("table")
+        ).set_parser_name("table")
 
         """
         <UDP>

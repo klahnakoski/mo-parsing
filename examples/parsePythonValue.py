@@ -15,8 +15,8 @@ cvtList = lambda toks: [toks]
 # define punctuation as suppressed literals
 lparen, rparen, lbrack, rbrack, lbrace, rbrace, colon, comma = map(Suppress, "()[]{}:,")
 
-integer = Regex(r"[+-]?\d+").setName("integer").setParseAction(cvtInt)
-real = Regex(r"[+-]?\d+\.\d*([Ee][+-]?\d+)?").setName("real").setParseAction(cvtReal)
+integer = Regex(r"[+-]?\d+").set_parser_name("integer").setParseAction(cvtInt)
+real = Regex(r"[+-]?\d+\.\d*([Ee][+-]?\d+)?").set_parser_name("real").setParseAction(cvtReal)
 tupleStr = Forward()
 listStr = Forward()
 dictStr = Forward()

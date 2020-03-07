@@ -134,7 +134,7 @@ class __diag__(__config_flags):
      - warn_on_multiple_string_args_to_oneof - flag to enable warnings whan oneOf is
        incorrectly called with multiple str arguments
      - enable_debug_on_named_expressions - flag to auto-enable debug on all subsequent
-       calls to ParserElement.setName()
+       calls to ParserElement.set_parser_name()
     """
 
     _type_desc = "diagnostic"

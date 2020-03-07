@@ -83,7 +83,7 @@ numPart = (
 numWords = ((numPart + Optional(mag)).setParseAction(wordprod)[1, ...]).setParseAction(
     sum
 )
-numWords.setName("num word parser")
+numWords.set_parser_name("num word parser")
 
 numWords.ignore(Literal("-"))
 numWords.ignore(CaselessLiteral("and"))

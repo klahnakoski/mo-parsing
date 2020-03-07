@@ -9,7 +9,7 @@ from mo_parsing import *
 
 LPAR, RPAR, COMMA = map(Suppress, "(),")
 DOT, STAR = map(Literal, ".*")
-select_stmt = Forward().setName("select statement")
+select_stmt = Forward().set_parser_name("select statement")
 
 # keywords
 keywords = {
@@ -41,7 +41,7 @@ database_name = identifier.copy()
 comment = "--" + restOfLine
 
 # expression
-expr = Forward().setName("expression")
+expr = Forward().set_parser_name("expression")
 
 numeric_literal = number
 string_literal = QuotedString("'", escQuote="''")
@@ -63,7 +63,7 @@ type_name = oneOf("TEXT REAL INTEGER BLOB NULL")
 expr_term = (
     CAST + LPAR + expr + AS + type_name + RPAR
     | EXISTS + LPAR + select_stmt + RPAR
-    | function_name.setName("function_name")
+    | function_name.set_parser_name("function_name")
     + LPAR
     + Optional(STAR | delimitedList(expr))
     + RPAR

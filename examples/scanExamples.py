@@ -36,9 +36,9 @@ CORBA::initORB("xyzzy", USERNAME, PASSWORD );
 ident = Word(alphas, alphanums + "_")
 macroDef = (
     Literal("#define")
-    + ident.setResultsName("name")
+    + ident.set_token_name("name")
     + "="
-    + restOfLine.setResultsName("value")
+    + restOfLine.set_token_name("value")
 )
 for t, s, e in macroDef.scanString(testData):
 

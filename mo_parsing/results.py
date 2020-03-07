@@ -16,9 +16,9 @@ _get = object.__getattribute__
 def get_name(tok):
     try:
         if isinstance(tok, Forward):
-            return tok.type_for_result.expr.resultsName
+            return tok.type_for_result.expr.token_name
         if isinstance(tok, ParseResults):
-            return _get(tok, "type_for_result").resultsName
+            return _get(tok, "type_for_result").token_name
         return None
     except Exception as e:
         raise e
@@ -30,14 +30,14 @@ class ParseResults(object):
 
        - as a list (``len(results)``)
        - by list index (``results[0], results[1]``, etc.)
-       - by attribute (``results.<resultsName>`` - see :class:`ParserElement.setResultsName`)
+       - by attribute (``results.<token_name>`` - see :class:`ParserElement.set_token_name`)
 
     Example::(pars
 
         integer = Word(nums)
-        date_str = (integer.setResultsName("year") + '/'
-                        + integer.setResultsName("month") + '/'
-                        + integer.setResultsName("day"))
+        date_str = (integer.set_token_name("year") + '/'
+                        + integer.set_token_name("month") + '/'
+                        + integer.set_token_name("day"))
         # equivalent form:
         # date_str = integer("year") + '/' + integer("month") + '/' + integer("day")
 
@@ -217,14 +217,14 @@ class ParseResults(object):
         else:
             if key == self.name_for_result:
                 new_type = copy(self.type_for_result)
-                new_type.resultsName = None
+                new_type.token_name = None
                 self.type_for_result = new_type
                 return
             for i, t in enumerate(self.tokens_for_result):
                 name = get_name(t)
                 if name == key:
                     new_type = copy(t.type_for_result)
-                    new_type.resultsName = None
+                    new_type.token_name = None
                     t.type_for_result = new_type
                     return
                 elif not isinstance(t, ParseResults):
@@ -485,7 +485,7 @@ class ParseResults(object):
         old_parser = self.type_for_result
         parser_type = globals().get(old_parser.__class__.__name__, ParserElement)
         new_parser = parser_type(None)
-        new_parser.resultsName = old_parser.resultsName
+        new_parser.token_name = old_parser.token_name
         return new_parser, self.tokens_for_result
 
     def __dir__(self):

@@ -53,7 +53,7 @@ syntax_rule = meta_identifier + Suppress("=") + definitions_list + Suppress(";")
 ebnfComment = (
     ("(*" + ZeroOrMore(CharsNotIn("*") | ("*" + ~Literal(")"))) + "*)")
     .streamline()
-    .setName("ebnfComment")
+    .set_parser_name("ebnfComment")
 )
 
 syntax = OneOrMore(syntax_rule)
@@ -155,7 +155,7 @@ forward_count.value = 0
 for name in all_names:
     expr = vars()[name]
     action = vars()["do_" + name]
-    expr.setName(name)
+    expr.set_parser_name(name)
     expr.setParseAction(action)
     # ~ expr.setDebug()
 
@@ -168,6 +168,6 @@ def parse(ebnf, given_table={}):
     assert forward_count.value == 0, "Missing definition"
     for name in table:
         expr = table[name]
-        expr.setName(name)
+        expr.set_parser_name(name)
         # ~ expr.setDebug()
     return table

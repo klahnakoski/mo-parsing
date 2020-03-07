@@ -145,7 +145,8 @@ class ParserElement(object):
 
     def __init__(self, savelist=False):
         self.parseAction = list()
-        self.resultsName = None
+        # self.parser_name = self.__class__.__name__
+        self.token_name = None
         self.parser_config = Data()
         self.parser_config.failAction = None
         self.parser_config.skipWhitespace = True
@@ -216,54 +217,20 @@ class ParserElement(object):
             cpy.parser_config.whiteChars = CURRENT_WHITE_CHARS
         return cpy
 
-    def setName(self, name):
+    def set_parser_name(self, name):
         """
         Define name for this expression, makes debugging and exception messages clearer.
 
         Example::
 
             Word(nums).parseString("ABC")  # -> Exception: Expected W:(0123...) (at char 0), (line:1, col:1)
-            Word(nums).setName("integer").parseString("ABC")  # -> Exception: Expected integer (at char 0), (line:1, col:1)
+            Word(nums).set_parser_name("integer").parseString("ABC")  # -> Exception: Expected integer (at char 0), (line:1, col:1)
         """
-        self.name = name
-        self.parser_config.error_message = "Expected " + self.name
+        self.parser_name = name
+        self.parser_config.error_message = "Expected " + self.parser_name
         if __diag__.enable_debug_on_named_expressions:
             self.setDebug()
         return self
-
-    def setResultsName(self, name, listAllMatches=False):
-        """
-        Define name for referencing matching tokens as a nested attribute
-        of the returned parse results.
-        NOTE: this returns a *copy* of the original :class:`ParserElement` object;
-        this is so that the client can define a basic element, such as an
-        integer, and reference it in multiple places with different names.
-
-        You can also set results names using the abbreviated syntax,
-        ``expr("name")`` in place of ``expr.setResultsName("name")``
-        - see :class:`__call__`.
-
-        Example::
-
-            date_str = (integer.setResultsName("year") + '/'
-                        + integer.setResultsName("month") + '/'
-                        + integer.setResultsName("day"))
-
-            # equivalent form:
-            date_str = integer("year") + '/' + integer("month") + '/' + integer("day")
-        """
-        return self._setResultsName(name, listAllMatches)
-
-    def _setResultsName(self, name, listAllMatches=False):
-        newself = self.copy()
-        if not is_text(name):
-            Log.error("not expected")
-        if name.endswith("*"):
-            name = name[:-1]
-            listAllMatches = True
-        newself.resultsName = name
-        newself.parser_config.modalResults = not listAllMatches
-        return newself
 
     def setBreak(self, breakFlag=True):
         """Method to invoke the Python pdb debugger when this element is
@@ -961,7 +928,7 @@ class ParserElement(object):
 
     def __call__(self, name=None):
         """
-        Shortcut for :class:`setResultsName`, with ``listAllMatches=False``.
+        Shortcut for :class:`.set_token_name`, with ``listAllMatches=False``.
 
         If ``name`` is given with a trailing ``'*'`` character, then ``listAllMatches`` will be
         passed as ``True``.
@@ -971,13 +938,25 @@ class ParserElement(object):
         Example::
 
             # these are equivalent
-            userdata = Word(alphas).setResultsName("name") + Word(nums + "-").setResultsName("socsecno")
+            userdata = Word(alphas).set_token_name("name") + Word(nums + "-").set_token_name("socsecno")
             userdata = Word(alphas)("name") + Word(nums + "-")("socsecno")
         """
-        if name is not None:
-            return self._setResultsName(name)
-        else:
+        if not name:
+            Log.warning("use copy")
             return self.copy()
+        return self.set_token_name(name)
+
+    def set_token_name(self, name, listAllMatches=False):
+        if not is_text(name):
+            Log.error("not expected")
+        if name.endswith("*"):
+            name = name[:-1]
+            listAllMatches = True
+            Log.warning("stop using")
+        output = self.copy()
+        output.token_name = name
+        output.parser_config.modalResults = not listAllMatches
+        return output
 
     def suppress(self):
         """
@@ -1062,7 +1041,7 @@ class ParserElement(object):
         return self
 
     def __str__(self):
-        return self.name
+        return self.parser_name
 
     def __repr__(self):
         return text(self)
@@ -1143,10 +1122,10 @@ class _PendingSkip(ParserElement):
     def __init__(self, expr):
         super(_PendingSkip, self).__init__()
         self.anchor = expr
-        self.name = "pending_skip"
+        self.parser_name = "pending_skip"
 
     def __add__(self, other):
-        skipper = SkipTo(other).setName("...")("_skipped*")
+        skipper = SkipTo(other).set_parser_name("...")("_skipped*")
         return self.anchor + skipper + other
 
     def parseImpl(self, *args):

@@ -31,11 +31,11 @@ SELECT, FROM, WHERE, AND, OR, IN, IS, NOT, NULL = map(
 )
 NOT_NULL = NOT + NULL
 
-ident = Word(alphas, alphanums + "_$").setName("identifier")
-columnName = delimitedList(ident, ".", combine=True).setName("column name")
+ident = Word(alphas, alphanums + "_$").set_parser_name("identifier")
+columnName = delimitedList(ident, ".", combine=True).set_parser_name("column name")
 columnName.addParseAction(upcaseTokens)
 columnNameList = Group(delimitedList(columnName))
-tableName = delimitedList(ident, ".", combine=True).setName("table name")
+tableName = delimitedList(ident, ".", combine=True).set_parser_name("table name")
 tableName.addParseAction(upcaseTokens)
 tableNameList = Group(delimitedList(tableName))
 

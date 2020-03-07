@@ -10,10 +10,10 @@ from mo_parsing import *
 # first pass
 lbrack = Literal("[")
 rbrack = Literal("]")
-integer = Word(nums).setName("integer")
+integer = Word(nums).set_parser_name("integer")
 real = Combine(
     Optional(oneOf("+ -")) + Word(nums) + "." + Optional(Word(nums))
-).setName("real")
+).set_parser_name("real")
 
 listItem = real | integer | quotedString
 
@@ -28,10 +28,10 @@ lbrack = Literal("[").suppress()
 rbrack = Literal("]").suppress()
 cvtInt = lambda s, l, toks: int(toks[0])
 cvtReal = lambda s, l, toks: float(toks[0])
-integer = Word(nums).setName("integer").setParseAction(cvtInt)
+integer = Word(nums).set_parser_name("integer").setParseAction(cvtInt)
 real = (
     Combine(Optional(oneOf("+ -")) + Word(nums) + "." + Optional(Word(nums)))
-    .setName("real")
+    .set_parser_name("real")
     .setParseAction(cvtReal)
 )
 listItem = real | integer | quotedString.setParseAction(removeQuotes)
@@ -47,8 +47,8 @@ lbrack, rbrack = map(Suppress, "[]")
 cvtInt = tokenMap(int)
 cvtReal = tokenMap(float)
 
-integer = Word(nums).setName("integer").setParseAction(cvtInt)
-real = Regex(r"[+-]?\d+\.\d*").setName("real").setParseAction(cvtReal)
+integer = Word(nums).set_parser_name("integer").setParseAction(cvtInt)
+real = Regex(r"[+-]?\d+\.\d*").set_parser_name("real").setParseAction(cvtReal)
 
 listStr = Forward()
 listItem = real | integer | quotedString.setParseAction(removeQuotes) | Group(listStr)

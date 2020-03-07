@@ -60,15 +60,15 @@ And, MatchFirst = [None] * 2
 
 dblQuotedString = Combine(
     Regex(r'"(?:[^"\n\r\\]|(?:"")|(?:\\(?:[^x]|x[0-9a-fA-F]+)))*') + '"'
-).setName("string enclosed in double quotes")
+).set_parser_name("string enclosed in double quotes")
 sglQuotedString = Combine(
     Regex(r"'(?:[^'\n\r\\]|(?:'')|(?:\\(?:[^x]|x[0-9a-fA-F]+)))*") + "'"
-).setName("string enclosed in single quotes")
+).set_parser_name("string enclosed in single quotes")
 quotedString = Combine(
     Regex(r'"(?:[^"\n\r\\]|(?:"")|(?:\\(?:[^x]|x[0-9a-fA-F]+)))*') + '"'
     | Regex(r"'(?:[^'\n\r\\]|(?:'')|(?:\\(?:[^x]|x[0-9a-fA-F]+)))*") + "'"
-).setName("quotedString using single or double quotes")
-unicodeString = Combine(Literal("u") + quotedString.copy()).setName(
+).set_parser_name("quotedString using single or double quotes")
+unicodeString = Combine(Literal("u") + quotedString.copy()).set_parser_name(
     "unicode string literal"
 )
 
@@ -90,9 +90,9 @@ def delimitedList(expr, delim=",", combine=False):
     """
     dlName = text(expr) + " [" + text(delim) + " " + text(expr) + "]..."
     if combine:
-        return Combine(expr + ZeroOrMore(delim + expr)).setName(dlName)
+        return Combine(expr + ZeroOrMore(delim + expr)).set_parser_name(dlName)
     else:
-        return (expr + ZeroOrMore(Suppress(delim) + expr)).setName(dlName)
+        return (expr + ZeroOrMore(Suppress(delim) + expr)).set_parser_name(dlName)
 
 
 def countedArray(expr, intExpr=None):
@@ -129,9 +129,9 @@ def countedArray(expr, intExpr=None):
         intExpr = Word(nums).setParseAction(lambda t: int(t[0]))
     else:
         intExpr = intExpr.copy()
-    intExpr.setName("arrayLen")
+    intExpr.set_parser_name("arrayLen")
     intExpr.addParseAction(countFieldParseAction, callDuringTry=True)
-    return (intExpr + arrayExpr).setName("(len) " + text(expr) + "...")
+    return (intExpr + arrayExpr).set_parser_name("(len) " + text(expr) + "...")
 
 
 def _flatten(L):
@@ -173,7 +173,7 @@ def matchPreviousLiteral(expr):
             rep << Empty()
 
     expr.addParseAction(copyTokenToRepeater, callDuringTry=True)
-    rep.setName("(prev) " + text(expr))
+    rep.set_parser_name("(prev) " + text(expr))
     return rep
 
 
@@ -207,7 +207,7 @@ def matchPreviousExpr(expr):
         rep.setParseAction(mustMatchTheseTokens, callDuringTry=True)
 
     expr.addParseAction(copyTokenToRepeater, callDuringTry=True)
-    rep.setName("(prev) " + text(expr))
+    rep.set_parser_name("(prev) " + text(expr))
     return rep
 
 
@@ -296,9 +296,9 @@ def oneOf(strs, caseless=False, useRegex=True, asKeyword=False):
             if len(symbols) == len("".join(symbols)):
                 return Regex(
                     "[%s]" % "".join(_escapeRegexRangeChars(sym) for sym in symbols)
-                ).setName(" | ".join(symbols))
+                ).set_parser_name(" | ".join(symbols))
             else:
-                return Regex("|".join(re.escape(sym) for sym in symbols)).setName(
+                return Regex("|".join(re.escape(sym) for sym in symbols)).set_parser_name(
                     " | ".join(symbols)
                 )
         except Exception:
@@ -309,7 +309,7 @@ def oneOf(strs, caseless=False, useRegex=True, asKeyword=False):
             )
 
     # last resort, just use MatchFirst
-    return MatchFirst(parseElementClass(sym) for sym in symbols).setName(
+    return MatchFirst(parseElementClass(sym) for sym in symbols).set_parser_name(
         " | ".join(symbols)
     )
 
@@ -551,16 +551,16 @@ def nestedExpr(opener="(", closer=")", content=None, ignoreExpr=quotedString.cop
         )
     else:
         ret <<= Group(Suppress(opener) + ZeroOrMore(ret | content) + Suppress(closer))
-    ret.setName("nested %s%s expression" % (opener, closer))
+    ret.set_parser_name("nested %s%s expression" % (opener, closer))
     return ret
 
 
 # convenience constants for positional expressions
-empty = Empty().setName("empty")
-lineStart = LineStart().setName("lineStart")
-lineEnd = LineEnd().setName("lineEnd")
-stringStart = StringStart().setName("stringStart")
-stringEnd = StringEnd().setName("stringEnd")
+empty = Empty().set_parser_name("empty")
+lineStart = LineStart().set_parser_name("lineStart")
+lineEnd = LineEnd().set_parser_name("lineEnd")
+stringStart = StringStart().set_parser_name("stringStart")
+stringEnd = StringEnd().set_parser_name("stringEnd")
 
 
 def srange(s):
@@ -708,7 +708,7 @@ def _makeTags(tagStr, xml, suppress_LT=Suppress("<"), suppress_GT=Suppress(">"))
         resname = tagStr
         tagStr = Keyword(tagStr, caseless=not xml)
     else:
-        resname = tagStr.name
+        resname = tagStr.parser_name
 
     tagAttrName = Word(alphas, alphanums + "_-:")
     if xml:
@@ -744,7 +744,7 @@ def _makeTags(tagStr, xml, suppress_LT=Suppress("<"), suppress_GT=Suppress(">"))
         )
     closeTag = Combine(Literal("</") + tagStr + ">", adjacent=False)
 
-    openTag.setName("<%s>" % resname)
+    openTag.set_parser_name("<%s>" % resname)
     # add start<tagname> results name in parse action now that ungrouped names are not reported at two levels
     openTag.addParseAction(
         lambda t: t.__setitem__(
@@ -753,10 +753,10 @@ def _makeTags(tagStr, xml, suppress_LT=Suppress("<"), suppress_GT=Suppress(">"))
     )
     closeTag = closeTag(
         "end" + "".join(resname.replace(":", " ").title().split())
-    ).setName("</%s>" % resname)
+    ).set_parser_name("</%s>" % resname)
     openTag.tag = resname
     closeTag.tag = resname
-    openTag.tag_body = SkipTo(closeTag())
+    openTag.tag_body = SkipTo(closeTag)
     return openTag, closeTag
 
 
@@ -1005,7 +1005,7 @@ def infixNotation(baseExpr, opList, lpar=Suppress("("), rpar=Suppress(")")):
                     "if numterms=3, opExpr must be a tuple or list of two expressions"
                 )
             opExpr1, opExpr2 = opExpr
-        thisExpr = Forward().setName(termName)
+        thisExpr = Forward().set_parser_name(termName)
         if rightLeftAssoc == opAssoc.LEFT:
             if arity == 1:
                 matchExpr = _FB(lastExpr + opExpr) + Group(lastExpr + OneOrMore(opExpr))
@@ -1056,7 +1056,7 @@ def infixNotation(baseExpr, opList, lpar=Suppress("("), rpar=Suppress(")")):
                 matchExpr.setParseAction(*pa)
             else:
                 matchExpr.setParseAction(pa)
-        thisExpr <<= matchExpr.setName(termName) | lastExpr
+        thisExpr <<= matchExpr.set_parser_name(termName) | lastExpr
         lastExpr = thisExpr
     ret <<= lastExpr
     return ret
@@ -1179,9 +1179,9 @@ def indentedBlock(blockStatementExpr, indentStack, indent=True):
             indentStack.pop()
 
     NL = OneOrMore(LineEnd().setWhitespaceChars("\t ").suppress())
-    INDENT = (Empty() + Empty().setParseAction(checkSubIndent)).setName("INDENT")
-    PEER = Empty().setParseAction(checkPeerIndent).setName("")
-    UNDENT = Empty().setParseAction(checkUnindent).setName("UNINDENT")
+    INDENT = (Empty() + Empty().setParseAction(checkSubIndent)).set_parser_name("INDENT")
+    PEER = Empty().setParseAction(checkPeerIndent).set_parser_name("")
+    UNDENT = Empty().setParseAction(checkUnindent).set_parser_name("UNINDENT")
     if indent:
         smExpr = Group(
             Optional(NL)
@@ -1197,19 +1197,19 @@ def indentedBlock(blockStatementExpr, indentStack, indent=True):
         )
     smExpr.setFailAction(lambda a, b, c, d: reset_stack())
     blockStatementExpr.ignore(_bslash + LineEnd())
-    return smExpr.setName("indented block")
+    return smExpr.set_parser_name("indented block")
 
 
 alphas8bit = srange(r"[\0xc0-\0xd6\0xd8-\0xf6\0xf8-\0xff]")
 punc8bit = srange(r"[\0xa1-\0xbf\0xd7\0xf7]")
 
 anyOpenTag, anyCloseTag = makeHTMLTags(
-    Word(alphas, alphanums + "_:").setName("any tag")
+    Word(alphas, alphanums + "_:").set_parser_name("any tag")
 )
 _htmlEntityMap = dict(zip("gt lt amp nbsp quot apos".split(), "><& \"'"))
 commonHTMLEntity = Regex(
     "&(?P<entity>" + "|".join(_htmlEntityMap.keys()) + ");"
-).setName("common HTML entity")
+).set_parser_name("common HTML entity")
 
 
 def replaceHTMLEntity(t):
@@ -1218,27 +1218,27 @@ def replaceHTMLEntity(t):
 
 
 # it's easy to get these comment structures wrong - they're very common, so may as well make them available
-cStyleComment = Combine(Regex(r"/\*(?:[^*]|\*(?!/))*") + "*/").setName(
+cStyleComment = Combine(Regex(r"/\*(?:[^*]|\*(?!/))*") + "*/").set_parser_name(
     "C style comment"
 )
 "Comment of the form ``/* ... */``"
 
-htmlComment = Regex(r"<!--[\s\S]*?-->").setName("HTML comment")
+htmlComment = Regex(r"<!--[\s\S]*?-->").set_parser_name("HTML comment")
 "Comment of the form ``<!-- ... -->``"
 
-restOfLine = Regex(r".*").leaveWhitespace().setName("rest of line")
-dblSlashComment = Regex(r"//(?:\\\n|[^\n])*").setName("// comment")
+restOfLine = Regex(r".*").leaveWhitespace().set_parser_name("rest of line")
+dblSlashComment = Regex(r"//(?:\\\n|[^\n])*").set_parser_name("// comment")
 "Comment of the form ``// ... (to end of line)``"
 
 cppStyleComment = Combine(
     Regex(r"/\*(?:[^*]|\*(?!/))*") + "*/" | dblSlashComment
-).setName("C++ style comment")
+).set_parser_name("C++ style comment")
 "Comment of either form :class:`cStyleComment` or :class:`dblSlashComment`"
 
 javaStyleComment = cppStyleComment
 "Same as :class:`cppStyleComment`"
 
-pythonStyleComment = Regex(r"#.*").setName("Python style comment")
+pythonStyleComment = Regex(r"#.*").set_parser_name("Python style comment")
 "Comment of the form ``# ... (to end of line)``"
 
 _commasepitem = (
@@ -1252,11 +1252,11 @@ _commasepitem = (
         lambda t: text(t).strip()
     )
     .streamline()
-    .setName("commaItem")
+    .set_parser_name("commaItem")
 )
 commaSeparatedList = delimitedList(
     Optional(quotedString.copy() | _commasepitem, default="")
-).setName("commaSeparatedList")
+).set_parser_name("commaSeparatedList")
 
 """Here are some common low-level expressions that may be useful in
 jump-starting parser development:
@@ -1412,14 +1412,14 @@ convertToFloat = tokenMap(float)
 Parse action for converting parsed numbers to Python float
 """
 
-integer = Word(nums).setName("integer").setParseAction(convertToInteger)
+integer = Word(nums).set_parser_name("integer").setParseAction(convertToInteger)
 """expression that parses an unsigned integer, returns an int"""
 
-hex_integer = Word(hexnums).setName("hex integer").setParseAction(tokenMap(int, 16))
+hex_integer = Word(hexnums).set_parser_name("hex integer").setParseAction(tokenMap(int, 16))
 """expression that parses a hexadecimal integer, returns an int"""
 
 signed_integer = (
-    Regex(r"[+-]?\d+").setName("signed integer").setParseAction(convertToInteger)
+    Regex(r"[+-]?\d+").set_parser_name("signed integer").setParseAction(convertToInteger)
 )
 """expression that parses an integer with optional leading sign, returns an int"""
 
@@ -1427,26 +1427,26 @@ fraction = (
     signed_integer().setParseAction(convertToFloat)
     + "/"
     + signed_integer().setParseAction(convertToFloat)
-).setName("fraction")
+).set_parser_name("fraction")
 """fractional expression of an integer divided by an integer, returns a float"""
 fraction.addParseAction(lambda t: t[0] / t[-1])
 
 mixed_integer = (
     fraction | signed_integer + Optional(Optional("-").suppress() + fraction)
-).setName("fraction or mixed integer-fraction")
+).set_parser_name("fraction or mixed integer-fraction")
 """mixed integer of the form 'integer - fraction', with optional leading integer, returns float"""
 mixed_integer.addParseAction(sum)
 
 real = (
     Regex(r"[+-]?(:?\d+\.\d*|\.\d+)")
-    .setName("real number")
+    .set_parser_name("real number")
     .setParseAction(convertToFloat)
 )
 """expression that parses a floating point number and returns a float"""
 
 sci_real = (
     Regex(r"[+-]?(:?\d+(:?[eE][+-]?\d+)|(:?\d+\.\d*|\.\d+)(:?[eE][+-]?\d+)?)")
-    .setName("real number with scientific notation")
+    .set_parser_name("real number with scientific notation")
     .setParseAction(convertToFloat)
 )
 """expression that parses a floating point number with optional
@@ -1458,40 +1458,40 @@ number = (sci_real | real | signed_integer).streamline()
 
 fnumber = (
     Regex(r"[+-]?\d+\.?\d*([eE][+-]?\d+)?")
-    .setName("fnumber")
+    .set_parser_name("fnumber")
     .setParseAction(convertToFloat)
 )
 """any int or real number, returned as float"""
 
-identifier = Word(alphas + "_", alphanums + "_").setName("identifier")
+identifier = Word(alphas + "_", alphanums + "_").set_parser_name("identifier")
 """typical code identifier (leading alpha or '_', followed by 0 or more alphas, nums, or '_')"""
 
 ipv4_address = Regex(
     r"(25[0-5]|2[0-4][0-9]|1?[0-9]{1,2})(\.(25[0-5]|2[0-4][0-9]|1?[0-9]{1,2})){3}"
-).setName("IPv4 address")
+).set_parser_name("IPv4 address")
 "IPv4 address (``0.0.0.0 - 255.255.255.255``)"
 
-_ipv6_part = Regex(r"[0-9a-fA-F]{1,4}").setName("hex_integer")
-_full_ipv6_address = (_ipv6_part + (":" + _ipv6_part) * 7).setName("full IPv6 address")
+_ipv6_part = Regex(r"[0-9a-fA-F]{1,4}").set_parser_name("hex_integer")
+_full_ipv6_address = (_ipv6_part + (":" + _ipv6_part) * 7).set_parser_name("full IPv6 address")
 _short_ipv6_address = (
     Optional(_ipv6_part + (":" + _ipv6_part) * (0, 6))
     + "::"
     + Optional(_ipv6_part + (":" + _ipv6_part) * (0, 6))
-).setName("short IPv6 address")
+).set_parser_name("short IPv6 address")
 _short_ipv6_address.addCondition(
     lambda t: sum(1 for tt in t if _ipv6_part.matches(tt)) < 8
 )
-_mixed_ipv6_address = ("::ffff:" + ipv4_address).setName("mixed IPv6 address")
+_mixed_ipv6_address = ("::ffff:" + ipv4_address).set_parser_name("mixed IPv6 address")
 ipv6_address = Combine(
-    (_full_ipv6_address | _mixed_ipv6_address | _short_ipv6_address).setName(
+    (_full_ipv6_address | _mixed_ipv6_address | _short_ipv6_address).set_parser_name(
         "IPv6 address"
     )
-).setName("IPv6 address")
+).set_parser_name("IPv6 address")
 "IPv6 address (long, short, or mixed form)"
 
 mac_address = Regex(
     r"[0-9a-fA-F]{2}([:.-])[0-9a-fA-F]{2}(?:\1[0-9a-fA-F]{2}){4}"
-).setName("MAC address")
+).set_parser_name("MAC address")
 "MAC address xx:xx:xx:xx:xx (may also have '-' or '.' delimiters)"
 
 
@@ -1551,15 +1551,15 @@ def convertToDatetime(fmt="%Y-%m-%dT%H:%M:%S.%f"):
 
 iso8601_date = Regex(
     r"(?P<year>\d{4})(?:-(?P<month>\d\d)(?:-(?P<day>\d\d))?)?"
-).setName("ISO8601 date")
+).set_parser_name("ISO8601 date")
 "ISO8601 date (``yyyy-mm-dd``)"
 
 iso8601_datetime = Regex(
     r"(?P<year>\d{4})-(?P<month>\d\d)-(?P<day>\d\d)[T ](?P<hour>\d\d):(?P<minute>\d\d)(:(?P<second>\d\d(\.\d*)?)?)?(?P<tz>Z|[+-]\d\d:?\d\d)?"
-).setName("ISO8601 datetime")
+).set_parser_name("ISO8601 datetime")
 "ISO8601 datetime (``yyyy-mm-ddThh:mm:ss.s(Z|+-00:00)``) - trailing seconds, milliseconds, and timezone optional; accepts separating ``'T'`` or ``' '``"
 
-uuid = Regex(r"[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}").setName("UUID")
+uuid = Regex(r"[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}").set_parser_name("UUID")
 "UUID (``xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx``)"
 
 _html_stripper = anyOpenTag.suppress() | anyCloseTag.suppress()
@@ -1596,14 +1596,14 @@ _commasepitem = (
         )
     )
     .streamline()
-    .setName("commaItem")
+    .set_parser_name("commaItem")
     .addParseAction(_strip)
 )
 comma_separated_list = (
     delimitedList(
         Optional(quotedString.copy() | _commasepitem, default="")
     )
-    .setName("comma separated list")
+    .set_parser_name("comma separated list")
 )
 """Predefined expression of 1 or more printable words or quoted strings, separated by commas."""
 
@@ -1630,7 +1630,7 @@ _singleChar = (
 _charRange = Group(_singleChar + Suppress("-") + _singleChar)
 _reBracketExpr = (
     Literal("[")
-    + Optional("^").setResultsName("negate")
-    + Group(OneOrMore(_charRange | _singleChar)).setResultsName("body")
+    + Optional("^").set_token_name("negate")
+    + Group(OneOrMore(_charRange | _singleChar)).set_token_name("body")
     + "]"
 )

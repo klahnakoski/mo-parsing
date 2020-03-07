@@ -213,7 +213,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
                 "setDefaultWhitespaceChars updated dblQuotedString but should not",
             )
 
-            EOL = LineEnd().suppress().setName("EOL")
+            EOL = LineEnd().suppress().set_parser_name("EOL")
 
             # Identifiers is a string + optional $
             identifier = Combine(Word(alphas) + Optional("$"))
@@ -221,7 +221,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
             # Literals (number or double quoted string)
             literal = number | dblQuotedString
             expression = literal | identifier
-            # expression.setName("expression").setDebug()
+            # expression.set_parser_name("expression").setDebug()
             # number.setDebug()
             # integer.setDebug()
 
@@ -1269,14 +1269,14 @@ class TestParsing(TestParseResultsAsserts, TestCase):
 
     def testParseExpressionResults(self):
 
-        a = Word("a", alphas).setName("A")
-        b = Word("b", alphas).setName("B")
-        c = Word("c", alphas).setName("C")
-        ab = (a + b).setName("AB")
-        abc = (ab + c).setName("ABC")
-        word = Word(alphas).setName("word")
+        a = Word("a", alphas).set_parser_name("A")
+        b = Word("b", alphas).set_parser_name("B")
+        c = Word("c", alphas).set_parser_name("C")
+        ab = (a + b).set_parser_name("AB")
+        abc = (ab + c).set_parser_name("ABC")
+        word = Word(alphas).set_parser_name("word")
 
-        words = Group(OneOrMore(~a + word)).setName("words")
+        words = Group(OneOrMore(~a + word)).set_parser_name("words")
 
         phrase = (
             words("Head") + Group(a + Optional(b + Optional(c)))("ABC") + words("Tail")
@@ -1332,9 +1332,9 @@ class TestParsing(TestParseResultsAsserts, TestCase):
 
     def testParseExpressionResultsAccumulate(self):
 
-        num = Word(nums).setName("num")("base10*")
-        hexnum = Combine("0x" + Word(nums)).setName("hexnum")("hex*")
-        name = Word(alphas).setName("word")("word*")
+        num = Word(nums).set_parser_name("num")("base10*")
+        hexnum = Combine("0x" + Word(nums)).set_parser_name("hexnum")("hex*")
+        name = Word(alphas).set_parser_name("word")("word*")
         list_of_num = delimitedList(hexnum | num | name, ",")
 
         tokens = list_of_num.parseString("1, 0x2, 3, 0x4, aaa")
@@ -1351,8 +1351,8 @@ class TestParsing(TestParseResultsAsserts, TestCase):
 
         lbrack = Literal("(").suppress()
         rbrack = Literal(")").suppress()
-        integer = Word(nums).setName("int")
-        variable = Word(alphas, max=1).setName("variable")
+        integer = Word(nums).set_parser_name("int")
+        variable = Word(alphas, max=1).set_parser_name("variable")
         relation_body_item = (
             variable | integer | quotedString.copy().setParseAction(removeQuotes)
         )
@@ -1478,8 +1478,8 @@ class TestParsing(TestParseResultsAsserts, TestCase):
             "SkipTo created with wrong saveAsList attribute",
         )
 
-        alpha_word = (~Literal("end") + Word(alphas, asKeyword=True)).setName("alpha")
-        num_word = Word(nums, asKeyword=True).setName("int")
+        alpha_word = (~Literal("end") + Word(alphas, asKeyword=True)).set_parser_name("alpha")
+        num_word = Word(nums, asKeyword=True).set_parser_name("int")
 
         def test(expr, test_string, expected_list, expected_dict):
             if (expected_list, expected_dict) == (None, None):
@@ -1581,8 +1581,8 @@ class TestParsing(TestParseResultsAsserts, TestCase):
 
     def testEllipsisRepetion(self):
 
-        word = Word(alphas).setName("word")
-        num = Word(nums).setName("num")
+        word = Word(alphas).set_parser_name("word")
+        num = Word(nums).set_parser_name("num")
 
         exprs = [
             word[...] + num,
@@ -2888,7 +2888,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
 
     def testPackratParsingCacheCopy(self):
 
-        integer = Word(nums).setName("integer")
+        integer = Word(nums).set_parser_name("integer")
         id = Word(alphas + "_", alphanums + "_")
         simpleType = Literal("int")
         arrayType = simpleType + ("[" + delimitedList(integer) + "]")[...]
@@ -2922,12 +2922,12 @@ class TestParsing(TestParseResultsAsserts, TestCase):
 
         function_name = identifier.copy()
         # ~ function_name = ~AA + Word("Z")  #identifier.copy()
-        expr = Forward().setName("expr")
+        expr = Forward().set_parser_name("expr")
         expr << (
-            Group(function_name + LPAR + Optional(delimitedList(expr)) + RPAR).setName(
+            Group(function_name + LPAR + Optional(delimitedList(expr)) + RPAR).set_parser_name(
                 "functionCall"
             )
-            | identifier.setName("ident")  # .setDebug()#.setBreak()
+            | identifier.set_parser_name("ident")  # .setDebug()#.setBreak()
         )
 
         stmt = DO + Group(delimitedList(identifier + ".*" | expr))
@@ -3333,7 +3333,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
 
     def testOptionalEachTest2(self):
 
-        word = Word(alphanums + "_").setName("word")
+        word = Word(alphanums + "_").set_parser_name("word")
         with_stmt = "with" + OneOrMore(Group(word("key") + "=" + word("value")))(
             "overrides"
         )
@@ -3548,9 +3548,9 @@ class TestParsing(TestParseResultsAsserts, TestCase):
                 raise ParseException("signalling invalid token")
             return token
 
-        a = Word("de").setName("Word")  # .setDebug()
-        b = Literal("def").setName("Literal").setParseAction(validate)  # .setDebug()
-        c = Literal("d").setName("d")  # .setDebug()
+        a = Word("de").set_parser_name("Word")  # .setDebug()
+        b = Literal("def").set_parser_name("Literal").setParseAction(validate)  # .setDebug()
+        c = Literal("d").set_parser_name("d")  # .setDebug()
 
         # The "Literal" expressions's ParseAction is not executed directly after syntactically
         # detecting the "Literal" Expression but only after the Or-decision has been made
@@ -3570,8 +3570,8 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         )
 
         # from issue #93
-        word = Word(alphas).setName("word")
-        word_1 = Word(alphas).setName("word_1").addCondition(lambda t: len(t[0]) == 1)
+        word = Word(alphas).set_parser_name("word")
+        word_1 = Word(alphas).set_parser_name("word_1").addCondition(lambda t: len(t[0]) == 1)
 
         a = word + (word_1 + word ^ word)
         b = word * 3
@@ -3630,9 +3630,9 @@ class TestParsing(TestParseResultsAsserts, TestCase):
             str(recursive), "Forward: {a | b | c [{d | e | f Forward: ...}]...}"
         )
         self.assertEqual(
-            str(delimitedList(Word(nums).setName("int"))), "int [, int]..."
+            str(delimitedList(Word(nums).set_parser_name("int"))), "int [, int]..."
         )
-        self.assertEqual(str(countedArray(Word(nums).setName("int"))), "(len) int...")
+        self.assertEqual(str(countedArray(Word(nums).set_parser_name("int"))), "(len) int...")
         self.assertEqual(str(nestedExpr()), "nested () expression")
         self.assertEqual(str(makeHTMLTags("Z")), "(<Z>, </Z>)")
         self.assertEqual(str((anyOpenTag, anyCloseTag)), "(<any tag>, </any tag>)")
@@ -3728,7 +3728,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
     def testOneOrMoreStop(self):
         test = "BEGIN aaa bbb ccc END"
         BEGIN, END = map(Keyword, ["BEGIN", "END"])
-        body_word = Word(alphas).setName("word")
+        body_word = Word(alphas).set_parser_name("word")
         for ender in (END, "END", CaselessKeyword("END")):
             expr = BEGIN + OneOrMore(body_word, stopOn=ender) + END
             result = expr.parseString(test)
@@ -3746,7 +3746,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
                 "Did not successfully stop on ending expression %r" % ender,
             )
 
-        number = Word(nums + ",.()").setName("number with optional commas")
+        number = Word(nums + ",.()").set_parser_name("number with optional commas")
         parser = OneOrMore(Word(alphanums + "-/."), stopOn=number)("id").setParseAction(
             " ".join
         ) + number("data")
@@ -3760,7 +3760,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
     def testZeroOrMoreStop(self):
         test = "BEGIN END"
         BEGIN, END = map(Keyword, "BEGIN,END".split(","))
-        body_word = Word(alphas).setName("word")
+        body_word = Word(alphas).set_parser_name("word")
         for ender in (END, "END", CaselessKeyword("END")):
             expr = BEGIN + ZeroOrMore(body_word, stopOn=ender) + END
             result = expr.parseString(test)
@@ -4620,7 +4620,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
             Word,
             Regex,
         ):
-            expr = cls("xyz")  # .setName('{}_expr'.format(cls.__name__.lower()))
+            expr = cls("xyz")  # .set_parser_name('{}_expr'.format(cls.__name__.lower()))
 
             try:
                 expr.parseString(" ")
@@ -5276,19 +5276,19 @@ class TestParsing(TestParseResultsAsserts, TestCase):
 
     def testExplainException(self):
 
-        expr = Word(nums).setName("int") + Word(alphas).setName("word")
+        expr = Word(nums).set_parser_name("int") + Word(alphas).set_parser_name("word")
         try:
             expr.parseString("123 355")
         except ParseException as pe:
             pass
 
-        expr = Word(nums).setName("int") - Word(alphas).setName("word")
+        expr = Word(nums).set_parser_name("int") - Word(alphas).set_parser_name("word")
         try:
             expr.parseString("123 355 (test using ErrorStop)")
         except ParseSyntaxException as pe:
             pass
 
-        integer = Word(nums).setName("int").addParseAction(lambda t: int(t[0]))
+        integer = Word(nums).set_parser_name("int").addParseAction(lambda t: int(t[0]))
         expr = integer + integer
 
         def divide_args(t):
@@ -5358,7 +5358,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         with reset_parsing_context():
             __diag__.enable("warn_ungrouped_named_tokens_in_collection")
 
-            COMMA = Suppress(",").setName("comma")
+            COMMA = Suppress(",").set_parser_name("comma")
             coord = integer("x") + COMMA + integer("y")
 
             # this should emit a warning
@@ -5367,7 +5367,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
                 msg="failed to warn with named repetition of"
                 " ungrouped named expressions",
             ):
-                path = coord[...].setResultsName("path")
+                path = coord[...].set_token_name("path")
 
     def testWarnNameSetOnEmptyForward(self):
         """
@@ -5403,7 +5403,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
     def testEnableDebugOnNamedExpressions(self):
         """
          - enable_debug_on_named_expressions - flag to auto-enable debug on all subsequent
-           calls to ParserElement.setName() (default=False)
+           calls to ParserElement.set_parser_name() (default=False)
         """
 
         with reset_parsing_context():
@@ -5414,7 +5414,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
                 sys.stderr = test_stdout
 
                 __diag__.enable("enable_debug_on_named_expressions")
-                integer = Word(nums).setName("integer")
+                integer = Word(nums).set_parser_name("integer")
 
                 integer[...].parseString("1 2 3")
 
@@ -5741,42 +5741,42 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         self.assertEqual(
             len(stmt[...]("tests").parseString("test test").tests),
             2,
-            "ZeroOrMore failure with setResultsName",
+            "ZeroOrMore failure with .set_token_name",
         )
         self.assertEqual(
             len(stmt[1, ...]("tests").parseString("test test").tests),
             2,
-            "OneOrMore failure with setResultsName",
+            "OneOrMore failure with .set_token_name",
         )
         self.assertEqual(
             len(Optional(stmt[1, ...]("tests")).parseString("test test").tests),
             2,
-            "OneOrMore failure with setResultsName",
+            "OneOrMore failure with .set_token_name",
         )
         self.assertEqual(
             len(Optional(delimitedList(stmt))("tests").parseString("test,test").tests),
             2,
-            "delimitedList failure with setResultsName",
+            "delimitedList failure with .set_token_name",
         )
         self.assertEqual(
             len((stmt * 2)("tests").parseString("test test").tests),
             2,
-            "multiplied(1) failure with setResultsName",
+            "multiplied(1) failure with .set_token_name",
         )
         self.assertEqual(
             len(stmt[..., 2]("tests").parseString("test test").tests),
             2,
-            "multiplied(2) failure with setResultsName",
+            "multiplied(2) failure with .set_token_name",
         )
         self.assertEqual(
             len(stmt[1, ...]("tests").parseString("test test").tests),
             2,
-            "multipled(3) failure with setResultsName",
+            "multipled(3) failure with .set_token_name",
         )
         self.assertEqual(
             len(stmt[2, ...]("tests").parseString("test test").tests),
             2,
-            "multipled(3) failure with setResultsName",
+            "multipled(3) failure with .set_token_name",
         )
 
 

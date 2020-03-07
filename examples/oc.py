@@ -143,7 +143,7 @@ for vname in (
     "NAME fundecl vardecl program arg body stmt".split()
 ):
     v = vars()[vname]
-    v.setName(vname)
+    v.set_parser_name(vname)
 
 # ~ for vname in "fundecl stmt".split():
 # ~ v = vars()[vname]

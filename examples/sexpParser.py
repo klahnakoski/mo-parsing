@@ -60,7 +60,7 @@ def verify_length(s, l, t):
 
 # define punctuation literals
 LPAR, RPAR, LBRK, RBRK, LBRC, RBRC, VBAR, COLON = (
-    Suppress(c).setName(c) for c in "()[]{}|:"
+    Suppress(c).set_parser_name(c) for c in "()[]{}|:"
 )
 
 decimal = Regex(r"-?0|[1-9]\d*").setParseAction(lambda t: int(t[0]))

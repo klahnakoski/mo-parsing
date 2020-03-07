@@ -4,7 +4,7 @@
 # to extract a list of NTP time servers from the NIST web site.
 #
 # Copyright 2004-2010, by Paul McGuire
-# September, 2010 - updated to more current use of setResultsName, new NIST URL
+# September, 2010 - updated to more current use of .set_token_name, new NIST URL
 #
 from urllib.request import urlopen
 

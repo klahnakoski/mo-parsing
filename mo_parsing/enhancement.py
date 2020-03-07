@@ -174,8 +174,8 @@ class NotAny(ParseElementEnhance):
         return loc, ParseResults(self, [])
 
     def __str__(self):
-        if hasattr(self, "name"):
-            return self.name
+        if hasattr(self, "parser_name"):
+            return self.parser_name
         return "~{" + text(self.expr) + "}"
 
 
@@ -225,14 +225,14 @@ class _MultipleMatch(ParseElementEnhance):
     def _setResultsName(self, name, listAllMatches=False):
         if __diag__.warn_ungrouped_named_tokens_in_collection:
             for e in [self.expr] + getattr(self.expr, "exprs", []):
-                if isinstance(e, ParserElement) and e.resultsName:
+                if isinstance(e, ParserElement) and e.token_name:
                     warnings.warn(
                         "{0}: setting results name {1!r} on {2} expression "
                         "collides with {3!r} on contained expression".format(
                             "warn_ungrouped_named_tokens_in_collection",
                             name,
                             type(self).__name__,
-                            e.resultsName,
+                            e.token_name,
                         ),
                         stacklevel=3,
                     )
@@ -267,8 +267,8 @@ class OneOrMore(_MultipleMatch):
     """
 
     def __str__(self):
-        if hasattr(self, "name"):
-            return self.name
+        if hasattr(self, "parser_name"):
+            return self.parser_name
 
         return "{" + text(self.expr) + "}..."
 
@@ -296,8 +296,8 @@ class ZeroOrMore(_MultipleMatch):
             return loc, ParseResults(self, [])
 
     def __str__(self):
-        if hasattr(self, "name"):
-            return self.name
+        if hasattr(self, "parser_name"):
+            return self.parser_name
 
         return "[" + text(self.expr) + "]..."
 
@@ -352,9 +352,9 @@ class Optional(ParseElementEnhance):
             loc, tokens = self.expr._parse(instring, loc, doActions, callPreParse=False)
         except (ParseException, IndexError):
             if self.defaultValue is not self.__optionalNotMatched:
-                if self.expr.resultsName:
+                if self.expr.token_name:
                     tokens = ParseResults(self, [self.defaultValue])
-                    tokens[self.expr.resultsName] = self.defaultValue
+                    tokens[self.expr.token_name] = self.defaultValue
                 else:
                     tokens = self.defaultValue
             else:
@@ -363,8 +363,8 @@ class Optional(ParseElementEnhance):
         return loc, ParseResults(self, [tokens])
 
     def __str__(self):
-        if hasattr(self, "name"):
-            return self.name
+        if hasattr(self, "parser_name"):
+            return self.parser_name
 
         return "[" + text(self.expr) + "]"
 
@@ -529,8 +529,8 @@ class Forward(ParseElementEnhance):
 
         self.expr = self.normalize(other)
 
-        if self.resultsName:
-            self.expr(self.resultsName)
+        if self.token_name:
+            self.expr(self.token_name)
         return self
 
     def __ilshift__(self, other):
@@ -568,8 +568,8 @@ class Forward(ParseElementEnhance):
             raise ParseException("", loc, self.parser_config.error_message, self)
 
     def __str__(self):
-        if hasattr(self, "name"):
-            return self.name
+        if hasattr(self, "parser_name"):
+            return self.parser_name
 
         if self.strRepr:
             return self.strRepr
@@ -619,7 +619,7 @@ class Forward(ParseElementEnhance):
                     stacklevel=3,
                 )
 
-        return super(Forward, self)._setResultsName(name, listAllMatches)
+        return super(Forward, self).set_token_name(name, listAllMatches)
 
 
 class TokenConverter(ParseElementEnhance):

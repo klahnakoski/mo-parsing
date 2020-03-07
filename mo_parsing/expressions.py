@@ -81,7 +81,7 @@ class ParseExpression(ParserElement):
             if (
                 isinstance(other, self.__class__)
                 and not other.parseAction
-                and other.resultsName is None
+                and other.token_name is None
                 and not other.parser_config.parser_config.debug
             ):
                 self.exprs = other.exprs[:] + [self.exprs[1]]
@@ -92,7 +92,7 @@ class ParseExpression(ParserElement):
             if (
                 isinstance(other, self.__class__)
                 and not other.parseAction
-                and other.resultsName is None
+                and other.token_name is None
                 and not other.parser_config.parser_config.debug
             ):
                 self.exprs = self.exprs[:-1] + other.exprs[:]
@@ -112,14 +112,14 @@ class ParseExpression(ParserElement):
     def _setResultsName(self, name, listAllMatches=False):
         if __diag__.warn_ungrouped_named_tokens_in_collection:
             for e in self.exprs:
-                if isinstance(e, ParserElement) and e.resultsName:
+                if isinstance(e, ParserElement) and e.token_name:
                     warnings.warn(
                         "{0}: setting results name {1!r} on {2} expression "
                         "collides with {3!r} on contained expression".format(
                             "warn_ungrouped_named_tokens_in_collection",
                             name,
                             type(self).__name__,
-                            e.resultsName,
+                            e.token_name,
                         ),
                         stacklevel=3,
                     )
@@ -148,7 +148,7 @@ class And(ParseExpression):
     class _ErrorStop(Empty):
         def __init__(self, *args, **kwargs):
             super(And._ErrorStop, self).__init__(*args, **kwargs)
-            self.name = "-"
+            self.parser_name = "-"
             self.leaveWhitespace()
 
     def __init__(self, exprs, savelist=True):
@@ -255,8 +255,8 @@ class And(ParseExpression):
                 break
 
     def __str__(self):
-        if hasattr(self, "name"):
-            return self.name
+        if hasattr(self, "parser_name"):
+            return self.parser_name
 
         return "{" + " ".join(text(e) for e in self.exprs) + "}"
 
@@ -361,8 +361,8 @@ class Or(ParseExpression):
         return self.append(self.normalize(other))  # Or([self, other])
 
     def __str__(self):
-        if hasattr(self, "name"):
-            return self.name
+        if hasattr(self, "parser_name"):
+            return self.parser_name
 
         return "{" + " ^ ".join(text(e) for e in self.exprs) + "}"
 
@@ -456,8 +456,8 @@ class MatchFirst(ParseExpression):
         return self.append(self.normalize(other))  # MatchFirst([self, other])
 
     def __str__(self):
-        if hasattr(self, "name"):
-            return self.name
+        if hasattr(self, "parser_name"):
+            return self.parser_name
 
         return " | ".join("{" + text(e) + "}" for e in self.exprs)
 
@@ -608,8 +608,8 @@ class Each(ParseExpression):
         return loc, finalResults
 
     def __str__(self):
-        if hasattr(self, "name"):
-            return self.name
+        if hasattr(self, "parser_name"):
+            return self.parser_name
 
         return "{" + " & ".join(text(e) for e in self.exprs) + "}"
 

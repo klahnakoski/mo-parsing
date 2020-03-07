@@ -25,7 +25,7 @@ from mo_parsing import (
 
 keep_import = Keyword
 
-ident = Word(alphas + "_", alphanums + "_").setName("identifier")
+ident = Word(alphas + "_", alphanums + "_").set_parser_name("identifier")
 integer = Regex(r"[+-]?\d+")
 
 LBRACE, RBRACE, LBRACK, RBRACK, LPAR, RPAR, EQ, SEMI = map(Suppress, "{}[]()=;")

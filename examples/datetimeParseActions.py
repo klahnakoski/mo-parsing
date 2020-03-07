@@ -12,7 +12,7 @@ from datetime import datetime
 from mo_parsing import Word, nums, pythonStyleComment, ParseException
 from mo_parsing.helpers import iso8601_date, convertToDate
 
-integer = Word(nums).setName("integer")
+integer = Word(nums).set_parser_name("integer")
 
 
 def convertToInt(tokens):

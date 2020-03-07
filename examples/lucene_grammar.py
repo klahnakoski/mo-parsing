@@ -18,7 +18,7 @@ expression = Forward()
 
 valid_word = Regex(
     r'([a-zA-Z0-9*_+.-]|\\\\|\\([+\-!(){}\[\]^"~*?:]|\|\||&&))+'
-).setName("word")
+).set_parser_name("word")
 valid_word.setParseAction(
     lambda t: t[0].replace("\\\\", chr(127)).replace("\\", "").replace(chr(127), "\\")
 )
@@ -33,7 +33,7 @@ number = fnumber()
 fuzzy_modifier = TILDE + Optional(number, default=0.5)("fuzzy")
 
 term = Forward()
-field_name = valid_word().setName("fieldname")
+field_name = valid_word().set_parser_name("fieldname")
 incl_range_search = Group(LBRACK - term("lower") + to_ + term("upper") + RBRACK)
 excl_range_search = Group(LBRACE - term("lower") + to_ + term("upper") + RBRACE)
 range_search = incl_range_search("incl_range") | excl_range_search("excl_range")

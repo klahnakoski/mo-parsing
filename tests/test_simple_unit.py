@@ -293,7 +293,7 @@ class TestResultsName(PyparsingExpressionTestCase):
     def test_Match_with_results_name(self):
         self.runTest(
             desc="Match with results name",
-            expr=Literal("xyz").setResultsName("value"),
+            expr=Literal("xyz").set_token_name("value"),
             text="xyz",
             expected_dict={"value": "xyz"},
             expected_list=["xyz"],

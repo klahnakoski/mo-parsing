@@ -85,7 +85,7 @@ classes inherit from. Use the docstrings for examples of how to:
    and :class:`'&'<Each>` operators to combine simple expressions into
    more complex ones
  - associate names with your parsed results using
-   :class:`ParserElement.setResultsName`
+   :class:`ParserElement.set_token_name`
  - access the parsed data, which is returned as a :class:`ParseResults`
    object
  - find some helpful expression short-cuts like :class:`delimitedList`

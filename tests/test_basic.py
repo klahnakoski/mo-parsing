@@ -26,11 +26,11 @@ class TestBasic(TestCase):
         columnName = delimitedList(ident, ".", combine=True).setParseAction(
             upcaseTokens
         )
-        columnNameList = Group(delimitedList(columnName)).setName("columns")
+        columnNameList = Group(delimitedList(columnName)).set_parser_name("columns")
         columnSpec = "*" | columnNameList
 
         tableName = delimitedList(ident, ".", combine=True).setParseAction(upcaseTokens)
-        tableNameList = Group(delimitedList(tableName)).setName("tables")
+        tableNameList = Group(delimitedList(tableName)).set_parser_name("tables")
 
         simpleSQL = (
             selectToken("command")

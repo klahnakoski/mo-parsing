@@ -151,7 +151,7 @@ REWRITE = Suppress("->")
 # General Parser Definitions
 
 # Grammar heading
-optionValue = id | STRING_LITERAL | CHAR_LITERAL | INT | Literal("*").setName("s")
+optionValue = id | STRING_LITERAL | CHAR_LITERAL | INT | Literal("*").set_parser_name("s")
 
 option = Group(id("id") + EQ + optionValue("value"))("option")
 optionsSpec = OPTIONS + Group(OneOrMore(option + SEMI))("options") + RBRACE

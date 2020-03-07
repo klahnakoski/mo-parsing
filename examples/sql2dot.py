@@ -81,9 +81,9 @@ field_list_def.setParseAction(field_list_act)
 create_table_def = (
     Literal("CREATE")
     + "TABLE"
-    + Word(alphas, alphanums + "_").setResultsName("tablename")
+    + Word(alphas, alphanums + "_").set_token_name("tablename")
     + "("
-    + field_list_def.setResultsName("columns")
+    + field_list_def.set_token_name("columns")
     + ")"
     + ";"
 )
@@ -102,19 +102,19 @@ add_fkey_def = (
     Literal("ALTER")
     + "TABLE"
     + "ONLY"
-    + Word(alphanums + "_").setResultsName("fromtable")
+    + Word(alphanums + "_").set_token_name("fromtable")
     + "ADD"
     + "CONSTRAINT"
     + Word(alphanums + "_")
     + "FOREIGN"
     + "KEY"
     + "("
-    + Word(alphanums + "_").setResultsName("fromcolumn")
+    + Word(alphanums + "_").set_token_name("fromcolumn")
     + ")"
     + "REFERENCES"
-    + Word(alphanums + "_").setResultsName("totable")
+    + Word(alphanums + "_").set_token_name("totable")
     + "("
-    + Word(alphanums + "_").setResultsName("tocolumn")
+    + Word(alphanums + "_").set_token_name("tocolumn")
     + ")"
     + ";"
 )

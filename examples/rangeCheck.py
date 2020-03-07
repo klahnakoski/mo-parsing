@@ -34,7 +34,7 @@ def ranged_value(expr, minval=None, maxval=None):
 
 
 # define the expressions for a date of the form YYYY/MM/DD or YYYY/MM (assumes YYYY/MM/01)
-integer = Word(nums).setName("integer")
+integer = Word(nums).set_parser_name("integer")
 integer.setParseAction(lambda t: int(t[0]))
 
 month = ranged_value(integer, 1, 12)
@@ -43,7 +43,7 @@ year = ranged_value(integer, 2000, None)
 
 SLASH = Suppress("/")
 dateExpr = year("year") + SLASH + month("month") + Optional(SLASH + day("day"))
-dateExpr.setName("date")
+dateExpr.set_parser_name("date")
 
 # convert date fields to datetime (also validates dates as truly valid dates)
 dateExpr.setParseAction(lambda t: datetime(t.year, t.month, t.day or 1).date())

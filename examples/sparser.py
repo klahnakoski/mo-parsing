@@ -213,11 +213,11 @@ class ParseFileLineByLine:
         special_chars = string.replace(
             "!\"#$%&'()*,./:;<=>?@[\\]^_`{|}~", decimal_sep, ""
         )
-        integer = ToInteger(Combine(Optional(sign) + Word(nums))).setName("integer")
-        positive_integer = ToInteger(Combine(Optional("+") + Word(nums))).setName(
+        integer = ToInteger(Combine(Optional(sign) + Word(nums))).set_parser_name("integer")
+        positive_integer = ToInteger(Combine(Optional("+") + Word(nums))).set_parser_name(
             "integer"
         )
-        negative_integer = ToInteger(Combine("-" + Word(nums))).setName("integer")
+        negative_integer = ToInteger(Combine("-" + Word(nums))).set_parser_name("integer")
         real = ToFloat(
             Combine(
                 Optional(sign)
@@ -226,7 +226,7 @@ class ParseFileLineByLine:
                 + Optional(Word(nums))
                 + Optional(oneOf("E e") + Word(nums))
             )
-        ).setName("real")
+        ).set_parser_name("real")
         positive_real = ToFloat(
             Combine(
                 Optional("+")
@@ -235,7 +235,7 @@ class ParseFileLineByLine:
                 + Optional(Word(nums))
                 + Optional(oneOf("E e") + Word(nums))
             )
-        ).setName("real")
+        ).set_parser_name("real")
         negative_real = ToFloat(
             Combine(
                 "-"
@@ -244,17 +244,17 @@ class ParseFileLineByLine:
                 + Optional(Word(nums))
                 + Optional(oneOf("E e") + Word(nums))
             )
-        ).setName("real")
-        qString = (sglQuotedString | dblQuotedString).setName("qString")
+        ).set_parser_name("real")
+        qString = (sglQuotedString | dblQuotedString).set_parser_name("qString")
 
         # add other characters we should skip over between interesting fields
         integer_junk = Optional(
             Suppress(Word(alphas + special_chars + decimal_sep))
-        ).setName("integer_junk")
-        real_junk = Optional(Suppress(Word(alphas + special_chars))).setName(
+        ).set_parser_name("integer_junk")
+        real_junk = Optional(Suppress(Word(alphas + special_chars))).set_parser_name(
             "real_junk"
         )
-        qString_junk = SkipTo(qString).setName("qString_junk")
+        qString_junk = SkipTo(qString).set_parser_name("qString_junk")
 
         # Now that 'integer', 'real', and 'qString' have been assigned I can
         # execute the definition file.
@@ -266,7 +266,7 @@ class ParseFileLineByLine:
         grammar = []
         for nam, expr in parse:
             grammar.append(eval(expr.name + "_junk"))
-            grammar.append(expr.setResultsName(nam))
+            grammar.append(expr.set_token_name(nam))
         self.grammar = And(grammar[1:] + [restOfLine])
 
     def __del__(self):

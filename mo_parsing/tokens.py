@@ -42,7 +42,7 @@ class Empty(Token):
 
     def __init__(self):
         super(Empty, self).__init__()
-        self.name = "Empty"
+        self.parser_name = "Empty"
         self.parser_config.mayReturnEmpty = True
         self.parser_config.mayIndexError = False
 
@@ -53,7 +53,7 @@ class NoMatch(Token):
 
     def __init__(self):
         super(NoMatch, self).__init__()
-        self.name = "NoMatch"
+        self.parser_name = "NoMatch"
         self.parser_config.mayReturnEmpty = True
         self.parser_config.mayIndexError = False
         self.parser_config.error_message = "Unmatchable token"
@@ -90,8 +90,8 @@ class Literal(Token):
                 stacklevel=2,
             )
             self.__class__ = Empty
-        self.name = '"%s"' % text(self.match)
-        self.parser_config.error_message = "Expected " + self.name
+        self.parser_name = '"%s"' % text(self.match)
+        self.parser_config.error_message = "Expected " + self.parser_name
         self.parser_config.mayReturnEmpty = False
         self.parser_config.mayIndexError = False
 
@@ -157,8 +157,8 @@ class Keyword(Token):
                 SyntaxWarning,
                 stacklevel=2,
             )
-        self.name = '"%s"' % self.match
-        self.parser_config.error_message = "Expected " + self.name
+        self.parser_name = '"%s"' % self.match
+        self.parser_config.error_message = "Expected " + self.parser_name
         self.parser_config.mayReturnEmpty = False
         self.parser_config.mayIndexError = False
         self.caseless = caseless
@@ -221,8 +221,8 @@ class CaselessLiteral(Literal):
         super(CaselessLiteral, self).__init__(matchString.upper())
         # Preserve the defining literal.
         self.returnString = matchString
-        self.name = "'%s'" % self.returnString
-        self.parser_config.error_message = "Expected " + self.name
+        self.parser_name = "'%s'" % self.returnString
+        self.parser_config.error_message = "Expected " + self.parser_name
 
     def parseImpl(self, instring, loc, doActions=True):
         if instring[loc : loc + self.matchLen].upper() == self.match:
@@ -281,7 +281,7 @@ class CloseMatch(Token):
 
     def __init__(self, match_string, maxMismatches=1):
         super(CloseMatch, self).__init__()
-        self.name = match_string
+        self.parser_name = match_string
         self.match_string = match_string
         self.maxMismatches = maxMismatches
         self.parser_config.error_message = "Expected %r (with up to %d mismatches)" % (
@@ -417,8 +417,8 @@ class Word(Token):
             self.maxLen = exact
             self.minLen = exact
 
-        self.name = text(self)
-        self.parser_config.error_message = "Expected " + self.name
+        self.parser_name = text(self)
+        self.parser_config.error_message = "Expected " + self.parser_name
         self.parser_config.mayIndexError = False
         self.asKeyword = asKeyword
 
@@ -586,8 +586,8 @@ class Regex(Token):
 
         self.re_match = self.re.match
 
-        self.name = text(self)
-        self.parser_config.error_message = "Expected " + self.name
+        self.parser_name = text(self)
+        self.parser_config.error_message = "Expected " + self.parser_name
         self.parser_config.mayIndexError = False
         self.parser_config.mayReturnEmpty = True
         self.asGroupList = asGroupList
@@ -805,8 +805,8 @@ class QuotedString(Token):
             )
             raise
 
-        self.name = text(self)
-        self.parser_config.error_message = "Expected " + self.name
+        self.parser_name = text(self)
+        self.parser_config.error_message = "Expected " + self.parser_name
         self.parser_config.mayIndexError = False
         self.parser_config.mayReturnEmpty = True
 
@@ -904,8 +904,8 @@ class CharsNotIn(Token):
             self.maxLen = exact
             self.minLen = exact
 
-        self.name = text(self)
-        self.parser_config.error_message = "Expected " + self.name
+        self.parser_name = text(self)
+        self.parser_config.error_message = "Expected " + self.parser_name
         self.parser_config.mayReturnEmpty = self.minLen == 0
         self.parser_config.mayIndexError = False
 
@@ -982,9 +982,9 @@ class White(Token):
             )
         )
         # ~ self.leaveWhitespace()
-        self.name = "".join(White.whiteStrs[c] for c in self.matchWhite)
+        self.parser_name = "".join(White.whiteStrs[c] for c in self.matchWhite)
         self.parser_config.mayReturnEmpty = True
-        self.parser_config.error_message = "Expected " + self.name
+        self.parser_config.error_message = "Expected " + self.parser_name
 
         self.minLen = min
 
@@ -1016,7 +1016,7 @@ class White(Token):
 class _PositionToken(Token):
     def __init__(self):
         super(_PositionToken, self).__init__()
-        self.name = self.__class__.__name__
+        self.parser_name = self.__class__.__name__
         self.parser_config.mayReturnEmpty = True
         self.parser_config.mayIndexError = False
 

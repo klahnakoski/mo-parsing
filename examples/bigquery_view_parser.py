@@ -58,7 +58,7 @@ class BigQueryViewParser:
             return cls._parser
 
         LPAR, RPAR, COMMA, LBRACKET, RBRACKET, LT, GT = map(Suppress, "(),[]<>")
-        ungrouped_select_stmt = Forward().setName("select statement")
+        ungrouped_select_stmt = Forward().set_parser_name("select statement")
 
         # keywords
         (
@@ -341,7 +341,7 @@ class BigQueryViewParser:
         )
 
         # expression
-        expr = Forward().setName("expression")
+        expr = Forward().set_parser_name("expression")
 
         integer = Regex(r"[+-]?\d+")
         numeric_literal = Regex(r"[+-]?\d*\.?\d+([eE][+-]?\d+)?")
@@ -761,7 +761,7 @@ class BigQueryViewParser:
             WINDOW + identifier + AS + LPAR + window_specification + RPAR
         )
 
-        with_stmt = Forward().setName("with statement")
+        with_stmt = Forward().set_parser_name("with statement")
         ungrouped_select_no_with = (
             SELECT
             + Optional(DISTINCT | ALL)

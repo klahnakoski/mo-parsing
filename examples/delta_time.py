@@ -106,7 +106,7 @@ weekday_name = oneOf(weekday_name_list)
 _24hour_time = Word(nums, exact=4).addParseAction(
     lambda t: [int(t[0][:2]), int(t[0][2:])], fill_24hr_time_fields
 )
-_24hour_time.setName("0000 time")
+_24hour_time.set_parser_name("0000 time")
 ampm = am | pm
 timespec = (
     integer("HH")

@@ -86,7 +86,7 @@ class ParseException(ParseBaseException):
     Example::
 
         try:
-            Word(nums).setName("integer").parseString("ABC")
+            Word(nums).set_parser_name("integer").parseString("ABC")
         except ParseException as pe:
             print(pe)
             print("column: {}".format(pe.col))
@@ -116,7 +116,7 @@ class ParseException(ParseBaseException):
         exception's stack trace.
 
         Note: the diagnostic output will include string representations of the expressions
-        that failed to parse. These representations will be more helpful if you use `setName` to
+        that failed to parse. These representations will be more helpful if you use `set_parser_name` to
         give identifiable names to your expressions. Otherwise they will use the default string
         forms, which may be cryptic to read.
 

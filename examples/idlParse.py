@@ -103,12 +103,12 @@ def CORBA_IDL_BNF():
             TRUE typedef unsigned union void wchar wstring""".split(),
         )
 
-        identifier = Word(alphas, alphanums + "_").setName("identifier")
+        identifier = Word(alphas, alphanums + "_").set_parser_name("identifier")
 
-        real = Regex(r"[+-]?\d+\.\d*([Ee][+-]?\d+)?").setName("real")
-        integer = Regex(r"0x[0-9a-fA-F]+|[+-]?\d+").setName("int")
+        real = Regex(r"[+-]?\d+\.\d*([Ee][+-]?\d+)?").set_parser_name("real")
+        integer = Regex(r"0x[0-9a-fA-F]+|[+-]?\d+").set_parser_name("int")
 
-        udTypeName = delimitedList(identifier, "::", combine=True).setName("udType")
+        udTypeName = delimitedList(identifier, "::", combine=True).set_parser_name("udType")
         typeName = (
             any_
             | boolean_
@@ -123,11 +123,11 @@ def CORBA_IDL_BNF():
             | wchar_
             | wstring_
             | udTypeName
-        ).setName("type")
-        sequenceDef = Forward().setName("seq")
+        ).set_parser_name("type")
+        sequenceDef = Forward().set_parser_name("seq")
         sequenceDef << Group(sequence_ + langle + (sequenceDef | typeName) + rangle)
         typeDef = sequenceDef | (typeName + Optional(lbrack + integer + rbrack))
-        typedefDef = Group(typedef_ + typeDef + identifier + semi).setName("typedef")
+        typedefDef = Group(typedef_ + typeDef + identifier + semi).set_parser_name("typedef")
 
         moduleDef = Forward()
         constDef = Group(
@@ -145,7 +145,7 @@ def CORBA_IDL_BNF():
         attributeDef = Optional(readonly_) + attribute_ + typeDef + identifier + semi
         paramlist = delimitedList(
             Group((inout_ | in_ | out_) + typeName + identifier)
-        ).setName("paramlist")
+        ).set_parser_name("paramlist")
         operationDef = (
             (void_ ^ typeDef)
             + identifier
@@ -164,7 +164,7 @@ def CORBA_IDL_BNF():
             + ZeroOrMore(interfaceItem)
             + rbrace
             + semi
-        ).setName("opnDef")
+        ).set_parser_name("opnDef")
         moduleItem = interfaceDef | exceptionDef | constDef | typedefDef | moduleDef
         moduleDef << module_ + identifier + lbrace + ZeroOrMore(
             moduleItem

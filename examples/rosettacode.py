@@ -46,7 +46,7 @@ keywords = (WHILE, IF, PRINT, PUTC, ELSE) = map(
 any_keyword = MatchFirst(keywords)
 identifier = ~any_keyword + identifier
 integer = integer
-string = QuotedString('"', convertWhitespaceEscapes=False).setName("quoted string")
+string = QuotedString('"', convertWhitespaceEscapes=False).set_parser_name("quoted string")
 char = Regex(r"'\\?.'")
 
 expr = infixNotation(
@@ -80,7 +80,7 @@ stmt <<= (
     | print_stmt
     | putc_stmt
     | stmt_list
-).setName("statement")
+).set_parser_name("statement")
 
 code = stmt[...]
 code.ignore(cppStyleComment)

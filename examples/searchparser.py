@@ -100,22 +100,22 @@ class SearchQueryParser:
         """
         operatorOr = Forward()
 
-        operatorWord = Group(Combine(Word(alphanums) + Suppress("*"))).setResultsName(
+        operatorWord = Group(Combine(Word(alphanums) + Suppress("*"))).set_token_name(
             "wordwildcard"
-        ) | Group(Word(alphanums)).setResultsName("word")
+        ) | Group(Word(alphanums)).set_token_name("word")
 
         operatorQuotesContent = Forward()
         operatorQuotesContent << ((operatorWord + operatorQuotesContent) | operatorWord)
 
         operatorQuotes = (
-            Group(Suppress('"') + operatorQuotesContent + Suppress('"')).setResultsName(
+            Group(Suppress('"') + operatorQuotesContent + Suppress('"')).set_token_name(
                 "quotes"
             )
             | operatorWord
         )
 
         operatorParenthesis = (
-            Group(Suppress("(") + operatorOr + Suppress(")")).setResultsName(
+            Group(Suppress("(") + operatorOr + Suppress(")")).set_token_name(
                 "parenthesis"
             )
             | operatorQuotes
@@ -123,7 +123,7 @@ class SearchQueryParser:
 
         operatorNot = Forward()
         operatorNot << (
-            Group(Suppress(Keyword("not", caseless=True)) + operatorNot).setResultsName(
+            Group(Suppress(Keyword("not", caseless=True)) + operatorNot).set_token_name(
                 "not"
             )
             | operatorParenthesis
@@ -133,17 +133,17 @@ class SearchQueryParser:
         operatorAnd << (
             Group(
                 operatorNot + Suppress(Keyword("and", caseless=True)) + operatorAnd
-            ).setResultsName("and")
+            ).set_token_name("and")
             | Group(
                 operatorNot + OneOrMore(~oneOf("and or") + operatorAnd)
-            ).setResultsName("and")
+            ).set_token_name("and")
             | operatorNot
         )
 
         operatorOr << (
             Group(
                 operatorAnd + Suppress(Keyword("or", caseless=True)) + operatorOr
-            ).setResultsName("or")
+            ).set_token_name("or")
             | operatorAnd
         )
 

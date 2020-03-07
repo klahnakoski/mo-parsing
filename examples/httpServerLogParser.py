@@ -73,15 +73,15 @@ def getLogLineBNF():
         )
 
         logLineBNF = (
-            ipAddress.setResultsName("ipAddr")
+            ipAddress.set_token_name("ipAddr")
             + Suppress("-")
-            + ("-" | Word(alphas + nums + "@._")).setResultsName("auth")
-            + serverDateTime.setResultsName("timestamp")
-            + dblQuotedString.setResultsName("cmd").setParseAction(getCmdFields)
-            + (integer | "-").setResultsName("statusCode")
-            + (integer | "-").setResultsName("numBytesSent")
-            + dblQuotedString.setResultsName("referrer").setParseAction(removeQuotes)
-            + dblQuotedString.setResultsName("clientSfw").setParseAction(removeQuotes)
+            + ("-" | Word(alphas + nums + "@._")).set_token_name("auth")
+            + serverDateTime.set_token_name("timestamp")
+            + dblQuotedString.set_token_name("cmd").setParseAction(getCmdFields)
+            + (integer | "-").set_token_name("statusCode")
+            + (integer | "-").set_token_name("numBytesSent")
+            + dblQuotedString.set_token_name("referrer").setParseAction(removeQuotes)
+            + dblQuotedString.set_token_name("clientSfw").setParseAction(removeQuotes)
         )
     return logLineBNF
 
