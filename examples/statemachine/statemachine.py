@@ -9,18 +9,20 @@ import os
 import types
 import importlib
 from urllib.parse import urlparse
-
+from mo_parsing import *
+from mo_parsing.engine import Engine
 
 DEBUG = False
 
 
-from mo_parsing import *
 
 # define basic exception for invalid state transitions - state machine classes will subclass to
 # define their own specific exception type
 class InvalidTransitionException(Exception):
     pass
 
+
+engine = Engine()
 
 ident = Word(alphas + "_", alphanums + "_$")
 
@@ -340,6 +342,8 @@ class SuffixImporter:
         pass
 
 
+engine.add_ignore(pythonStyleComment)
+
 class PystateImporter(SuffixImporter):
     suffix = "pystate"
 
@@ -347,15 +351,9 @@ class PystateImporter(SuffixImporter):
         # MATT-NOTE: re-worked :func:`get_state_machine`
 
         # convert any statemachine expressions
-        stateMachineExpr = (stateMachine | namedStateMachine).ignore(pythonStyleComment)
+        stateMachineExpr = stateMachine | namedStateMachine
         generated_code = stateMachineExpr.transformString(data)
 
-        if DEBUG:
-
-
-        # compile code object from generated code
-        # (strip trailing spaces and tabs, compile doesn't like
-        # dangling whitespace)
         COMPILE_MODE = "exec"
 
         codeobj = compile(generated_code.rstrip(" \t"), module.__file__, COMPILE_MODE)
@@ -364,6 +362,3 @@ class PystateImporter(SuffixImporter):
 
 
 PystateImporter.register()
-
-if DEBUG:
-

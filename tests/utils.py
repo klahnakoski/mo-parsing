@@ -3,69 +3,10 @@
 from contextlib import contextmanager
 from unittest import TestCase
 
-from mo_parsing.white import setDefaultWhitespaceChars
-from mo_testing.fuzzytestcase import FuzzyTestCase
-
-from mo_parsing import core, white
 from mo_parsing.core import (
-    ParserElement,
     ParseException,
-    __diag__,
-    default_literal,
-    )
-from mo_parsing.tokens import Keyword
-
-
-class reset_parsing_context:
-    """
-    Context manager to be used when writing unit tests that modify mo_parsing config values:
-     - packrat parsing
-     - default whitespace characters.
-     - default keyword characters
-     - literal string auto-conversion class
-     - __diag__ settings
-
-    Example:
-        with reset_parsing_context():
-            # test that literals used to construct a grammar are automatically suppressed
-            default_literal(Suppress)
-
-            term = Word(alphas) | Word(nums)
-            group = Group('(' + term[...] + ')')
-
-            # assert that the '()' characters are not included in the parsed tokens
-            self.assertParseAndCheckList(group, "(abc 123 def)", ['abc', '123', 'def'])
-
-        # after exiting context manager, literals are converted to Literal expressions again
-    """
-
-    def __init__(self):
-        self._save_context = {}
-
-    def save(self):
-        self._save_context["default_whitespace"] = white.DEFAULT_WHITE_CHARS
-        self._save_context["default_keyword_chars"] = Keyword.DEFAULT_KEYWORD_CHARS
-        self._save_context["literal_string_class"] = core.CURRENT_LITERAL
-        self._save_context["packrat_parse"] = ParserElement._parse
-        self._save_context["__diag__"] = {
-            name: getattr(__diag__, name) for name in __diag__._all_names
-        }
-        return self
-
-    def restore(self):
-        # reset mo_parsing global state
-        setDefaultWhitespaceChars(self._save_context["default_whitespace"])
-        Keyword.DEFAULT_KEYWORD_CHARS = self._save_context["default_keyword_chars"]
-        default_literal(self._save_context["literal_string_class"])
-        for name, value in self._save_context["__diag__"].items():
-            (__diag__.enable if value else __diag__.disable)(name)
-        ParserElement._parse = self._save_context["packrat_parse"]
-
-    def __enter__(self):
-        return self.save()
-
-    def __exit__(self, *args):
-        return self.restore()
+)
+from mo_testing.fuzzytestcase import FuzzyTestCase
 
 
 class TestParseResultsAsserts(FuzzyTestCase):

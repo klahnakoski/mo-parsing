@@ -23,7 +23,10 @@ from mo_parsing import (
 )
 
 # define SQL tokens
+from mo_parsing.engine import Engine
 from mo_parsing.helpers import real, signed_integer
+
+engine=Engine()
 
 selectStmt = Forward()
 SELECT, FROM, WHERE, AND, OR, IN, IS, NOT, NULL = map(
@@ -40,8 +43,8 @@ tableName.addParseAction(upcaseTokens)
 tableNameList = Group(delimitedList(tableName))
 
 binop = oneOf("= != < > >= <= eq ne lt le gt ge", caseless=True)
-realNum = real()
-intNum = signed_integer()
+realNum = real
+intNum = signed_integer
 
 columnRval = (
     realNum | intNum | quotedString | columnName
@@ -71,4 +74,4 @@ simpleSQL = selectStmt
 
 # define Oracle comment format, and ignore them
 oracleSqlComment = "--" + restOfLine
-simpleSQL.ignore(oracleSqlComment)
+engine.add_ignore(oracleSqlComment)

@@ -2,6 +2,7 @@
 
 from mo_logs import Log
 
+from mo_parsing import engine
 from mo_parsing.core import quotedString, replaceWith, ParserElement
 from mo_parsing.exceptions import ParseBaseException
 from mo_parsing.results import ParseResults
@@ -119,8 +120,10 @@ def runTests(
     if isinstance(comment, basestring):
         comment = Literal(comment)
 
+    engine.CURRENT.add_ignore(quotedString)
+
     allResults = []
-    NL = Literal(r"\n").addParseAction(replaceWith("\n")).ignore(quotedString)
+    NL = Literal(r"\n").addParseAction(replaceWith("\n"))
     BOM = u"\ufeff"
     for t in tests:
         if comment is not None and comment.matches(t, False):

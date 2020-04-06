@@ -24,6 +24,7 @@ from unittest import TestCase, skip
 
 from mo_dots import coalesce
 from mo_logs import Log
+from mo_times import Timer
 
 from examples import fourFn, configParse, idlParse, ebnf
 from examples.jsonParser import jsonObject
@@ -51,9 +52,9 @@ from mo_parsing import (
     helpers,
     CaselessLiteral,
     RecursiveGrammarException,
-    white)
+    engine,
+)
 from mo_parsing.core import (
-    default_literal,
     quotedString,
     Suppress,
     StringEnd,
@@ -116,10 +117,10 @@ from mo_parsing.helpers import (
     indentedBlock,
 )
 from mo_parsing.utils import parsing_unicode, printables, traceParseAction, hexnums
-from mo_parsing.white import setDefaultWhitespaceChars
 from tests.json_parser_tests import test1, test2, test3, test4, test5
+
 # see which Python implementation we are running
-from tests.utils import TestParseResultsAsserts, reset_parsing_context
+from tests.utils import TestParseResultsAsserts
 
 CPYTHON_ENV = sys.platform == "win32"
 IRON_PYTHON_ENV = sys.platform == "cli"
@@ -143,19 +144,6 @@ def _flatten(tok):
         yield tok
 
 
-"""
-class ParseTest(TestCase):
-    def setUp(self):
-        pass
-
-    def runTest(self):
-        self.assertTrue(1==1, "we've got bigger problems...")
-
-    def tearDown(self):
-        pass
-"""
-
-
 class resetting:
     def __init__(self, *args):
         ob = args[0]
@@ -173,115 +161,9 @@ class resetting:
 
 
 class TestParsing(TestParseResultsAsserts, TestCase):
-    suite_context = None
 
     def setUp(self):
-        self.suite_context.restore()
-
-    def testUpdateDefaultWhitespace(self):
-        prev_default_whitespace_chars = copy(white.CURRENT_WHITE_CHARS)
-
-        setDefaultWhitespaceChars(" \t")
-        # IS HAS NEW WHITESPACE
-        self.assertEqual(
-            sglQuotedString.copy().parser_config.whiteChars,
-            " \t",
-            "setDefaultWhitespaceChars did not update sglQuotedString",
-        )
-        # OLD HAS OLD WHITESPACE
-        self.assertEqual(
-            set(sglQuotedString.parser_config.whiteChars),
-            set(prev_default_whitespace_chars),
-            "setDefaultWhitespaceChars updated dblQuotedString but should not",
-        )
-        setDefaultWhitespaceChars(prev_default_whitespace_chars)
-
-        # IS HAS NEW WHITESPACE
-        self.assertEqual(
-            set(dblQuotedString.copy().parser_config.whiteChars),
-            set(prev_default_whitespace_chars),
-            "setDefaultWhitespaceChars updated dblQuotedString",
-        )
-
-        with reset_parsing_context():
-            setDefaultWhitespaceChars(" \t")
-            self.assertNotEqual(
-                set(dblQuotedString.copy().parser_config.whiteChars),
-                set(prev_default_whitespace_chars),
-                "setDefaultWhitespaceChars updated dblQuotedString but should not",
-            )
-
-            EOL = LineEnd().suppress().set_parser_name("EOL")
-
-            # Identifiers is a string + optional $
-            identifier = Combine(Word(alphas) + Optional("$"))
-
-            # Literals (number or double quoted string)
-            literal = number.copy() | dblQuotedString.copy()
-            expression = literal.copy() | identifier.copy()
-            # expression.set_parser_name("expression").setDebug()
-            # number.setDebug()
-            # integer.setDebug()
-
-            line_number = integer("line number")
-
-            # Keywords
-            PRINT = CaselessKeyword("print")
-            print_stmt = PRINT - ZeroOrMore(expression | ";")
-            statement = print_stmt
-            code_line = Group(line_number + statement + EOL)
-            program = ZeroOrMore(code_line)
-
-            test = """\
-            10 print 123;
-            20 print 234; 567;
-            30 print 890
-            """
-
-            parsed_program = program.parseString(test)
-
-            self.assertEqual(
-                len(parsed_program),
-                3,
-                "failed to apply new whitespace chars to existing builtins",
-            )
-
-    def testUpdateDefaultWhitespace2(self):
-
-        with reset_parsing_context():
-            expr_tests = [
-                (dblQuotedString, '"abc"'),
-                (sglQuotedString, "'def'"),
-                (integer, "123"),
-                (number, "4.56"),
-                (identifier, "a_bc"),
-            ]
-            NL = LineEnd()
-
-            for expr, test_str in expr_tests:
-                parser = Group(expr[1, ...] + Optional(NL))[1, ...]
-                test_string = "\n".join([test_str] * 3)
-                result = parser.parseString(test_string, parseAll=True)
-
-                self.assertEqual(len(result), 1, "failed {!r}".format(test_string))
-
-            setDefaultWhitespaceChars(" \t")
-
-            for expr, test_str in expr_tests:
-                parser = Group(expr[1, ...] + Optional(NL))[1, ...]
-                test_string = "\n".join([test_str] * 3)
-                result = parser.parseString(test_string, parseAll=True)
-
-                self.assertEqual(len(result), 3, "failed {!r}".format(test_string))
-
-            setDefaultWhitespaceChars(" \n\t")
-
-            for expr, test_str in expr_tests:
-                parser = Group(expr[1, ...] + Optional(NL))[1, ...]
-                test_string = "\n".join([test_str] * 3)
-                result = parser.parseString(test_string, parseAll=True)
-
-                self.assertEqual(len(result), 1, "failed {!r}".format(test_string))
+        engine.Engine()
 
     def testParseFourFn(self):
         def test(s, ans):
@@ -1473,7 +1355,9 @@ class TestParsing(TestParseResultsAsserts, TestCase):
             "SkipTo created with wrong saveAsList attribute",
         )
 
-        alpha_word = (~Literal("end") + Word(alphas, asKeyword=True)).set_parser_name("alpha")
+        alpha_word = (~Literal("end") + Word(alphas, asKeyword=True)).set_parser_name(
+            "alpha"
+        )
         num_word = Word(nums, asKeyword=True).set_parser_name("int")
 
         def test(expr, test_string, expected_list, expected_dict):
@@ -1487,9 +1371,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
             else:
                 result = expr.parseString(test_string)
                 self.assertParseResultsEquals(
-                    result,
-                    expected_list=expected_list,
-                    expected_dict=expected_dict
+                    result, expected_list=expected_list, expected_dict=expected_dict
                 )
 
         # ellipses for SkipTo
@@ -1544,26 +1426,17 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         test(e, "start red end", ["start", "red ", "end"], {"_skipped": ["red "]})
         test(e, "start 456 end", ["start", "456 ", "end"], {"_skipped": ["456 "]})
         test(
-            e,
-            "start end",
-            ["start", "end"],
-            {"_skipped": ""},
+            e, "start end", ["start", "end"], {"_skipped": ""},
         )
         test(e, "start 456 + end", ["start", "456 + ", "end"], {"_skipped": ["456 + "]})
 
         e = "start" + (alpha_word | ...) + (num_word | ...) + "end"
         test(e, "start red 456 end", ["start", "red", "456", "end"], {})
         test(
-            e,
-            "start red end",
-            ["start", "red", "end"],
-            {"_skipped": ""},
+            e, "start red end", ["start", "red", "end"], {"_skipped": ""},
         )
         test(
-            e,
-            "start end",
-            ["start", "end"],
-            {"_skipped": ""},
+            e, "start end", ["start", "end"], {"_skipped": ""},
         )
 
         e = Literal("start") + ... + "+" + ... + "end"
@@ -2500,9 +2373,9 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         success = test_patt.runTests(fail_tests, failureTests=True)[0]
         self.assertTrue(success, "failed LineStart failure mode tests (1)")
 
-        with reset_parsing_context():
+        with Timer(""):
 
-            setDefaultWhitespaceChars(" ")
+            engine.CURRENT.set_whitespace(" ")
 
             test_patt = Word("A") - LineStart() + Word("B")
 
@@ -2545,8 +2418,8 @@ class TestParsing(TestParseResultsAsserts, TestCase):
                 test[s], "A", "failed LineStart with insignificant newlines"
             )
 
-        with reset_parsing_context():
-            setDefaultWhitespaceChars(" ")
+        with Timer(""):
+            engine.CURRENT.set_whitespace(" ")
             for t, s, e in (LineStart() + "AAA").scanString(test):
 
                 self.assertEqual(
@@ -2592,9 +2465,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
             rest = coalesce(res3[1], "")
 
             self.assertEqual(
-                rest,
-                test[len(first) + 1 :],
-                "Failed lineEnd/stringEnd test"
+                rest, test[len(first) + 1 :], "Failed lineEnd/stringEnd test"
             )
 
         k = Regex(r"a+", flags=re.S + re.M)
@@ -2919,9 +2790,9 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         # ~ function_name = ~AA + Word("Z")  #identifier.copy()
         expr = Forward().set_parser_name("expr")
         expr << (
-            Group(function_name + LPAR + Optional(delimitedList(expr)) + RPAR).set_parser_name(
-                "functionCall"
-            )
+            Group(
+                function_name + LPAR + Optional(delimitedList(expr)) + RPAR
+            ).set_parser_name("functionCall")
             | identifier.set_parser_name("ident")  # .setDebug()#.setBreak()
         )
 
@@ -3133,7 +3004,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
                 )
 
         # add test for trailing comments
-        testExpr.ignore(cppStyleComment)
+        engine.CURRENT.add_ignore(cppStyleComment)
 
         tests = [
             ("AAAAA //blah", False, True),
@@ -3544,7 +3415,9 @@ class TestParsing(TestParseResultsAsserts, TestCase):
             return token
 
         a = Word("de").set_parser_name("Word")  # .setDebug()
-        b = Literal("def").set_parser_name("Literal").setParseAction(validate)  # .setDebug()
+        b = (
+            Literal("def").set_parser_name("Literal").setParseAction(validate)
+        )  # .setDebug()
         c = Literal("d").set_parser_name("d")  # .setDebug()
 
         # The "Literal" expressions's ParseAction is not executed directly after syntactically
@@ -3566,7 +3439,11 @@ class TestParsing(TestParseResultsAsserts, TestCase):
 
         # from issue #93
         word = Word(alphas).set_parser_name("word")
-        word_1 = Word(alphas).set_parser_name("word_1").addCondition(lambda t: len(t[0]) == 1)
+        word_1 = (
+            Word(alphas)
+            .set_parser_name("word_1")
+            .addCondition(lambda t: len(t[0]) == 1)
+        )
 
         a = word + (word_1 + word ^ word)
         b = word * 3
@@ -3627,7 +3504,9 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         self.assertEqual(
             str(delimitedList(Word(nums).set_parser_name("int"))), "int [, int]..."
         )
-        self.assertEqual(str(countedArray(Word(nums).set_parser_name("int"))), "(len) int...")
+        self.assertEqual(
+            str(countedArray(Word(nums).set_parser_name("int"))), "(len) int..."
+        )
         self.assertEqual(str(nestedExpr()), "nested () expression")
         self.assertEqual(str(makeHTMLTags("Z")), "(<Z>, </Z>)")
         self.assertEqual(str((anyOpenTag, anyCloseTag)), "(<any tag>, </any tag>)")
@@ -4313,8 +4192,8 @@ class TestParsing(TestParseResultsAsserts, TestCase):
     def testExprSplitter(self):
 
         expr = Literal(";") + Empty()
-        expr.ignore(quotedString)
-        expr.ignore(pythonStyleComment)
+        engine.CURRENT.add_ignore(quotedString)
+        engine.CURRENT.add_ignore(pythonStyleComment)
 
         sample = """
         def main():
@@ -4466,15 +4345,15 @@ class TestParsing(TestParseResultsAsserts, TestCase):
 
         wd = Word(alphas)
 
-        default_literal(Suppress)
+        engine.CURRENT.set_literal(Suppress)
         result = (wd + "," + wd + oneOf("! . ?")).parseString("Hello, World!")
         self.assertEqual(len(result), 3, "default_literal(Suppress) failed!")
 
-        default_literal(Literal)
+        engine.CURRENT.set_literal(Literal)
         result = (wd + "," + wd + oneOf("! . ?")).parseString("Hello, World!")
         self.assertEqual(len(result), 4, "default_literal(Literal) failed!")
 
-        default_literal(CaselessKeyword)
+        engine.CURRENT.set_literal(CaselessKeyword)
         # WAS:
         # result = ("SELECT" + wd + "FROM" + wd).parseString("select color from colors")
         # self.assertEqual(result, "SELECT color FROM colors".split(),
@@ -4567,8 +4446,8 @@ class TestParsing(TestParseResultsAsserts, TestCase):
                 False, "failed to match keyword using updated keyword chars"
             )
 
-        with reset_parsing_context():
-            Keyword.setDefaultKeywordChars(alphas)
+        with Timer(""):
+            engine.CURRENT.set_keyword_chars(alphas)
             try:
                 Keyword("start").parseString("start1000")
             except ParseException:
@@ -4588,7 +4467,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
                 False, "failed to match keyword using updated keyword chars"
             )
 
-        with reset_parsing_context():
+        with Timer(""):
             Keyword.setDefaultKeywordChars(alphas)
             try:
                 CaselessKeyword("START").parseString("start1000")
@@ -4615,7 +4494,9 @@ class TestParsing(TestParseResultsAsserts, TestCase):
             Word,
             Regex,
         ):
-            expr = cls("xyz")  # .set_parser_name('{}_expr'.format(cls.__name__.lower()))
+            expr = cls(
+                "xyz"
+            )  # .set_parser_name('{}_expr'.format(cls.__name__.lower()))
 
             try:
                 expr.parseString(" ")
@@ -4712,7 +4593,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         list_num.runTests(test_string)
 
         U = list_num.parseString(test_string)
-        self.assertEqual(U.LIST.LIST_VALUES.LIT_NUM, ['1', '2', '3', '4', '5', '6'])
+        self.assertEqual(U.LIST.LIST_VALUES.LIT_NUM, ["1", "2", "3", "4", "5", "6"])
 
     def testParseResultsNamesInGroupWithDict(self):
 
@@ -4751,27 +4632,6 @@ class TestParsing(TestParseResultsAsserts, TestCase):
             {"item": "balloon", "qty": 99},
             "invalid results name structure from FollowedBy",
         )
-
-    def testSetBreak(self):
-        """
-        Test behavior of ParserElement.setBreak(), to invoke the debugger before parsing that element is attempted.
-
-        Temporarily monkeypatches pdb.set_trace.
-        """
-        was_called = False
-
-        def mock_set_trace():
-            nonlocal was_called
-            was_called = True
-
-        wd = Word(alphas)
-        wd.setBreak()
-
-        with reset_parsing_context():
-            pdb.set_trace = mock_set_trace
-            wd.parseString("ABC")
-
-        self.assertTrue(was_called, "set_trace wasn't called by setBreak")
 
     def testUnicodeTests(self):
 
@@ -5173,16 +5033,6 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         )
         self.assertEqual(len(r6), 1)
 
-    def testInvalidDiagSetting(self):
-
-        with TestCase.assertRaises(
-            self,
-            ValueError,
-            msg="failed to raise exception when setting non-existent __diag__",
-        ):
-            __diag__.enable("xyzzy")
-
-
     def testParseResultsWithNameMatchFirst(self):
 
         expr_a = Literal("not") + Literal("the") + Literal("bird")
@@ -5202,7 +5052,6 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         self.assertParseResultsEquals(
             results[1], ["the", "bird"], {"rexp": ["the", "bird"]}
         )
-
 
     def testParseResultsWithNameOr(self):
 
@@ -5239,7 +5088,6 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         self.assertParseResultsEquals(
             result, ["the", "bird"], {"rexp": ["the", "bird"]}
         )
-
 
     def testEmptyDictDoesNotRaiseException(self):
 
@@ -5340,167 +5188,6 @@ class TestParsing(TestParseResultsAsserts, TestCase):
             failureTests=True,
         )
         self.assertTrue(success, "failed keyword oneOf failure tests")
-
-    def testWarnUngroupedNamedTokens(self):
-        """
-         - warn_ungrouped_named_tokens_in_collection - flag to enable warnings when a results
-           name is defined on a containing expression with ungrouped subexpressions that also
-           have results names (default=True)
-        """
-        with reset_parsing_context():
-            __diag__.enable("warn_ungrouped_named_tokens_in_collection")
-
-            COMMA = Suppress(",").set_parser_name("comma")
-            coord = integer("x") + COMMA + integer("y")
-
-            # this should emit a warning
-            with self.assertWarns(
-                UserWarning,
-                msg="failed to warn with named repetition of"
-                " ungrouped named expressions",
-            ):
-                path = coord[...].set_token_name("path")
-
-    def testWarnNameSetOnEmptyForward(self):
-        """
-         - warn_name_set_on_empty_Forward - flag to enable warnings whan a Forward is defined
-           with a results name, but has no contents defined (default=False)
-        """
-        with reset_parsing_context():
-            __diag__.enable("warn_name_set_on_empty_Forward")
-
-            base = Forward()
-
-            with self.assertWarns(
-                UserWarning,
-                msg="failed to warn when naming an empty Forward expression",
-            ):
-                base("x")
-
-    def testWarnOnMultipleStringArgsToOneOf(self):
-        """
-         - warn_on_multiple_string_args_to_oneof - flag to enable warnings whan oneOf is
-           incorrectly called with multiple str arguments (default=True)
-        """
-
-        with reset_parsing_context():
-            __diag__.enable("warn_on_multiple_string_args_to_oneof")
-
-            with self.assertWarns(
-                UserWarning,
-                msg="failed to warn when incorrectly calling oneOf(string, string)",
-            ):
-                a = oneOf("A", "B")
-
-    def testEnableDebugOnNamedExpressions(self):
-        """
-         - enable_debug_on_named_expressions - flag to auto-enable debug on all subsequent
-           calls to ParserElement.set_parser_name() (default=False)
-        """
-
-        with reset_parsing_context():
-            test_stdout = StringIO()
-
-            with resetting(sys, "stdout", "stderr"):
-                sys.stdout = test_stdout
-                sys.stderr = test_stdout
-
-                __diag__.enable("enable_debug_on_named_expressions")
-                integer = Word(nums).set_parser_name("integer")
-
-                integer[...].parseString("1 2 3")
-
-            expected_debug_output = textwrap.dedent(
-                """\
-                Match integer at loc 0(1,1)
-                Matched integer -> ['1']
-                Match integer at loc 1(1,2)
-                Matched integer -> ['2']
-                Match integer at loc 3(1,4)
-                Matched integer -> ['3']
-                Match integer at loc 5(1,6)
-                Exception raised:Expected integer, found end of text  (at char 5), (line:1, col:6)
-                """
-            )
-            output = test_stdout.getvalue()
-
-            self.assertEquals(
-                output,
-                expected_debug_output,
-                "failed to auto-enable debug on named expressions "
-                "using enable_debug_on_named_expressions",
-            )
-
-    def testUndesirableButCommonPractices(self):
-        # While these are valid constructs, and they are not encouraged
-        # there is apparently a lot of code out there using these
-        # coding styles.
-        #
-        # Even though they are not encouraged, we shouldn't break them.
-
-        # Create an And using a list of expressions instead of using '+' operator
-        expr = And([Word("abc"), Word("123")])
-        expr.runTests(
-            """
-            aaa 333
-            b 1
-            ababab 32123
-        """
-        )
-
-        # Passing a single expression to a ParseExpression, when it really wants a sequence
-        expr = Or(Or(integer))
-        expr.runTests(
-            """
-            123
-            456
-            abc
-        """
-        )
-
-    def testEnableWarnDiags(self):
-        def filtered_vars(var_dict):
-            dunders = [nm for nm in var_dict if nm.startswith("__")]
-            return {
-                k: v
-                for k, v in var_dict.items()
-                if isinstance(v, bool) and k not in dunders
-            }
-
-        warn_names = __diag__._warning_names
-        other_names = __diag__._debug_names
-
-        # make sure they are off by default
-        for diag_name in warn_names:
-            self.assertFalse(
-                getattr(__diag__, diag_name),
-                "__diag__.{} not set to True".format(diag_name),
-            )
-
-        with reset_parsing_context():
-            # enable all warn_* diag_names
-            __diag__.enable_all_warnings()
-
-            # make sure they are on after being enabled
-            for diag_name in warn_names:
-                self.assertTrue(
-                    getattr(__diag__, diag_name),
-                    "__diag__.{} not set to True".format(diag_name),
-                )
-
-            # non-warn diag_names must be enabled individually
-            for diag_name in other_names:
-                self.assertFalse(
-                    getattr(__diag__, diag_name),
-                    "__diag__.{} not set to True".format(diag_name),
-                )
-
-        # make sure they are off after AutoReset
-        for diag_name in warn_names:
-            self.assertFalse(
-                getattr(__diag__, diag_name),
-                "__diag__.{} not set to True".format(diag_name),
-            )
 
     def testChainedTernaryOperator(self):
 
@@ -5770,7 +5457,3 @@ class TestParsing(TestParseResultsAsserts, TestCase):
             2,
             "multipled(3) failure with .set_token_name",
         )
-
-
-TestParsing.suite_context = reset_parsing_context()
-TestParsing.suite_context.save()

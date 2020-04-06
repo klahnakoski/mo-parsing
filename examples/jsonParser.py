@@ -10,6 +10,7 @@
 #
 # Updated 9 Aug 2016 - use more current mo_parsing constructs/idioms
 #
+from mo_parsing.engine import Engine
 from mo_parsing.helpers import number
 
 json_bnf = """
@@ -41,6 +42,7 @@ from mo_parsing import *
 def make_keyword(kwd_str, kwd_value):
     return Keyword(kwd_str).setParseAction(replaceWith(kwd_value))
 
+engine = Engine()
 
 TRUE = make_keyword("true", True)
 FALSE = make_keyword("false", False)
@@ -48,8 +50,8 @@ NULL = make_keyword("null", None)
 
 LBRACK, RBRACK, LBRACE, RBRACE, COLON = map(Suppress, "[]{}:")
 
-jsonString = dblQuotedString().setParseAction(removeQuotes)
-jsonNumber = number()
+jsonString = dblQuotedString.setParseAction(removeQuotes)
+jsonNumber = number
 
 jsonObject = Forward()
 jsonValue = Forward()
@@ -63,4 +65,5 @@ jsonMembers = delimitedList(memberDef)
 jsonObject << Dict(LBRACE + Optional(jsonMembers) + RBRACE)
 
 jsonComment = cppStyleComment
-jsonObject.ignore(jsonComment)
+engine.add_ignore(jsonComment)
+engine.release()

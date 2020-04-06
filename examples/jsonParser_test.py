@@ -10,6 +10,8 @@
 #
 # Updated 9 Aug 2016 - use more current mo_parsing constructs/idioms
 #
+from mo_future import text
+
 from examples.jsonParser import jsonObject
 
 testdata = """
@@ -47,6 +49,7 @@ results = jsonObject.parseString(testdata)
 
 
 def testPrint(x):
+    print(text(x))
 
 
 testPrint(results.glossary.title)

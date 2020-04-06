@@ -66,8 +66,14 @@ class Engine:
     def set_recursion_limit(self, limit):
         sys.setrecursionlimit(limit)
 
+    def set_literal(self, literal):
+        self.literal = literal
+
     def set_keyword_chars(self, chars):
-        self.keyword_chars = ".".join(sorted(set(chars)))
+        self.keyword_chars = "".join(sorted(set(chars)))
+
+    def set_whitespace(self, chars):
+        self.white_chars = "".join(sorted(set(chars)))
 
     def add_ignore(self, ignore_expr):
         """

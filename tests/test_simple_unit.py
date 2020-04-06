@@ -9,14 +9,13 @@
 #
 from __future__ import division
 
-import unittest
 from collections import namedtuple
 from datetime import datetime
 
-from mo_testing.fuzzytestcase import FuzzyTestCase
-
 from mo_parsing import *
+from mo_parsing import engine
 from mo_parsing.helpers import number, identifier, ipv4_address, integer, fnumber
+from mo_testing.fuzzytestcase import FuzzyTestCase
 
 PpTestSpec = namedtuple(
     "PpTestSpec",
@@ -25,6 +24,9 @@ PpTestSpec = namedtuple(
 
 
 class PyparsingExpressionTestCase(FuzzyTestCase):
+
+
+
     def runTest(
         self,
         desc="",
@@ -536,9 +538,10 @@ class TestCommonHelperExpressions(PyparsingExpressionTestCase):
         )
 
     def test_skipping_comments_with_ignore(self):
+        engine.CURRENT.add_ignore(cppStyleComment)
         self.runTest(
             desc="skipping comments with ignore",
-            expr=(identifier("lhs") + "=" + fnumber("rhs")).ignore(cppStyleComment),
+            expr=identifier("lhs") + "=" + fnumber("rhs"),
             text="abc_100 = /* value to be tested */ 3.1416",
             expected_list=["abc_100", "=", 3.1416],
             expected_dict={"lhs": "abc_100", "rhs": 3.1416},

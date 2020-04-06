@@ -6,7 +6,7 @@ from importlib import import_module
 
 from mo_files import File
 
-from tests.utils import reset_parsing_context
+from mo_parsing.engine import Engine
 
 modules = [f.name for f in File("examples").children]
 
@@ -18,8 +18,8 @@ class TestAllExamples(unittest.TestCase):
 
 def _single_test(name):
     def output(self):
-        with reset_parsing_context():
-            import_module("examples." + name)
+        Engine()
+        import_module("examples." + name)
 
     return output
 

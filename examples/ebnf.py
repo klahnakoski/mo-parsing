@@ -57,7 +57,7 @@ ebnfComment = (
 )
 
 syntax = OneOrMore(syntax_rule)
-syntax.ignore(ebnfComment)
+syntax.engine.add_ignore(ebnfComment)
 
 
 def do_integer(str, loc, toks):

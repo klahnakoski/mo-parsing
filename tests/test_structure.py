@@ -1,5 +1,3 @@
-from unittest import TestCase
-
 from mo_parsing import alphas, Word, Group, Forward
 from tests.test_simple_unit import PyparsingExpressionTestCase
 
