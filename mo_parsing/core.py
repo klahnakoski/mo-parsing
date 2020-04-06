@@ -117,66 +117,27 @@ class ParserElement(object):
                 self._parse = self._parse._originalParseMethod
         return self
 
-    def setParseAction(self, *fns, **kwargs):
-        """
-        Define one or more actions to perform when successfully matching parse element definition.
-        Parse action fn is a callable method with 0-3 arguments, called as ``fn(s, loc, toks)`` ,
-        ``fn(loc, toks)`` , ``fn(toks)`` , or just ``fn()`` , where:
-
-        - s   = the original string being parsed (see note below)
-        - loc = the location of the matching substring
-        - toks = a list of the matched tokens, packaged as a :class:`ParseResults` object
-
-        If the functions in fns modify the tokens, they can return them as the return
-        value from fn, and the modified list of tokens will replace the original.
-        Otherwise, fn does not need to return any value.
-
-        If None is passed as the parse action, all previously added parse actions for this
-        expression are cleared.
-
-        Optional keyword arguments:
-        - callDuringTry = (default= ``False``) indicate if parse action should be run during lookaheads and alternate testing
-
-        Note: the default parsing behavior is to expand tabs in the input string
-        before starting the parsing process.  See :class:`parseString for more
-        information on parsing strings containing ``<TAB>`` s, and suggested
-        methods to maintain a consistent view of the parsed string, the parse
-        location, and line and column positions within the parsed string.
-
-        Example::
-
-            integer = Word(nums)
-            date_str = integer + '/' + integer + '/' + integer
-
-            date_str.parseString("1999/12/31")  # -> ['1999', '/', '12', '/', '31']
-
-            # use parse action to convert to ints at parse time
-            integer = Word(nums).setParseAction(lambda toks: int(toks[0]))
-            date_str = integer + '/' + integer + '/' + integer
-
-            # note that integer fields are now ints, not strings
-            date_str.parseString("1999/12/31")  # -> [1999, '/', 12, '/', 31]
-        """
-        if list(fns) == [
-            None,
-        ]:
-            self.parseAction = []
+    def setParseAction(self, *fns, callDuringTry=False):
+        output = self.copy()
+        if fns == (None, ):
+            output.parseAction = []
         else:
             if not all(callable(fn) for fn in fns):
                 raise TypeError("parse actions must be callable")
-            self.parseAction = list(map(_trim_arity, list(fns)))
-            self.callDuringTry = kwargs.get("callDuringTry", False)
-        return self
+            output.parseAction = list(map(_trim_arity, list(fns)))
+            output.callDuringTry = callDuringTry
+        return output
 
-    def addParseAction(self, *fns, **kwargs):
+    def addParseAction(self, *fns, callDuringTry=False):
         """
         Add one or more parse actions to expression's list of parse actions. See :class:`setParseAction`.
 
         See examples in :class:`copy`.
         """
-        self.parseAction += list(map(_trim_arity, fns))
-        self.callDuringTry = self.callDuringTry or kwargs.get("callDuringTry", False)
-        return self
+        output = self.copy()
+        output.parseAction += list(map(_trim_arity, fns))
+        output.callDuringTry = self.callDuringTry or callDuringTry
+        return output
 
     def addCondition(self, *fns, message=None, fatal=False, callDuringTry=False, **kwargs):
         """Add a boolean predicate function to expression's list of parse actions. See
@@ -684,7 +645,7 @@ class ParserElement(object):
         if other is Ellipsis:
             return _PendingSkip(Optional(self))
 
-        return MatchFirst([self, engine.CURRENT.normalize(other)])
+        return MatchFirst([self, engine.CURRENT.normalize(other)]).streamline()
 
     def __ror__(self, other):
         """
@@ -848,15 +809,7 @@ class ParserElement(object):
         return self.parseString(file_contents, parseAll)
 
     def __eq__(self, other):
-        if isinstance(other, ParserElement):
-            if PY_3:
-                self is other or super(ParserElement, self).__eq__(other)
-            else:
-                return self is other or vars(self) == vars(other)
-        elif isinstance(other, basestring):
-            return self.matches(other)
-        else:
-            return super(ParserElement, self) == other
+        return self is other
 
     def __ne__(self, other):
         return not (self == other)

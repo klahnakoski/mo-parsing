@@ -640,42 +640,12 @@ def removeQuotes(s, l, t):
 
 
 def tokenMap(func, *args):
-    """Helper to define a parse action by mapping a function to all
-    elements of a ParseResults list. If any additional args are passed,
-    they are forwarded to the given function as additional arguments
-    after the token, as in
-    ``hex_integer = Word(hexnums).setParseAction(tokenMap(int, 16))``,
-    which will convert the parsed data to an integer using base 16.
-
-    Example (compare the last to example in :class:`ParserElement.transformString`::
-
-        hex_ints = OneOrMore(Word(hexnums)).setParseAction(tokenMap(int, 16))
-        test.runTests(hex_ints, '''
-            00 11 22 aa FF 0a 0d 1a
-            ''')
-
-        upperword = Word(alphas).setParseAction(tokenMap(str.upper))
-        OneOrMore(upperword).runTests('''
-            my kingdom for a horse
-            ''')
-
-        wd = Word(alphas).setParseAction(tokenMap(str.title))
-        OneOrMore(wd).setParseAction(' '.join).runTests('''
-            now is the winter of our discontent made glorious summer by this sun of york
-            ''')
-
-    prints::
-
-        00 11 22 aa FF 0a 0d 1a
-        [0, 17, 34, 170, 255, 10, 13, 26]
-
-        my kingdom for a horse
-        ['MY', 'KINGDOM', 'FOR', 'A', 'HORSE']
-
-        now is the winter of our discontent made glorious summer by this sun of york
-        ['Now Is The Winter Of Our Discontent Made Glorious Summer By This Sun Of York']
     """
-
+    APPLY func OVER ALL GIVEN TOKENS
+    :param func: ACCEPT ParseResults
+    :param args: ADDITIONAL PARAMETERS TO func
+    :return:  map(func(e), token)
+    """
     def pa(s, l, t):
         return [func(tokn, *args) for tokn in t]
 
@@ -913,7 +883,7 @@ opAssoc.LEFT = object()
 opAssoc.RIGHT = object()
 
 
-def infixNotation(baseExpr, opList, lpar=Suppress("("), rpar=Suppress(")")):
+def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
     """Helper method for constructing grammars of expressions made up of
     operators working in a precedence hierarchy.  Operators may be unary
     or binary, left- or right-associative.  Parse actions can also be
@@ -984,53 +954,96 @@ def infixNotation(baseExpr, opList, lpar=Suppress("("), rpar=Suppress(")")):
         [[['-', 2], '-', ['-', 11]]]
     """
 
-    opList = tuple((operDef + (noop,))[:4] for operDef in opList)
+    norm = engine.CURRENT.normalize
+
+    opList = []
+    for operDef in spec:
+        op, arity, assoc, rest = operDef[0], operDef[1], operDef[2], operDef[3:]
+        parse_action = rest[0] if rest else noop
+        if arity == 1:
+            op = norm(op)
+            if assoc == opAssoc.RIGHT:
+                opList.append((
+                    Group(baseExpr + op),
+                    (op,),
+                    arity,
+                    assoc,
+                    parse_action
+                ))
+            else:
+                opList.append((
+                    Group(op + baseExpr),
+                    (op,),
+                    arity,
+                    assoc,
+                    parse_action
+                ))
+        elif arity == 2:
+            op = norm(op)
+            opList.append((
+                Group(baseExpr + op + baseExpr),
+                (op,),
+                arity,
+                assoc,
+                parse_action
+            ))
+        elif arity == 3:
+            op = (norm(op[0]), norm(op[1]))
+            opList.append((
+                Group(baseExpr + op[0] + baseExpr + op[1] + baseExpr),
+                op,
+                arity,
+                assoc,
+                parse_action
+            ))
+    opList = tuple(opList)
 
     def record_op(*op):
         def output(tex, ind, tok):
-            return (tok,) + op
+            return [(tok, op)]
 
         return output
 
     prefix_ops = MatchFirst(
         [
-            op.addParseAction(record_op(op))
-            for op, arity, assoc, pa in opList
+            op[0].addParseAction(record_op(op))
+            for expr, op, arity, assoc, pa in opList
             if arity == 1 and assoc == opAssoc.RIGHT
         ]
     )
     suffix_ops = MatchFirst(
         [
-            op.addParseAction(record_op(op))
-            for op, arity, assoc, pa in opList
+            op[0].addParseAction(record_op(op))
+            for expr, op, arity, assoc, pa in opList
             if arity == 1 and assoc == opAssoc.LEFT
         ]
     )
     ops = MatchFirst(
         [
-            op.addParseAction(record_op(opExpr, op))
-            for opExpr, arity, assoc, pa in opList
+            opPart.addParseAction(record_op(op, opPart))
+            for expr, op, arity, assoc, pa in opList
             if arity > 1
-            for op in ([opExpr] if arity == 2 else opExpr)
+            for opPart in op
         ]
     )
 
     flat = Forward()
-    atom = baseExpr | (lpar + flat + rpar)
+    atom = baseExpr.addParseAction(record_op(baseExpr)) | (lpar + flat + rpar)
     modified = ZeroOrMore(prefix_ops) + atom + ZeroOrMore(suffix_ops)
     flat << modified + ZeroOrMore(ops + modified)
 
     def make_tree(tokens):
+        tokens = list(tokens)
         num = len(opList)
         index = 0
-        while True:
-            opExpr, arity, assoc, pa = opList[index]
+        while len(tokens) > 1:
+            expr, op, arity, assoc, parse_action = opList[index]
             if arity == 1:
                 if assoc == opAssoc.RIGHT:
                     for i, o in enumerate(tokens[:-1]):
-                        if isinstance(o, tuple) and o[1] is opExpr:
+                        if isinstance(o, tuple) and o[1] is op:
                             params = tokens[i], +o[0]
-                            result = pa(*params)
+                            result = parse_action(*params)
                             if result is None:
                                 result = params
                             tokens[i : i + 2] = result
@@ -1040,9 +1053,9 @@ def infixNotation(baseExpr, opList, lpar=Suppress("("), rpar=Suppress(")")):
                         index += 1
                 else:
                     for i, t in enumerate(tokens[1:]):
-                        if isinstance(t, tuple) and t[1] is opExpr:
+                        if isinstance(t, tuple) and t[1] is op:
                             params = t[0], tokens[i]
-                            result = pa(*params)
+                            result = parse_action(*params)
                             if result is None:
                                 result = params
                             tokens[i : i + 2] = result
@@ -1053,12 +1066,14 @@ def infixNotation(baseExpr, opList, lpar=Suppress("("), rpar=Suppress(")")):
             elif arity == 2:
                 todo = enumerate(tokens[1:-1])
                 if assoc == opAssoc.RIGHT:
-                    todo = reversed(todo)
+                    todo = list(reversed(todo))
+                else:
+                    todo = list(todo)
 
                 for i, t in todo:
-                    if isinstance(t, tuple) and t[1] is opExpr:
+                    if isinstance(t, tuple) and t[1] is op:
                         params = tokens[i], t[0], tokens[i + 2]
-                        result = pa(None, None, *params)
+                        result = parse_action(None, None, *params)
                         if result is None:
                             result = params
                         tokens[i : i + 3] = [result]
@@ -1067,38 +1082,37 @@ def infixNotation(baseExpr, opList, lpar=Suppress("("), rpar=Suppress(")")):
                 else:
                     index += 1
             else:  # arity==3
-                todo = enumerate(tokens[1:-3])
+                todo = list(enumerate(tokens[1:-3]))
                 if assoc == opAssoc.RIGHT:
-                    todo = reversed(todo)
+                    todo = list(reversed(todo))
 
-                for i, o0 in todo:
-                    if isinstance(o0, tuple) and o0[1] is opExpr and o0[2] == opExpr[0]:
-                        o1 = tokens[i + 3]
-                        if (
-                                isinstance(o1, tuple)
-                                and o1[1] is opExpr
-                                and o1[2] == opExpr[1]
-                        ):
-                            params = (
-                                tokens[i],
-                                o0[0],
-                                tokens[i + 2],
-                                o1[0],
-                                tokens[i + 4],
+                for i, (r0, o0) in todo:
+                    if o0 == (op, op[0]):
+                        r1, o1 = tokens[i + 3]
+                        if o1 == (op, op[1]):
+                            result = ParseResults(
+                                expr,
+                                (
+                                    tokens[i][0],
+                                    r0,
+                                    tokens[i + 2][0],
+                                    r1,
+                                    tokens[i + 4][0],
+                                )
                             )
-                            result = pa(*params)
-                            if result is None:
-                                result = params
-                            tokens[i : i + 5] = result
+                            temp = parse_action(result)
+                            if temp is not None:
+                                result = temp
+                            tokens[i : i + 5] = [(result, (expr,))]
                             index = 0
                             break
                 else:
                     index += 1
             if index >= num:
                 break
-        return tokens
+        return tokens[0][0]
 
-    flat.addParseAction(make_tree)
+    flat = flat.addParseAction(make_tree)
     return flat
 
 
@@ -1443,14 +1457,8 @@ prints::
 """
 
 convertToInteger = tokenMap(int)
-"""
-Parse action for converting parsed integers to Python int
-"""
 
 convertToFloat = tokenMap(float)
-"""
-Parse action for converting parsed numbers to Python float
-"""
 
 integer = Word(nums).set_parser_name("integer").setParseAction(convertToInteger)
 """expression that parses an unsigned integer, returns an int"""
@@ -1461,14 +1469,12 @@ hex_integer = Word(hexnums).set_parser_name("hex integer").setParseAction(tokenM
 signed_integer = (
     Regex(r"[+-]?\d+").set_parser_name("signed integer").setParseAction(convertToInteger)
 )
-"""expression that parses an integer with optional leading sign, returns an int"""
 
 fraction = (
     signed_integer.setParseAction(convertToFloat)
     + "/"
     + signed_integer.setParseAction(convertToFloat)
 ).set_parser_name("fraction")
-"""fractional expression of an integer divided by an integer, returns a float"""
 fraction.addParseAction(lambda t: t[0] / t[-1])
 
 mixed_integer = (

@@ -9,10 +9,9 @@ from mo_parsing import (
     alphanums,
     alphas,
     delimitedList,
-    tokenMap,
     upcaseTokens,
 )
-from mo_parsing.helpers import number, hex_integer, fnumber, uuid as helper_uuid
+from mo_parsing.helpers import number, hex_integer, fnumber, uuid as helper_uuid, tokenMap
 from tests import runTests
 
 

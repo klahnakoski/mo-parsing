@@ -93,6 +93,13 @@ class Literal(Token):
         if self.matchLen == 1 and type(self) is Literal:
             self.__class__ = _SingleCharLiteral
 
+    def copy(self):
+        output = ParserElement.copy(self)
+        output.firstMatchChar = self.firstMatchChar
+        output.match = self.match
+        output.matchLen = self.matchLen
+        return output
+
     def parseImpl(self, instring, loc, doActions=True):
         if instring[loc] == self.firstMatchChar and instring.startswith(
             self.match, loc
@@ -590,6 +597,18 @@ class Regex(Token):
             self.parseImpl = self.parseImplAsGroupList
         if self.asMatch:
             self.parseImpl = self.parseImplAsMatch
+
+    def copy(self):
+        output = ParserElement.copy(self)
+
+        output.asGroupList = self.asGroupList
+        output.asMatch = self.asMatch
+        output.flags = self.flags
+        output.pattern = self.pattern
+        output.re = self.re
+        output.reString = self.reString
+        output.re_match = self.re_match
+        return output
 
     def parseImpl(self, instring, loc, doActions=True):
         result = self.re_match(instring, loc)

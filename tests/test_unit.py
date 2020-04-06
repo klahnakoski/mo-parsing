@@ -1874,7 +1874,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
 
             opn_map = {"+": operator.add, "-": operator.sub}
 
-        operand = number().setParseAction(NumberNode)
+        operand = number.setParseAction(NumberNode)
         expr = infixNotation(
             operand,
             [
@@ -3366,17 +3366,18 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         )
 
     def testAddCondition(self):
-        numParser = Word(nums)
-        numParser.addParseAction(lambda s, l, t: int(t[0]))
-        numParser.addCondition(lambda s, l, t: t[0] % 2)
-        numParser.addCondition(lambda s, l, t: t[0] >= 7)
+        numParser = (
+            Word(nums)
+                .addParseAction(lambda s, l, t: int(t[0]))
+                .addCondition(lambda s, l, t: t[0] % 2)
+                .addCondition(lambda s, l, t: t[0] >= 7)
+        )
 
         result = numParser.searchString("1 2 3 4 5 6 7 8 9 10")
 
         self.assertEqual(result, [[7], [9]], "failed to properly process conditions")
 
-        numParser = Word(nums)
-        numParser.addParseAction(lambda s, l, t: int(t[0]))
+        numParser = Word(nums).addParseAction(lambda s, l, t: int(t[0]))
         rangeParser = numParser("from_") + Suppress("-") + numParser("to")
 
         result = rangeParser.searchString("1-4 2-4 4-3 5 6 7 8 9 10")
@@ -3385,7 +3386,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
             result, [[1, 4], [2, 4], [4, 3]], "failed to properly process conditions",
         )
 
-        rangeParser.addCondition(
+        rangeParser = rangeParser.addCondition(
             lambda t: t['to'] > t['from_'], message="from must be <= to", fatal=False
         )
         result = rangeParser.searchString("1-4 2-4 4-3 5 6 7 8 9 10")
@@ -3395,7 +3396,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         )
 
         rangeParser = numParser("from_") + Suppress("-") + numParser("to")
-        rangeParser.addCondition(
+        rangeParser = rangeParser.addCondition(
             lambda t: t['to'] > t['from_'], message="from must be <= to", fatal=True
         )
         with TestCase.assertRaises(self, Exception):
@@ -3575,7 +3576,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         K()
 
     def testClearParseActions(self):
-        realnum = real()
+        realnum = real
         self.assertEqual(
             realnum.parseString("3.14159")[0],
             3.14159,
@@ -3918,12 +3919,12 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         ]
         for r, exp in zip(results, expected):
             self.assertTrue(
-                (r[1].year, r[1].month, r[1].day,) == exp,
+                (r[1]['year'], r[1]['month'], r[1]['day']) == exp,
                 "failed to parse date into fields",
             )
 
         success, results = (
-            iso8601_date()
+            iso8601_date
             .addParseAction(convertToDate())
             .runTests(
                 """
@@ -3947,7 +3948,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         self.assertTrue(success, "error in parsing valid iso8601_datetime")
 
         success, results = (
-            iso8601_datetime()
+            iso8601_datetime
             .addParseAction(convertToDatetime())
             .runTests(
                 """
@@ -4355,9 +4356,8 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         # result = ("SELECT" + wd + "FROM" + wd).parseString("select color from colors")
         # self.assertEqual(result, "SELECT color FROM colors".split(),
         #                  "default_literal(CaselessKeyword) failed!")
-        self.assertParseAndCheckList(
-            "SELECT" + wd + "FROM" + wd,
-            "select color from colors",
+        self.assertParseResultsEquals(
+            ("SELECT" + wd + "FROM" + wd).parseString("select color from colors"),
             expected_list=["SELECT", "color", "FROM", "colors"],
             msg="default_literal(CaselessKeyword) failed!",
         )
@@ -4366,9 +4366,8 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         # result = ("SELECT" + wd + "FROM" + wd).parseString("select color from colors")
         # self.assertEqual(result, "SELECT color FROM colors".split(),
         #                  "default_literal(CaselessLiteral) failed!")
-        self.assertParseAndCheckList(
-            "SELECT" + wd + "FROM" + wd,
-            "select color from colors",
+        self.assertParseResultsEquals(
+            ("SELECT" + wd + "FROM" + wd).parseString("select color from colors"),
             expected_list=["SELECT", "color", "FROM", "colors"],
             msg="default_literal(CaselessLiteral) failed!",
         )
@@ -4378,9 +4377,8 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         date_str = integer("year") + "/" + integer("month") + "/" + integer("day")
         # result = date_str.parseString("1999/12/31")
         # self.assertEqual(result, ['1999', '/', '12', '/', '31'], "default_literal(example 1) failed!")
-        self.assertParseAndCheckList(
-            date_str,
-            "1999/12/31",
+        self.assertParseResultsEquals(
+            date_str.parseString("1999/12/31"),
             expected_list=["1999", "/", "12", "/", "31"],
             msg="default_literal(example 1) failed!",
         )
@@ -4391,9 +4389,8 @@ class TestParsing(TestParseResultsAsserts, TestCase):
 
         # result = date_str.parseString("1999/12/31")  # -> ['1999', '12', '31']
         # self.assertEqual(result, ['1999', '12', '31'], "default_literal(example 2) failed!")
-        self.assertParseAndCheckList(
-            date_str,
-            "1999/12/31",
+        self.assertParseResultsEquals(
+            date_str.parseString("1999/12/31"),
             expected_list=["1999", "12", "31"],
             msg="default_literal(example 2) failed!",
         )
@@ -4413,21 +4410,15 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         )
         expected = ([], [0, 12], [9], [4, 5], None, None)
 
-        for r, exp in zip(results, expected):
+        for (r_str, r_tok), exp in zip(results, expected):
             if exp is not None:
                 self.assertEquals(
-                    r[1].mismatches,
+                    r_tok['mismatches'],
                     exp,
                     "fail CloseMatch between {!r} and {!r}".format(
-                        searchseq.match_string, r[0]
+                        searchseq.match_string, r_str
                     ),
                 )
-            print(
-                r[0],
-                "exc: %s" % r[1]
-                if exp is None and isinstance(r[1], Exception)
-                else ("no match", "match")[r[1].mismatches == exp],
-            )
 
     def testDefaultKeywordChars(self):
 
@@ -5189,14 +5180,15 @@ class TestParsing(TestParseResultsAsserts, TestCase):
     def testChainedTernaryOperator(self):
 
         TERNARY_INFIX = infixNotation(integer, [(("?", ":"), 3, opAssoc.LEFT),])
-        r = TERNARY_INFIX.parseString("1?1:0?1:0", parseAll=True)
-        self.assertParseAndCheckList(
-            TERNARY_INFIX, "1?1:0?1:0", [[1, "?", 1, ":", 0, "?", 1, ":", 0]]
+        self.assertParseResultsEquals(
+            TERNARY_INFIX.parseString("1?1:0?1:0", parseAll=True),
+            expected_list = [[1, "?", 1, ":", 0], "?", 1, ":", 0]
         )
 
         TERNARY_INFIX = infixNotation(integer, [(("?", ":"), 3, opAssoc.RIGHT),])
-        self.assertParseAndCheckList(
-            TERNARY_INFIX, "1?1:0?1:0", [[1, "?", 1, ":", [0, "?", 1, ":", 0]]]
+        self.assertParseResultsEquals(
+            TERNARY_INFIX.parseString("1?1:0?1:0", parseAll=True),
+            expected_list=[1, "?", 1, ":", [0, "?", 1, ":", 0]]
         )
 
     def testOneOfWithDuplicateSymbols(self):

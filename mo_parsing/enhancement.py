@@ -508,6 +508,15 @@ class Forward(ParseElementEnhance):
         self.strRepr = None  # avoid recursion
         ParseElementEnhance.__init__(self, expr)
 
+    def copy(self):
+        if self.master:
+            return self.master.copy()
+
+        output = ParseElementEnhance.copy(self)
+        output.master = self
+        self.children.append(output)
+        return output
+
     def __lshift__(self, other):
         if self.master:
             return self.master.__lshift__(self, other)
@@ -575,15 +584,6 @@ class Forward(ParseElementEnhance):
         finally:
             self.strRepr = None
         return self_name + ": " + retString
-
-    def copy(self):
-        if self.master:
-            return self.master.copy()
-
-        output = ParserElement.copy(self)
-        output.master = self
-        self.children.append(output)
-        return output
 
     def __call__(self, name):
         output = self.copy()
