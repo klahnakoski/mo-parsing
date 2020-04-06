@@ -94,7 +94,7 @@ classes inherit from. Use the docstrings for examples of how to:
    namespace class
 """
 
-from mo_parsing.core import ParserElement, _PendingSkip, __diag__
+from mo_parsing.core import ParserElement, _PendingSkip
 from mo_parsing.enhancement import (
     Combine,
     Dict,
@@ -231,7 +231,6 @@ from mo_parsing.utils import (
     hexnums,
     line,
     lineno,
-    nullDebugAction,
     nums,
     printables,
     parsing_unicode,
@@ -244,7 +243,6 @@ from mo_parsing.utils import (
 )
 
 __all__ = [
-    "__diag__",
     "And",
     "CaselessKeyword",
     "CaselessLiteral",
@@ -322,7 +320,6 @@ __all__ = [
     "matchPreviousExpr",
     "matchPreviousLiteral",
     "nestedExpr",
-    "nullDebugAction",
     "nums",
     "oneOf",
     "opAssoc",

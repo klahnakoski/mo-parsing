@@ -7,6 +7,7 @@ from datetime import datetime
 from mo_dots import Data
 from mo_future import text
 
+from mo_parsing.engine import noop
 from mo_parsing.enhancement import (
     Combine,
     Dict,
@@ -383,7 +384,6 @@ def originalTextFor(expr, asString=True):
     """
     locMarker = Empty().setParseAction(lambda s, loc, t: loc)
     endlocMarker = locMarker.copy()
-    endlocMarker.parser_config.callPreparse = False
     matchExpr = locMarker("_original_start") + expr + endlocMarker("_original_end")
     if asString:
         extractText = lambda s, l, t: s[t._original_start : t._original_end]
@@ -393,7 +393,6 @@ def originalTextFor(expr, asString=True):
             t[:] = [s[t.pop("_original_start") : t.pop("_original_end")]]
 
     matchExpr.setParseAction(extractText)
-    matchExpr.ignoreExprs = expr.ignoreExprs
     return matchExpr
 
 
@@ -512,13 +511,13 @@ def nestedExpr(opener="(", closer=")", content=None, ignoreExpr=quotedString.cop
                         OneOrMore(
                             ~ignoreExpr
                             + CharsNotIn(
-                                opener + closer + "".join(white.CURRENT_WHITE_CHARS), exact=1,
+                                opener + closer + "".join(engine.CURRENT.white_chars), exact=1,
                             )
                         )
                     ).setParseAction(lambda t: t[0].strip())
                 else:
                     content = empty.copy() + CharsNotIn(
-                        opener + closer + "".join(white.CURRENT_WHITE_CHARS)
+                        opener + closer + "".join(engine.CURRENT.white_chars)
                     ).setParseAction(lambda t: t[0].strip())
             else:
                 if ignoreExpr is not None:
@@ -527,7 +526,7 @@ def nestedExpr(opener="(", closer=")", content=None, ignoreExpr=quotedString.cop
                             ~ignoreExpr
                             + ~Literal(opener)
                             + ~Literal(closer)
-                            + CharsNotIn(white.CURRENT_WHITE_CHARS, exact=1)
+                            + CharsNotIn(engine.CURRENT.white_chars, exact=1)
                         )
                     ).setParseAction(lambda t: t[0].strip())
                 else:
@@ -535,7 +534,7 @@ def nestedExpr(opener="(", closer=")", content=None, ignoreExpr=quotedString.cop
                         OneOrMore(
                             ~Literal(opener)
                             + ~Literal(closer)
-                            + CharsNotIn(white.CURRENT_WHITE_CHARS, exact=1)
+                            + CharsNotIn(engine.CURRENT.white_chars, exact=1)
                         )
                     ).setParseAction(lambda t: t[0].strip())
         else:
@@ -986,78 +985,123 @@ def infixNotation(baseExpr, opList, lpar=Suppress("("), rpar=Suppress(")")):
         -2--11
         [[['-', 2], '-', ['-', 11]]]
     """
-    # captive version of FollowedBy that does not do parse actions or capture results names
-    class _FB(FollowedBy):
-        def parseImpl(self, instring, loc, doActions=True):
-            self.expr.tryParse(instring, loc)
-            return loc, ParseResults(self, [])
 
-    ret = Forward()
-    lastExpr = baseExpr | (lpar + ret + rpar)
-    for i, operDef in enumerate(opList):
-        opExpr, arity, rightLeftAssoc, pa = (operDef + (None,))[:4]
-        termName = "%s term" % opExpr if arity < 3 else "%s%s term" % opExpr
-        if arity == 3:
-            if opExpr is None or len(opExpr) != 2:
-                raise ValueError(
-                    "if numterms=3, opExpr must be a tuple or list of two expressions"
-                )
-            opExpr1, opExpr2 = opExpr
-        thisExpr = Forward().set_parser_name(termName)
-        if rightLeftAssoc == opAssoc.LEFT:
+    opList = tuple((operDef + (noop,))[:4] for operDef in opList)
+
+    def record_op(*op):
+        def output(tex, ind, tok):
+            return (tok,) + op
+
+        return output
+
+    prefix_ops = MatchFirst(
+        [
+            op.addParseAction(record_op(op))
+            for op, arity, assoc, pa in opList
+            if arity == 1 and assoc == opAssoc.RIGHT
+        ]
+    )
+    suffix_ops = MatchFirst(
+        [
+            op.addParseAction(record_op(op))
+            for op, arity, assoc, pa in opList
+            if arity == 1 and assoc == opAssoc.LEFT
+        ]
+    )
+    ops = MatchFirst(
+        [
+            op.addParseAction(record_op(opExpr, op))
+            for opExpr, arity, assoc, pa in opList
+            if arity > 1
+            for op in ([opExpr] if arity == 2 else opExpr)
+        ]
+    )
+
+    flat = Forward()
+    atom = baseExpr | (lpar + flat + rpar)
+    modified = ZeroOrMore(prefix_ops) + atom + ZeroOrMore(suffix_ops)
+    flat << modified + ZeroOrMore(ops + modified)
+
+    def make_tree(tokens):
+        num = len(opList)
+        index = 0
+        while True:
+            opExpr, arity, assoc, pa = opList[index]
             if arity == 1:
-                matchExpr = _FB(lastExpr + opExpr) + Group(lastExpr + OneOrMore(opExpr))
-            elif arity == 2:
-                if opExpr is not None:
-                    matchExpr = _FB(lastExpr + opExpr + lastExpr) + Group(
-                        lastExpr + OneOrMore(opExpr + lastExpr)
-                    )
+                if assoc == opAssoc.RIGHT:
+                    for i, o in enumerate(tokens[:-1]):
+                        if isinstance(o, tuple) and o[1] is opExpr:
+                            params = tokens[i], +o[0]
+                            result = pa(*params)
+                            if result is None:
+                                result = params
+                            tokens[i : i + 2] = result
+                            index = 0
+                            break
+                    else:
+                        index += 1
                 else:
-                    matchExpr = _FB(lastExpr + lastExpr) + Group(
-                        lastExpr + OneOrMore(lastExpr)
-                    )
-            elif arity == 3:
-                matchExpr = _FB(
-                    lastExpr + opExpr1 + lastExpr + opExpr2 + lastExpr
-                ) + Group(lastExpr + OneOrMore(opExpr1 + lastExpr + opExpr2 + lastExpr))
-            else:
-                raise ValueError(
-                    "operator must be unary (1), binary (2), or ternary (3)"
-                )
-        elif rightLeftAssoc == opAssoc.RIGHT:
-            if arity == 1:
-                # try to avoid LR with this extra test
-                if not isinstance(opExpr, Optional):
-                    opExpr = Optional(opExpr)
-                matchExpr = _FB(opExpr.expr + thisExpr) + Group(opExpr + thisExpr)
+                    for i, t in enumerate(tokens[1:]):
+                        if isinstance(t, tuple) and t[1] is opExpr:
+                            params = t[0], tokens[i]
+                            result = pa(*params)
+                            if result is None:
+                                result = params
+                            tokens[i : i + 2] = result
+                            index = 0
+                            break
+                    else:
+                        index += 1
             elif arity == 2:
-                if opExpr is not None:
-                    matchExpr = _FB(lastExpr + opExpr + thisExpr) + Group(
-                        lastExpr + OneOrMore(opExpr + thisExpr)
-                    )
+                todo = enumerate(tokens[1:-1])
+                if assoc == opAssoc.RIGHT:
+                    todo = reversed(todo)
+
+                for i, t in todo:
+                    if isinstance(t, tuple) and t[1] is opExpr:
+                        params = tokens[i], t[0], tokens[i + 2]
+                        result = pa(None, None, *params)
+                        if result is None:
+                            result = params
+                        tokens[i : i + 3] = [result]
+                        index = 0
+                        break
                 else:
-                    matchExpr = _FB(lastExpr + thisExpr) + Group(
-                        lastExpr + OneOrMore(thisExpr)
-                    )
-            elif arity == 3:
-                matchExpr = _FB(
-                    lastExpr + opExpr1 + thisExpr + opExpr2 + thisExpr
-                ) + Group(lastExpr + opExpr1 + thisExpr + opExpr2 + thisExpr)
-            else:
-                raise ValueError(
-                    "operator must be unary (1), binary (2), or ternary (3)"
-                )
-        else:
-            raise ValueError("operator must indicate right or left associativity")
-        if pa:
-            if isinstance(pa, (tuple, list)):
-                matchExpr.setParseAction(*pa)
-            else:
-                matchExpr.setParseAction(pa)
-        thisExpr <<= matchExpr.set_parser_name(termName) | lastExpr
-        lastExpr = thisExpr
-    ret <<= lastExpr
-    return ret
+                    index += 1
+            else:  # arity==3
+                todo = enumerate(tokens[1:-3])
+                if assoc == opAssoc.RIGHT:
+                    todo = reversed(todo)
+
+                for i, o0 in todo:
+                    if isinstance(o0, tuple) and o0[1] is opExpr and o0[2] == opExpr[0]:
+                        o1 = tokens[i + 3]
+                        if (
+                                isinstance(o1, tuple)
+                                and o1[1] is opExpr
+                                and o1[2] == opExpr[1]
+                        ):
+                            params = (
+                                tokens[i],
+                                o0[0],
+                                tokens[i + 2],
+                                o1[0],
+                                tokens[i + 4],
+                            )
+                            result = pa(*params)
+                            if result is None:
+                                result = params
+                            tokens[i : i + 5] = result
+                            index = 0
+                            break
+                else:
+                    index += 1
+            if index >= num:
+                break
+        return tokens
+
+    flat.addParseAction(make_tree)
+    return flat
 
 
 operatorPrecedence = infixNotation
@@ -1422,9 +1466,9 @@ signed_integer = (
 """expression that parses an integer with optional leading sign, returns an int"""
 
 fraction = (
-    signed_integer().setParseAction(convertToFloat)
+    signed_integer.setParseAction(convertToFloat)
     + "/"
-    + signed_integer().setParseAction(convertToFloat)
+    + signed_integer.setParseAction(convertToFloat)
 ).set_parser_name("fraction")
 """fractional expression of an integer divided by an integer, returns a float"""
 fraction.addParseAction(lambda t: t[0] / t[-1])
@@ -1607,7 +1651,7 @@ comma_separated_list = (
 
 
 # export
-from mo_parsing import core, white
+from mo_parsing import core, engine
 
 core._flatten = _flatten
 core.replaceWith = replaceWith

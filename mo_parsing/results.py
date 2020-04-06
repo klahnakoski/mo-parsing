@@ -106,9 +106,6 @@ class ParseResults(object):
                     for f in tok._get_item_by_name(i):
                         yield f
 
-    def __getattr__(self, item):
-        return self.__getitem__(item)
-
     def __getitem__(self, i):
         if isinstance(i, int):
             if i < 0:
@@ -489,7 +486,7 @@ class ParseResults(object):
         return new_parser, self.tokens_for_result
 
     def __dir__(self):
-        return dir(type(self)) + list(self.keys())
+        return dir(type(self))
 
 
 def simpler(v):

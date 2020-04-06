@@ -5,6 +5,7 @@ import warnings
 
 from mo_future import text
 
+from mo_parsing.engine import Engine
 from mo_parsing.exceptions import ParseException
 from mo_parsing.core import ParserElement
 from mo_parsing.results import ParseResults
@@ -56,10 +57,9 @@ class NoMatch(Token):
         self.parser_name = "NoMatch"
         self.parser_config.mayReturnEmpty = True
         self.parser_config.mayIndexError = False
-        self.parser_config.error_message = "Unmatchable token"
 
     def parseImpl(self, instring, loc, doActions=True):
-        raise ParseException(instring, loc, self.parser_config.error_message, self)
+        raise ParseException(instring, loc, self)
 
 
 class Literal(Token):
@@ -91,7 +91,6 @@ class Literal(Token):
             )
             self.__class__ = Empty
         self.parser_name = '"%s"' % text(self.match)
-        self.parser_config.error_message = "Expected " + self.parser_name
         self.parser_config.mayReturnEmpty = False
         self.parser_config.mayIndexError = False
 
@@ -105,14 +104,14 @@ class Literal(Token):
             self.match, loc
         ):
             return loc + self.matchLen, ParseResults(self, [self.match])
-        raise ParseException(instring, loc, self.parser_config.error_message, self)
+        raise ParseException(instring, loc, self)
 
 
 class _SingleCharLiteral(Literal):
     def parseImpl(self, instring, loc, doActions=True):
         if instring[loc] == self.firstMatchChar:
             return loc + 1, ParseResults(self, [self.match])
-        raise ParseException(instring, loc, self.parser_config.error_message, self)
+        raise ParseException(instring, loc, self)
 
 
 class Keyword(Token):
@@ -141,12 +140,11 @@ class Keyword(Token):
     For case-insensitive matching, use :class:`CaselessKeyword`.
     """
 
-    DEFAULT_KEYWORD_CHARS = alphanums + "_$"
 
     def __init__(self, matchString, identChars=None, caseless=False):
         super(Keyword, self).__init__()
         if identChars is None:
-            identChars = Keyword.DEFAULT_KEYWORD_CHARS
+            identChars = self.engine.keyword_chars
         self.match = matchString
         self.matchLen = len(matchString)
         try:
@@ -158,14 +156,13 @@ class Keyword(Token):
                 stacklevel=2,
             )
         self.parser_name = '"%s"' % self.match
-        self.parser_config.error_message = "Expected " + self.parser_name
         self.parser_config.mayReturnEmpty = False
         self.parser_config.mayIndexError = False
         self.caseless = caseless
         if caseless:
             self.caselessmatch = matchString.upper()
             identChars = identChars.upper()
-        self.identChars = set(identChars)
+        self.identChars = "".join(sorted(set(identChars)))
 
     def parseImpl(self, instring, loc, doActions=True):
         if self.caseless:
@@ -191,18 +188,12 @@ class Keyword(Token):
                 ):
                     return loc + self.matchLen, ParseResults(self, [self.match])
 
-        raise ParseException(instring, loc, self.parser_config.error_message, self)
+        raise ParseException(instring, loc, self)
 
     def copy(self):
-        c = super(Keyword, self).copy()
-        c.identChars = Keyword.DEFAULT_KEYWORD_CHARS
-        return c
-
-    @staticmethod
-    def setDefaultKeywordChars(chars):
-        """Overrides the default Keyword chars
-        """
-        Keyword.DEFAULT_KEYWORD_CHARS = chars
+        output = ParserElement.copy(self)
+        output.identChars = engine.CURRENT.keyword_chars
+        return output
 
 
 class CaselessLiteral(Literal):
@@ -222,12 +213,11 @@ class CaselessLiteral(Literal):
         # Preserve the defining literal.
         self.returnString = matchString
         self.parser_name = "'%s'" % self.returnString
-        self.parser_config.error_message = "Expected " + self.parser_name
 
     def parseImpl(self, instring, loc, doActions=True):
         if instring[loc : loc + self.matchLen].upper() == self.match:
             return loc + self.matchLen, ParseResults(self, [self.returnString])
-        raise ParseException(instring, loc, self.parser_config.error_message, self)
+        raise ParseException(instring, loc, self)
 
 
 class CaselessKeyword(Keyword):
@@ -284,10 +274,6 @@ class CloseMatch(Token):
         self.parser_name = match_string
         self.match_string = match_string
         self.maxMismatches = maxMismatches
-        self.parser_config.error_message = "Expected %r (with up to %d mismatches)" % (
-            self.match_string,
-            self.maxMismatches,
-        )
         self.parser_config.mayIndexError = False
         self.parser_config.mayReturnEmpty = False
 
@@ -317,7 +303,7 @@ class CloseMatch(Token):
                 results["mismatches"] = mismatches
                 return loc, results
 
-        raise ParseException(instring, loc, self.parser_config.error_message, self)
+        raise ParseException(instring, loc, self)
 
 
 class Word(Token):
@@ -418,7 +404,6 @@ class Word(Token):
             self.minLen = exact
 
         self.parser_name = text(self)
-        self.parser_config.error_message = "Expected " + self.parser_name
         self.parser_config.mayIndexError = False
         self.asKeyword = asKeyword
 
@@ -450,7 +435,7 @@ class Word(Token):
 
     def parseImpl(self, instring, loc, doActions=True):
         if instring[loc] not in self.initChars:
-            raise ParseException(instring, loc, self.parser_config.error_message, self)
+            raise ParseException(instring, loc, self)
 
         start = loc
         loc += 1
@@ -476,7 +461,7 @@ class Word(Token):
                 throwException = True
 
         if throwException:
-            raise ParseException(instring, loc, self.parser_config.error_message, self)
+            raise ParseException(instring, loc, self)
 
         return loc, ParseResults(self, [instring[start:loc]])
 
@@ -505,7 +490,7 @@ class _WordRegex(Word):
     def parseImpl(self, instring, loc, doActions=True):
         result = self.re_match(instring, loc)
         if not result:
-            raise ParseException(instring, loc, self.parser_config.error_message, self)
+            raise ParseException(instring, loc, self)
 
         loc = result.end()
         return loc, ParseResults(self, [result.group()])
@@ -587,7 +572,6 @@ class Regex(Token):
         self.re_match = self.re.match
 
         self.parser_name = text(self)
-        self.parser_config.error_message = "Expected " + self.parser_name
         self.parser_config.mayIndexError = False
         self.parser_config.mayReturnEmpty = True
         self.asGroupList = asGroupList
@@ -600,7 +584,7 @@ class Regex(Token):
     def parseImpl(self, instring, loc, doActions=True):
         result = self.re_match(instring, loc)
         if not result:
-            raise ParseException(instring, loc, self.parser_config.error_message, self)
+            raise ParseException(instring, loc, self)
 
         loc = result.end()
         ret = ParseResults(self, [result.group()])
@@ -613,7 +597,7 @@ class Regex(Token):
     def parseImplAsGroupList(self, instring, loc, doActions=True):
         result = self.re_match(instring, loc)
         if not result:
-            raise ParseException(instring, loc, self.parser_config.error_message, self)
+            raise ParseException(instring, loc, self)
 
         loc = result.end()
         ret = ParseResults(self, [result.groups()])
@@ -622,7 +606,7 @@ class Regex(Token):
     def parseImplAsMatch(self, instring, loc, doActions=True):
         result = self.re_match(instring, loc)
         if not result:
-            raise ParseException(instring, loc, self.parser_config.error_message, self)
+            raise ParseException(instring, loc, self)
 
         loc = result.end()
         ret = ParseResults(self, [result])
@@ -806,7 +790,6 @@ class QuotedString(Token):
             raise
 
         self.parser_name = text(self)
-        self.parser_config.error_message = "Expected " + self.parser_name
         self.parser_config.mayIndexError = False
         self.parser_config.mayReturnEmpty = True
 
@@ -817,7 +800,7 @@ class QuotedString(Token):
             or None
         )
         if not result:
-            raise ParseException(instring, loc, self.parser_config.error_message, self)
+            raise ParseException(instring, loc, self)
 
         loc = result.end()
         ret = result.group()
@@ -905,13 +888,12 @@ class CharsNotIn(Token):
             self.minLen = exact
 
         self.parser_name = text(self)
-        self.parser_config.error_message = "Expected " + self.parser_name
         self.parser_config.mayReturnEmpty = self.minLen == 0
         self.parser_config.mayIndexError = False
 
     def parseImpl(self, instring, loc, doActions=True):
         if instring[loc] in self.notChars:
-            raise ParseException(instring, loc, self.parser_config.error_message, self)
+            raise ParseException(instring, loc, self)
 
         start = loc
         loc += 1
@@ -921,7 +903,7 @@ class CharsNotIn(Token):
             loc += 1
 
         if loc - start < self.minLen:
-            raise ParseException(instring, loc, self.parser_config.error_message, self)
+            raise ParseException(instring, loc, self)
 
         return loc, ParseResults(self, [instring[start:loc]])
 
@@ -976,15 +958,13 @@ class White(Token):
     def __init__(self, ws=" \t\r\n", min=1, max=0, exact=0):
         super(White, self).__init__()
         self.matchWhite = ws
-        self.setWhitespaceChars(
-            "".join(
-                c for c in self.parser_config.whiteChars if c not in self.matchWhite
+        self.engine = Engine(
+            white="".join(
+                c for c in self.engine.white_chars if c not in self.matchWhite
             )
         )
-        # ~ self.leaveWhitespace()
         self.parser_name = "".join(White.whiteStrs[c] for c in self.matchWhite)
         self.parser_config.mayReturnEmpty = True
-        self.parser_config.error_message = "Expected " + self.parser_name
 
         self.minLen = min
 
@@ -999,7 +979,7 @@ class White(Token):
 
     def parseImpl(self, instring, loc, doActions=True):
         if instring[loc] not in self.matchWhite:
-            raise ParseException(instring, loc, self.parser_config.error_message, self)
+            raise ParseException(instring, loc, self)
         start = loc
         loc += 1
         maxloc = start + self.maxLen
@@ -1008,7 +988,7 @@ class White(Token):
             loc += 1
 
         if loc - start < self.minLen:
-            raise ParseException(instring, loc, self.parser_config.error_message, self)
+            raise ParseException(instring, loc, self)
 
         return loc, ParseResults(self, [instring[start:loc]])
 
@@ -1033,8 +1013,7 @@ class GoToColumn(_PositionToken):
     def preParse(self, instring, loc):
         if col(loc, instring) != self.col:
             instrlen = len(instring)
-            if self.ignoreExprs:
-                loc = self._skipIgnorables(instring, loc)
+            loc = self._skipIgnorables(instring, loc)
             while (
                 loc < instrlen
                 and instring[loc].isspace()
@@ -1077,12 +1056,11 @@ class LineStart(_PositionToken):
 
     def __init__(self):
         super(LineStart, self).__init__()
-        self.parser_config.error_message = "Expected start of line"
 
     def parseImpl(self, instring, loc, doActions=True):
         if col(loc, instring) == 1:
             return loc, ParseResults(self, [])
-        raise ParseException(instring, loc, self.parser_config.error_message, self)
+        raise ParseException(instring, loc, self)
 
 
 class LineEnd(_PositionToken):
@@ -1092,8 +1070,6 @@ class LineEnd(_PositionToken):
 
     def __init__(self):
         super(LineEnd, self).__init__()
-        self.setWhitespaceChars([w for w in white.CURRENT_WHITE_CHARS if w != "\n"])
-        self.parser_config.error_message = "Expected end of line"
 
     def parseImpl(self, instring, loc, doActions=True):
         if loc < len(instring):
@@ -1101,12 +1077,12 @@ class LineEnd(_PositionToken):
                 return loc + 1, ParseResults(self, ["\n"])
             else:
                 raise ParseException(
-                    instring, loc, self.parser_config.error_message, self
+                    instring, loc, self
                 )
         elif loc == len(instring):
             return loc + 1, ParseResults(self, [])
         else:
-            raise ParseException(instring, loc, self.parser_config.error_message, self)
+            raise ParseException(instring, loc, self)
 
 
 class StringStart(_PositionToken):
@@ -1116,14 +1092,13 @@ class StringStart(_PositionToken):
 
     def __init__(self):
         super(StringStart, self).__init__()
-        self.parser_config.error_message = "Expected start of text"
 
     def parseImpl(self, instring, loc, doActions=True):
         if loc != 0:
             # see if entire string up to here is just whitespace and ignoreables
-            if loc != self.preParse(instring, 0):
+            if loc != self.engine.skip(instring, 0):
                 raise ParseException(
-                    instring, loc, self.parser_config.error_message, self
+                    instring, loc, self
                 )
         return loc, []
 
@@ -1134,17 +1109,16 @@ class StringEnd(_PositionToken):
 
     def __init__(self):
         super(StringEnd, self).__init__()
-        self.parser_config.error_message = "Expected end of text"
 
     def parseImpl(self, instring, loc, doActions=True):
         if loc < len(instring):
-            raise ParseException(instring, loc, self.parser_config.error_message, self)
+            raise ParseException(instring, loc, self)
         elif loc == len(instring):
             return loc + 1, ParseResults(self, [])
         elif loc > len(instring):
             return loc, ParseResults(self, [])
         else:
-            raise ParseException(instring, loc, self.parser_config.error_message, self)
+            raise ParseException(instring, loc, self)
 
 
 class WordStart(_PositionToken):
@@ -1160,7 +1134,6 @@ class WordStart(_PositionToken):
     def __init__(self, wordChars=printables):
         super(WordStart, self).__init__()
         self.wordChars = set(wordChars)
-        self.parser_config.error_message = "Not at the start of a word"
 
     def parseImpl(self, instring, loc, doActions=True):
         if loc != 0:
@@ -1169,7 +1142,7 @@ class WordStart(_PositionToken):
                 or instring[loc] not in self.wordChars
             ):
                 raise ParseException(
-                    instring, loc, self.parser_config.error_message, self
+                    instring, loc, self
                 )
         return loc, ParseResults(self, [])
 
@@ -1187,7 +1160,6 @@ class WordEnd(_PositionToken):
         super(WordEnd, self).__init__()
         self.wordChars = set(wordChars)
         self.parser_config.skipWhitespace = False
-        self.parser_config.error_message = "Not at the end of a word"
 
     def parseImpl(self, instring, loc, doActions=True):
         instrlen = len(instring)
@@ -1197,19 +1169,22 @@ class WordEnd(_PositionToken):
                 or instring[loc - 1] not in self.wordChars
             ):
                 raise ParseException(
-                    instring, loc, self.parser_config.error_message, self
+                    instring, loc, self
                 )
         return loc, ParseResults(self, [])
 
 
 # export
-from mo_parsing import core, enhancement, white
+from mo_parsing import core, enhancement, engine, results
 
 core.Empty = Empty
 core.StringEnd = StringEnd
 core.Literal = Literal
-core.default_literal(Literal)
 core.Token = Token
+
+engine.Token = Token
+engine.Literal = Literal
+engine.CURRENT.literal = Literal
 
 enhancement.Token = Token
 enhancement.Literal = Literal
@@ -1218,8 +1193,5 @@ enhancement.Word = Word
 enhancement.CharsNotIn = CharsNotIn
 enhancement._PositionToken = _PositionToken
 enhancement.StringEnd = StringEnd
-
-
-from mo_parsing import results
 
 results.Token = Token

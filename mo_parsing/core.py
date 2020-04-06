@@ -1,15 +1,15 @@
 # encoding: utf-8
 import copy
-import warnings
 from collections import namedtuple
 from copy import copy
 from threading import RLock
 
-from mo_dots import Data
+from mo_dots import Data, Null
 from mo_future import text, is_text
 from mo_logs import Log
 
 from mo_parsing.cache import packrat_cache
+from mo_parsing.engine import Engine
 from mo_parsing.exceptions import (
     ParseBaseException,
     ParseException,
@@ -20,13 +20,8 @@ from mo_parsing.results import ParseResults
 from mo_parsing.utils import (
     PY_3,
     _MAX_INT,
-    _defaultExceptionDebugAction,
-    _defaultStartDebugAction,
-    _defaultSuccessDebugAction,
     _trim_arity,
     basestring,
-    __diag__,
-    noop,
 )
 
 # import later
@@ -53,8 +48,6 @@ from mo_parsing.utils import (
 
 DEBUG = False
 
-DebugActions = namedtuple("DebugActions", ["TRY", "MATCH", "FAIL"])
-
 
 locker = RLock()
 def entrypoint(func):
@@ -64,105 +57,30 @@ def entrypoint(func):
     return output
 
 
-def default_literal(cls):
-    """
-    Set class to be used for inclusion of string literals into a parser.
-
-    Example::
-
-        # default literal class used is Literal
-        integer = Word(nums)
-        date_str = integer("year") + '/' + integer("month") + '/' + integer("day")
-
-        date_str.parseString("1999/12/31")  # -> ['1999', '/', '12', '/', '31']
-
-
-        # change to Suppress
-        default_literal(Suppress)
-        date_str = integer("year") + '/' + integer("month") + '/' + integer("day")
-
-        date_str.parseString("1999/12/31")  # -> ['1999', '12', '31']
-    """
-    global CURRENT_LITERAL
-    CURRENT_LITERAL = cls
-
-CURRENT_LITERAL = None
-
 class ParserElement(object):
     """Abstract base level parser element class."""
 
     def __init__(self, savelist=False):
         self.parseAction = list()
-        # self.parser_name = self.__class__.__name__
+        self.parser_name = ""
         self.token_name = None
+        self.engine = engine.CURRENT
         self.parser_config = Data()
         self.parser_config.failAction = None
         self.parser_config.skipWhitespace = True
-        self.parser_config.whiteChars = copy(white.CURRENT_WHITE_CHARS)
-        self.parser_config.mayReturnEmpty = (
-            False  # used when checking for left-recursion
-        )
+        self.parser_config.mayReturnEmpty = False  # used when checking for left-recursion
         self.parser_config.keepTabs = False
-        self.parser_config.debug = False
         self.streamlined = False
         self.parser_config.mayIndexError = True  # used to optimize exception handling for subclasses that don't advance parse index
-        self.parser_config.error_message = ""
         self.parser_config.modalResults = True  # used to mark results names as modal (report only last) or cumulative (list all)
-        self.parser_config.debugActions = DebugActions(
-            noop, noop, noop
-        )  # custom debug actions
-        self.parser_config.callPreparse = (
-            True  # used to avoid redundant calls to preParse
-        )
         self.callDuringTry = False
-        self.ignoreExprs = []
-
-    def normalize(self, expr):
-        if expr is None:
-            return None
-        if isinstance(expr, basestring):
-            if issubclass(CURRENT_LITERAL, Token):
-                return CURRENT_LITERAL(expr)
-            else:
-                return CURRENT_LITERAL(Literal(expr))
-        if not isinstance(expr, ParserElement):
-            warnings.warn(
-                "Cannot combine element of type %s with ParserElement" % type(expr),
-                SyntaxWarning,
-                stacklevel=2,
-            )
-            return None
-        return expr
 
     def copy(self):
-        """
-        Make a copy of this :class:`ParserElement`.  Useful for defining
-        different parse actions for the same parsing pattern, using copies of
-        the original parse element.
-
-        Example::
-
-            integer = Word(nums).setParseAction(lambda toks: int(toks[0]))
-            integerK = integer.copy().addParseAction(lambda toks: toks[0] * 1024) + Suppress("K")
-            integerM = integer.copy().addParseAction(lambda toks: toks[0] * 1024 * 1024) + Suppress("M")
-
-            print(OneOrMore(integerK | integerM | integer).parseString("5K 100 640K 256M"))
-
-        prints::
-
-            [5120, 100, 655360, 268435456]
-
-        Equivalent form of ``expr.copy()`` is just ``expr()``::
-
-            integerM = integer().addParseAction(lambda toks: toks[0] * 1024 * 1024) + Suppress("M")
-        """
-        cpy = copy(self)
-        cpy.parser_config = self.parser_config.copy()
-        if cpy.parser_config.skipWhitespace:
-            cpy.parser_config.whiteChars = copy(white.CURRENT_WHITE_CHARS)
-        cpy.parseAction = self.parseAction[:]
-        cpy.ignoreExprs = self.ignoreExprs[:]
-        return cpy
+        output = copy(self)
+        output.engine = engine.CURRENT
+        output.parser_config = self.parser_config.copy()
+        output.parseAction = self.parseAction[:]
+        return output
 
     def set_parser_name(self, name):
         """
@@ -174,9 +92,6 @@ class ParserElement(object):
             Word(nums).set_parser_name("integer").parseString("ABC")  # -> Exception: Expected integer (at char 0), (line:1, col:1)
         """
         self.parser_name = name
-        self.parser_config.error_message = "Expected " + self.parser_name
-        if __diag__.enable_debug_on_named_expressions:
-            self.setDebug()
         return self
 
     def setBreak(self, breakFlag=True):
@@ -187,12 +102,12 @@ class ParserElement(object):
         if breakFlag:
             _parseMethod = self._parse
 
-            def breaker(instring, loc, doActions=True, callPreParse=True):
+            def breaker(instring, loc, doActions=True):
                 import pdb
 
                 # this call to pdb.set_trace() is intentional, not a checkin error
                 pdb.set_trace()
-                return _parseMethod(instring, loc, doActions, callPreParse)
+                return _parseMethod(instring, loc, doActions)
 
             breaker._originalParseMethod = _parseMethod
             self._parse = breaker
@@ -303,46 +218,14 @@ class ParserElement(object):
         self.parser_config.failAction = fn
         return self
 
-    def _skipIgnorables(self, instring, loc):
-        exprsFound = True
-        while exprsFound:
-            exprsFound = False
-            for e in self.ignoreExprs:
-                try:
-                    while 1:
-                        loc, dummy = e._parse(instring, loc)
-                        exprsFound = True
-                except ParseException:
-                    pass
-        return loc
-
-    def preParse(self, instring, loc):
-        more = True  # ENSURE ALTERNATING WHITESPACE AND IGNORABLES ARE SKIPPED
-        while more:
-            more = False
-            if self.ignoreExprs:
-                next_loc = self._skipIgnorables(instring, loc)
-                if next_loc > loc:
-                    more = True
-                    loc = next_loc
-
-            if self.parser_config.skipWhitespace:
-                wt = self.parser_config.whiteChars
-                instrlen = len(instring)
-                while loc < instrlen and instring[loc] in wt:
-                    more = True
-                    loc += 1
-
-        return loc
-
     def parseImpl(self, instring, loc, doActions=True):
         return loc, ParseResults(self, [])
 
     def postParse(self, instring, loc, tokenlist):
         return tokenlist
 
-    def _parse(self, instring, loc, doActions=True, callPreParse=True):
-        lookup = (self, instring, loc, callPreParse, doActions)
+    def _parse(self, instring, loc, doActions=True):
+        lookup = (self, instring, loc, doActions)
         value = packrat_cache.get(lookup)
         if value is not None:
             if isinstance(value, Exception):
@@ -350,12 +233,10 @@ class ParserElement(object):
             return value[0], value[1]
 
         try:
-            if self.parser_config.debug:
-                self.parser_config.debugActions.TRY(instring, loc, self)
+            self.engine.debugActions.TRY(instring, loc, self)
             start = preloc = loc
             try:
-                if callPreParse and self.parser_config.callPreparse:
-                    start = preloc = self.preParse(instring, loc)
+                start = preloc = self.engine.skip(instring, loc)
                 try:
                     loc, tokens = self.parseImpl(instring, preloc, doActions)
                 except IndexError:
@@ -363,15 +244,13 @@ class ParserElement(object):
                         ex = ParseException(
                             instring,
                             len(instring),
-                            self.parser_config.error_message,
                             self,
                         )
                         packrat_cache.set(lookup, ex.__class__(*ex.args))
                         raise ex
                     raise
             except Exception as err:
-                if self.parser_config.debug:
-                    self.parser_config.debugActions.FAIL(instring, start, self, err)
+                self.engine.debugActions.FAIL(instring, start, self, err)
                 self.parser_config.failAction(instring, start, self, err)
                 raise
 
@@ -381,7 +260,7 @@ class ParserElement(object):
                 Log.error("expecting ParseResult")
             if self.__class__.__name__ == "Forward":
                 if self.expr is not tokens.type_for_result:
-                    Log.error("expecting correct type to com from self")
+                    Log.error("expecting correct type to come from self")
                 else:
                     pass  # OK
             elif tokens.type_for_result is not self:
@@ -411,13 +290,9 @@ class ParserElement(object):
 
                         retTokens = tokens
                 except Exception as err:
-                    if self.parser_config.debug:
-                        self.parser_config.debugActions.FAIL(instring, start, self, err)
+                    self.engine.debugActions.FAIL(instring, start, self, err)
                     raise
-            if self.parser_config.debug:
-                self.parser_config.debugActions.MATCH(
-                    instring, start, loc, self, retTokens
-                )
+            self.engine.debugActions.MATCH(instring, start, loc, self, retTokens)
         except ParseBaseException as pe:
             # cache a copy of the exception, without the traceback
             packrat_cache.set(lookup, pe.__class__(*pe.args))
@@ -433,7 +308,7 @@ class ParserElement(object):
         try:
             return self._parse(instring, loc, doActions=False)[0]
         except ParseFatalException:
-            raise ParseException(instring, loc, self.parser_config.error_message, self)
+            raise ParseException(instring, loc, self)
 
     def canParseNext(self, instring, loc):
         try:
@@ -489,14 +364,14 @@ class ParserElement(object):
         cache.resetCache()
         if not self.streamlined:
             self.streamline()
-            for e in self.ignoreExprs:
+            for e in self.engine.ignore_list:
                 e.streamline()
         if not self.parser_config.keepTabs:
             instring = instring.expandtabs()
         try:
             loc, tokens = self._parse(instring, 0)
             if parseAll:
-                loc = self.preParse(instring, loc)
+                loc = self.engine.skip(instring, loc)
                 se = Empty() + StringEnd()
                 se._parse(instring, loc)
         except ParseBaseException as exc:
@@ -538,21 +413,21 @@ class ParserElement(object):
         """
         if not self.streamlined:
             self.streamline()
-            for e in self.ignoreExprs:
+            for e in self.engine.ignore_list:
                 e.streamline()
 
         if not self.parser_config.keepTabs:
             instring = text(instring).expandtabs()
         instrlen = len(instring)
         loc = 0
-        preparseFn = self.preParse
+        skip = self.engine.skip
         parseFn = self._parse
         cache.resetCache()
         matches = 0
         while loc <= instrlen and matches < maxMatches:
             try:
-                preloc = preparseFn(instring, loc)
-                nextLoc, tokens = parseFn(instring, preloc, callPreParse=False)
+                preloc = skip(instring, loc)
+                nextLoc, tokens = parseFn(instring, preloc)
             except ParseException as e:
                 loc = preloc + 1
             else:
@@ -560,7 +435,7 @@ class ParserElement(object):
                     matches += 1
                     yield tokens, preloc, nextLoc
                     if overlap:
-                        nextloc = preparseFn(instring, loc)
+                        nextloc = skip(instring, loc)
                         if nextloc > loc:
                             loc = nextLoc
                         else:
@@ -693,7 +568,7 @@ class ParserElement(object):
         if other is Ellipsis:
             return _PendingSkip(self)
 
-        return And([self, self.normalize(other)])
+        return And([self, engine.CURRENT.normalize(other)])
 
     def __radd__(self, other):
         """
@@ -702,19 +577,19 @@ class ParserElement(object):
         if other is Ellipsis:
             return SkipTo(self)("_skipped*") + self
 
-        return self.normalize(other) + self
+        return engine.CURRENT.normalize(other) + self
 
     def __sub__(self, other):
         """
         Implementation of - operator, returns :class:`And` with error stop
         """
-        return self + And._ErrorStop() + self.normalize(other)
+        return self + And._ErrorStop() + engine.CURRENT.normalize(other)
 
     def __rsub__(self, other):
         """
         Implementation of - operator when left operand is not a :class:`ParserElement`
         """
-        return self.normalize(other) - self
+        return engine.CURRENT.normalize(other) - self
 
     def __mul__(self, other):
         """
@@ -810,37 +685,37 @@ class ParserElement(object):
         if other is Ellipsis:
             return _PendingSkip(Optional(self))
 
-        return MatchFirst([self, self.normalize(other)])
+        return MatchFirst([self, engine.CURRENT.normalize(other)])
 
     def __ror__(self, other):
         """
         Implementation of | operator when left operand is not a :class:`ParserElement`
         """
-        return self.normalize(other) | self
+        return engine.CURRENT.normalize(other) | self
 
     def __xor__(self, other):
         """
         Implementation of ^ operator - returns :class:`Or`
         """
-        return Or([self, self.normalize(other)])
+        return Or([self, engine.CURRENT.normalize(other)])
 
     def __rxor__(self, other):
         """
         Implementation of ^ operator when left operand is not a :class:`ParserElement`
         """
-        return self.normalize(other) ^ self
+        return engine.CURRENT.normalize(other) ^ self
 
     def __and__(self, other):
         """
         Implementation of & operator - returns :class:`Each`
         """
-        return Each([self, self.normalize(other)])
+        return Each([self, engine.CURRENT.normalize(other)])
 
     def __rand__(self, other):
         """
         Implementation of & operator when left operand is not a :class:`ParserElement`
         """
-        return self.normalize(other) & self
+        return engine.CURRENT.normalize(other) & self
 
     def __invert__(self):
         """
@@ -873,7 +748,7 @@ class ParserElement(object):
         """
         return self * key
 
-    def __call__(self, name=None):
+    def __call__(self, name):
         """
         Shortcut for :class:`.set_token_name`, with ``listAllMatches=False``.
 
@@ -889,11 +764,16 @@ class ParserElement(object):
             userdata = Word(alphas)("name") + Word(nums + "-")("socsecno")
         """
         if not name:
-            Log.warning("use copy")
-            return self.copy()
+            return self
         return self.set_token_name(name)
 
     def set_token_name(self, name, listAllMatches=False):
+        """
+        SET name AS PART OF A LARGER GROUP
+        :param name:
+        :param listAllMatches:
+        :return:
+        """
         if not is_text(name):
             Log.error("not expected")
         if name.endswith("*"):
@@ -922,15 +802,6 @@ class ParserElement(object):
         output.parser_config.skipWhitespace = False
         return output
 
-    def setWhitespaceChars(self, chars):
-        """
-        Overrides the default whitespace chars
-        """
-        output = self.copy()
-        output.parser_config.skipWhitespace = True
-        output.parser_config.whiteChars = chars
-        return output
-
     def parseWithTabs(self):
         """
         Overrides default behavior to expand ``<TAB>``s to spaces before parsing the input string.
@@ -940,49 +811,7 @@ class ParserElement(object):
         self.parser_config.keepTabs = True
         return self
 
-    def ignore(self, other):
-        """
-        Define expression to be ignored (e.g., comments) while doing pattern
-        matching; may be called repeatedly, to define multiple comment or other
-        ignorable patterns.
 
-        Example::
-
-            patt = OneOrMore(Word(alphas))
-            patt.parseString('ablaj /* comment */ lskjd') # -> ['ablaj']
-
-            patt.ignore(cStyleComment)
-            patt.parseString('ablaj /* comment */ lskjd') # -> ['ablaj', 'lskjd']
-        """
-        if isinstance(other, basestring):
-            other = Suppress(other)
-
-        if other not in self.ignoreExprs:
-            self.ignoreExprs.append(other.suppress())
-        return self
-
-    def setDebugActions(self, startAction, successAction, exceptionAction):
-        """
-        Enable display of debugging messages while doing pattern matching.
-        """
-        self.parser_config.debugActions = DebugActions(
-            startAction or _defaultStartDebugAction,
-            successAction or _defaultSuccessDebugAction,
-            exceptionAction or _defaultExceptionDebugAction,
-        )
-        self.parser_config.debug = True
-        return self
-
-    def setDebug(self, flag=True):
-        if flag:
-            self.setDebugActions(
-                _defaultStartDebugAction,
-                _defaultSuccessDebugAction,
-                _defaultExceptionDebugAction,
-            )
-        else:
-            self.parser_config.debug = False
-        return self
 
     def __str__(self):
         return self.parser_name
@@ -1076,8 +905,9 @@ class _PendingSkip(ParserElement):
         Log.error("use of `...` expression without following SkipTo target expression")
 
 
-# export
 
-from mo_parsing import results, cache, white
+# export
+from mo_parsing import results, engine, cache
 
 results.ParserElement = ParserElement
+engine.ParserElement = ParserElement

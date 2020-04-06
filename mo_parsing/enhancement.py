@@ -1,8 +1,9 @@
 # encoding: utf-8
 import warnings
 
+from mo_dots import Null
 from mo_future import text
-from mo_logs import Log
+from mo_logs import Log, Except
 
 from mo_parsing.exceptions import (
     ParseBaseException,
@@ -11,7 +12,7 @@ from mo_parsing.exceptions import (
 )
 from mo_parsing.core import ParserElement
 from mo_parsing.results import ParseResults, Annotation
-from mo_parsing.utils import _MAX_INT, __diag__
+from mo_parsing.utils import _MAX_INT
 
 # import later
 Token, Literal, Keyword, Word, CharsNotIn, _PositionToken, StringEnd = [None] * 7
@@ -35,24 +36,22 @@ class ParseElementEnhance(ParserElement):
     """
 
     def __init__(self, expr, savelist=False):
-        super(ParseElementEnhance, self).__init__(savelist)
-        self.expr = expr = self.normalize(expr)
-        if expr is not None:
+        ParserElement.__init__(self, savelist)
+        self.expr = expr = engine.CURRENT.normalize(expr)
+        if expr != None:
+            self.engine = expr.engine
             self.parser_config.mayIndexError = expr.parser_config.mayIndexError
             self.parser_config.mayReturnEmpty = expr.parser_config.mayReturnEmpty
-            self.setWhitespaceChars(expr.parser_config.whiteChars)
             self.parser_config.skipWhitespace = expr.parser_config.skipWhitespace
-            self.parser_config.callPreparse = expr.parser_config.callPreparse
-            self.ignoreExprs.extend(expr.ignoreExprs)
 
     def parseImpl(self, instring, loc, doActions=True):
-        if self.expr is not None:
-            loc, output = self.expr._parse(instring, loc, doActions, callPreParse=False)
+        if self.expr != None:
+            loc, output = self.expr._parse(instring, loc, doActions)
             if output.type_for_result == self:
                 Log.error("not expected")
             return loc, ParseResults(self, [output])
         else:
-            raise ParseException("", loc, self.parser_config.error_message, self)
+            raise ParseException("", loc, self)
 
     def leaveWhitespace(self):
         output = self.copy()
@@ -60,43 +59,33 @@ class ParseElementEnhance(ParserElement):
         output.expr = self.expr.leaveWhitespace()
         return output
 
-    def ignore(self, other):
-        if isinstance(other, Suppress):
-            if other not in self.ignoreExprs:
-                super(ParseElementEnhance, self).ignore(other)
-                if self.expr is not None:
-                    self.expr.ignore(self.ignoreExprs[-1])
-        else:
-            super(ParseElementEnhance, self).ignore(other)
-            if self.expr is not None:
-                self.expr.ignore(self.ignoreExprs[-1])
-        return self
-
     def streamline(self):
-        super(ParseElementEnhance, self).streamline()
-        if self.expr is not None:
-            self.expr.streamline()
+        if self.streamlined:
+            return self
+        self.streamlined = True
+        self.expr.streamline()
         return self
 
     def checkRecursion(self, parseElementList):
         if self in parseElementList:
             raise RecursiveGrammarException(parseElementList + [self])
         subRecCheckList = parseElementList[:] + [self]
-        if self.expr is not None:
+        if self.expr != None:
             self.expr.checkRecursion(subRecCheckList)
 
     def validate(self, validateTrace=None):
         if validateTrace is None:
             validateTrace = []
         tmp = validateTrace[:] + [self]
-        if self.expr is not None:
+        if self.expr != None:
             self.expr.validate(tmp)
         self.checkRecursion([])
 
     def __str__(self):
         try:
             return super(ParseElementEnhance, self).__str__()
-        except Exception:
+        except Exception as e:
+            e = Except.wrap(e)
             pass
         return "%s:(%s)" % (self.__class__.__name__, text(self.expr))
 
@@ -166,15 +155,14 @@ class NotAny(ParseElementEnhance):
         # do NOT use self.leaveWhitespace(), don't want to propagate to exprs
         self.parser_config.skipWhitespace = False
         self.parser_config.mayReturnEmpty = True
-        self.parser_config.error_message = "Found unwanted token, " + text(self.expr)
 
     def parseImpl(self, instring, loc, doActions=True):
         if self.expr.canParseNext(instring, loc):
-            raise ParseException(instring, loc, self.parser_config.error_message, self)
+            raise ParseException(instring, loc, self)
         return loc, ParseResults(self, [])
 
     def __str__(self):
-        if hasattr(self, "parser_name"):
+        if self.parser_name:
             return self.parser_name
         return "~{" + text(self.expr) + "}"
 
@@ -182,15 +170,14 @@ class NotAny(ParseElementEnhance):
 class _MultipleMatch(ParseElementEnhance):
     def __init__(self, expr, stopOn=None):
         super(_MultipleMatch, self).__init__(expr)
-        self.stopOn(self.normalize(stopOn))
+        self.stopOn(stopOn)
 
     def stopOn(self, ender):
-        self.not_ender = ~self.normalize(ender) if ender else None
+        self.not_ender = self.engine.normalize(~ender) if ender else None
         return self
 
     def parseImpl(self, instring, loc, doActions=True):
         self_expr_parse = self.expr._parse
-        self_skip_ignorables = self._skipIgnorables
         check_ender = self.not_ender is not None
         if check_ender:
             try_not_ender = self.not_ender.tryParse
@@ -206,14 +193,10 @@ class _MultipleMatch(ParseElementEnhance):
             acc.append(tmptokens)
 
         try:
-            hasIgnoreExprs = not not self.ignoreExprs
             while 1:
                 if check_ender:
                     try_not_ender(instring, loc)
-                if hasIgnoreExprs:
-                    preloc = self_skip_ignorables(instring, loc)
-                else:
-                    preloc = loc
+                preloc = self.engine.skip(instring, loc)
                 loc, tmptokens = self_expr_parse(instring, preloc, doActions)
                 if tmptokens:
                     acc.append(tmptokens)
@@ -222,22 +205,15 @@ class _MultipleMatch(ParseElementEnhance):
 
         return loc, ParseResults(self, acc)
 
-    def _setResultsName(self, name, listAllMatches=False):
-        if __diag__.warn_ungrouped_named_tokens_in_collection:
-            for e in [self.expr] + getattr(self.expr, "exprs", []):
-                if isinstance(e, ParserElement) and e.token_name:
-                    warnings.warn(
-                        "{0}: setting results name {1!r} on {2} expression "
-                        "collides with {3!r} on contained expression".format(
-                            "warn_ungrouped_named_tokens_in_collection",
-                            name,
-                            type(self).__name__,
-                            e.token_name,
-                        ),
-                        stacklevel=3,
-                    )
+    def __call__(self, name):
+        if not name:
+            return self
 
-        return super(_MultipleMatch, self)._setResultsName(name, listAllMatches)
+        for e in [self.expr] + getattr(self.expr, "exprs", []):
+            if isinstance(e, ParserElement) and e.token_name:
+                Log.error("can not set token name, already set in one of the other expressions")
+
+        return ParseElementEnhance.__call__(self, name)
 
 
 class OneOrMore(_MultipleMatch):
@@ -267,7 +243,7 @@ class OneOrMore(_MultipleMatch):
     """
 
     def __str__(self):
-        if hasattr(self, "parser_name"):
+        if self.parser_name:
             return self.parser_name
 
         return "{" + text(self.expr) + "}..."
@@ -296,7 +272,7 @@ class ZeroOrMore(_MultipleMatch):
             return loc, ParseResults(self, [])
 
     def __str__(self):
-        if hasattr(self, "parser_name"):
+        if self.parser_name:
             return self.parser_name
 
         return "[" + text(self.expr) + "]..."
@@ -349,7 +325,7 @@ class Optional(ParseElementEnhance):
 
     def parseImpl(self, instring, loc, doActions=True):
         try:
-            loc, tokens = self.expr._parse(instring, loc, doActions, callPreParse=False)
+            loc, tokens = self.expr._parse(instring, loc, doActions)
         except (ParseException, IndexError):
             if self.defaultValue is not self.__optionalNotMatched:
                 if self.expr.token_name:
@@ -363,7 +339,7 @@ class Optional(ParseElementEnhance):
         return loc, ParseResults(self, [tokens])
 
     def __str__(self):
-        if hasattr(self, "parser_name"):
+        if self.parser_name:
             return self.parser_name
 
         return "[" + text(self.expr) + "]"
@@ -434,8 +410,7 @@ class SkipTo(ParseElementEnhance):
         self.parser_config.mayReturnEmpty = True
         self.parser_config.mayIndexError = False
         self.includeMatch = include
-        self.failOn = self.normalize(failOn)
-        self.parser_config.error_message = "No match found for " + text(self.expr)
+        self.failOn = engine.CURRENT.normalize(failOn)
 
     def parseImpl(self, instring, end, doActions=True):
         start = end
@@ -464,7 +439,7 @@ class SkipTo(ParseElementEnhance):
                         break
 
             try:
-                end_parse(instring, tmploc, doActions=False, callPreParse=False)
+                end_parse(instring, tmploc, doActions=False)
             except (ParseException, IndexError):
                 # no match, advance loc in string
                 tmploc += 1
@@ -474,7 +449,7 @@ class SkipTo(ParseElementEnhance):
 
         else:
             # ran off the end of the input string without matching skipto expr, fail
-            raise ParseException(instring, end, self.parser_config.error_message, self)
+            raise ParseException(instring, end, self)
 
         # build up return values
         end = tmploc
@@ -484,7 +459,7 @@ class SkipTo(ParseElementEnhance):
             skip_result.append(skiptext)
 
         if self.includeMatch:
-            end, end_result = end_parse(instring, end, doActions, callPreParse=False)
+            end, end_result = end_parse(instring, end, doActions)
             skip_result.append(end_result)
 
         return end, ParseResults(self, skip_result)
@@ -518,23 +493,28 @@ class Forward(ParseElementEnhance):
     parser created using ``Forward``.
     """
 
-    def __init__(self, expr=None):
-        super(Forward, self).__init__(expr, savelist=False)
+    def __init__(self, expr=Null):
         self.expr = expr
+        self.master = None  # point to first instance
+        self.children = []  # point to all copies
         self.strRepr = None  # avoid recursion
+        ParseElementEnhance.__init__(self, expr, savelist=False)
 
     def __lshift__(self, other):
+        if self.master:
+            return self.master.__lshift__(self, other)
+
         while isinstance(other, Forward):
             other = other.expr
 
-        self.expr = self.normalize(other)
+        expr = self.expr = engine.CURRENT.normalize(other)
 
-        if self.token_name:
-            self.expr(self.token_name)
+        self.expr = expr(self.token_name)
+
+        for c in self.children:
+            c.expr = expr(c.token_name)
+
         return self
-
-    def __ilshift__(self, other):
-        return self << other
 
     def leaveWhitespace(self):
         output = self.copy()
@@ -542,10 +522,11 @@ class Forward(ParseElementEnhance):
         return output
 
     def streamline(self):
-        if not self.streamlined:
-            self.streamlined = True
-            if self.expr is not None:
-                self.expr.streamline()
+        if self.streamlined:
+            return self
+
+        self.streamlined = True
+        self.expr.streamline()
         return self
 
     def validate(self, validateTrace=None):
@@ -554,21 +535,21 @@ class Forward(ParseElementEnhance):
 
         if self not in validateTrace:
             tmp = validateTrace[:] + [self]
-            if self.expr is not None:
+            if self.expr != None:
                 self.expr.validate(tmp)
         self.checkRecursion([])
 
     def parseImpl(self, instring, loc, doActions=True):
-        if self.expr is not None:
-            loc, output = self.expr._parse(instring, loc, doActions, callPreParse=False)
+        if self.expr != None:
+            loc, output = self.expr._parse(instring, loc, doActions)
             if output.type_for_result is self:
                 Log.error("not expected")
             return loc, output
         else:
-            raise ParseException("", loc, self.parser_config.error_message, self)
+            raise ParseException("", loc, self)
 
     def __str__(self):
-        if hasattr(self, "parser_name"):
+        if self.parser_name:
             return self.parser_name
 
         if self.strRepr:
@@ -582,44 +563,25 @@ class Forward(ParseElementEnhance):
         # Use the string representation of main expression.
         retString = "..."
         try:
-            if self.expr is not None:
-                retString = text(self.expr)[:1000]
-            else:
-                retString = "None"
+            retString = text(self.expr)[:1000]
         finally:
             self.strRepr = None
         return self_name + ": " + retString
 
     def copy(self):
-        if self.expr is not None:
-            return super(Forward, self).copy()
-        else:
-            ret = Forward()
-            ret <<= self
-            return ret
+        if self.master:
+            return self.master.copy()
 
-    def __call__(self, name=None):
-        # pass the name to expr this Forward represents
+        output = ParserElement.copy(self)
+        output.master = self
+        self.children.append(output)
+        return output
 
-        if self.expr:
-            new_expr = self.expr(name)
-            output = self._setResultsName(name) << new_expr
-            return output
-        else:
-            return super(Forward, self).__call__(name)
-
-    def _setResultsName(self, name, listAllMatches=False):
-        if __diag__.warn_name_set_on_empty_Forward:
-            if self.expr is None:
-                warnings.warn(
-                    "{0}: setting results name {0!r} on {1} expression "
-                    "that has no contained expression".format(
-                        "warn_name_set_on_empty_Forward", name, type(self).__name__
-                    ),
-                    stacklevel=3,
-                )
-
-        return super(Forward, self).set_token_name(name, listAllMatches)
+    def __call__(self, name):
+        output = self.copy()
+        output.token_name = name
+        output.expr = output.expr(name)
+        return output
 
 
 class TokenConverter(ParseElementEnhance):
@@ -658,14 +620,6 @@ class Combine(TokenConverter):
         self.adjacent = adjacent
         self.parser_config.skipWhitespace = True
         self.joinString = joinString
-        self.parser_config.callPreparse = True
-
-    def ignore(self, other):
-        if self.adjacent:
-            ParserElement.ignore(self, other)
-        else:
-            super(Combine, self).ignore(other)
-        return self
 
     def postParse(self, instring, loc, tokenlist):
         retToks = ParseResults(self, [tokenlist.asString(sep=self.joinString)])
@@ -837,20 +791,19 @@ class PrecededBy(ParseElementEnhance):
             retreat = 0
             self.exact = True
         self.retreat = retreat
-        self.parser_config.error_message = "not preceded by " + str(expr)
         self.parser_config.skipWhitespace = False
 
     def parseImpl(self, instring, loc=0, doActions=True):
         if self.exact:
             if loc < self.retreat:
-                raise ParseException(instring, loc, self.parser_config.error_message)
+                raise ParseException(instring, loc, self)
             start = loc - self.retreat
             _, ret = self.expr._parse(instring, start)
         else:
             # retreat specified a maximum lookbehind window, iterate
             test_expr = self.expr + StringEnd()
             instring_slice = instring[:loc]
-            last_expr = ParseException(instring, loc, self.parser_config.error_message)
+            last_expr = ParseException(instring, loc, self)
             for offset in range(1, min(loc, self.retreat + 1)):
                 try:
                     _, ret = test_expr._parse(instring_slice, loc - offset)
@@ -867,7 +820,7 @@ class PrecededBy(ParseElementEnhance):
 
 
 # export
-from mo_parsing import core
+from mo_parsing import core, engine
 
 core.SkipTo = SkipTo
 core.ZeroOrMore = ZeroOrMore

@@ -1,5 +1,4 @@
 # encoding: utf-8
-import warnings
 from operator import itemgetter
 
 from mo_future import text
@@ -14,7 +13,7 @@ from mo_parsing.exceptions import (
 )
 from mo_parsing.results import ParseResults
 from mo_parsing.tokens import Empty
-from mo_parsing.utils import Iterable, _generatorType, __diag__
+from mo_parsing.utils import Iterable, _generatorType
 
 
 class ParseExpression(ParserElement):
@@ -32,8 +31,7 @@ class ParseExpression(ParserElement):
         else:
             exprs = [exprs]
 
-        self.exprs = [self.normalize(e) for e in exprs]
-        self.parser_config.callPreparse = False
+        self.exprs = [engine.CURRENT.normalize(e) for e in exprs]
 
     def append(self, other):
         self.exprs.append(other)
@@ -47,18 +45,6 @@ class ParseExpression(ParserElement):
         output.exprs = [e.leaveWhitespace() for e in self.exprs]
         return output
 
-    def ignore(self, other):
-        if isinstance(other, Suppress):
-            if other not in self.ignoreExprs:
-                super(ParseExpression, self).ignore(other)
-                for e in self.exprs:
-                    e.ignore(self.ignoreExprs[-1])
-        else:
-            super(ParseExpression, self).ignore(other)
-            for e in self.exprs:
-                e.ignore(self.ignoreExprs[-1])
-        return self
-
     def __str__(self):
         try:
             return super(ParseExpression, self).__str__()
@@ -68,39 +54,25 @@ class ParseExpression(ParserElement):
         return "%s:(%s)" % (self.__class__.__name__, text(self.exprs))
 
     def streamline(self):
-        super(ParseExpression, self).streamline()
-
-        for e in self.exprs:
-            e.streamline()
+        if self.streamlined:
+            return self
+        self.streamlined = True
 
         # collapse nested And's of the form And(And(And(a, b), c), d) to And(a, b, c, d)
         # but only if there are no parse actions or resultsNames on the nested And's
         # (likewise for Or's and MatchFirst's)
-        if len(self.exprs) == 2:
-            other = self.exprs[0]
+        acc = []
+        for e in self.exprs:
+            e.streamline()
             if (
-                isinstance(other, self.__class__)
-                and not other.parseAction
-                and other.token_name is None
-                and not other.parser_config.parser_config.debug
+                isinstance(e, self.__class__)
+                and not e.parseAction
+                and e.token_name is None
             ):
-                self.exprs = other.exprs[:] + [self.exprs[1]]
-                self.parser_config.mayReturnEmpty |= other.parser_config.mayReturnEmpty
-                self.parser_config.mayIndexError |= other.parser_config.mayIndexError
-
-            other = self.exprs[-1]
-            if (
-                isinstance(other, self.__class__)
-                and not other.parseAction
-                and other.token_name is None
-                and not other.parser_config.parser_config.debug
-            ):
-                self.exprs = self.exprs[:-1] + other.exprs[:]
-                self.parser_config.mayReturnEmpty |= other.parser_config.mayReturnEmpty
-                self.parser_config.mayIndexError |= other.parser_config.mayIndexError
-
-        self.parser_config.error_message = "Expected " + text(self)
-
+                acc.extend(e.exprs)
+            else:
+                acc.append(e)
+        self.exprs = acc
         return self
 
     def validate(self, validateTrace=None):
@@ -109,22 +81,14 @@ class ParseExpression(ParserElement):
             e.validate(tmp)
         self.checkRecursion([])
 
-    def _setResultsName(self, name, listAllMatches=False):
-        if __diag__.warn_ungrouped_named_tokens_in_collection:
-            for e in self.exprs:
-                if isinstance(e, ParserElement) and e.token_name:
-                    warnings.warn(
-                        "{0}: setting results name {1!r} on {2} expression "
-                        "collides with {3!r} on contained expression".format(
-                            "warn_ungrouped_named_tokens_in_collection",
-                            name,
-                            type(self).__name__,
-                            e.token_name,
-                        ),
-                        stacklevel=3,
-                    )
+    def __call__(self, name):
+        if not name:
+            return self
+        for e in self.exprs:
+            if isinstance(e, ParserElement) and e.token_name:
+                Log.error("token name is already set in child")
 
-        return super(ParseExpression, self)._setResultsName(name, listAllMatches)
+        return ParserElement.__call__(self, name)
 
 
 class And(ParseExpression):
@@ -170,11 +134,13 @@ class And(ParseExpression):
         self.parser_config.mayReturnEmpty = all(
             e.parser_config.mayReturnEmpty for e in self.exprs
         )
-        self.setWhitespaceChars(self.exprs[0].parser_config.whiteChars)
         self.parser_config.skipWhitespace = self.exprs[0].parser_config.skipWhitespace
-        self.parser_config.callPreparse = True
 
     def streamline(self):
+        if self.streamlined:
+            return self
+        ParseExpression.streamline(self)
+
         # collapse any _PendingSkip's
         if self.exprs:
             if any(
@@ -221,7 +187,7 @@ class And(ParseExpression):
                     )
                 except IndexError:
                     raise ParseSyntaxException(
-                        instring, len(instring), self.parser_config.error_message, self
+                        instring, len(instring), self
                     )
             else:
                 loc, exprtokens = e._parse(instring, loc, doActions)
@@ -238,14 +204,7 @@ class And(ParseExpression):
         if other is Ellipsis:
             return _PendingSkip(self)
 
-        if isinstance(other, And):
-            return And(self.exprs + other.exprs)
-        else:
-            return And([self, self.normalize(other)])
-
-
-    def __iadd__(self, other):
-        return self.append(self.normalize(other))  # And([self, other])
+        return And([self, engine.CURRENT.normalize(other)]).streamline()
 
     def checkRecursion(self, parseElementList):
         subRecCheckList = parseElementList[:] + [self]
@@ -255,7 +214,7 @@ class And(ParseExpression):
                 break
 
     def __str__(self):
-        if hasattr(self, "parser_name"):
+        if self.parser_name:
             return self.parser_name
 
         return "{" + " ".join(text(e) for e in self.exprs) + "}"
@@ -288,10 +247,6 @@ class Or(ParseExpression):
         else:
             self.parser_config.mayReturnEmpty = True
 
-    def streamline(self):
-        super(Or, self).streamline()
-        return self
-
     def parseImpl(self, instring, loc, doActions=True):
         maxExcLoc = -1
         maxException = None
@@ -307,7 +262,7 @@ class Or(ParseExpression):
             except IndexError:
                 if len(instring) > maxExcLoc:
                     maxException = ParseException(
-                        instring, len(instring), e.parser_config.error_message, self
+                        instring, len(instring), self
                     )
                     maxExcLoc = len(instring)
             else:
@@ -350,18 +305,15 @@ class Or(ParseExpression):
                 return longest
 
         if maxException is not None:
-            maxException.msg = self.parser_config.error_message
+            maxException.msg = "expecting " + text(self)
             raise maxException
         else:
             raise ParseException(
                 instring, loc, "no defined alternatives to match", self
             )
 
-    def __ixor__(self, other):
-        return self.append(self.normalize(other))  # Or([self, other])
-
     def __str__(self):
-        if hasattr(self, "parser_name"):
+        if self.parser_name:
             return self.parser_name
 
         return "{" + " ^ ".join(text(e) for e in self.exprs) + "}"
@@ -399,10 +351,6 @@ class MatchFirst(ParseExpression):
         else:
             self.parser_config.mayReturnEmpty = True
 
-    def streamline(self):
-        super(MatchFirst, self).streamline()
-        return self
-
     def parseImpl(self, instring, loc, doActions=True):
         maxExcLoc = -1
         maxException = None
@@ -417,46 +365,31 @@ class MatchFirst(ParseExpression):
             except IndexError:
                 if len(instring) > maxExcLoc:
                     maxException = ParseException(
-                        instring, len(instring), e.parser_config.error_message, self
+                        instring, len(instring), self
                     )
                     maxExcLoc = len(instring)
 
         # only got here if no expression matched, raise exception for match that made it the furthest
         else:
             if maxException is not None:
-                maxException.msg = self.parser_config.error_message
+                maxException.msg = "Expecting "+text(self)
                 raise maxException
             else:
                 raise ParseException(
-                    instring, loc, "no defined alternatives to match", self
+                    instring, loc, self
                 )
 
     def __or__(self, other):
         if other is Ellipsis:
             return _PendingSkip(Optional(self))
 
-        if isinstance(other, MatchFirst):
-            return MatchFirst(self.exprs + other.exprs)
-        else:
-            return MatchFirst([self, self.normalize(other)])
+        return MatchFirst([self, engine.CURRENT.normalize(other)]).streamline()
 
     def __ror__(self, other):
-        if isinstance(other, MatchFirst):
-            return MatchFirst(other.exprs + self.exprs)
-        else:
-            return self.normalize(other) | self
-
-    def __xor__(self, other):
-        return Or([self, self.normalize(other)])
-
-    def __rxor__(self, other):
-        return self.normalize(other) ^ self
-
-    def __ior__(self, other):
-        return self.append(self.normalize(other))  # MatchFirst([self, other])
+        return engine.CURRENT.normalize(other) | self
 
     def __str__(self):
-        if hasattr(self, "parser_name"):
+        if self.parser_name:
             return self.parser_name
 
         return " | ".join("{" + text(e) + "}" for e in self.exprs)
@@ -534,6 +467,9 @@ class Each(ParseExpression):
         self.initExprGroups = True
 
     def streamline(self):
+        if self.streamlined:
+            return self
+
         super(Each, self).streamline()
         self.parser_config.mayReturnEmpty = all(
             e.parser_config.mayReturnEmpty for e in self.exprs
@@ -608,7 +544,7 @@ class Each(ParseExpression):
         return loc, finalResults
 
     def __str__(self):
-        if hasattr(self, "parser_name"):
+        if self.parser_name:
             return self.parser_name
 
         return "{" + " & ".join(text(e) for e in self.exprs) + "}"
@@ -620,7 +556,7 @@ class Each(ParseExpression):
 
 
 # export
-from mo_parsing import core
+from mo_parsing import core, engine
 
 core.And = And
 core.Or = Or

@@ -10,10 +10,6 @@ from mo_future import text
 from mo_logs import Log, Except
 
 
-def noop(*args):
-    return
-
-
 try:
     # Python 3
     from itertools import filterfalse
@@ -119,40 +115,6 @@ class __config_flags:
     enable = classmethod(lambda cls, name: cls._set(name, True))
     disable = classmethod(lambda cls, name: cls._set(name, False))
 
-
-
-class __diag__(__config_flags):
-    """
-    Diagnostic configuration (all default to False)
-     - warn_multiple_tokens_in_named_alternation - flag to enable warnings when a results
-       name is defined on a MatchFirst or Or expression with one or more And subexpressions
-     - warn_ungrouped_named_tokens_in_collection - flag to enable warnings when a results
-       name is defined on a containing expression with ungrouped subexpressions that also
-       have results names
-     - warn_name_set_on_empty_Forward - flag to enable warnings whan a Forward is defined
-       with a results name, but has no contents defined
-     - warn_on_multiple_string_args_to_oneof - flag to enable warnings whan oneOf is
-       incorrectly called with multiple str arguments
-     - enable_debug_on_named_expressions - flag to auto-enable debug on all subsequent
-       calls to ParserElement.set_parser_name()
-    """
-
-    _type_desc = "diagnostic"
-
-    warn_multiple_tokens_in_named_alternation = False
-    warn_ungrouped_named_tokens_in_collection = False
-    warn_name_set_on_empty_Forward = False
-    warn_on_multiple_string_args_to_oneof = False
-    enable_debug_on_named_expressions = False
-
-    _all_names = [__ for __ in locals() if not __.startswith("_")]
-    _warning_names = [name for name in _all_names if name.startswith("warn")]
-    _debug_names = [name for name in _all_names if name.startswith("enable_debug")]
-
-    @classmethod
-    def enable_all_warnings(cls):
-        for name in cls._warning_names:
-            cls.enable(name)
 
 
 alphas = string.ascii_uppercase + string.ascii_lowercase
@@ -263,7 +225,7 @@ def _trim_arity(func):
             # Log.warning("function failure", cause=e)
             from mo_parsing.exceptions import ParseException
 
-            f = ParseException("function failed")
+            f = ParseException(*args)
             f.__cause__ = e
             raise f
 
@@ -287,28 +249,6 @@ def _xml_escape(data):
         data = data.replace(from_, to_)
     return data
 
-
-def _defaultStartDebugAction(instring, loc, expr):
-    print(
-        "Match "
-        + text(expr)
-        + " at loc "
-        + text(loc)
-        + "(%d,%d)" % (lineno(loc, instring), col(loc, instring))
-    )
-
-
-def _defaultSuccessDebugAction(instring, startloc, endloc, expr, toks):
-    print("Matched " + text(expr) + " -> " + str(toks))
-
-
-def _defaultExceptionDebugAction(instring, loc, expr, exc):
-    print("Exception raised:" + text(exc))
-
-
-def nullDebugAction(*args):
-    """'Do-nothing' debug action, to suppress debugging output during parsing."""
-    pass
 
 
 def traceParseAction(f):
@@ -572,3 +512,5 @@ if PY_3:
     setattr(parsing_unicode, "한국어", parsing_unicode.Korean)
     setattr(parsing_unicode, "ไทย", parsing_unicode.Thai)
     setattr(parsing_unicode, "देवनागरी", parsing_unicode.Devanagari)
+
+

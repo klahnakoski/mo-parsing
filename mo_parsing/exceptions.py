@@ -3,6 +3,7 @@ from functools import wraps
 import sys
 
 from mo_dots import coalesce
+from mo_future import text
 
 from mo_parsing.utils import _trim_arity, col, line, lineno
 
@@ -12,16 +13,12 @@ class ParseBaseException(Exception):
 
     # Performance tuning: we construct a *lot* of these, so keep this
     # constructor as small and fast as possible
-    def __init__(self, pstr, loc=0, msg=None, elem=None):
+    def __init__(self, pstr, loc, elem):
+        self.pstr = pstr
         self.loc = loc
-        if msg is None:
-            self.msg = pstr
-            self.pstr = ""
-        else:
-            self.msg = msg
-            self.pstr = pstr
         self.parserElement = elem
-        self.args = (pstr, loc, msg)
+        self.msg = "Expecting " + text(elem)
+        self.args = (pstr, loc, self.msg)
 
     def __getattr__(self, aname):
         """supported attributes by name are:
