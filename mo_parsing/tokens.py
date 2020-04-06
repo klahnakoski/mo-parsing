@@ -29,13 +29,7 @@ def _escapeRegexRangeChars(s):
 
 
 class Token(ParserElement):
-    """Abstract :class:`ParserElement` subclass, for defining atomic
-    matching patterns.
-    """
-
-    def __init__(self):
-        super(Token, self).__init__(savelist=False)
-
+    pass
 
 class Empty(Token):
     """An empty token, will always match.
@@ -432,6 +426,22 @@ class Word(Token):
             else:
                 self.re_match = self.re.match
                 self.__class__ = _WordRegex
+
+    def copy(self):
+        output = ParserElement.copy(self)
+        output.asKeyword = self.asKeyword
+        output.bodyChars = self.bodyChars
+        output.bodyCharsOrig = self.bodyCharsOrig
+        output.initChars = self.initChars
+        output.initCharsOrig = self.initCharsOrig
+        output.maxLen = self.maxLen
+        output.maxSpecified = self.maxSpecified
+        output.minLen = self.minLen
+        if "re" in dir(self):
+            output.re = self.re
+            output.re_match = self.re.match
+            output.reString = self.reString
+        return output
 
     def parseImpl(self, instring, loc, doActions=True):
         if instring[loc] not in self.initChars:

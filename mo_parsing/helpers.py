@@ -1,7 +1,6 @@
 # encoding: utf-8
 import re
 import warnings
-from copy import copy
 from datetime import datetime
 
 from mo_dots import Data
@@ -11,7 +10,6 @@ from mo_parsing.engine import noop
 from mo_parsing.enhancement import (
     Combine,
     Dict,
-    FollowedBy,
     Forward,
     Group,
     OneOrMore,
@@ -745,7 +743,7 @@ def _makeTags(tagStr, xml, suppress_LT=Suppress("<"), suppress_GT=Suppress(">"))
     # add start<tagname> results name in parse action now that ungrouped names are not reported at two levels
     openTag.addParseAction(
         lambda t: t.__setitem__(
-            "start" + "".join(resname.replace(":", " ").title().split()), copy(t)
+            "start" + "".join(resname.replace(":", " ").title().split()), t.copy()
         )
     )
     closeTag = closeTag(

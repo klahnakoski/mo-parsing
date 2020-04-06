@@ -1,15 +1,11 @@
 # encoding: utf-8
-import copy
-from collections import namedtuple
-from copy import copy
 from threading import RLock
 
-from mo_dots import Data, Null
+from mo_dots import Data
 from mo_future import text, is_text
 from mo_logs import Log
 
 from mo_parsing.cache import packrat_cache
-from mo_parsing.engine import Engine
 from mo_parsing.exceptions import (
     ParseBaseException,
     ParseException,
@@ -60,26 +56,31 @@ def entrypoint(func):
 class ParserElement(object):
     """Abstract base level parser element class."""
 
-    def __init__(self, savelist=False):
+    def __init__(self):
         self.parseAction = list()
         self.parser_name = ""
         self.token_name = None
         self.engine = engine.CURRENT
+        self.streamlined = False
+        self.callDuringTry = False
+
         self.parser_config = Data()
         self.parser_config.failAction = None
         self.parser_config.skipWhitespace = True
         self.parser_config.mayReturnEmpty = False  # used when checking for left-recursion
         self.parser_config.keepTabs = False
-        self.streamlined = False
         self.parser_config.mayIndexError = True  # used to optimize exception handling for subclasses that don't advance parse index
         self.parser_config.modalResults = True  # used to mark results names as modal (report only last) or cumulative (list all)
-        self.callDuringTry = False
 
     def copy(self):
-        output = copy(self)
+        output = object.__new__(self.__class__)
         output.engine = engine.CURRENT
-        output.parser_config = self.parser_config.copy()
+        output.streamlined = False
         output.parseAction = self.parseAction[:]
+        output.parser_name = self.parser_name
+        output.token_name = self.token_name
+        output.callDuringTry = self.callDuringTry
+        output.parser_config = self.parser_config.copy()
         return output
 
     def set_parser_name(self, name):
@@ -177,7 +178,7 @@ class ParserElement(object):
         self.callDuringTry = self.callDuringTry or kwargs.get("callDuringTry", False)
         return self
 
-    def addCondition(self, *fns, **kwargs):
+    def addCondition(self, *fns, message=None, fatal=False, callDuringTry=False, **kwargs):
         """Add a boolean predicate function to expression's list of parse actions. See
         :class:`setParseAction` for function call signatures. Unlike ``setParseAction``,
         functions passed to ``addCondition`` need to return boolean success/fail of the condition.
@@ -197,12 +198,10 @@ class ParserElement(object):
         """
         for fn in fns:
             self.parseAction.append(
-                conditionAsParseAction(
-                    fn, message=kwargs.get("message"), fatal=kwargs.get("fatal", False)
-                )
+                conditionAsParseAction(fn, message=message, fatal=fatal)
             )
 
-        self.callDuringTry = self.callDuringTry or kwargs.get("callDuringTry", False)
+        self.callDuringTry = self.callDuringTry or callDuringTry
         return self
 
     def setFailAction(self, fn):
@@ -727,6 +726,9 @@ class ParserElement(object):
         # must implement __iter__ to override legacy use of sequential access to __getitem__ to
         # iterate over a sequence
         raise TypeError("%r object is not iterable" % self.__class__.__name__)
+
+    def __getattr__(self, item):
+        Log.error("use __getitem__()")
 
     def __getitem__(self, key):
         """

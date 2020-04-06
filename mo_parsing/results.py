@@ -1,6 +1,5 @@
 # encoding: utf-8
 from collections import MutableMapping
-from copy import copy
 
 from mo_dots import is_many
 from mo_future import is_text, text
@@ -213,14 +212,14 @@ class ParseResults(object):
             Log.error("not allowed")
         else:
             if key == self.name_for_result:
-                new_type = copy(self.type_for_result)
+                new_type = self.type_for_result.copy()
                 new_type.token_name = None
                 self.type_for_result = new_type
                 return
             for i, t in enumerate(self.tokens_for_result):
                 name = get_name(t)
                 if name == key:
-                    new_type = copy(t.type_for_result)
+                    new_type = t.type_for_result.copy()
                     new_type.token_name = None
                     t.type_for_result = new_type
                     return
@@ -353,7 +352,7 @@ class ParseResults(object):
         if not other:
             return self
         Log.error("not expected")
-        ret = copy(self)
+        ret = self.copy()
         ret += other
         return ret
 

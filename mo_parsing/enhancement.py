@@ -35,14 +35,22 @@ class ParseElementEnhance(ParserElement):
     post-processing parsed tokens.
     """
 
-    def __init__(self, expr, savelist=False):
-        ParserElement.__init__(self, savelist)
+    def __init__(self, expr):
+        ParserElement.__init__(self)
         self.expr = expr = engine.CURRENT.normalize(expr)
         if expr != None:
             self.engine = expr.engine
             self.parser_config.mayIndexError = expr.parser_config.mayIndexError
             self.parser_config.mayReturnEmpty = expr.parser_config.mayReturnEmpty
             self.parser_config.skipWhitespace = expr.parser_config.skipWhitespace
+
+    def copy(self):
+        output = ParserElement.copy(self)
+        if self.engine is engine.CURRENT:
+            output.expr = self.expr
+        else:
+            output.expr = self.expr.copy()
+        return output
 
     def parseImpl(self, instring, loc, doActions=True):
         if self.expr != None:
@@ -319,7 +327,7 @@ class Optional(ParseElementEnhance):
     __optionalNotMatched = _NullToken()
 
     def __init__(self, expr, default=__optionalNotMatched):
-        super(Optional, self).__init__(expr, savelist=False)
+        super(Optional, self).__init__(expr)
         self.defaultValue = default
         self.parser_config.mayReturnEmpty = True
 
@@ -498,7 +506,7 @@ class Forward(ParseElementEnhance):
         self.master = None  # point to first instance
         self.children = []  # point to all copies
         self.strRepr = None  # avoid recursion
-        ParseElementEnhance.__init__(self, expr, savelist=False)
+        ParseElementEnhance.__init__(self, expr)
 
     def __lshift__(self, other):
         if self.master:
@@ -589,8 +597,8 @@ class TokenConverter(ParseElementEnhance):
     Abstract subclass of :class:`ParseExpression`, for converting parsed results.
     """
 
-    def __init__(self, expr, savelist=False):
-        super(TokenConverter, self).__init__(expr)  # , savelist)
+    def __init__(self, expr):
+        super(TokenConverter, self).__init__(expr)
 
 
 class Combine(TokenConverter):

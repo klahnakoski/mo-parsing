@@ -11,12 +11,10 @@ import datetime
 import json
 import math
 import operator
-import pdb
 import re
 import sys
 import textwrap
 import traceback
-from copy import copy
 from io import StringIO
 from itertools import product
 from textwrap import dedent
@@ -118,7 +116,6 @@ from mo_parsing.helpers import (
 )
 from mo_parsing.utils import parsing_unicode, printables, traceParseAction, hexnums
 from tests.json_parser_tests import test1, test2, test3, test4, test5
-
 # see which Python implementation we are running
 from tests.utils import TestParseResultsAsserts
 
@@ -3389,7 +3386,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         )
 
         rangeParser.addCondition(
-            lambda t: t.to > t.from_, message="from must be <= to", fatal=False
+            lambda t: t['to'] > t['from_'], message="from must be <= to", fatal=False
         )
         result = rangeParser.searchString("1-4 2-4 4-3 5 6 7 8 9 10")
 
@@ -3399,7 +3396,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
 
         rangeParser = numParser("from_") + Suppress("-") + numParser("to")
         rangeParser.addCondition(
-            lambda t: t.to > t.from_, message="from must be <= to", fatal=True
+            lambda t: t['to'] > t['from_'], message="from must be <= to", fatal=True
         )
         with TestCase.assertRaises(self, Exception):
             rangeParser.searchString("1-4 2-4 4-3 5 6 7 8 9 10")

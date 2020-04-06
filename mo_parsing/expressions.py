@@ -21,8 +21,8 @@ class ParseExpression(ParserElement):
     post-processing parsed tokens.
     """
 
-    def __init__(self, exprs, savelist=False):
-        super(ParseExpression, self).__init__(savelist)
+    def __init__(self, exprs):
+        super(ParseExpression, self).__init__()
 
         if isinstance(exprs, _generatorType):
             exprs = list(exprs)
@@ -32,6 +32,14 @@ class ParseExpression(ParserElement):
             exprs = [exprs]
 
         self.exprs = [engine.CURRENT.normalize(e) for e in exprs]
+
+    def copy(self):
+        output = ParserElement.copy(self)
+        if self.engine is engine.CURRENT:
+            output.exprs = self.exprs
+        else:
+            output.exprs = [e.copy() for e in self.exprs]
+        return output
 
     def append(self, other):
         self.exprs.append(other)
@@ -115,7 +123,7 @@ class And(ParseExpression):
             self.parser_name = "-"
             self.leaveWhitespace()
 
-    def __init__(self, exprs, savelist=True):
+    def __init__(self, exprs):
         if exprs and Ellipsis in exprs:
             tmp = []
             for i, expr in enumerate(exprs):
@@ -130,7 +138,7 @@ class And(ParseExpression):
                 else:
                     tmp.append(expr)
             exprs[:] = tmp
-        super(And, self).__init__(exprs, savelist)
+        super(And, self).__init__(exprs)
         self.parser_config.mayReturnEmpty = all(
             e.parser_config.mayReturnEmpty for e in self.exprs
         )
@@ -238,8 +246,8 @@ class Or(ParseExpression):
         [['123'], ['3.1416'], ['789']]
     """
 
-    def __init__(self, exprs, savelist=False):
-        super(Or, self).__init__(exprs, savelist)
+    def __init__(self, exprs):
+        super(Or, self).__init__(exprs)
         if self.exprs:
             self.parser_config.mayReturnEmpty = any(
                 e.parser_config.mayReturnEmpty for e in self.exprs
@@ -342,8 +350,8 @@ class MatchFirst(ParseExpression):
         print(number.searchString("123 3.1416 789")) #  Better -> [['123'], ['3.1416'], ['789']]
     """
 
-    def __init__(self, exprs, savelist=False):
-        super(MatchFirst, self).__init__(exprs, savelist)
+    def __init__(self, exprs):
+        super(MatchFirst, self).__init__(exprs)
         if self.exprs:
             self.parser_config.mayReturnEmpty = any(
                 e.parser_config.mayReturnEmpty for e in self.exprs
@@ -458,8 +466,8 @@ class Each(ParseExpression):
         - size: 20
     """
 
-    def __init__(self, exprs, savelist=True):
-        super(Each, self).__init__(exprs, savelist)
+    def __init__(self, exprs):
+        super(Each, self).__init__(exprs)
         self.parser_config.mayReturnEmpty = all(
             e.parser_config.mayReturnEmpty for e in self.exprs
         )
