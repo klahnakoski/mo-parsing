@@ -99,7 +99,7 @@ class Engine:
             more = False
             for i in self.ignore_list:
                 try:
-                    next_end = i.parseImpl(instring, end)
+                    next_end, _ = i.parseImpl(instring, end)
                     if next_end > end:
                         more = True
                         end = next_end
