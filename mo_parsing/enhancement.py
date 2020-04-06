@@ -622,12 +622,15 @@ class Combine(TokenConverter):
 
     def __init__(self, expr, joinString="", adjacent=True):
         super(Combine, self).__init__(expr)
-        # suppress whitespace-stripping in contained parse expressions, but re-enable it on the Combine itself
-        if adjacent:
-            self.leaveWhitespace()
         self.adjacent = adjacent
         self.parser_config.skipWhitespace = True
         self.joinString = joinString
+
+    def copy(self):
+        output = TokenConverter.copy(self)
+        output.adjacent = self.adjacent
+        output.joinString = self.joinString
+        return output
 
     def postParse(self, instring, loc, tokenlist):
         retToks = ParseResults(self, [tokenlist.asString(sep=self.joinString)])

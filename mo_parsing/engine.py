@@ -18,13 +18,13 @@ class Engine:
     def __init__(self, white=" \n\r\t"):
         global CURRENT
         self.literal = Literal
-        self.white_chars = white
         self.keyword_chars = alphanums + "_$"
         self.ignore_list = []
         self.debugActions = DebugActions(noop, noop, noop)
         self.all_exceptions = {}
         self.content = None
         self.skips = {}
+        self.set_whitespace(white)
         CURRENT = self
 
     def release(self):

@@ -115,6 +115,10 @@ def countedArray(expr, intExpr=None):
         binaryConstant = Word('01').setParseAction(lambda t: int(t[0], 2))
         countedArray(Word(alphas), intExpr=binaryConstant).parseString('10 ab cd ef')  # -> ['ab', 'cd']
     """
+    if intExpr is None:
+        intExpr = Word(nums).setParseAction(lambda t: int(t[0]))
+
+
     arrayExpr = Forward()
 
     def countFieldParseAction(s, l, t):
@@ -122,12 +126,11 @@ def countedArray(expr, intExpr=None):
         arrayExpr << (n and Group(And([expr] * n)) or Group(empty))
         return []
 
-    if intExpr is None:
-        intExpr = Word(nums).setParseAction(lambda t: int(t[0]))
-    else:
-        intExpr = intExpr.copy()
-    intExpr.set_parser_name("arrayLen")
-    intExpr.addParseAction(countFieldParseAction, callDuringTry=True)
+    intExpr = (
+        intExpr
+            .set_parser_name("arrayLen")
+            .addParseAction(countFieldParseAction, callDuringTry=True)
+    )
     return (intExpr + arrayExpr).set_parser_name("(len) " + text(expr) + "...")
 
 

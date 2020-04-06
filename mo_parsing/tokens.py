@@ -215,6 +215,11 @@ class CaselessLiteral(Literal):
         self.returnString = matchString
         self.parser_name = "'%s'" % self.returnString
 
+    def copy(self):
+        output = Literal.copy(self)
+        output.returnString = self.returnString
+        return output
+
     def parseImpl(self, instring, loc, doActions=True):
         if instring[loc : loc + self.matchLen].upper() == self.match:
             return loc + self.matchLen, ParseResults(self, [self.returnString])
@@ -987,11 +992,13 @@ class White(Token):
     def __init__(self, ws=" \t\r\n", min=1, max=0, exact=0):
         super(White, self).__init__()
         self.matchWhite = ws
+        e = engine.CURRENT
         self.engine = Engine(
             white="".join(
                 c for c in self.engine.white_chars if c not in self.matchWhite
             )
         )
+        engine.CURRENT = e
         self.parser_name = "".join(White.whiteStrs[c] for c in self.matchWhite)
         self.parser_config.mayReturnEmpty = True
 
