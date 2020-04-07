@@ -432,12 +432,12 @@ def locatedExpr(expr):
     locator = Empty().setParseAction(lambda s, l, t: l)
     return Group(
         locator("locn_start")
-        + expr("value")
-        + locator.copy().leaveWhitespace()("locn_end")
+        + Group(expr)("value")
+        + locator("locn_end")
     )
 
 
-def nestedExpr(opener="(", closer=")", content=None, ignoreExpr=quotedString.copy()):
+def nestedExpr(opener="(", closer=")", content=None, ignoreExpr=quotedString):
     """Helper method for defining nested lists enclosed in opening and
     closing delimiters ("(" and ")" are the default).
 
@@ -1030,60 +1030,65 @@ def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
         ]
     )
 
-    flat = Forward()
-    atom = baseExpr.addParseAction(record_op(baseExpr)) | (lpar + flat + rpar)
-    modified = ZeroOrMore(prefix_ops) + atom + ZeroOrMore(suffix_ops)
-    flat << modified + ZeroOrMore(ops + modified)
-
     def make_tree(tokens):
         tokens = list(tokens)
         num = len(opList)
-        index = 0
-        while len(tokens) > 1:
-            expr, op, arity, assoc, parse_action = opList[index]
+        op_index = 0
+        while len(tokens) > 1 or op_index >= num:
+            expr, op, arity, assoc, parse_action = opList[op_index]
             if arity == 1:
                 if assoc == opAssoc.RIGHT:
-                    for i, o in enumerate(tokens[:-1]):
-                        if isinstance(o, tuple) and o[1] is op:
-                            params = tokens[i], +o[0]
-                            result = parse_action(*params)
-                            if result is None:
-                                result = params
-                            tokens[i : i + 2] = result
-                            index = 0
+                    # PREFIX OPERATOR -3
+                    todo = list(reversed(list(enumerate(tokens[:-1]))))
+                    for i, (r, o) in todo:
+                        if o == (op,):
+                            result = ParseResults(
+                                expr,
+                                (
+                                    r,
+                                    tokens[i + 1][0]
+                                )
+                            )
                             break
                     else:
-                        index += 1
+                        op_index += 1
+                        continue
                 else:
-                    for i, t in enumerate(tokens[1:]):
-                        if isinstance(t, tuple) and t[1] is op:
-                            params = t[0], tokens[i]
-                            result = parse_action(*params)
-                            if result is None:
-                                result = params
-                            tokens[i : i + 2] = result
-                            index = 0
+                    # SUFFIX OPERATOR 3!
+                    todo = list(enumerate(tokens[1:]))
+                    for i, (r, o) in todo:
+                        if o == (op,):
+                            result = ParseResults(
+                                expr,
+                                (
+                                    tokens[i][0],
+                                    r,
+                                )
+                            )
                             break
                     else:
-                        index += 1
+                        op_index += 1
+                        continue
             elif arity == 2:
-                todo = enumerate(tokens[1:-1])
+                todo = list(enumerate(tokens[1:-1]))
                 if assoc == opAssoc.RIGHT:
                     todo = list(reversed(todo))
-                else:
-                    todo = list(todo)
 
-                for i, t in todo:
-                    if isinstance(t, tuple) and t[1] is op:
-                        params = tokens[i], t[0], tokens[i + 2]
-                        result = parse_action(None, None, *params)
-                        if result is None:
-                            result = params
-                        tokens[i : i + 3] = [result]
-                        index = 0
+                for i, (r, o) in todo:
+                    if o == (op, op[0]):
+                        result = ParseResults(
+                            expr,
+                            (
+                                tokens[i][0],
+                                r,
+                                tokens[i + 2][0]
+                            )
+                        )
                         break
                 else:
-                    index += 1
+                    op_index += 1
+                    continue
+
             else:  # arity==3
                 todo = list(enumerate(tokens[1:-3]))
                 if assoc == opAssoc.RIGHT:
@@ -1103,25 +1108,27 @@ def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
                                     tokens[i + 4][0],
                                 )
                             )
-                            temp = parse_action(result)
-                            if temp is not None:
-                                result = temp
-                            tokens[i : i + 5] = [(result, (expr,))]
-                            index = 0
                             break
                 else:
-                    index += 1
-            if index >= num:
-                break
+                    op_index += 1
+                    continue
+
+            offset = (0, 2, 3, 5)[arity]
+            temp = parse_action(result)
+            if temp is not None:
+                result = temp
+            tokens[i : i + offset] = [(result, (expr,))]
+            op_index = 0
+
         return tokens[0][0]
 
-    flat = flat.addParseAction(make_tree)
+    flat = Forward().addParseAction(make_tree)
+    iso = lpar.suppress() + flat + rpar.suppress()
+    atom = (baseExpr | iso).addParseAction(record_op(baseExpr))
+    modified = ZeroOrMore(prefix_ops) + atom + ZeroOrMore(suffix_ops)
+    flat << modified + ZeroOrMore(ops + modified)
+
     return flat
-
-
-operatorPrecedence = infixNotation
-"""(Deprecated) Former name of :class:`infixNotation`, will be
-dropped in a future release."""
 
 
 def indentedBlock(blockStatementExpr, indentStack, indent=True):
@@ -1205,6 +1212,8 @@ def indentedBlock(blockStatementExpr, indentStack, indent=True):
           ':',
           [[['def', 'eggs', ['(', 'z', ')'], ':', [['pass']]]]]]]
     """
+    blockStatementExpr.engine.add_ignore(_bslash + LineEnd())
+
     backup_stack = indentStack[:]
 
     def reset_stack():
@@ -1235,7 +1244,7 @@ def indentedBlock(blockStatementExpr, indentStack, indent=True):
         if curCol < indentStack[-1]:
             indentStack.pop()
 
-    NL = OneOrMore(LineEnd().setWhitespaceChars("\t ").suppress())
+    NL = OneOrMore(LineEnd().suppress())
     INDENT = (Empty() + Empty().setParseAction(checkSubIndent)).set_parser_name("INDENT")
     PEER = Empty().setParseAction(checkPeerIndent).set_parser_name("")
     UNDENT = Empty().setParseAction(checkUnindent).set_parser_name("UNINDENT")
@@ -1252,8 +1261,7 @@ def indentedBlock(blockStatementExpr, indentStack, indent=True):
             + OneOrMore(PEER + Group(blockStatementExpr) + Optional(NL))
             + UNDENT
         )
-    smExpr.setFailAction(lambda a, b, c, d: reset_stack())
-    blockStatementExpr.ignore(_bslash + LineEnd())
+    smExpr = smExpr.setFailAction(lambda a, b, c, d: reset_stack())
     return smExpr.set_parser_name("indented block")
 
 

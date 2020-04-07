@@ -180,6 +180,11 @@ class _MultipleMatch(ParseElementEnhance):
         super(_MultipleMatch, self).__init__(expr)
         self.stopOn(stopOn)
 
+    def copy(self):
+        output = ParseElementEnhance.copy(self)
+        output.not_ender = self.not_ender
+        return output
+
     def stopOn(self, ender):
         self.not_ender = self.engine.normalize(~ender) if ender else None
         return self
@@ -502,24 +507,27 @@ class Forward(ParseElementEnhance):
     """
 
     def __init__(self, expr=Null):
-        self.expr = expr
+        self.expr = Null
         self.master = None  # point to first instance
         self.children = []  # point to all copies
         self.strRepr = None  # avoid recursion
         ParseElementEnhance.__init__(self, expr)
+        if expr:
+            self << expr
 
     def copy(self):
         if self.master:
             return self.master.copy()
 
         output = ParseElementEnhance.copy(self)
-        output.master = self
         self.children.append(output)
+        output.master = self
+        output.strRepr = None
         return output
 
     def __lshift__(self, other):
         if self.master:
-            return self.master.__lshift__(self, other)
+            return self.master.__lshift__(other)
 
         while isinstance(other, Forward):
             other = other.expr

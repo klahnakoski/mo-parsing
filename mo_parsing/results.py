@@ -5,6 +5,7 @@ from mo_dots import is_many
 from mo_future import is_text, text
 from mo_logs import Log
 
+from mo_parsing import engine
 from mo_parsing.utils import PY_3
 
 Suppress, ParserElement, Forward, Group, Dict, Token = [None] * 6
@@ -349,12 +350,10 @@ class ParseResults(object):
         )
 
     def __radd__(self, other):
-        if not other:
+        if not other:  # happens when using sum() on parsers
             return self
-        Log.error("not expected")
-        ret = self.copy()
-        ret += other
-        return ret
+        other = engine.CURRENT.normalize(other)
+        return other + self
 
     def __repr__(self):
         try:

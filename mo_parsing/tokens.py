@@ -925,6 +925,13 @@ class CharsNotIn(Token):
         self.parser_config.mayReturnEmpty = self.minLen == 0
         self.parser_config.mayIndexError = False
 
+    def copy(self):
+        output = ParserElement.copy(self)
+        output.notChars = self.notChars
+        output.minLen = self.minLen
+        output.maxLen = self.maxLen
+        return output
+
     def parseImpl(self, instring, loc, doActions=True):
         if instring[loc] in self.notChars:
             raise ParseException(instring, loc, self)

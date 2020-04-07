@@ -94,7 +94,7 @@ class ParseExpression(ParserElement):
             return self
         for e in self.exprs:
             if isinstance(e, ParserElement) and e.token_name:
-                Log.error("token name is already set in child")
+                Log.error("token name is already set in child, use Group() to clarify")
 
         return ParserElement.__call__(self, name)
 

@@ -75,3 +75,4 @@ simpleSQL = selectStmt
 # define Oracle comment format, and ignore them
 oracleSqlComment = "--" + restOfLine
 engine.add_ignore(oracleSqlComment)
+engine.release()
