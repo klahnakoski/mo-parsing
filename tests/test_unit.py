@@ -116,6 +116,7 @@ from mo_parsing.helpers import (
 )
 from mo_parsing.utils import parsing_unicode, printables, traceParseAction, hexnums
 from tests.json_parser_tests import test1, test2, test3, test4, test5
+
 # see which Python implementation we are running
 from tests.utils import TestParseResultsAsserts
 
@@ -158,7 +159,6 @@ class resetting:
 
 
 class TestParsing(TestParseResultsAsserts, TestCase):
-
     def setUp(self):
         engine.Engine()
 
@@ -893,7 +893,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
             + tdEnd
         )
         servers = [
-            srvr['ipAddr']
+            srvr["ipAddr"]
             for srvr, startloc, endloc in timeServerPattern.scanString(testdata)
         ]
 
@@ -1654,17 +1654,21 @@ class TestParsing(TestParseResultsAsserts, TestCase):
             "3!!",
         ]
         expected = [
-            [[9, '+', 2], '+', 3],
-            [9, '+', [2, '*', 3]],
-            [[9, '+', 2], '*', 3],
-            [[9, '+', ['-', 2]], '*', 3],
-            [[9, '+', ['-', ['-', 2]]], '*', 3],
-            [[9, '+', ['-', 2]], '*', [3, '^', [2, '^', 2]]],
-            [[[9, '!'], '+', ['-', 2]], '*', [3, '^', [2, '^', 2]]],
-            [['M', '*', 'X'], '+', 'B'],
-            ['M', '*', ['X', '+', 'B']],
-            [[1, '+', [[2, '*', ['-', [3, '^', 4]]], '*', 5]], '+', ['-', ['+', ['-', 6]]]],
-            [[3, '!'], '!'],
+            [[9, "+", 2], "+", 3],
+            [9, "+", [2, "*", 3]],
+            [[9, "+", 2], "*", 3],
+            [[9, "+", ["-", 2]], "*", 3],
+            [[9, "+", ["-", ["-", 2]]], "*", 3],
+            [[9, "+", ["-", 2]], "*", [3, "^", [2, "^", 2]]],
+            [[[9, "!"], "+", ["-", 2]], "*", [3, "^", [2, "^", 2]]],
+            [["M", "*", "X"], "+", "B"],
+            ["M", "*", ["X", "+", "B"]],
+            [
+                [1, "+", [[2, "*", ["-", [3, "^", 4]]], "*", 5]],
+                "+",
+                ["-", ["+", ["-", 6]]],
+            ],
+            [[3, "!"], "!"],
         ]
         for test_str, exp_list in zip(test, expected):
             result = expr.parseString(test_str)
@@ -3196,18 +3200,32 @@ class TestParsing(TestParseResultsAsserts, TestCase):
     def testOptionalEachTest2(self):
 
         word = Word(alphanums + "_").set_parser_name("word")
-        with_stmt = "with" + OneOrMore(Group(word("key") + "=" + word("value")))(
-            "overrides"
+        with_stmt = Group(
+            "with" + OneOrMore(Group(word("key") + "=" + word("value")))("overrides")
         )
-        using_stmt = "using" + Regex("id-[0-9a-f]{8}")("id")
+        using_stmt = Group("using" + Regex("id-[0-9a-f]{8}")("id"))
         modifiers = Optional(with_stmt("with_stmt")) & Optional(
             using_stmt("using_stmt")
         )
 
-        self.assertEqual(modifiers, "with foo=bar bing=baz using id-deadbeef")
-        self.assertNotEqual(
-            modifiers, "with foo=bar bing=baz using id-deadbeef using id-feedfeed"
+        result = modifiers.parseString(
+            "with foo=bar bing=baz using id-deadbeef", parseAll=True
         )
+        expecting = {
+            "with_stmt": {
+                "overrides": [
+                    {"key": "foo", "value": "bar"},
+                    {"key": "bing", "value": "baz"},
+                ]
+            },
+            "using_stmt": {"id": "id-deadbeef"},
+        }
+        self.assertEqual(result, expecting)
+
+        with self.assertRaisesParseException():
+            result = modifiers.parseString(
+                "with foo=bar bing=baz using id-deadbeef using id-feedfeed", parseAll=True
+            )
 
     def testOptionalEachTest3(self):
 
@@ -3359,7 +3377,9 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         res = id_ref.searchString(samplestr1)[0][0]
 
         self.assertEqual(
-            samplestr1[res['locn_start'] : res['locn_end']].strip(),  # CURRENTLY CAN NOT GET END, ONLY GET BEGINNING OF NEXT TOKEN
+            samplestr1[
+                res["locn_start"] : res["locn_end"]
+            ].strip(),  # CURRENTLY CAN NOT GET END, ONLY GET BEGINNING OF NEXT TOKEN
             "ID PARI12345678",
             "incorrect location calculation",
         )
@@ -3367,9 +3387,9 @@ class TestParsing(TestParseResultsAsserts, TestCase):
     def testAddCondition(self):
         numParser = (
             Word(nums)
-                .addParseAction(lambda s, l, t: int(t[0]))
-                .addCondition(lambda s, l, t: t[0] % 2)
-                .addCondition(lambda s, l, t: t[0] >= 7)
+            .addParseAction(lambda s, l, t: int(t[0]))
+            .addCondition(lambda s, l, t: t[0] % 2)
+            .addCondition(lambda s, l, t: t[0] >= 7)
         )
 
         result = numParser.searchString("1 2 3 4 5 6 7 8 9 10")
@@ -3386,7 +3406,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         )
 
         rangeParser = rangeParser.addCondition(
-            lambda t: t['to'] > t['from_'], message="from must be <= to", fatal=False
+            lambda t: t["to"] > t["from_"], message="from must be <= to", fatal=False
         )
         result = rangeParser.searchString("1-4 2-4 4-3 5 6 7 8 9 10")
 
@@ -3396,7 +3416,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
 
         rangeParser = numParser("from_") + Suppress("-") + numParser("to")
         rangeParser = rangeParser.addCondition(
-            lambda t: t['to'] > t['from_'], message="from must be <= to", fatal=True
+            lambda t: t["to"] > t["from_"], message="from must be <= to", fatal=True
         )
         with TestCase.assertRaises(self, Exception):
             rangeParser.searchString("1-4 2-4 4-3 5 6 7 8 9 10")
@@ -3918,18 +3938,14 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         ]
         for r, exp in zip(results, expected):
             self.assertTrue(
-                (r[1]['year'], r[1]['month'], r[1]['day']) == exp,
+                (r[1]["year"], r[1]["month"], r[1]["day"]) == exp,
                 "failed to parse date into fields",
             )
 
-        success, results = (
-            iso8601_date
-            .addParseAction(convertToDate())
-            .runTests(
-                """
+        success, results = iso8601_date.addParseAction(convertToDate()).runTests(
+            """
             1997-07-16
             """
-            )
         )
         self.assertTrue(
             success, "error in parsing valid iso8601_date with parse action"
@@ -3946,14 +3962,12 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         )
         self.assertTrue(success, "error in parsing valid iso8601_datetime")
 
-        success, results = (
-            iso8601_datetime
-            .addParseAction(convertToDatetime())
-            .runTests(
-                """
+        success, results = iso8601_datetime.addParseAction(
+            convertToDatetime()
+        ).runTests(
+            """
             1997-07-16T19:20:30.45
             """
-            )
         )
         self.assertTrue(success, "error in parsing valid iso8601_datetime")
         self.assertTrue(
@@ -4412,7 +4426,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         for (r_str, r_tok), exp in zip(results, expected):
             if exp is not None:
                 self.assertEquals(
-                    r_tok['mismatches'],
+                    r_tok["mismatches"],
                     exp,
                     "fail CloseMatch between {!r} and {!r}".format(
                         searchseq.match_string, r_str
@@ -4823,9 +4837,9 @@ class TestParsing(TestParseResultsAsserts, TestCase):
 
         result = parser.parseString(text)
 
-        self.assertEqual(result['a'], 100, "invalid indented block result")
-        self.assertEqual(result['c']['c1'], 200, "invalid indented block result")
-        self.assertEqual(result['c']['c2']['c21'], 999, "invalid indented block result")
+        self.assertEqual(result["a"], 100, "invalid indented block result")
+        self.assertEqual(result["c"]["c1"], 200, "invalid indented block result")
+        self.assertEqual(result["c"]["c2"]["c21"], 999, "invalid indented block result")
 
     # exercise indentedBlock with example posted in issue #87
     def testIndentedBlockTest2(self):
@@ -5181,13 +5195,13 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         TERNARY_INFIX = infixNotation(integer, [(("?", ":"), 3, opAssoc.LEFT),])
         self.assertParseResultsEquals(
             TERNARY_INFIX.parseString("1?1:0?1:0", parseAll=True),
-            expected_list = [[1, "?", 1, ":", 0], "?", 1, ":", 0]
+            expected_list=[[1, "?", 1, ":", 0], "?", 1, ":", 0],
         )
 
         TERNARY_INFIX = infixNotation(integer, [(("?", ":"), 3, opAssoc.RIGHT),])
         self.assertParseResultsEquals(
             TERNARY_INFIX.parseString("1?1:0?1:0", parseAll=True),
-            expected_list=[1, "?", 1, ":", [0, "?", 1, ":", 0]]
+            expected_list=[1, "?", 1, ":", [0, "?", 1, ":", 0]],
         )
 
     def testOneOfWithDuplicateSymbols(self):

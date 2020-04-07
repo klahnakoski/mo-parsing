@@ -171,11 +171,12 @@ class Keyword(Token):
 
     def parseImpl(self, instring, loc, doActions=True):
         if instring.startswith(self.match, loc):
+            end = loc + self.matchLen
             try:
-                if instring[loc + self.matchLen] not in self.identChars:
-                    return loc + self.matchLen, ParseResults(self, [self.match])
+                if instring[end] not in self.identChars:
+                    return end, ParseResults(self, [self.match])
             except IndexError:
-                return loc + self.matchLen, ParseResults(self, [self.match])
+                return end, ParseResults(self, [self.match])
 
         raise ParseException(instring, loc, self)
 
@@ -200,12 +201,13 @@ class CaselessKeyword(Keyword):
         )
 
     def parseImpl(self, instring, loc, doActions=True):
-        if instring[loc : loc + self.matchLen].upper() == self.match:
+        end = loc + self.matchLen
+        if instring[loc : end].upper() == self.match:
             try:
-                if instring[loc + self.matchLen] not in self.identChars:
-                    return loc + self.matchLen, ParseResults(self, [self.match])
+                if instring[end] not in self.identChars:
+                    return end, ParseResults(self, [self.match])
             except IndexError:
-                return loc + self.matchLen, ParseResults(self, [self.match])
+                return end, ParseResults(self, [self.match])
         raise ParseException(instring, loc, self)
 
 

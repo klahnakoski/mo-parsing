@@ -5,6 +5,7 @@ from mo_dots import Null
 from mo_future import text
 from mo_logs import Log, Except
 
+from mo_parsing.engine import noop
 from mo_parsing.exceptions import (
     ParseBaseException,
     ParseException,
@@ -186,35 +187,28 @@ class _MultipleMatch(ParseElementEnhance):
         return output
 
     def stopOn(self, ender):
-        self.not_ender = self.engine.normalize(~ender) if ender else None
+        self.not_ender = ~self.engine.normalize(ender) if ender else None
         return self
 
     def parseImpl(self, instring, loc, doActions=True):
         self_expr_parse = self.expr._parse
-        check_ender = self.not_ender is not None
-        if check_ender:
+        if self.not_ender is None:
+            try_not_ender = noop
+        else:
             try_not_ender = self.not_ender.tryParse
 
-        # must be at least one (but first see if we are the stopOn sentinel;
-        # if so, fail)
         acc = []
-        if check_ender:
-            try_not_ender(instring, loc)
-        preloc = loc
-        loc, tmptokens = self_expr_parse(instring, preloc, doActions)
-        if tmptokens:
-            acc.append(tmptokens)
-
         try:
-            while 1:
-                if check_ender:
-                    try_not_ender(instring, loc)
-                preloc = self.engine.skip(instring, loc)
+            while True:
+                try_not_ender(instring, loc)
+                preloc = loc
                 loc, tmptokens = self_expr_parse(instring, preloc, doActions)
                 if tmptokens:
                     acc.append(tmptokens)
-        except (ParseException, IndexError):
-            pass
+        except (ParseException, IndexError) as e:
+            if not acc:
+                # MUST HAVE AT LEAST ONE
+                raise e
 
         return loc, ParseResults(self, acc)
 
@@ -222,7 +216,7 @@ class _MultipleMatch(ParseElementEnhance):
         if not name:
             return self
 
-        for e in [self.expr] + getattr(self.expr, "exprs", []):
+        for e in [self.expr]:
             if isinstance(e, ParserElement) and e.token_name:
                 Log.error("can not set token name, already set in one of the other expressions")
 
