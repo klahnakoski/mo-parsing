@@ -246,7 +246,10 @@ class ParserElement(object):
                         elif isinstance(tokens, ParseResults):
                             pass
                         else:
-                            tokens = ParseResults(self, [tokens])
+                            if self.__class__.__name__ == "Forward":
+                                tokens = ParseResults(self.expr, [tokens])
+                            else:
+                                tokens = ParseResults(self, [tokens])
 
                         retTokens = tokens
                 except Exception as err:

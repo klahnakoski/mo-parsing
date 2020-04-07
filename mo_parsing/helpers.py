@@ -1116,7 +1116,7 @@ def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
             offset = (0, 2, 3, 5)[arity]
             temp = parse_action(result)
             if temp is not None:
-                result = temp
+                result = ParseResults(expr, [temp])
             tokens[i : i + offset] = [(result, (expr,))]
             op_index = 0
 

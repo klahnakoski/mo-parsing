@@ -1150,14 +1150,11 @@ class StringEnd(_PositionToken):
         super(StringEnd, self).__init__()
 
     def parseImpl(self, instring, loc, doActions=True):
-        if loc < len(instring):
-            raise ParseException(instring, loc, self)
-        elif loc == len(instring):
-            return loc + 1, ParseResults(self, [])
-        elif loc > len(instring):
-            return loc, ParseResults(self, [])
-        else:
-            raise ParseException(instring, loc, self)
+        l = len(instring)
+        if loc >= l:
+            return l, ParseResults(self, [])
+
+        raise ParseException(instring, loc, self)
 
 
 class WordStart(_PositionToken):

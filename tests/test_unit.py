@@ -65,6 +65,7 @@ from mo_parsing.core import (
     ZeroOrMore,
     Empty,
 )
+from mo_parsing.engine import Engine
 from mo_parsing.helpers import (
     real,
     sci_real,
@@ -1688,7 +1689,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
             reprsymbol = ""
 
             def __init__(self, t):
-                self.args = t[0][0::2]
+                self.args = t[0][0], t[2][0]
 
             def __str__(self):
                 sep = " %s " % self.reprsymbol
@@ -1722,7 +1723,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
 
         class BoolNot(BoolOperand):
             def __init__(self, t):
-                self.arg = t[0][1]
+                self.arg = t[1][0]
 
             def __str__(self):
                 return "~" + str(self.arg)
@@ -1734,7 +1735,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
                     v = bool(self.arg)
                 return not v
 
-        boolOperand = Word(alphas, max=1) | oneOf("True False")
+        boolOperand = Group(oneOf("True False") | Word(alphas, max=1))
         boolExpr = infixNotation(
             boolOperand,
             [
@@ -1744,6 +1745,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
             ],
         )
         test = [
+            "True and False",
             "p and not q",
             "not not p",
             "not(p and q)",
@@ -2427,8 +2429,11 @@ class TestParsing(TestParseResultsAsserts, TestCase):
                 )
 
     def testLineAndStringEnd(self):
+        engine.CURRENT.set_whitespace("")
         NLs = OneOrMore(lineEnd)
-        bnf1 = delimitedList(Word(alphanums).leaveWhitespace(), NLs)
+        bnf1 = delimitedList(Word(alphanums), NLs)
+
+        Engine()
         bnf2 = Word(alphanums) + stringEnd
         bnf3 = Word(alphanums) + SkipTo(stringEnd)
         tests = [
@@ -2442,22 +2447,14 @@ class TestParsing(TestParseResultsAsserts, TestCase):
 
             self.assertParseResultsEquals(
                 res1,
-                expected_list=expected,
-                msg="Failed lineEnd/stringEnd test (1): "
-                + repr(test)
-                + " -> "
-                + str(res1),
+                expected_list=expected
             )
 
             res2 = bnf2.searchString(test)[0]
 
             self.assertParseResultsEquals(
                 res2,
-                expected_list=expected[-1:],
-                msg="Failed lineEnd/stringEnd test (2): "
-                + repr(test)
-                + " -> "
-                + str(res2),
+                expected_list=expected[-1:]
             )
 
             res3 = bnf3.parseString(test)
@@ -2465,7 +2462,8 @@ class TestParsing(TestParseResultsAsserts, TestCase):
             rest = coalesce(res3[1], "")
 
             self.assertEqual(
-                rest, test[len(first) + 1 :], "Failed lineEnd/stringEnd test"
+                rest,
+                test[len(first) + 1 :]
             )
 
         k = Regex(r"a+", flags=re.S + re.M)

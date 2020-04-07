@@ -40,7 +40,6 @@ class ParseElementEnhance(ParserElement):
         ParserElement.__init__(self)
         self.expr = expr = engine.CURRENT.normalize(expr)
         if expr != None:
-            self.engine = expr.engine
             self.parser_config.mayIndexError = expr.parser_config.mayIndexError
             self.parser_config.mayReturnEmpty = expr.parser_config.mayReturnEmpty
             self.parser_config.skipWhitespace = expr.parser_config.skipWhitespace
@@ -445,7 +444,7 @@ class SkipTo(ParseElementEnhance):
                         break
 
             try:
-                end_parse(instring, tmploc, doActions=False)
+                tmploc, _ = end_parse(instring, tmploc, doActions=False)
             except (ParseException, IndexError):
                 # no match, advance loc in string
                 tmploc += 1
@@ -597,9 +596,7 @@ class TokenConverter(ParseElementEnhance):
     """
     Abstract subclass of :class:`ParseExpression`, for converting parsed results.
     """
-
-    def __init__(self, expr):
-        super(TokenConverter, self).__init__(expr)
+    pass
 
 
 class Combine(TokenConverter):
