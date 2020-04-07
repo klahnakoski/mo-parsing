@@ -329,25 +329,24 @@ class Optional(ParseElementEnhance):
         FAIL: Expected end of text (at char 5), (line:1, col:6)
     """
 
-    __optionalNotMatched = _NullToken()
-
-    def __init__(self, expr, default=__optionalNotMatched):
+    def __init__(self, expr, default=None):
         super(Optional, self).__init__(expr)
         self.defaultValue = default
         self.parser_config.mayReturnEmpty = True
+
+    def copy(self):
+        output = ParseElementEnhance.copy(self)
+        output.defaultValue = self.defaultValue
+        return output
 
     def parseImpl(self, instring, loc, doActions=True):
         try:
             loc, tokens = self.expr._parse(instring, loc, doActions)
         except (ParseException, IndexError):
-            if self.defaultValue is not self.__optionalNotMatched:
-                if self.expr.token_name:
-                    tokens = ParseResults(self, [self.defaultValue])
-                    tokens[self.expr.token_name] = self.defaultValue
-                else:
-                    tokens = self.defaultValue
-            else:
+            if self.defaultValue is None:
                 return loc, ParseResults(self, [])
+            else:
+                tokens = self.defaultValue
 
         return loc, ParseResults(self, [tokens])
 

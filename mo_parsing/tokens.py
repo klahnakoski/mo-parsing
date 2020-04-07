@@ -4,6 +4,7 @@ import sre_constants
 import warnings
 
 from mo_future import text
+from mo_logs import Log
 
 from mo_parsing.engine import Engine
 from mo_parsing.exceptions import ParseException
@@ -30,6 +31,7 @@ def _escapeRegexRangeChars(s):
 
 class Token(ParserElement):
     pass
+
 
 class Empty(Token):
     """An empty token, will always match.
@@ -140,61 +142,72 @@ class Keyword(Token):
 
     For case-insensitive matching, use :class:`CaselessKeyword`.
     """
+    def __new__(cls, matchString, identChars=None, caseless=None):
+        if len(matchString)==0:
+            Log.error("Expecting more than one character in keyword")
+        if caseless:
+            return object.__new__(CaselessKeyword)
+        else:
+            return object.__new__(cls)
 
-
-    def __init__(self, matchString, identChars=None, caseless=False):
-        super(Keyword, self).__init__()
+    def __init__(self, matchString, identChars=None, caseless=None):
+        Token.__init__(self)
         if identChars is None:
-            identChars = self.engine.keyword_chars
+            self.identChars = self.engine.keyword_chars
+        else:
+            self.identChars = "".join(sorted(set(identChars)))
         self.match = matchString
         self.matchLen = len(matchString)
-        try:
-            self.firstMatchChar = matchString[0]
-        except IndexError:
-            warnings.warn(
-                "null string passed to Keyword; use Empty() instead",
-                SyntaxWarning,
-                stacklevel=2,
-            )
         self.parser_name = '"%s"' % self.match
         self.parser_config.mayReturnEmpty = False
         self.parser_config.mayIndexError = False
-        self.caseless = caseless
-        if caseless:
-            self.caselessmatch = matchString.upper()
-            identChars = identChars.upper()
-        self.identChars = "".join(sorted(set(identChars)))
-
-    def parseImpl(self, instring, loc, doActions=True):
-        if self.caseless:
-            if (
-                (instring[loc : loc + self.matchLen].upper() == self.caselessmatch)
-                and (
-                    loc >= len(instring) - self.matchLen
-                    or instring[loc + self.matchLen].upper() not in self.identChars
-                )
-                and (loc == 0 or instring[loc - 1].upper() not in self.identChars)
-            ):
-                return loc + self.matchLen, ParseResults(self, [self.match])
-
-        else:
-            if instring[loc] == self.firstMatchChar:
-                if (
-                    (self.matchLen == 1 or instring.startswith(self.match, loc))
-                    and (
-                        loc >= len(instring) - self.matchLen
-                        or instring[loc + self.matchLen] not in self.identChars
-                    )
-                    and (loc == 0 or instring[loc - 1] not in self.identChars)
-                ):
-                    return loc + self.matchLen, ParseResults(self, [self.match])
-
-        raise ParseException(instring, loc, self)
 
     def copy(self):
         output = ParserElement.copy(self)
-        output.identChars = engine.CURRENT.keyword_chars
+        output.match = self.match
+        output.matchLen = self.matchLen
+        output.identChars = self.identChars
         return output
+
+    def parseImpl(self, instring, loc, doActions=True):
+        if instring.startswith(self.match, loc):
+            try:
+                if instring[loc + self.matchLen] not in self.identChars:
+                    return loc + self.matchLen, ParseResults(self, [self.match])
+            except IndexError:
+                return loc + self.matchLen, ParseResults(self, [self.match])
+
+        raise ParseException(instring, loc, self)
+
+
+class CaselessKeyword(Keyword):
+    """
+    Caseless version of :class:`Keyword`.
+
+    Example::
+
+        OneOrMore(CaselessKeyword("CMD")).parseString("cmd CMD Cmd10") # -> ['CMD', 'CMD']
+
+    (Contrast with example for :class:`CaselessLiteral`.)
+    """
+
+    def __init__(self, matchString, identChars=None, caseless=True):
+        Keyword.__init__(
+            self,
+            matchString.upper(),
+            set(c.upper() for c in identChars or engine.CURRENT.keyword_chars),
+            caseless=True
+        )
+
+    def parseImpl(self, instring, loc, doActions=True):
+        if instring[loc : loc + self.matchLen].upper() == self.match:
+            try:
+                if instring[loc + self.matchLen] not in self.identChars:
+                    return loc + self.matchLen, ParseResults(self, [self.match])
+            except IndexError:
+                return loc + self.matchLen, ParseResults(self, [self.match])
+        raise ParseException(instring, loc, self)
+
 
 
 class CaselessLiteral(Literal):
@@ -224,21 +237,6 @@ class CaselessLiteral(Literal):
         if instring[loc : loc + self.matchLen].upper() == self.match:
             return loc + self.matchLen, ParseResults(self, [self.returnString])
         raise ParseException(instring, loc, self)
-
-
-class CaselessKeyword(Keyword):
-    """
-    Caseless version of :class:`Keyword`.
-
-    Example::
-
-        OneOrMore(CaselessKeyword("CMD")).parseString("cmd CMD Cmd10") # -> ['CMD', 'CMD']
-
-    (Contrast with example for :class:`CaselessLiteral`.)
-    """
-
-    def __init__(self, matchString, identChars=None):
-        super(CaselessKeyword, self).__init__(matchString, identChars, caseless=True)
 
 
 class CloseMatch(Token):
@@ -1119,9 +1117,7 @@ class LineEnd(_PositionToken):
             if instring[loc] == "\n":
                 return loc + 1, ParseResults(self, ["\n"])
             else:
-                raise ParseException(
-                    instring, loc, self
-                )
+                raise ParseException(instring, loc, self)
         elif loc == len(instring):
             return loc + 1, ParseResults(self, [])
         else:
@@ -1140,9 +1136,7 @@ class StringStart(_PositionToken):
         if loc != 0:
             # see if entire string up to here is just whitespace and ignoreables
             if loc != self.engine.skip(instring, 0):
-                raise ParseException(
-                    instring, loc, self
-                )
+                raise ParseException(instring, loc, self)
         return loc, []
 
 
@@ -1184,9 +1178,7 @@ class WordStart(_PositionToken):
                 instring[loc - 1] in self.wordChars
                 or instring[loc] not in self.wordChars
             ):
-                raise ParseException(
-                    instring, loc, self
-                )
+                raise ParseException(instring, loc, self)
         return loc, ParseResults(self, [])
 
 
@@ -1211,9 +1203,7 @@ class WordEnd(_PositionToken):
                 instring[loc] in self.wordChars
                 or instring[loc - 1] not in self.wordChars
             ):
-                raise ParseException(
-                    instring, loc, self
-                )
+                raise ParseException(instring, loc, self)
         return loc, ParseResults(self, [])
 
 
