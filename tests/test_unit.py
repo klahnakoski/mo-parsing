@@ -4200,9 +4200,9 @@ class TestParsing(TestParseResultsAsserts, TestCase):
 
     def testExprSplitter(self):
 
-        expr = Literal(";") + Empty()
         engine.CURRENT.add_ignore(quotedString)
         engine.CURRENT.add_ignore(pythonStyleComment)
+        expr = Literal(";") + Empty()
 
         sample = """
         def main():
@@ -4249,7 +4249,9 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         ):
 
             self.assertEqual(
-                list(expr.split(line)), expect, "invalid split on expression"
+                list(expr.split(line)),
+                expect,
+                "invalid split on expression"
             )
 
         expected = [
