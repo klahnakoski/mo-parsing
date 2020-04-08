@@ -181,9 +181,6 @@ class ParserElement(object):
     def parseImpl(self, instring, loc, doActions=True):
         return loc, ParseResults(self, [])
 
-    def postParse(self, instring, loc, tokenlist):
-        return tokenlist
-
     def _parse(self, instring, loc, doActions=True):
         lookup = (self, instring, loc, doActions)
         value = packrat_cache.get(lookup)
@@ -213,8 +210,6 @@ class ParserElement(object):
                 self.engine.debugActions.FAIL(instring, start, self, err)
                 self.parser_config.failAction(instring, start, self, err)
                 raise
-
-            tokens = self.postParse(instring, loc, tokens)
 
             if not isinstance(tokens, ParseResults):
                 Log.error("expecting ParseResult")

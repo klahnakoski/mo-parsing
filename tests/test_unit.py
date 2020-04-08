@@ -3680,7 +3680,6 @@ class TestParsing(TestParseResultsAsserts, TestCase):
 
         value = value_list ^ value_dict ^ value_string
         values = Group(delimitedList(value, ","))
-        # ~ values              = delimitedList(value, ",").setParseAction(lambda toks: [toks])
 
         value_list << lbracket + values + rbracket
 
@@ -3697,14 +3696,13 @@ class TestParsing(TestParseResultsAsserts, TestCase):
             "username=goat; errors={username=[already taken, too short]}; empty_field="
         )
         result = response.parseString(rsp)
-        result_dict = result
         self.assertEqual(
-            result_dict["username"],
+            result["username"],
             "goat",
             "failed to process string in ParseResults correctly",
         )
         self.assertEqual(
-            result_dict["errors"]["username"],
+            result["errors"]["username"],
             ["already taken", "too short"],
             "failed to process nested ParseResults correctly",
         )

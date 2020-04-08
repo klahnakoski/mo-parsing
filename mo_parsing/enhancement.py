@@ -623,6 +623,7 @@ class Combine(TokenConverter):
         self.adjacent = adjacent
         self.parser_config.skipWhitespace = True
         self.joinString = joinString
+        self.parseAction.append(self._postParse)
 
     def copy(self):
         output = TokenConverter.copy(self)
@@ -630,7 +631,7 @@ class Combine(TokenConverter):
         output.joinString = self.joinString
         return output
 
-    def postParse(self, instring, loc, tokenlist):
+    def _postParse(self, instring, loc, tokenlist):
         retToks = ParseResults(self, [tokenlist.asString(sep=self.joinString)])
 
         return retToks
@@ -654,12 +655,6 @@ class Group(TokenConverter):
 
     def __init__(self, expr):
         super(Group, self).__init__(expr)
-
-    def postParse(self, instring, loc, tokenlist):
-        if tokenlist.type_for_result is not self:
-            Log.error("please wrap")
-
-        return tokenlist
 
 
 class Dict(Group):
@@ -704,8 +699,9 @@ class Dict(Group):
 
     def __init__(self, expr):
         super(Dict, self).__init__(expr)
+        self.parseAction.append(self._postParse)
 
-    def postParse(self, instring, loc, tokenlist):
+    def _postParse(self, instring, loc, tokenlist):
         acc = tokenlist.tokens_for_result
         for a in list(acc):
             for tok in list(a):
@@ -741,8 +737,11 @@ class Suppress(TokenConverter):
 
     (See also :class:`delimitedList`.)
     """
+    def __init__(self, expr):
+        TokenConverter.__init__(self, expr)
+        self.parseAction.append(self._postParse)
 
-    def postParse(self, instring, loc, tokenlist):
+    def _postParse(self, instring, loc, tokenlist):
         return ParseResults(self, [])
 
     def suppress(self):
