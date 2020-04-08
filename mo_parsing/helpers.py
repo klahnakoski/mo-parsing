@@ -70,26 +70,18 @@ unicodeString = Combine(Literal("u") + quotedString.copy()).set_parser_name(
 )
 
 
-def delimitedList(expr, delim=",", combine=False):
-    """Helper to define a delimited list of expressions - the delimiter
-    defaults to ','. By default, the list elements and delimiters can
-    have intervening whitespace, and comments, but this can be
-    overridden by passing ``combine=True`` in the constructor. If
-    ``combine`` is set to ``True``, the matching tokens are
-    returned as a single token string, with the delimiters included;
-    otherwise, the matching tokens are returned as a list of tokens,
-    with the delimiters suppressed.
-
+def delimitedList(expr, separator=",", combine=False):
+    """
+    PARSE DELIMITED LIST OF expr
     Example::
 
         delimitedList(Word(alphas)).parseString("aa,bb,cc") # -> ['aa', 'bb', 'cc']
         delimitedList(Word(hexnums), delim=':', combine=True).parseString("AA:BB:CC:DD:EE") # -> ['AA:BB:CC:DD:EE']
     """
-    dlName = text(expr) + " [" + text(delim) + " " + text(expr) + "]..."
     if combine:
-        return Combine(expr + ZeroOrMore(delim + expr)).set_parser_name(dlName)
+        return Combine(expr + ZeroOrMore(separator + expr))
     else:
-        return (expr + ZeroOrMore(Suppress(delim) + expr)).set_parser_name(dlName)
+        return expr + ZeroOrMore(Suppress(separator) + expr)
 
 
 def countedArray(expr, intExpr=None):
@@ -1122,11 +1114,11 @@ def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
 
         return tokens[0][0]
 
-    flat = Forward().addParseAction(make_tree)
+    flat = Forward()
     iso = lpar.suppress() + flat + rpar.suppress()
     atom = (baseExpr | iso).addParseAction(record_op(baseExpr))
     modified = ZeroOrMore(prefix_ops) + atom + ZeroOrMore(suffix_ops)
-    flat << modified + ZeroOrMore(ops + modified)
+    flat << (modified + ZeroOrMore(ops + modified)).addParseAction(make_tree)
 
     return flat
 

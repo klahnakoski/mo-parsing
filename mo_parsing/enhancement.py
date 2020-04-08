@@ -1,9 +1,10 @@
 # encoding: utf-8
 import warnings
 
-from mo_dots import Null
+from mo_dots import Null, coalesce
 from mo_future import text
 from mo_logs import Log, Except
+from mo_logs.exceptions import get_stacktrace
 
 from mo_parsing.engine import noop
 from mo_parsing.exceptions import (
@@ -500,38 +501,35 @@ class Forward(ParseElementEnhance):
 
     def __init__(self, expr=Null):
         self.expr = Null
-        self.master = None  # point to first instance
-        self.children = []  # point to all copies
         self.strRepr = None  # avoid recursion
         ParseElementEnhance.__init__(self, expr)
         if expr:
             self << expr
 
     def copy(self):
-        if self.master:
-            return self.master.copy()
-
-        output = ParseElementEnhance.copy(self)
-        self.children.append(output)
-        output.master = self
-        output.strRepr = None
-        return output
+        return self
 
     def __lshift__(self, other):
-        if self.master:
-            return self.master.__lshift__(other)
-
+        name = None
         while isinstance(other, Forward):
+            name = coalesce(name, other.parser_name)
             other = other.expr
 
         expr = self.expr = engine.CURRENT.normalize(other)
-
         self.expr = expr(self.token_name)
-
-        for c in self.children:
-            c.expr = expr(c.token_name)
-
+        if name and not self.expr.parser_name:
+            self.expr.set_parser_name(name)
         return self
+
+    def setParseAction(self, actions):
+        if not self.expr:
+            Log.error("not allowed")
+        self.expr = self.expr.setParseAction(actions)
+
+    def addParseAction(self, action):
+        if not self.expr:
+            Log.error("not allowed")
+        self.expr = self.expr.addParseAction(action)
 
     def leaveWhitespace(self):
         output = self.copy()
@@ -558,6 +556,8 @@ class Forward(ParseElementEnhance):
 
     def parseImpl(self, instring, loc, doActions=True):
         if self.expr != None:
+            if len(get_stacktrace())>300:
+                Log.note("")
             loc, output = self.expr._parse(instring, loc, doActions)
             if output.type_for_result is self:
                 Log.error("not expected")

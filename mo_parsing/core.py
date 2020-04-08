@@ -531,7 +531,7 @@ class ParserElement(object):
         if other is Ellipsis:
             return _PendingSkip(self)
 
-        return And([self, engine.CURRENT.normalize(other)])
+        return And([self, engine.CURRENT.normalize(other)]).streamline()
 
     def __radd__(self, other):
         """

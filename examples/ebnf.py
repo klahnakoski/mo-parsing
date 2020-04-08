@@ -7,57 +7,31 @@
 #
 # Submitted 2004 by Seo Sanghyeon
 #
-
-from mo_parsing import *
-
-
-all_names = """
-integer
-meta_identifier
-terminal_string
-optional_sequence
-repeated_sequence
-grouped_sequence
-syntactic_primary
-syntactic_factor
-syntactic_term
-single_definition
-definitions_list
-syntax_rule
-syntax
-""".split()
-
-
-integer = Word(nums)
-meta_identifier = Word(alphas, alphanums + "_")
-terminal_string = Suppress("'") + CharsNotIn("'") + Suppress("'") ^ Suppress(
-    '"'
-) + CharsNotIn('"') + Suppress('"')
-definitions_list = Forward()
-optional_sequence = Suppress("[") + definitions_list + Suppress("]")
-repeated_sequence = Suppress("{") + definitions_list + Suppress("}")
-grouped_sequence = Suppress("(") + definitions_list + Suppress(")")
-syntactic_primary = (
-    optional_sequence
-    ^ repeated_sequence
-    ^ grouped_sequence
-    ^ meta_identifier
-    ^ terminal_string
+from mo_parsing import (
+    Word,
+    Suppress,
+    Forward,
+    CharsNotIn,
+    nums,
+    alphas,
+    alphanums,
+    Optional,
+    delimitedList,
+    ZeroOrMore,
+    Literal,
+    OneOrMore,
+    And,
+    NotAny,
+    Or,
+    Group,
 )
-syntactic_factor = Optional(integer + Suppress("*")) + syntactic_primary
-syntactic_term = syntactic_factor + Optional(Suppress("-") + syntactic_factor)
-single_definition = delimitedList(syntactic_term, ",")
-definitions_list << delimitedList(single_definition, "|")
-syntax_rule = meta_identifier + Suppress("=") + definitions_list + Suppress(";")
+from mo_parsing.engine import Engine
 
+engine = Engine()
 ebnfComment = (
-    ("(*" + ZeroOrMore(CharsNotIn("*") | ("*" + ~Literal(")"))) + "*)")
-    .streamline()
-    .set_parser_name("ebnfComment")
-)
-
-syntax = OneOrMore(syntax_rule)
-syntax.engine.add_ignore(ebnfComment)
+        "(*" + ZeroOrMore(CharsNotIn("*") | ("*" + ~Literal(")"))) + "*)"
+).set_parser_name("ebnfComment")
+engine.add_ignore(ebnfComment)
 
 
 def do_integer(str, loc, toks):
@@ -65,12 +39,14 @@ def do_integer(str, loc, toks):
 
 
 def do_meta_identifier(str, loc, toks):
-    if toks[0] in symbol_table:
-        return symbol_table[toks[0]]
+    global forward_count
+    name = toks[0]
+    if name in symbol_table:
+        return symbol_table[name]
     else:
-        forward_count.value += 1
-        symbol_table[toks[0]] = Forward()
-        return symbol_table[toks[0]]
+        forward_count += 1
+        symbol_table[name] = Forward().set_parser_name(name)
+        return symbol_table[name]
 
 
 def do_terminal_string(str, loc, toks):
@@ -131,12 +107,19 @@ def do_definitions_list(str, loc, toks):
         return [toks[0]]
 
 
+forward_count = 0
+
+
 def do_syntax_rule(str, loc, toks):
+    global forward_count
     # meta_identifier = definitions_list ;
-    assert toks[0].expr is None, "Duplicate definition"
-    forward_count.value -= 1
+    assert toks[0].expr == None, "Duplicate definition"
+    forward_count -= 1
     toks[0] << toks[1]
     return [toks[0]]
+
+
+symbol_table = {}
 
 
 def do_syntax(str, loc, toks):
@@ -144,30 +127,82 @@ def do_syntax(str, loc, toks):
     return symbol_table
 
 
-symbol_table = {}
+integer = Word(nums).addParseAction(do_integer).set_parser_name("integer")
+meta_identifier = (
+    Word(alphas, alphanums + "_")
+    .addParseAction(do_meta_identifier)
+    .set_parser_name("meta identifier")
+)
+terminal_string = (
+    (
+        Suppress("'") + CharsNotIn("'") + Suppress("'")
+        ^ Suppress('"') + CharsNotIn('"') + Suppress('"')
+    )
+    .addParseAction(do_terminal_string)
+    .set_parser_name("terminal string")
+)
+definitions_list = Forward()
+optional_sequence = (
+    (Suppress("[") + definitions_list + Suppress("]"))
+    .addParseAction(do_optional_sequence)
+    .set_parser_name("optional sequence")
+)
+repeated_sequence = (
+    (Suppress("{") + definitions_list + Suppress("}"))
+    .addParseAction(do_repeated_sequence)
+    .set_parser_name("repeated sequence")
+)
+grouped_sequence = (
+    (Suppress("(") + definitions_list + Suppress(")"))
+    .addParseAction(do_grouped_sequence)
+    .set_parser_name("grouped sequence")
+)
+syntactic_primary = (
+    (
+        optional_sequence
+        ^ repeated_sequence
+        ^ grouped_sequence
+        ^ meta_identifier
+        ^ terminal_string
+    )
+    .addParseAction(do_syntactic_primary)
+    .set_parser_name("syntatic primary")
+)
+syntactic_factor = (
+    (Optional(integer + Suppress("*")) + syntactic_primary)
+    .addParseAction(do_syntactic_factor)
+    .set_parser_name("syntatic factor")
+)
+syntactic_term = (
+    (syntactic_factor + Optional(Suppress("-") + syntactic_factor))
+    .addParseAction(do_syntactic_term)
+    .set_parser_name("syntatic term")
+)
+single_definition = (
+    delimitedList(syntactic_term, ",")
+    .addParseAction(do_single_definition)
+    .set_parser_name("single definition")
+)
+definitions_list << delimitedList(single_definition, "|").addParseAction(
+    do_definitions_list
+).set_parser_name("definitions list")
+syntax_rule = (
+    (meta_identifier + Suppress("=") + definitions_list + Suppress(";"))
+    .addParseAction(do_syntax_rule)
+    .set_parser_name("syntax rule")
+)
+syntax = OneOrMore(syntax_rule).addParseAction(do_syntax)
 
-
-class forward_count:
-    pass
-
-
-forward_count.value = 0
-for name in all_names:
-    expr = vars()[name]
-    action = vars()["do_" + name]
-    expr.set_parser_name(name)
-    expr.setParseAction(action)
-    # ~ expr.setDebug()
 
 
 def parse(ebnf, given_table={}):
+    global forward_count
     symbol_table.clear()
     symbol_table.update(given_table)
-    forward_count.value = 0
+    forward_count = 0
     table = syntax.parseString(ebnf)[0]
-    assert forward_count.value == 0, "Missing definition"
+    assert forward_count == 0, "Missing definition"
     for name in table:
         expr = table[name]
         expr.set_parser_name(name)
-        # ~ expr.setDebug()
     return table

@@ -285,7 +285,7 @@ class TestRepetition(PyparsingExpressionTestCase):
     def test_Using_delimitedList_with_colon_delimiter(self):
         self.runTest(
             desc="Using delimitedList, with ':' delimiter",
-            expr=delimitedList(Word(hexnums, exact=2), delim=":", combine=True),
+            expr=delimitedList(Word(hexnums, exact=2), separator=":", combine=True),
             text="0A:4B:73:21:FE:76",
             expected_list=["0A:4B:73:21:FE:76"],
         )
