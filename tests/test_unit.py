@@ -4192,8 +4192,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         Here is some sample <i>HTML</i> text.
         </html>
         """
-        read_everything = originalTextFor(OneOrMore(Word(printables)))
-        read_everything.addParseAction(stripHTMLTags)
+        read_everything = originalTextFor(OneOrMore(Word(printables))).addParseAction(stripHTMLTags)
 
         result = read_everything.parseString(sample)
         self.assertEqual(result[0].strip(), "Here is some sample HTML text.")

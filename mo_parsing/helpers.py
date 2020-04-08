@@ -376,17 +376,20 @@ def originalTextFor(expr, asString=True):
         ['<i>text</i>']
     """
     locMarker = Empty().setParseAction(lambda s, loc, t: loc)
-    endlocMarker = locMarker.copy()
-    matchExpr = locMarker("_original_start") + expr + endlocMarker("_original_end")
+    matchExpr = locMarker("_original_start") + expr + locMarker("_original_end")
     if asString:
-        extractText = lambda s, l, t: s[t._original_start : t._original_end]
+        matchExpr = matchExpr.setParseAction(extractText)
     else:
+        matchExpr = matchExpr.setParseAction(extractTokens)
 
-        def extractText(s, l, t):
-            t[:] = [s[t.pop("_original_start") : t.pop("_original_end")]]
-
-    matchExpr.setParseAction(extractText)
     return matchExpr
+
+
+def extractText(s, l, t):
+    return s[t['_original_start'] : t['_original_end']]
+
+def extractTokens(s, l, t):
+    return t[1]
 
 
 def ungroup(expr):
