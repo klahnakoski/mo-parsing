@@ -92,17 +92,13 @@ class ParseResults(object):
         # modal==True means only the last value is relevant
         name = get_name(self)
         if name == i:
-            if isinstance(self.type_for_result, Group):
-                yield self.type_for_result.parser_config.modalResults, self
-            elif len(self.tokens_for_result) == 1:
-                yield self.type_for_result.parser_config.modalResults, self.tokens_for_result[
-                    0
-                ]
-            else:
-                yield self.type_for_result.parser_config.modalResults, self
+            for t in self.tokens_for_result:
+                yield t
         else:
             for tok in self.tokens_for_result:
                 if isinstance(tok, ParseResults):
+                    if isinstance(tok.type_for_result, Group):
+                        continue
                     for f in tok._get_item_by_name(i):
                         yield f
 
@@ -116,16 +112,10 @@ class ParseResults(object):
         elif isinstance(i, slice):
             return list(iter(self))[i]
         else:
-            mv = tuple(zip(*self._get_item_by_name(i)))
-            if not mv:
-                return ""
-            modals, values = mv
-            if any(modals) != all(modals):
-                Log.error("complicated modal rules")
-            elif modals[0]:
-                return values[-1]
-            else:
-                return ParseResults(self.type_for_result, values)
+            values = list(self._get_item_by_name(i))
+            if len(values) == 1:
+                return values[0]
+            return ParseResults(self.type_for_result, values)
 
     def __setitem__(self, k, v):
         if isinstance(k, (slice, int)):
@@ -518,10 +508,6 @@ class Annotation(ParseResults):
         if not isinstance(value, list):
             Log.error("expecting a list")
         ParseResults.__init__(self, Suppress(None)(name), value)
-        if len(value) > 1:
-            self.type_for_result.parser_config.modalResults = False
-        else:
-            self.type_for_result.parser_config.modalResults = True
 
     def __repr__(self):
         return "{" + get_name(self) + ": ...}"

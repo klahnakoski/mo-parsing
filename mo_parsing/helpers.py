@@ -882,21 +882,11 @@ opAssoc.RIGHT = object()
 
 
 def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
-    """Helper method for constructing grammars of expressions made up of
-    operators working in a precedence hierarchy.  Operators may be unary
-    or binary, left- or right-associative.  Parse actions can also be
-    attached to operator expressions. The generated parser will also
-    recognize the use of parentheses to override operator precedences
-    (see example below).
+    """
 
-    Note: if you define a deep operator list, you may see performance
-    issues when using infixNotation. See
-    improve your parser performance.
-
-    Parameters:
-     - baseExpr - expression representing the most basic element for the
+    :param baseExpr: expression representing the most basic element for the
        nested
-     - opList - list of tuples, one for each operator precedence level
+    :param spec: list of tuples, one for each operator precedence level
        in the expression grammar; each tuple is of the form ``(opExpr,
        numTerms, rightLeftAssoc, parseAction)``, where:
 
@@ -915,10 +905,11 @@ def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
          a tuple or list of functions, this is equivalent to calling
          ``setParseAction(*fn)``
          (:class:`ParserElement.setParseAction`)
-     - lpar - expression for matching left-parentheses
+    :param lpar: expression for matching left-parentheses
        (default= ``Suppress('(')``)
-     - rpar - expression for matching right-parentheses
+    :param rpar: expression for matching right-parentheses
        (default= ``Suppress(')')``)
+    :return: ParserElement
 
     Example::
 

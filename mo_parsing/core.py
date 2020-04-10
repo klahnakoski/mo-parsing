@@ -70,7 +70,6 @@ class ParserElement(object):
         self.parser_config.mayReturnEmpty = False  # used when checking for left-recursion
         self.parser_config.keepTabs = False
         self.parser_config.mayIndexError = True  # used to optimize exception handling for subclasses that don't advance parse index
-        self.parser_config.modalResults = True  # used to mark results names as modal (report only last) or cumulative (list all)
 
     def copy(self):
         output = object.__new__(self.__class__)
@@ -728,7 +727,7 @@ class ParserElement(object):
             return self
         return self.set_token_name(name)
 
-    def set_token_name(self, name, listAllMatches=False):
+    def set_token_name(self, name):
         """
         SET name AS PART OF A LARGER GROUP
         :param name:
@@ -743,7 +742,6 @@ class ParserElement(object):
             Log.warning("stop using")
         output = self.copy()
         output.token_name = name
-        output.parser_config.modalResults = not listAllMatches
         return output
 
     def suppress(self):
