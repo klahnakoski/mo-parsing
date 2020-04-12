@@ -18,8 +18,8 @@ class TestAllExamples(unittest.TestCase):
 
 def _single_test(name):
     def output(self):
-        Engine()
-        import_module("examples." + name)
+        with Engine():
+            import_module("examples." + name)
 
     return output
 

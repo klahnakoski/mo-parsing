@@ -6,7 +6,7 @@ from datetime import datetime
 from mo_dots import Data
 from mo_future import text
 
-from mo_parsing.engine import noop
+from mo_parsing.engine import noop, Engine
 from mo_parsing.enhancement import (
     Combine,
     Dict,
@@ -1277,7 +1277,10 @@ cStyleComment = Combine(Regex(r"/\*(?:[^*]|\*(?!/))*") + "*/").set_parser_name(
 htmlComment = Regex(r"<!--[\s\S]*?-->").set_parser_name("HTML comment")
 "Comment of the form ``<!-- ... -->``"
 
-restOfLine = Regex(r".*").leaveWhitespace().set_parser_name("rest of line")
+with Engine() as engine:
+    engine.set_whitespace("")
+    restOfLine = Regex(r".*").leaveWhitespace().set_parser_name("rest of line")
+
 dblSlashComment = Regex(r"//(?:\\\n|[^\n])*").set_parser_name("// comment")
 "Comment of the form ``// ... (to end of line)``"
 

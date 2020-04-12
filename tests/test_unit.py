@@ -50,8 +50,7 @@ from mo_parsing import (
     helpers,
     CaselessLiteral,
     RecursiveGrammarException,
-    engine,
-)
+    engine)
 from mo_parsing.core import (
     quotedString,
     Suppress,
@@ -117,7 +116,6 @@ from mo_parsing.helpers import (
 )
 from mo_parsing.utils import parsing_unicode, printables, traceParseAction, hexnums
 from tests.json_parser_tests import test1, test2, test3, test4, test5
-
 # see which Python implementation we are running
 from tests.utils import TestParseResultsAsserts
 
@@ -161,7 +159,10 @@ class resetting:
 
 class TestParsing(TestParseResultsAsserts, TestCase):
     def setUp(self):
-        engine.Engine()
+        self.engine = Engine()
+
+    def tearDown(self):
+        self.engine.release()
 
     def testParseFourFn(self):
         def test(s, ans):
@@ -4196,7 +4197,6 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         self.assertEqual(result[0].strip(), "Here is some sample HTML text.")
 
     def testExprSplitter(self):
-
         engine.CURRENT.add_ignore(quotedString)
         engine.CURRENT.add_ignore(pythonStyleComment)
         expr = Literal(";") + Empty()
@@ -4242,9 +4242,9 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         ]
 
         for expect, line in zip(
-            expected, filter(lambda ll: ";" in ll, sample.splitlines())
+            expected,
+            filter(lambda ll: ";" in ll, sample.splitlines())
         ):
-
             self.assertEqual(
                 list(expr.split(line)),
                 expect,

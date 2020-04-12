@@ -14,12 +14,12 @@ from datetime import datetime
 
 from mo_parsing import *
 from mo_parsing import engine
-from mo_parsing.helpers import number, identifier, ipv4_address, integer, fnumber
+from mo_parsing.helpers import number, identifier, ipv4_address, integer, fnumber, tokenMap
 from mo_testing.fuzzytestcase import FuzzyTestCase
 
-PpTestSpec = namedtuple(
+TestSpecification = namedtuple(
     "PpTestSpec",
-    "desc expr text parse_fn " "expected_list expected_dict expected_fail_locn",
+    "desc expr text parse_fn expected_list expected_dict expected_fail_locn",
 )
 
 
@@ -44,40 +44,25 @@ class PyparsingExpressionTestCase(FuzzyTestCase):
         #  - or parse the string with expected failure, display the
         #    error message and mark the error location, and validate
         #    the location against an expected value
-        test_spec = PpTestSpec(
-            desc, expr, text, parse_fn, expected_list, expected_dict, expected_fail_locn
-        )
-        test_spec.expr.streamline()
-        print(
-            "\n{0} - {1}({2})".format(
-                test_spec.desc, type(test_spec.expr).__name__, test_spec.expr
-            )
-        )
+        expr = expr.streamline()
 
-        parsefn = getattr(test_spec.expr, test_spec.parse_fn)
-        if test_spec.expected_fail_locn is None:
+        parsefn = getattr(expr, parse_fn)
+        if expected_fail_locn is None:
             # expect success
-            result = parsefn(test_spec.text)
-            if test_spec.parse_fn == "parseString":
-                self.assertEqual(result, test_spec.expected_list)
-                self.assertEqual(result, test_spec.expected_dict)
-            elif test_spec.parse_fn == "transformString":
-                self.assertEqual([result], test_spec.expected_list)
-            elif test_spec.parse_fn == "searchString":
-                self.assertEqual([result], test_spec.expected_list)
+            result = parsefn(text)
+            if parse_fn == "parseString":
+                self.assertEqual(result, expected_list)
+                self.assertEqual(result, expected_dict)
+            elif parse_fn == "transformString":
+                self.assertEqual([result], expected_list)
+            elif parse_fn == "searchString":
+                self.assertEqual([result], expected_list)
         else:
             # expect fail
             try:
-                parsefn(test_spec.text)
+                parsefn(text)
             except Exception as exc:
-                if not hasattr(exc, "__traceback__"):
-                    # Python 2 compatibility
-                    from sys import exc_info
-
-                    etype, value, traceback = exc_info()
-                    exc.__traceback__ = traceback
-
-                self.assertEqual(exc.loc, test_spec.expected_fail_locn)
+                self.assertEqual(exc.loc, expected_fail_locn)
             else:
                 self.assertTrue(False, "failed to raise expected exception")
 

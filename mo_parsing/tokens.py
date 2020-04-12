@@ -901,7 +901,6 @@ class CharsNotIn(Token):
 
     def __init__(self, notChars, min=1, max=0, exact=0):
         super(CharsNotIn, self).__init__()
-        self.parser_config.skipWhitespace = False
         self.notChars = "".join(notChars)
 
         if min < 1:
@@ -1193,7 +1192,6 @@ class WordEnd(_PositionToken):
     def __init__(self, wordChars=printables):
         super(WordEnd, self).__init__()
         self.wordChars = set(wordChars)
-        self.parser_config.skipWhitespace = False
 
     def parseImpl(self, instring, loc, doActions=True):
         instrlen = len(instring)

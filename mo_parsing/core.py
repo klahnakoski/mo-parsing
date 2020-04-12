@@ -66,7 +66,6 @@ class ParserElement(object):
 
         self.parser_config = Data()
         self.parser_config.failAction = None
-        self.parser_config.skipWhitespace = True
         self.parser_config.mayReturnEmpty = False  # used when checking for left-recursion
         self.parser_config.keepTabs = False
         self.parser_config.mayIndexError = True  # used to optimize exception handling for subclasses that don't advance parse index
@@ -568,68 +567,41 @@ class ParserElement(object):
         occurrences.  If this behavior is desired, then write
         ``expr*(None, n) + ~expr``
         """
-        if other is Ellipsis:
-            other = (0, None)
-        elif isinstance(other, tuple) and other[:1] == (Ellipsis,):
-            other = ((0,) + other[1:] + (None,))[:2]
-
-        if isinstance(other, int):
-            minElements, optElements = other, 0
-        elif isinstance(other, tuple):
-            other = tuple(o if o is not Ellipsis else None for o in other)
-            other = (other + (None, None))[:2]
-            if other[0] is None:
-                other = (0, other[1])
-            if isinstance(other[0], int) and other[1] is None:
-                if other[0] == 0:
-                    return ZeroOrMore(self)
-                if other[0] == 1:
-                    return OneOrMore(self)
-                else:
-                    return self * other[0] + ZeroOrMore(self)
-            elif isinstance(other[0], int) and isinstance(other[1], int):
-                minElements, optElements = other
-                optElements -= minElements
-            else:
-                raise TypeError(
-                    "cannot multiply 'ParserElement' and ('%s', '%s') objects",
-                    type(other[0]),
-                    type(other[1]),
-                )
+        if isinstance(other, tuple):
+           minElements, maxElements = (other + (None, None))[:2]
         else:
+            minElements, maxElements = other, other
+
+        if minElements == Ellipsis:
+            return ZeroOrMore(self)
+        elif not minElements:
+            minElements = 0
+        elif not isinstance(minElements, int):
             raise TypeError(
-                "cannot multiply 'ParserElement' and '%s' objects", type(other)
+                "cannot multiply 'ParserElement' and ('%s', '%s') objects",
+                type(other[0]),
+                type(other[1]),
+            )
+        elif minElements < 0:
+            raise ValueError("cannot multiply ParserElement by negative value")
+
+        if maxElements == Ellipsis or maxElements == None:
+            return And([self] * minElements) + ZeroOrMore(self)
+        elif not isinstance(maxElements, int) or maxElements < minElements:
+            raise TypeError(
+                "cannot multiply 'ParserElement' and ('%s', '%s') objects",
+                type(other[0]),
+                type(other[1]),
             )
 
-        if minElements < 0:
-            raise ValueError("cannot multiply ParserElement by negative value")
-        if optElements < 0:
-            raise ValueError(
-                "second tuple value must be greater or equal to first tuple value"
-            )
-        if minElements == optElements == 0:
-            raise ValueError("cannot multiply ParserElement by 0 or (0, 0)")
+        optElements = maxElements - minElements
 
         if optElements:
-
-            def makeOptionalList(n):
-                if n > 1:
-                    return Optional(self + makeOptionalList(n - 1))
-                else:
-                    return Optional(self)
-
-            if minElements:
-                if minElements == 1:
-                    ret = self + makeOptionalList(optElements)
-                else:
-                    ret = And([self] * minElements) + makeOptionalList(optElements)
-            else:
-                ret = makeOptionalList(optElements)
+            ret = And([self] * minElements) + And([Optional(self)]*optElements)
+        elif not minElements:
+            raise ValueError("cannot multiply ParserElement by 0 or (0, 0)")
         else:
-            if minElements == 1:
-                ret = self
-            else:
-                ret = And([self] * minElements)
+            ret = And([self] * minElements)
         return ret
 
     def __rmul__(self, other):
@@ -758,7 +730,8 @@ class ParserElement(object):
         the mo_parsing module, but may be needed in some whitespace-sensitive grammars.
         """
         output = self.copy()
-        output.parser_config.skipWhitespace = False
+        if self.engine.white_chars:
+            Log.error("do not know how to handle")
         return output
 
     def parseWithTabs(self):
@@ -855,6 +828,10 @@ class _PendingSkip(ParserElement):
     def parseImpl(self, *args):
         Log.error("use of `...` expression without following SkipTo target expression")
 
+
+def is_decorated(parser):
+    # RETURN TRUE IF PARSER HAS IMPORTANT MARKUP
+    return parser.parseAction or parser.token_name
 
 
 # export

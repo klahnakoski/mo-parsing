@@ -4,8 +4,9 @@ from operator import itemgetter
 from mo_future import text
 from mo_logs import Log
 
-from mo_parsing.core import ParserElement, _PendingSkip
-from mo_parsing.enhancement import OneOrMore, Optional, SkipTo, Suppress, ZeroOrMore
+from mo_parsing.core import ParserElement, _PendingSkip, is_decorated
+from mo_parsing.engine import Engine
+from mo_parsing.enhancement import OneOrMore, Optional, SkipTo, ZeroOrMore
 from mo_parsing.exceptions import (
     ParseBaseException,
     ParseException,
@@ -49,7 +50,9 @@ class ParseExpression(ParserElement):
         """Extends ``leaveWhitespace`` defined in base class, and also invokes ``leaveWhitespace`` on
            all contained expressions."""
         output = self.copy()
-        output.parser_config.skipWhitespace = False
+        if self.engine.white_chars:
+            Log.error("do not know how to handle")
+
         output.exprs = [e.leaveWhitespace() for e in self.exprs]
         return output
 
@@ -72,11 +75,7 @@ class ParseExpression(ParserElement):
         acc = []
         for e in self.exprs:
             e.streamline()
-            if (
-                isinstance(e, self.__class__)
-                and not e.parseAction
-                and e.token_name is None
-            ):
+            if isinstance(e, self.__class__) and not is_decorated(e):
                 acc.extend(e.exprs)
             else:
                 acc.append(e)
@@ -119,9 +118,10 @@ class And(ParseExpression):
 
     class _ErrorStop(Empty):
         def __init__(self, *args, **kwargs):
-            super(And._ErrorStop, self).__init__(*args, **kwargs)
-            self.parser_name = "-"
-            self.leaveWhitespace()
+            with Engine() as engine:
+                engine.set_whitespace("")
+                super(And._ErrorStop, self).__init__(*args, **kwargs)
+                self.parser_name = "-"
 
     def __init__(self, exprs):
         if exprs and Ellipsis in exprs:
@@ -142,12 +142,10 @@ class And(ParseExpression):
         self.parser_config.mayReturnEmpty = all(
             e.parser_config.mayReturnEmpty for e in self.exprs
         )
-        self.parser_config.skipWhitespace = self.exprs[0].parser_config.skipWhitespace
 
     def streamline(self):
         if self.streamlined:
             return self
-        ParseExpression.streamline(self)
 
         # collapse any _PendingSkip's
         if self.exprs:
@@ -169,11 +167,13 @@ class And(ParseExpression):
                         self.exprs[i + 1] = None
                 self.exprs = [e for e in self.exprs if e is not None]
 
-        super(And, self).streamline()
-        self.parser_config.mayReturnEmpty = all(
+        output = ParseExpression.streamline(self)
+        if len(output.exprs) == 1 and not is_decorated(output):
+            return output.exprs[0]
+        output.parser_config.mayReturnEmpty = all(
             e.parser_config.mayReturnEmpty for e in self.exprs
         )
-        return self
+        return output
 
     def parseImpl(self, instring, loc, doActions=True):
         # pass False as last arg to _parse for first element, since we already
@@ -194,9 +194,7 @@ class And(ParseExpression):
                         pe.pstr, pe.loc, pe.msg, pe.parserElement
                     )
                 except IndexError:
-                    raise ParseSyntaxException(
-                        instring, len(instring), self
-                    )
+                    raise ParseSyntaxException(instring, len(instring), self)
             else:
                 loc, exprtokens = e._parse(instring, loc, doActions)
 
@@ -269,9 +267,7 @@ class Or(ParseExpression):
                     maxExcLoc = err.loc
             except IndexError:
                 if len(instring) > maxExcLoc:
-                    maxException = ParseException(
-                        instring, len(instring), self
-                    )
+                    maxException = ParseException(instring, len(instring), self)
                     maxExcLoc = len(instring)
             else:
                 # save match among all matches, to retry longest to shortest
@@ -372,20 +368,16 @@ class MatchFirst(ParseExpression):
                     maxExcLoc = err.loc
             except IndexError:
                 if len(instring) > maxExcLoc:
-                    maxException = ParseException(
-                        instring, len(instring), self
-                    )
+                    maxException = ParseException(instring, len(instring), self)
                     maxExcLoc = len(instring)
 
         # only got here if no expression matched, raise exception for match that made it the furthest
         else:
             if maxException is not None:
-                maxException.msg = "Expecting "+text(self)
+                maxException.msg = "Expecting " + text(self)
                 raise maxException
             else:
-                raise ParseException(
-                    instring, loc, self
-                )
+                raise ParseException(instring, loc, self)
 
     def __or__(self, other):
         if other is Ellipsis:
@@ -471,7 +463,6 @@ class Each(ParseExpression):
         self.parser_config.mayReturnEmpty = all(
             e.parser_config.mayReturnEmpty for e in self.exprs
         )
-        self.parser_config.skipWhitespace = True
         self.initExprGroups = True
 
     def streamline(self):

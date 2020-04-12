@@ -25,14 +25,28 @@ class Engine:
         self.content = None
         self.skips = {}
         self.set_whitespace(white)
+        self.previous = CURRENT  # WE MAINTAIN A STACK OF ENGINES
         CURRENT = self
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        global CURRENT
+        CURRENT = self.previous
+        self.previous = None
 
     def release(self):
         """
         ENSURE self IS NOT CURRENT
         :return:
         """
-        Engine()
+        global CURRENT
+        if not self.previous:
+            Log.error("expecting engine to be released just once")
+
+        CURRENT = self.previous
+        self.previous = None
 
     def normalize(self, expr):
         if expr == None:

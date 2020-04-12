@@ -92,8 +92,11 @@ class ParseResults(object):
         # modal==True means only the last value is relevant
         name = get_name(self)
         if name == i:
-            for t in self.tokens_for_result:
-                yield t
+            if isinstance(self.type_for_result, Group):
+                yield self
+            else:
+                for t in self.tokens_for_result:
+                    yield t
         else:
             for tok in self.tokens_for_result:
                 if isinstance(tok, ParseResults):

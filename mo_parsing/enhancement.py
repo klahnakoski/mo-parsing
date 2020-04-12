@@ -43,7 +43,6 @@ class ParseElementEnhance(ParserElement):
         if expr != None:
             self.parser_config.mayIndexError = expr.parser_config.mayIndexError
             self.parser_config.mayReturnEmpty = expr.parser_config.mayReturnEmpty
-            self.parser_config.skipWhitespace = expr.parser_config.skipWhitespace
 
     def copy(self):
         output = ParserElement.copy(self)
@@ -64,8 +63,10 @@ class ParseElementEnhance(ParserElement):
 
     def leaveWhitespace(self):
         output = self.copy()
-        output.parser_config.skipWhitespace = False
-        output.expr = self.expr.leaveWhitespace()
+        if self.engine.white_chars:
+            Log.error("do not know how to handle")
+
+            output.expr = self.expr.leaveWhitespace()
         return output
 
     def streamline(self):
@@ -162,7 +163,6 @@ class NotAny(ParseElementEnhance):
     def __init__(self, expr):
         super(NotAny, self).__init__(expr)
         # do NOT use self.leaveWhitespace(), don't want to propagate to exprs
-        self.parser_config.skipWhitespace = False
         self.parser_config.mayReturnEmpty = True
 
     def parseImpl(self, instring, loc, doActions=True):
@@ -533,7 +533,9 @@ class Forward(ParseElementEnhance):
 
     def leaveWhitespace(self):
         output = self.copy()
-        output.parser_config.skipWhitespace = False
+        if self.engine.white_chars:
+            Log.error("do not know how to handle")
+
         return output
 
     def streamline(self):
@@ -621,7 +623,6 @@ class Combine(TokenConverter):
     def __init__(self, expr, joinString="", adjacent=True):
         super(Combine, self).__init__(expr)
         self.adjacent = adjacent
-        self.parser_config.skipWhitespace = True
         self.joinString = joinString
         self.parseAction.append(self._postParse)
 
@@ -799,7 +800,6 @@ class PrecededBy(ParseElementEnhance):
             retreat = 0
             self.exact = True
         self.retreat = retreat
-        self.parser_config.skipWhitespace = False
 
     def parseImpl(self, instring, loc=0, doActions=True):
         if self.exact:
