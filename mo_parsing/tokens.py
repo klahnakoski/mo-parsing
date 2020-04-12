@@ -1142,7 +1142,8 @@ class StringStart(_PositionToken):
 
 
 class StringEnd(_PositionToken):
-    """Matches if current position is at the end of the parse string
+    """
+    Matches if current position is at the end of the parse string
     """
 
     def __init__(self):

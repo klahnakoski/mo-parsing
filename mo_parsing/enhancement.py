@@ -623,22 +623,24 @@ class Combine(TokenConverter):
         print(real.parseString('3. 1416')) # -> Exception: Expected W:(0123...)
     """
 
-    def __init__(self, expr, joinString="", adjacent=True):
+    def __init__(self, expr, separator="", adjacent=True):
         super(Combine, self).__init__(expr)
         self.adjacent = adjacent
-        self.joinString = joinString
-        self.parseAction.append(self._postParse)
+        self.separator = separator
+        self.parseAction.append(combine_post_parse)
 
     def copy(self):
         output = TokenConverter.copy(self)
         output.adjacent = self.adjacent
-        output.joinString = self.joinString
+        output.separator = self.separator
         return output
 
-    def _postParse(self, instring, loc, tokenlist):
-        retToks = ParseResults(self, [tokenlist.asString(sep=self.joinString)])
 
-        return retToks
+def combine_post_parse(instring, loc, tokenlist):
+    type_ = tokenlist.type_for_result
+    retToks = ParseResults(type_, [tokenlist.asString(sep=type_.separator)])
+
+    return retToks
 
 
 class Group(TokenConverter):

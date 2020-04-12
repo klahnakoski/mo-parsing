@@ -385,19 +385,12 @@ class ParserElement(object):
             except ParseException as e:
                 loc = preloc + 1
             else:
-                if nextLoc > loc:
-                    matches += 1
-                    yield tokens, preloc, nextLoc
-                    if overlap:
-                        nextloc = self.engine.skip(instring, loc)
-                        if nextloc > loc:
-                            loc = nextLoc
-                        else:
-                            loc += 1
-                    else:
-                        loc = nextLoc
+                matches += 1
+                yield tokens, preloc, nextLoc
+                if overlap or nextLoc <= loc:
+                    loc += 1
                 else:
-                    loc = preloc + 1
+                    loc = nextLoc
 
     def transformString(self, instring):
         """

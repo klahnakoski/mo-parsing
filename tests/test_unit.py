@@ -3490,51 +3490,6 @@ class TestParsing(TestParseResultsAsserts, TestCase):
                 "Invalid error message raised, got %r" % pe.msg,
             )
 
-    def testSetName(self):
-        a = oneOf("a b c")
-        b = oneOf("d e f")
-        arith_expr = infixNotation(
-            Word(nums),
-            [(oneOf("* /"), 2, opAssoc.LEFT), (oneOf("+ -"), 2, opAssoc.LEFT),],
-        )
-        arith_expr2 = infixNotation(Word(nums), [(("?", ":"), 3, opAssoc.LEFT),])
-        recursive = Forward()
-        recursive <<= a + (b + recursive)[...]
-
-        self.assertEqual(str(a), "a | b | c")
-        self.assertEqual(str(b), "d | e | f")
-        self.assertEqual(str((a | b)), "{a | b | c} | {d | e | f}")
-        self.assertEqual(str(arith_expr), "Forward: {+ | - term} | {* | / term}")
-        self.assertEqual(str(arith_expr.expr), "{+ | - term} | {* | / term}")
-        self.assertEqual(
-            str(arith_expr2),
-            'Forward: {?: term} | {{W:(0123...)} | {{{"(" Forward: ...} ")"}}}',
-        )
-        self.assertEqual(
-            str(arith_expr2.expr),
-            '{?: term} | {{W:(0123...)} | {{{"(" Forward: {?: term} | {{W:(0123...)} | {{{"(" Forward: ...} ")"}}}} ")"}}}',
-        )
-        self.assertEqual(
-            str(recursive), "Forward: {a | b | c [{d | e | f Forward: ...}]...}"
-        )
-        self.assertEqual(
-            str(delimitedList(Word(nums).set_parser_name("int"))), "int [, int]..."
-        )
-        self.assertEqual(
-            str(countedArray(Word(nums).set_parser_name("int"))), "(len) int..."
-        )
-        self.assertEqual(str(nestedExpr()), "nested () expression")
-        self.assertEqual(str(makeHTMLTags("Z")), "(<Z>, </Z>)")
-        self.assertEqual(str((anyOpenTag, anyCloseTag)), "(<any tag>, </any tag>)")
-        self.assertEqual(str(commonHTMLEntity), "common HTML entity")
-        self.assertEqual(
-            str(
-                commonHTMLEntity.setParseAction(replaceHTMLEntity).transformString(
-                    "lsdjkf &lt;lsdjkf&gt;&amp;&apos;&quot;&xyzzy;"
-                )
-            ),
-            "lsdjkf <lsdjkf>&'\"&xyzzy;",
-        )
 
     def testTrimArityExceptionMasking(self):
         invalid_message = "<lambda>() missing 1 required positional argument: 't'"

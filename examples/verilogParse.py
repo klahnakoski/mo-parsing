@@ -151,7 +151,7 @@ def Verilog_BNF():
         base = Regex("'[bBoOdDhH]").set_parser_name("base")
         basedNumber = Combine(
             Optional(Word(nums + "_")) + base + Word(hexnums + "xXzZ"),
-            joinString=" ",
+            separator=" ",
             adjacent=False,
         ).set_parser_name("basedNumber")
         # ~ number = ( basedNumber | Combine( Word( "+-"+spacedNums, spacedNums ) +

@@ -88,24 +88,18 @@ def fatal(ftn, txt):
     raise SystemExit(msg)
 
 
-def usage():
-    """Prints the docstring."""
 
-
-
-# ====================================
 class ToInteger(TokenConverter):
     """Converter to make token into an integer."""
-
-    def postParse(self, instring, loc, tokenlist):
-        return int(tokenlist[0])
-
+    def __init__(self, expr):
+        TokenConverter.__init__(self, expr)
+        self.parseAction.append(int)
 
 class ToFloat(TokenConverter):
     """Converter to make token into a float."""
-
-    def postParse(self, instring, loc, tokenlist):
-        return float(tokenlist[0])
+    def __init__(self, expr):
+        TokenConverter.__init__(self, expr)
+        self.parseAction.append(float)
 
 
 class ParseFileLineByLine:
