@@ -38,11 +38,12 @@ class ParseElementEnhance(ParserElement):
     """
 
     def __init__(self, expr):
+        if expr == None:
+            Log.error("expecting an expression")
         ParserElement.__init__(self)
         self.expr = expr = engine.CURRENT.normalize(expr)
-        if expr != None:
-            self.parser_config.mayIndexError = expr.parser_config.mayIndexError
-            self.parser_config.mayReturnEmpty = expr.parser_config.mayReturnEmpty
+        self.parser_config.mayIndexError = expr.parser_config.mayIndexError
+        self.parser_config.mayReturnEmpty = expr.parser_config.mayReturnEmpty
 
     def copy(self):
         output = ParserElement.copy(self)
@@ -53,13 +54,10 @@ class ParseElementEnhance(ParserElement):
         return output
 
     def parseImpl(self, instring, loc, doActions=True):
-        if self.expr != None:
-            loc, output = self.expr._parse(instring, loc, doActions)
-            if output.type_for_result == self:
-                Log.error("not expected")
-            return loc, ParseResults(self, [output])
-        else:
-            raise ParseException("", loc, self)
+        loc, output = self.expr._parse(instring, loc, doActions)
+        if output.type_for_result == self:
+            Log.error("not expected")
+        return loc, ParseResults(self, [output])
 
     def leaveWhitespace(self):
         output = self.copy()
@@ -471,7 +469,7 @@ class SkipTo(ParseElementEnhance):
         return end, ParseResults(self, skip_result)
 
 
-class Forward(ParseElementEnhance):
+class Forward(ParserElement):
     """Forward declaration of an expression to be defined later -
     used for recursive grammars, such as algebraic infix notation.
     When the expression is known, it is assigned to the ``Forward``
@@ -500,11 +498,13 @@ class Forward(ParseElementEnhance):
     """
 
     def __init__(self, expr=Null):
-        self.expr = Null
+        ParserElement.__init__(self)
+        self.expr = None
+        self.parser_config.mayIndexError = expr.parser_config.mayIndexError
+        self.parser_config.mayReturnEmpty = expr.parser_config.mayReturnEmpty
         self.strRepr = None  # avoid recursion
-        ParseElementEnhance.__init__(self, expr)
         if expr:
-            self << expr
+            self << engine.CURRENT.normalize(expr)
 
     def copy(self):
         return self
@@ -542,8 +542,11 @@ class Forward(ParseElementEnhance):
         if self.streamlined:
             return self
 
-        self.streamlined = True
-        self.expr.streamline()
+        if self.expr:
+            self.streamlined = True
+            self.expr = self.expr.streamline()
+        else:
+            self.streamlined = False
         return self
 
     def validate(self, validateTrace=None):

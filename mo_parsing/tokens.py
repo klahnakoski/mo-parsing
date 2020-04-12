@@ -1225,3 +1225,4 @@ enhancement._PositionToken = _PositionToken
 enhancement.StringEnd = StringEnd
 
 results.Token = Token
+results.Empty = Empty

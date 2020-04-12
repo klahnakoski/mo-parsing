@@ -98,8 +98,12 @@ class Engine:
         ADD TO THE LIST OF IGNORED EXPRESSIONS
         :param ignore_expr:
         """
+        global CURRENT
+        temp = CURRENT
+        CURRENT = PLAIN_ENGINE
         ignore_expr = ignore_expr.suppress()
         self.ignore_list.append(ignore_expr)
+        CURRENT = temp
         return self
 
     def skip(self, instring, start):
@@ -111,10 +115,16 @@ class Engine:
             self.skips = {}
             self.content = instring
         end = self.skips[start] = start  # TO AVOID RECURSIVE LOOP
+        wt = self.white_chars
+        instrlen = len(instring)
 
         more = True  # ENSURE ALTERNATING WHITESPACE AND IGNORABLES ARE SKIPPED
         while more:
             more = False
+            while end < instrlen and instring[end] in wt:
+                more = True
+                end += 1
+
             for i in self.ignore_list:
                 try:
                     next_end, _ = i.parseImpl(instring, end)
@@ -123,12 +133,6 @@ class Engine:
                         end = next_end
                 except ParseException as e:
                     pass
-
-            wt = self.white_chars
-            instrlen = len(instring)
-            while end < instrlen and instring[end] in wt:
-                more = True
-                end += 1
 
         self.skips[start] = end  # THE REAL VALUE
         return end
@@ -158,5 +162,6 @@ def noop(*args):
 
 DebugActions = namedtuple("DebugActions", ["TRY", "MATCH", "FAIL"])
 
-
+PLAIN_ENGINE = Engine()
+PLAIN_ENGINE.set_whitespace("")
 Engine()

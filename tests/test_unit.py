@@ -4287,7 +4287,6 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         ]
         exp_iter = iter(expected)
         for line in filter(lambda ll: ";" in ll, sample.splitlines()):
-
             self.assertEqual(
                 list(expr.split(line, includeSeparators=True)),
                 next(exp_iter),

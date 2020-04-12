@@ -376,14 +376,12 @@ class ParserElement(object):
             instring = text(instring).expandtabs()
         instrlen = len(instring)
         loc = 0
-        skip = self.engine.skip
-        parseFn = self._parse
         cache.resetCache()
         matches = 0
         while loc <= instrlen and matches < maxMatches:
             try:
-                preloc = skip(instring, loc)
-                nextLoc, tokens = parseFn(instring, preloc)
+                preloc = self.engine.skip(instring, loc)
+                nextLoc, tokens = self._parse(instring, preloc)
             except ParseException as e:
                 loc = preloc + 1
             else:
@@ -391,7 +389,7 @@ class ParserElement(object):
                     matches += 1
                     yield tokens, preloc, nextLoc
                     if overlap:
-                        nextloc = skip(instring, loc)
+                        nextloc = self.engine.skip(instring, loc)
                         if nextloc > loc:
                             loc = nextLoc
                         else:
@@ -462,9 +460,9 @@ class ParserElement(object):
             ['More', 'Iron', 'Lead', 'Gold', 'I', 'Electricity']
         """
 
-        g = Group(None)
+        g = Group(self)
         output = ParseResults(
-            self,
+            ZeroOrMore(g),
             [ParseResults(g, [t]) for t, s, e in self.scanString(instring, maxMatches)],
         )
         return output

@@ -8,7 +8,7 @@ from mo_logs import Log
 from mo_parsing import engine
 from mo_parsing.utils import PY_3
 
-Suppress, ParserElement, Forward, Group, Dict, Token = [None] * 6
+Suppress, ParserElement, Forward, Group, Dict, Token, Empty = [None] * 7
 
 _get = object.__getattribute__
 
@@ -510,7 +510,7 @@ class Annotation(ParseResults):
     def __init__(self, name, value):
         if not isinstance(value, list):
             Log.error("expecting a list")
-        ParseResults.__init__(self, Suppress(None)(name), value)
+        ParseResults.__init__(self, Empty()(name), value)
 
     def __repr__(self):
         return "{" + get_name(self) + ": ...}"
