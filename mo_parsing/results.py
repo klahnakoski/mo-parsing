@@ -162,8 +162,6 @@ class ParseResults(object):
     def __iter__(self):
         if isinstance(self, Annotation):
             return
-        elif isinstance(self.type_for_result, Suppress):
-            return
         else:
             for r in self.tokens_for_result:
                 if isinstance(r, ParseResults):

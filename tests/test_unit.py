@@ -1816,25 +1816,23 @@ class TestParsing(TestParseResultsAsserts, TestCase):
             return Literal(s).suppress()
 
         f = infixNotation(word, [
-            (supLiteral("!"), 1, opAssoc.RIGHT, lambda s, l, t: ["!", t[0][0]]),
+            (supLiteral("!"), 1, opAssoc.RIGHT, lambda s, l, t: ["!", t[0]]),
             (oneOf("= !="), 2, opAssoc.LEFT,),
-            (supLiteral("&"), 2, opAssoc.LEFT, lambda s, l, t: ["&", t[0]]),
-            (supLiteral("|"), 2, opAssoc.LEFT, lambda s, l, t: ["|", t[0]]),
+            (supLiteral("&"), 2, opAssoc.LEFT, lambda s, l, t: ["&", t]),
+            (supLiteral("|"), 2, opAssoc.LEFT, lambda s, l, t: ["|", t]),
         ])
 
         f = f + StringEnd()
 
         tests = [
-            # ("bar = foo", [["bar", "=", "foo"]]),
+            ("bar = foo", [["bar", "=", "foo"]]),
             (
                 "bar = foo & baz = fee",
-                ["&", [["bar", "=", "foo"], ["baz", "=", "fee"]]],
+                [[["&", [["bar", "=", "foo"], ["baz", "=", "fee"]]]]],
             ),
         ]
         for test, expected in tests:
-
             results = f.parseString(test)
-
             self.assertParseResultsEquals(results, expected_list=expected)
 
     def testInfixNotationGrammarTest5(self):
@@ -1846,14 +1844,14 @@ class TestParsing(TestParseResultsAsserts, TestCase):
 
         class ExprNode:
             def __init__(self, tokens):
-                self.tokens = tokens[0]
+                self.tokens = list(tokens)
 
             def eval(self):
                 return None
 
         class NumberNode(ExprNode):
             def eval(self):
-                return self.tokens
+                return self.tokens[0]
 
         class SignOp(ExprNode):
             def eval(self):
@@ -1882,22 +1880,22 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         expr = infixNotation(
             operand,
             [
-                (expop, 2, opAssoc.LEFT, (lambda pr: [pr[0][::-1]], ExpOp)),
+                (expop, 2, opAssoc.RIGHT, (lambda pr: pr[::-1], ExpOp)),
                 (signop, 1, opAssoc.RIGHT, SignOp),
                 (multop, 2, opAssoc.LEFT, MultOp),
                 (plusop, 2, opAssoc.LEFT, AddOp),
             ],
         )
 
-        tests = """\
-            2+7
-            2**3
-            2**3**2
-            3**9
-            3**3**2
-            """
+        tests = [
+            "2+7",
+            "2**3",
+            "2**3**2",
+            "3**9",
+            "3**3**2",
+        ]
 
-        for t in tests.splitlines():
+        for t in tests:
             t = t.strip()
             if not t:
                 continue
@@ -3543,7 +3541,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
             self.assertNotEqual(
                 exc_msg,
                 invalid_message,
-                "failed to catch TypeError thrown in _trim_arity",
+                "failed to catch TypeError thrown in wrap_parse_action",
             )
 
     def testTrimArityExceptionMaskingTest2(self):
@@ -3559,7 +3557,7 @@ class TestParsing(TestParseResultsAsserts, TestCase):
                 self.assertNotEqual(
                     exc_msg,
                     invalid_message,
-                    "failed to catch TypeError thrown in _trim_arity",
+                    "failed to catch TypeError thrown in wrap_parse_action",
                 )
 
         def B():

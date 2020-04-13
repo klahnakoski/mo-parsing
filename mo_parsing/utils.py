@@ -6,9 +6,7 @@ import string
 import sys
 import warnings
 
-from mo_future import text
 from mo_logs import Log, Except
-
 
 try:
     # Python 3
@@ -167,7 +165,11 @@ def line(loc, strg):
 "decorator to trim function calls to match the arity of the target"
 
 
-def _trim_arity(func):
+def wrap_parse_action(func):
+    from mo_parsing.exceptions import ParseException
+    from mo_parsing.results import ParseResults
+    from mo_parsing.enhancement import Group
+
     if func in singleArgBuiltins:
         return lambda s, l, t: func(t)
 
@@ -208,12 +210,23 @@ def _trim_arity(func):
 
     def wrapper(*args):
         try:
-            ret = func(*args[start:])
-            if ret is None:
-                s, i, t = args
-                return t
-            return ret
+            s, i, token = args
+            original_type = token.type_for_result
+            result = func(*args[start:])
+            if result is None:
+                return token
+            elif isinstance(result, (list, tuple)):
+                return ParseResults(original_type, result)
+            elif isinstance(result, ParseResults):
+                return result
+            elif original_type.__class__.__name__ == "Forward":
+                return ParseResults(original_type.expr, [result])
+            elif isinstance(original_type, Group):
+                return ParseResults(original_type.expr, [result])
+            else:
+                return ParseResults(original_type, [result])
         except Exception as e:
+            result = func(*args[start:])
             if (
                 isinstance(e, TypeError)
                 and spec.args[0] == "self"
@@ -222,8 +235,6 @@ def _trim_arity(func):
                 Log.error(
                     "Did you provide a `self` argument to a static function?", cause=e
                 )
-            # Log.warning("function failure", cause=e)
-            from mo_parsing.exceptions import ParseException
 
             f = ParseException(*args)
             f.__cause__ = e
@@ -276,7 +287,7 @@ def traceParseAction(f):
         <<leaving remove_duplicate_chars (ret: 'dfjkls')
         ['dfjkls']
     """
-    f = _trim_arity(f)
+    f = wrap_parse_action(f)
 
     def z(*paArgs):
         thisFunc = f.__name__

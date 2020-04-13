@@ -16,7 +16,7 @@ from mo_parsing.results import ParseResults
 from mo_parsing.utils import (
     PY_3,
     _MAX_INT,
-    _trim_arity,
+    wrap_parse_action,
     basestring,
 )
 
@@ -121,7 +121,7 @@ class ParserElement(object):
         else:
             if not all(callable(fn) for fn in fns):
                 raise TypeError("parse actions must be callable")
-            output.parseAction = list(map(_trim_arity, list(fns)))
+            output.parseAction = list(map(wrap_parse_action, list(fns)))
             output.callDuringTry = callDuringTry
         return output
 
@@ -132,7 +132,7 @@ class ParserElement(object):
         See examples in :class:`copy`.
         """
         output = self.copy()
-        output.parseAction += list(map(_trim_arity, fns))
+        output.parseAction += list(map(wrap_parse_action, fns))
         output.callDuringTry = self.callDuringTry or callDuringTry
         return output
 
@@ -219,28 +219,7 @@ class ParserElement(object):
             if self.parseAction and (doActions or self.callDuringTry):
                 try:
                     for fn in self.parseAction:
-                        try:
-                            tokens = fn(instring, start, retTokens)
-                        except IndexError as parse_action_exc:
-                            exc = ParseException("exception raised in parse action")
-                            exc.__cause__ = parse_action_exc
-                            raise exc
-
-                        if isinstance(tokens, list):
-                            tokens = ParseResults(self, tokens)
-                        elif isinstance(tokens, tuple):
-                            tokens = ParseResults(self, tokens)
-                        elif tokens is None:
-                            tokens = ParseResults(self, [])
-                        elif isinstance(tokens, ParseResults):
-                            pass
-                        else:
-                            if self.__class__.__name__ == "Forward":
-                                tokens = ParseResults(self.expr, [tokens])
-                            else:
-                                tokens = ParseResults(self, [tokens])
-
-                        retTokens = tokens
+                        retTokens = fn(instring, start, retTokens)
                 except Exception as err:
                     self.engine.debugActions.FAIL(instring, start, self, err)
                     raise

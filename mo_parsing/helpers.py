@@ -3,7 +3,7 @@ import re
 import warnings
 from datetime import datetime
 
-from mo_dots import Data
+from mo_dots import Data, listwrap
 from mo_future import text
 
 from mo_parsing.engine import noop, Engine
@@ -49,7 +49,7 @@ from mo_parsing.utils import (
     nums,
     printables,
     unichr,
-)
+    wrap_parse_action)
 
 # import later
 And, MatchFirst = [None] * 2
@@ -948,7 +948,7 @@ def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
     opList = []
     for operDef in spec:
         op, arity, assoc, rest = operDef[0], operDef[1], operDef[2], operDef[3:]
-        parse_action = rest[0] if rest else noop
+        parse_actions = list(map(wrap_parse_action, listwrap(rest[0]))) if rest else []
         if arity == 1:
             op = norm(op)
             if assoc == opAssoc.RIGHT:
@@ -957,7 +957,7 @@ def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
                     (op,),
                     arity,
                     assoc,
-                    parse_action
+                    parse_actions
                 ))
             else:
                 opList.append((
@@ -965,7 +965,7 @@ def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
                     (op,),
                     arity,
                     assoc,
-                    parse_action
+                    parse_actions
                 ))
         elif arity == 2:
             op = norm(op)
@@ -974,7 +974,7 @@ def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
                 (op,),
                 arity,
                 assoc,
-                parse_action
+                parse_actions
             ))
         elif arity == 3:
             op = (norm(op[0]), norm(op[1]))
@@ -983,7 +983,7 @@ def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
                 op,
                 arity,
                 assoc,
-                parse_action
+                parse_actions
             ))
     opList = tuple(opList)
 
@@ -1016,23 +1016,23 @@ def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
         ]
     )
 
-    def make_tree(tokens):
-        tokens = list(tokens)
+    def make_tree(instring, loc, tokens):
+        flat_tokens = list(tokens)
         num = len(opList)
         op_index = 0
-        while len(tokens) > 1 or op_index >= num:
-            expr, op, arity, assoc, parse_action = opList[op_index]
+        while len(flat_tokens) > 1 or op_index >= num:
+            expr, op, arity, assoc, parse_actions = opList[op_index]
             if arity == 1:
                 if assoc == opAssoc.RIGHT:
                     # PREFIX OPERATOR -3
-                    todo = list(reversed(list(enumerate(tokens[:-1]))))
+                    todo = list(reversed(list(enumerate(flat_tokens[:-1]))))
                     for i, (r, o) in todo:
                         if o == (op,):
                             result = ParseResults(
                                 expr,
                                 (
                                     r,
-                                    tokens[i + 1][0]
+                                    flat_tokens[i + 1][0]
                                 )
                             )
                             break
@@ -1041,13 +1041,13 @@ def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
                         continue
                 else:
                     # SUFFIX OPERATOR 3!
-                    todo = list(enumerate(tokens[1:]))
+                    todo = list(enumerate(flat_tokens[1:]))
                     for i, (r, o) in todo:
                         if o == (op,):
                             result = ParseResults(
                                 expr,
                                 (
-                                    tokens[i][0],
+                                    flat_tokens[i][0],
                                     r,
                                 )
                             )
@@ -1056,7 +1056,7 @@ def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
                         op_index += 1
                         continue
             elif arity == 2:
-                todo = list(enumerate(tokens[1:-1]))
+                todo = list(enumerate(flat_tokens[1:-1]))
                 if assoc == opAssoc.RIGHT:
                     todo = list(reversed(todo))
 
@@ -1065,9 +1065,9 @@ def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
                         result = ParseResults(
                             expr,
                             (
-                                tokens[i][0],
+                                flat_tokens[i][0],
                                 r,
-                                tokens[i + 2][0]
+                                flat_tokens[i + 2][0]
                             )
                         )
                         break
@@ -1076,22 +1076,22 @@ def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
                     continue
 
             else:  # arity==3
-                todo = list(enumerate(tokens[1:-3]))
+                todo = list(enumerate(flat_tokens[1:-3]))
                 if assoc == opAssoc.RIGHT:
                     todo = list(reversed(todo))
 
                 for i, (r0, o0) in todo:
                     if o0 == (op, op[0]):
-                        r1, o1 = tokens[i + 3]
+                        r1, o1 = flat_tokens[i + 3]
                         if o1 == (op, op[1]):
                             result = ParseResults(
                                 expr,
                                 (
-                                    tokens[i][0],
+                                    flat_tokens[i][0],
                                     r0,
-                                    tokens[i + 2][0],
+                                    flat_tokens[i + 2][0],
                                     r1,
-                                    tokens[i + 4][0],
+                                    flat_tokens[i + 4][0],
                                 )
                             )
                             break
@@ -1099,14 +1099,13 @@ def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
                     op_index += 1
                     continue
 
+            for p in parse_actions:
+                result = p(instring, -1, result)
             offset = (0, 2, 3, 5)[arity]
-            temp = parse_action(result)
-            if temp is not None:
-                result = ParseResults(expr, [temp])
-            tokens[i : i + offset] = [(result, (expr,))]
+            flat_tokens[i : i + offset] = [(result, (expr,))]
             op_index = 0
 
-        return tokens[0][0]
+        return flat_tokens[0][0]
 
     flat = Forward()
     iso = lpar.suppress() + flat + rpar.suppress()

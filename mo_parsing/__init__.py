@@ -219,7 +219,7 @@ from mo_parsing.utils import (
     PY_3,
     _MAX_INT,
     _generatorType,
-    _trim_arity,
+    wrap_parse_action,
     alphanums,
     alphas,
     basestring,

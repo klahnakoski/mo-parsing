@@ -5,7 +5,7 @@ import sys
 from mo_dots import coalesce
 from mo_future import text
 
-from mo_parsing.utils import _trim_arity, col, line, lineno
+from mo_parsing.utils import wrap_parse_action, col, line, lineno
 
 
 class ParseBaseException(Exception):
@@ -217,7 +217,7 @@ class OnlyOnce(object):
     """
 
     def __init__(self, methodCall):
-        self.callable = _trim_arity(methodCall)
+        self.callable = wrap_parse_action(methodCall)
         self.called = False
 
     def __call__(self, s, l, t):
@@ -234,7 +234,7 @@ class OnlyOnce(object):
 def conditionAsParseAction(fn, message=None, fatal=False):
     msg = coalesce(message, "failed user-defined condition")
     exc_type = ParseFatalException if fatal else ParseException
-    fn = _trim_arity(fn)
+    fn = wrap_parse_action(fn)
 
     @wraps(fn)
     def pa(s, l, t):

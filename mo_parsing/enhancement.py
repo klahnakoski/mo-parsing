@@ -561,7 +561,7 @@ class Forward(ParserElement):
 
     def parseImpl(self, instring, loc, doActions=True):
         if self.expr != None:
-            if len(get_stacktrace())>300:
+            if len(get_stacktrace()) > 300:
                 Log.note("")
             loc, output = self.expr._parse(instring, loc, doActions)
             if output.type_for_result is self:
