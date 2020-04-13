@@ -627,7 +627,7 @@ class Combine(TokenConverter):
         super(Combine, self).__init__(expr)
         self.adjacent = adjacent
         self.separator = separator
-        self.parseAction.append(combine_post_parse)
+        self.parseAction.append(_combine_post_parse)
 
     def copy(self):
         output = TokenConverter.copy(self)
@@ -636,7 +636,7 @@ class Combine(TokenConverter):
         return output
 
 
-def combine_post_parse(instring, loc, tokenlist):
+def _combine_post_parse(instring, loc, tokenlist):
     type_ = tokenlist.type_for_result
     retToks = ParseResults(type_, [tokenlist.asString(sep=type_.separator)])
 
@@ -705,20 +705,21 @@ class Dict(Group):
 
     def __init__(self, expr):
         super(Dict, self).__init__(expr)
-        self.parseAction.append(self._postParse)
+        self.parseAction.append(_dict_post_parse)
 
-    def _postParse(self, instring, loc, tokenlist):
-        acc = tokenlist.tokens_for_result
-        for a in list(acc):
-            for tok in list(a):
-                if len(tok) == 0:
-                    continue
-                ikey = tok[0]
-                rest = list(tok[1:])
-                new_tok = Annotation(text(ikey), rest)
-                acc.append(new_tok)
 
-        return tokenlist
+def _dict_post_parse(instring, loc, tokenlist):
+    acc = tokenlist.tokens_for_result
+    for a in list(acc):
+        for tok in list(a):
+            if len(tok) == 0:
+                continue
+            ikey = tok[0]
+            rest = list(tok[1:])
+            new_tok = Annotation(text(ikey), rest)
+            acc.append(new_tok)
+
+    return tokenlist
 
 
 class Suppress(TokenConverter):
@@ -745,16 +746,17 @@ class Suppress(TokenConverter):
     """
     def __init__(self, expr):
         TokenConverter.__init__(self, expr)
-        self.parseAction.append(self._postParse)
-
-    def _postParse(self, instring, loc, tokenlist):
-        return ParseResults(self, [])
+        self.parseAction.append(_suppress_post_parse)
 
     def suppress(self):
         return self
 
     def __str__(self):
         return text(self.expr)
+
+
+def _suppress_post_parse(instring, loc, tokenlist):
+    return ParseResults(tokenlist.type_for_result, [])
 
 
 class PrecededBy(ParseElementEnhance):

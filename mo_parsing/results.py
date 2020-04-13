@@ -90,20 +90,19 @@ class ParseResults(object):
     def _get_item_by_name(self, i):
         # return open list of (modal, value) pairs
         # modal==True means only the last value is relevant
-        name = get_name(self)
-        if name == i:
-            if isinstance(self.type_for_result, Group):
-                yield self
-            else:
-                for t in self.tokens_for_result:
-                    yield t
-        else:
-            for tok in self.tokens_for_result:
-                if isinstance(tok, ParseResults):
+        for tok in self.tokens_for_result:
+            if isinstance(tok, ParseResults):
+                name = get_name(tok)
+                if name == i:
                     if isinstance(tok.type_for_result, Group):
-                        continue
-                    for f in tok._get_item_by_name(i):
-                        yield f
+                        yield tok
+                    else:
+                        for t in tok.tokens_for_result:
+                            yield t
+                elif isinstance(tok.type_for_result, Group):
+                    continue
+                for f in tok._get_item_by_name(i):
+                    yield f
 
     def __getitem__(self, i):
         if isinstance(i, int):

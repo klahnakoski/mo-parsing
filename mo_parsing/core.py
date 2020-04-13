@@ -67,7 +67,6 @@ class ParserElement(object):
         self.parser_config = Data()
         self.parser_config.failAction = None
         self.parser_config.mayReturnEmpty = False  # used when checking for left-recursion
-        self.parser_config.keepTabs = False
         self.parser_config.mayIndexError = True  # used to optimize exception handling for subclasses that don't advance parse index
 
     def copy(self):
@@ -212,10 +211,7 @@ class ParserElement(object):
             if not isinstance(tokens, ParseResults):
                 Log.error("expecting ParseResult")
             if self.__class__.__name__ == "Forward":
-                if self.expr is not tokens.type_for_result:
-                    Log.error("expecting correct type to come from self")
-                else:
-                    pass  # OK
+                pass  # OK
             elif tokens.type_for_result is not self:
                 Log.error("expecting correct type to come from self")
 
@@ -294,7 +290,6 @@ class ParserElement(object):
         contains tabs and the grammar uses parse actions that use the ``loc`` argument to index into the string
         being parsed, one can ensure a consistent view of the input string by doing one of the following:
 
-        - calling ``parseWithTabs`` on your grammar before calling ``parseString`` (see :class:`parseWithTabs`),
         - define your parse action using the full ``(s,loc,toks)`` signature, and reference the input string using the
           parse action's ``s`` argument, or
         - explicitly expand the tabs in your input string before calling ``parseString``.
@@ -322,8 +317,6 @@ class ParserElement(object):
             self.streamline()
             for e in self.engine.ignore_list:
                 e.streamline()
-        if not self.parser_config.keepTabs:
-            instring = instring.expandtabs()
         try:
             loc, tokens = self._parse(instring, 0)
             if parseAll:
@@ -372,8 +365,6 @@ class ParserElement(object):
             for e in self.engine.ignore_list:
                 e.streamline()
 
-        if not self.parser_config.keepTabs:
-            instring = text(instring).expandtabs()
         instrlen = len(instring)
         loc = 0
         cache.resetCache()
@@ -416,7 +407,6 @@ class ParserElement(object):
         lastE = 0
         # force preservation of <TAB>s, to minimize unwanted transformation of string, and to
         # keep string locs straight between transformString and scanString
-        self.parser_config.keepTabs = True
         for t, s, e in self.scanString(instring):
             out.append(instring[lastE:s])
             if t:
@@ -724,17 +714,6 @@ class ParserElement(object):
         if self.engine.white_chars:
             Log.error("do not know how to handle")
         return output
-
-    def parseWithTabs(self):
-        """
-        Overrides default behavior to expand ``<TAB>``s to spaces before parsing the input string.
-        Must be called before ``parseString`` when the input grammar contains elements that
-        match ``<TAB>`` characters.
-        """
-        self.parser_config.keepTabs = True
-        return self
-
-
 
     def __str__(self):
         return self.parser_name
