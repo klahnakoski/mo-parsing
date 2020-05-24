@@ -305,6 +305,9 @@ class ParserElement(object):
         except ParseBaseException as exc:
             raise exc
         else:
+            if not isinstance(tokens.type_for_result, Group):
+                tokens = ParseResults(Group(tokens.type_for_result), [tokens])
+
             return tokens
 
     @entrypoint

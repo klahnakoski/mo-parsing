@@ -27,8 +27,9 @@ from mo_times import Timer
 from examples import fourFn, configParse, idlParse, ebnf
 from examples.jsonParser import jsonObject
 from examples.simpleSQL import simpleSQL
-from mo_parsing import engine, LineStart
 from mo_parsing import (
+    LineStart,
+    ParseResults,
     ParseException,
     Word,
     alphas,
@@ -50,8 +51,8 @@ from mo_parsing import (
     helpers,
     CaselessLiteral,
     RecursiveGrammarException,
-    engine)
-from mo_parsing.core import (
+    engine,
+    PrecededBy,
     quotedString,
     Suppress,
     StringEnd,
@@ -63,7 +64,7 @@ from mo_parsing.core import (
     replaceWith,
     ZeroOrMore,
     Empty,
-)
+    MatchFirst, Char, LineEnd, CloseMatch, FollowedBy, ParseSyntaxException)
 from mo_parsing.engine import Engine
 from mo_parsing.helpers import (
     real,
@@ -113,8 +114,8 @@ from mo_parsing.helpers import (
     convertToDatetime,
     stripHTMLTags,
     indentedBlock,
-)
-from mo_parsing.utils import parsing_unicode, printables, traceParseAction, hexnums
+    htmlComment, srange, ungroup, dictOf)
+from mo_parsing.utils import parsing_unicode, printables, traceParseAction, hexnums, col, lineno, line
 from tests.json_parser_tests import test1, test2, test3, test4, test5
 # see which Python implementation we are running
 from tests.utils import TestParseResultsAsserts
@@ -1815,12 +1816,15 @@ class TestParsing(TestParseResultsAsserts, TestCase):
             """Returns the suppressed literal s"""
             return Literal(s).suppress()
 
-        f = infixNotation(word, [
-            (supLiteral("!"), 1, opAssoc.RIGHT, lambda s, l, t: ["!", t[0]]),
-            (oneOf("= !="), 2, opAssoc.LEFT,),
-            (supLiteral("&"), 2, opAssoc.LEFT, lambda s, l, t: ["&", t]),
-            (supLiteral("|"), 2, opAssoc.LEFT, lambda s, l, t: ["|", t]),
-        ])
+        f = infixNotation(
+            word,
+            [
+                (supLiteral("!"), 1, opAssoc.RIGHT, lambda s, l, t: ["!", t[0]]),
+                (oneOf("= !="), 2, opAssoc.LEFT,),
+                (supLiteral("&"), 2, opAssoc.LEFT, lambda s, l, t: ["&", t]),
+                (supLiteral("|"), 2, opAssoc.LEFT, lambda s, l, t: ["|", t]),
+            ],
+        )
 
         f = f + StringEnd()
 
@@ -2442,26 +2446,17 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         for test, expected in tests:
             res1 = bnf1.parseString(test)
 
-            self.assertParseResultsEquals(
-                res1,
-                expected_list=expected
-            )
+            self.assertParseResultsEquals(res1, expected_list=expected)
 
             res2 = bnf2.searchString(test)[0]
 
-            self.assertParseResultsEquals(
-                res2,
-                expected_list=expected[-1:]
-            )
+            self.assertParseResultsEquals(res2, expected_list=expected[-1:])
 
             res3 = bnf3.parseString(test)
             first = res3[0]
             rest = coalesce(res3[1], "")
 
-            self.assertEqual(
-                rest,
-                test[len(first) + 1 :]
-            )
+            self.assertEqual(rest, test[len(first) + 1 :])
 
         k = Regex(r"a+", flags=re.S + re.M)
 
@@ -3197,15 +3192,14 @@ class TestParsing(TestParseResultsAsserts, TestCase):
             "with" + OneOrMore(Group(word("key") + "=" + word("value")))("overrides")
         )
         using_stmt = Group("using" + Regex("id-[0-9a-f]{8}")("id"))
-        modifiers = (
-                Optional(with_stmt("with_stmt"))
-                & Optional(using_stmt("using_stmt"))
+        modifiers = Optional(with_stmt("with_stmt")) & Optional(
+            using_stmt("using_stmt")
         )
 
         result = modifiers.parseString(
             "with foo=bar bing=baz using id-deadbeef", parseAll=True
         )
-        result['with_stmt']
+        result["with_stmt"]
         expecting = {
             "with_stmt": {
                 "overrides": [
@@ -3219,7 +3213,8 @@ class TestParsing(TestParseResultsAsserts, TestCase):
 
         with self.assertRaisesParseException():
             result = modifiers.parseString(
-                "with foo=bar bing=baz using id-deadbeef using id-feedfeed", parseAll=True
+                "with foo=bar bing=baz using id-deadbeef using id-feedfeed",
+                parseAll=True,
             )
 
     def testOptionalEachTest3(self):
@@ -4187,7 +4182,9 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         Here is some sample <i>HTML</i> text.
         </html>
         """
-        read_everything = originalTextFor(OneOrMore(Word(printables))).addParseAction(stripHTMLTags)
+        read_everything = originalTextFor(OneOrMore(Word(printables))).addParseAction(
+            stripHTMLTags
+        )
 
         result = read_everything.parseString(sample)
         self.assertEqual(result[0].strip(), "Here is some sample HTML text.")
@@ -4238,13 +4235,10 @@ class TestParsing(TestParseResultsAsserts, TestCase):
         ]
 
         for expect, line in zip(
-            expected,
-            filter(lambda ll: ";" in ll, sample.splitlines())
+            expected, filter(lambda ll: ";" in ll, sample.splitlines())
         ):
             self.assertEqual(
-                list(expr.split(line)),
-                expect,
-                "invalid split on expression"
+                list(expr.split(line)), expect, "invalid split on expression"
             )
 
         expected = [

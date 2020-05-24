@@ -644,23 +644,10 @@ def _combine_post_parse(instring, loc, tokenlist):
 
 
 class Group(TokenConverter):
-    """Converter to return the matched tokens as a list - useful for
-    returning tokens of :class:`ZeroOrMore` and :class:`OneOrMore` expressions.
-
-    Example::
-
-        ident = Word(alphas)
-        num = Word(nums)
-        term = ident | num
-        func = ident + Optional(delimitedList(term))
-        print(func.parseString("fn a, b, 100"))  # -> ['fn', 'a', 'b', '100']
-
-        func = ident + Group(Optional(delimitedList(term)))
-        print(func.parseString("fn a, b, 100"))  # -> ['fn', ['a', 'b', '100']]
     """
-
-    def __init__(self, expr):
-        super(Group, self).__init__(expr)
+    MARK A CLOSED PARSE RESULT
+    """
+    pass
 
 
 class Dict(Group):
