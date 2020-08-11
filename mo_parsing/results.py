@@ -119,6 +119,7 @@ class ParseResults(object):
                 return values[0]
             return ParseResults(self.type_for_result, values)
 
+
     def __setitem__(self, k, v):
         if isinstance(k, (slice, int)):
             Log.error("do not know how to handle")
@@ -135,6 +136,8 @@ class ParseResults(object):
 
     def __len__(self):
         if isinstance(self.type_for_result, Group):
+            if not self.tokens_for_result:
+                return 0
             return len(self.tokens_for_result[0])
         else:
             return sum(1 for t in self)

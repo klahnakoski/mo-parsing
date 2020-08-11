@@ -189,7 +189,7 @@ class _MultipleMatch(ParseElementEnhance):
         return self
 
     def parseImpl(self, instring, loc, doActions=True):
-        self_expr_parse = self.expr._parse
+
         if self.not_ender is None:
             try_not_ender = noop
         else:
@@ -200,7 +200,7 @@ class _MultipleMatch(ParseElementEnhance):
             while True:
                 try_not_ender(instring, loc)
                 preloc = loc
-                loc, tmptokens = self_expr_parse(instring, preloc, doActions)
+                loc, tmptokens = self.expr._parse(instring, preloc, doActions)
                 if tmptokens:
                     acc.append(tmptokens)
         except (ParseException, IndexError) as e:

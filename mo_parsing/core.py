@@ -17,7 +17,6 @@ from mo_parsing.utils import (
     PY_3,
     _MAX_INT,
     wrap_parse_action,
-    basestring,
 )
 
 # import later
@@ -291,6 +290,9 @@ class ParserElement(object):
         ...
         mo_parsing.ParseException: Expected end of text, found 'b'  (at char 5), (line:1, col:6)
         """
+        if self.token_name:
+            Log.error("Top level token can not have a name")
+
         cache.resetCache()
         if not self.streamlined:
             self.streamline()
@@ -305,9 +307,6 @@ class ParserElement(object):
         except ParseBaseException as exc:
             raise exc
         else:
-            if not isinstance(tokens.type_for_result, Group):
-                tokens = ParseResults(Group(tokens.type_for_result), [tokens])
-
             return tokens
 
     @entrypoint

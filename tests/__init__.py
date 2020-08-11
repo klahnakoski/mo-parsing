@@ -1,5 +1,5 @@
 # encoding: utf-8
-
+from mo_future import text
 from mo_logs import Log
 
 from mo_parsing import engine
@@ -7,7 +7,6 @@ from mo_parsing.core import quotedString, replaceWith, ParserElement
 from mo_parsing.exceptions import ParseBaseException
 from mo_parsing.results import ParseResults
 from mo_parsing.tokens import Literal
-from mo_parsing.utils import basestring
 
 
 def runTests(
@@ -115,9 +114,9 @@ def runTests(
     (Note that this is a raw string literal, you must include the leading 'r'.)
     """
     error = Log.warning
-    if isinstance(tests, basestring):
+    if isinstance(tests, text):
         tests = list(map(str.strip, tests.rstrip().splitlines()))
-    if isinstance(comment, basestring):
+    if isinstance(comment, text):
         comment = Literal(comment)
 
     engine.CURRENT.add_ignore(quotedString)

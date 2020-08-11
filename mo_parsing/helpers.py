@@ -43,7 +43,6 @@ from mo_parsing.utils import (
     _bslash,
     alphanums,
     alphas,
-    basestring,
     col,
     hexnums,
     nums,
@@ -235,7 +234,7 @@ def oneOf(strs, caseless=False, useRegex=True, asKeyword=False):
 
         [['B', '=', '12'], ['AA', '=', '23'], ['B', '<=', 'AA'], ['AA', '>', '12']]
     """
-    if isinstance(caseless, basestring):
+    if isinstance(caseless, text):
         warnings.warn(
             "More than one string argument passed to oneOf, pass "
             "choices as a list or space-delimited string",
@@ -252,7 +251,7 @@ def oneOf(strs, caseless=False, useRegex=True, asKeyword=False):
         parseElementClass = Keyword if asKeyword else Literal
 
     symbols = []
-    if isinstance(strs, basestring):
+    if isinstance(strs, text):
         symbols = strs.split()
     elif isinstance(strs, Iterable):
         symbols = list(strs)
@@ -500,21 +499,32 @@ def nestedExpr(opener="(", closer=")", content=None, ignoreExpr=quotedString):
     if opener == closer:
         raise ValueError("opening and closing strings cannot be the same")
     if content is None:
-        if isinstance(opener, basestring) and isinstance(closer, basestring):
+        if not isinstance(opener, text) or not isinstance(closer, text):
+            raise ValueError(
+                "opening and closing arguments must be strings if no content expression is given"
+            )
+
+        ignore_chars = engine.CURRENT.white_chars
+        with Engine() as e:
+            e.set_whitespace("")
+
+            def scrub(t):
+                return t[0].strip()
+
             if len(opener) == 1 and len(closer) == 1:
                 if ignoreExpr is not None:
                     content = Combine(
                         OneOrMore(
                             ~ignoreExpr
                             + CharsNotIn(
-                                opener + closer + "".join(engine.CURRENT.white_chars), exact=1,
+                                opener + closer + "".join(ignore_chars), exact=1,
                             )
                         )
-                    ).setParseAction(lambda t: t[0].strip())
+                    ).setParseAction(scrub)
                 else:
                     content = empty.copy() + CharsNotIn(
-                        opener + closer + "".join(engine.CURRENT.white_chars)
-                    ).setParseAction(lambda t: t[0].strip())
+                        opener + closer + "".join(ignore_chars)
+                    ).setParseAction(scrub)
             else:
                 if ignoreExpr is not None:
                     content = Combine(
@@ -522,21 +532,17 @@ def nestedExpr(opener="(", closer=")", content=None, ignoreExpr=quotedString):
                             ~ignoreExpr
                             + ~Literal(opener)
                             + ~Literal(closer)
-                            + CharsNotIn(engine.CURRENT.white_chars, exact=1)
+                            + CharsNotIn(ignore_chars, exact=1)
                         )
-                    ).setParseAction(lambda t: t[0].strip())
+                    ).setParseAction(scrub)
                 else:
                     content = Combine(
                         OneOrMore(
                             ~Literal(opener)
                             + ~Literal(closer)
-                            + CharsNotIn(engine.CURRENT.white_chars, exact=1)
+                            + CharsNotIn(ignore_chars, exact=1)
                         )
-                    ).setParseAction(lambda t: t[0].strip())
-        else:
-            raise ValueError(
-                "opening and closing arguments must be strings if no content expression is given"
-            )
+                    ).setParseAction(scrub)
     ret = Forward()
     if ignoreExpr is not None:
         ret <<= Group(
@@ -667,7 +673,7 @@ Deprecated in favor of :class:`downcaseTokens`"""
 
 def _makeTags(tagStr, xml, suppress_LT=Suppress("<"), suppress_GT=Suppress(">")):
     """Internal helper to construct opening and closing tag expressions, given a tag name"""
-    if isinstance(tagStr, basestring):
+    if isinstance(tagStr, text):
         resname = tagStr
         tagStr = Keyword(tagStr, caseless=not xml)
     else:

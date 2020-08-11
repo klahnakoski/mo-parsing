@@ -222,7 +222,6 @@ from mo_parsing.utils import (
     wrap_parse_action,
     alphanums,
     alphas,
-    basestring,
     col,
     hexnums,
     line,
@@ -234,7 +233,6 @@ from mo_parsing.utils import (
     system_version,
     traceParseAction,
     unichr,
-    unicode,
     unicode_set,
 )
 

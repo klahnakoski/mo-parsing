@@ -118,7 +118,7 @@ from mo_parsing.helpers import (
 from mo_parsing.utils import parsing_unicode, printables, traceParseAction, hexnums, col, lineno, line
 from tests.json_parser_tests import test1, test2, test3, test4, test5
 # see which Python implementation we are running
-from tests.utils import TestParseResultsAsserts
+from tests.test_simple_unit import PyparsingExpressionTestCase
 
 CPYTHON_ENV = sys.platform == "win32"
 IRON_PYTHON_ENV = sys.platform == "cli"
@@ -158,12 +158,7 @@ class resetting:
             setattr(self.ob, attr, value)
 
 
-class TestParsing(TestParseResultsAsserts, TestCase):
-    def setUp(self):
-        self.engine = Engine()
-
-    def tearDown(self):
-        self.engine.release()
+class TestParsing(PyparsingExpressionTestCase, TestCase):
 
     def testParseFourFn(self):
         def test(s, ans):

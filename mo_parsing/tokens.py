@@ -12,8 +12,6 @@ from mo_parsing.core import ParserElement
 from mo_parsing.results import ParseResults
 from mo_parsing.utils import (
     _MAX_INT,
-    alphanums,
-    basestring,
     col,
     printables,
     _bslash,
@@ -559,7 +557,7 @@ class Regex(Token):
         """
         super(Regex, self).__init__()
 
-        if isinstance(pattern, basestring):
+        if isinstance(pattern, text):
             if not pattern:
                 warnings.warn(
                     "null string passed to Regex; use Empty() instead",
@@ -844,7 +842,7 @@ class QuotedString(Token):
             # strip off quotes
             ret = ret[self.quoteCharLen : -self.endQuoteCharLen]
 
-            if isinstance(ret, basestring):
+            if isinstance(ret, text):
                 # replace escaped whitespace
                 if "\\" in ret and self.convertWhitespaceEscapes:
                     ws_map = {
@@ -901,7 +899,7 @@ class CharsNotIn(Token):
 
     def __init__(self, notChars, min=1, max=0, exact=0):
         super(CharsNotIn, self).__init__()
-        self.notChars = "".join(notChars)
+        self.notChars = "".join(sorted(set(notChars)))
 
         if min < 1:
             raise ValueError(
