@@ -72,6 +72,9 @@ class ParseExpression(ParserElement):
         # collapse nested And's of the form And(And(And(a, b), c), d) to And(a, b, c, d)
         # but only if there are no parse actions or resultsNames on the nested And's
         # (likewise for Or's and MatchFirst's)
+        if not self.exprs:
+            return Empty(self.parser_name)
+
         acc = []
         for e in self.exprs:
             e.streamline()
@@ -79,6 +82,7 @@ class ParseExpression(ParserElement):
                 acc.extend(e.exprs)
             else:
                 acc.append(e)
+
         self.exprs = acc
         return self
 
@@ -173,7 +177,9 @@ class And(ParseExpression):
                 self.exprs = [e for e in self.exprs if e is not None]
 
         output = ParseExpression.streamline(self)
-        if len(output.exprs) == 1 and not is_decorated(output):
+        if isinstance(output, Empty):
+            return output
+        elif len(output.exprs) == 1 and not is_decorated(output):
             return output.exprs[0]
         output.parser_config.mayReturnEmpty = all(
             e.parser_config.mayReturnEmpty for e in self.exprs
@@ -196,7 +202,7 @@ class And(ParseExpression):
                     raise
                 except ParseBaseException as pe:
                     raise ParseSyntaxException(
-                        pe.pstr, pe.loc, pe.msg, pe.parserElement
+                        pe.pstr, pe.loc, pe.parserElement
                     )
                 except IndexError:
                     raise ParseSyntaxException(instring, len(instring), self)

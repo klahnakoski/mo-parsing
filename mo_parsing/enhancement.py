@@ -1,5 +1,4 @@
 # encoding: utf-8
-import warnings
 
 from mo_dots import Null, coalesce
 from mo_future import text
@@ -13,6 +12,7 @@ from mo_parsing.exceptions import (
     RecursiveGrammarException,
 )
 from mo_parsing.core import ParserElement
+from mo_parsing.tokens import Empty
 from mo_parsing.results import ParseResults, Annotation
 from mo_parsing.utils import _MAX_INT, empty_list, empty_tuple
 
@@ -72,6 +72,10 @@ class ParseElementEnhance(ParserElement):
             return self
         self.streamlined = True
         self.expr.streamline()
+
+        if not self.expr or isinstance(self.expr, Empty):
+            self.__class__ = Empty
+
         return self
 
     def checkRecursion(self, seen=empty_tuple):

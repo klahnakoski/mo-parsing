@@ -3737,18 +3737,18 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
         integer = Word(nums).setParseAction(lambda t: int(t[0]))
         intrange = integer("start") + "-" + integer("end")
         intrange.addCondition(
-            lambda t: t.end > t.start,
+            lambda t: t['end'] > t['start'],
             message="invalid range, start must be <= end",
             fatal=True,
         )
 
         def _range(s, i, t):
-            return list(range(t.start, t.end + 1))
+            return list(range(t['start'], t['end'] + 1))
 
-        intrange.addParseAction(_range)
+        intrange = intrange.addParseAction(_range)
 
         indices = delimitedList(intrange | integer)
-        indices.addParseAction(lambda t: sorted(set(t)))
+        indices = indices.addParseAction(lambda t: sorted(set(t)))
 
         tests = """\
             # normal data
@@ -3763,7 +3763,6 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
             [11],
         ]
         for (test, result), expected in zip(results, expectedResults):
-
             self.assertEqual(result, expected, "failed test: " + str(expected))
 
         tests = """\
@@ -4356,7 +4355,7 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
             msg="default_literal(CaselessKeyword) failed!",
         )
 
-        default_literal(CaselessLiteral)
+        engine.CURRENT.set_literal(CaselessLiteral)
         # result = ("SELECT" + wd + "FROM" + wd).parseString("select color from colors")
         # self.assertEqual(result, "SELECT color FROM colors".split(),
         #                  "default_literal(CaselessLiteral) failed!")
@@ -4367,7 +4366,7 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
         )
 
         integer = Word(nums)
-        default_literal(Literal)
+        engine.CURRENT.set_literal(Literal)
         date_str = integer("year") + "/" + integer("month") + "/" + integer("day")
         # result = date_str.parseString("1999/12/31")
         # self.assertEqual(result, ['1999', '/', '12', '/', '31'], "default_literal(example 1) failed!")
@@ -4378,7 +4377,7 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
         )
 
         # change to Suppress
-        default_literal(Suppress)
+        engine.CURRENT.set_literal(Suppress)
         date_str = integer("year") + "/" + integer("month") + "/" + integer("day")
 
         # result = date_str.parseString("1999/12/31")  # -> ['1999', '12', '31']

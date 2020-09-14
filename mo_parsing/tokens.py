@@ -35,9 +35,9 @@ class Empty(Token):
     """An empty token, will always match.
     """
 
-    def __init__(self):
-        super(Empty, self).__init__()
-        self.parser_name = "Empty"
+    def __init__(self, name="Empty"):
+        Token.__init__(self)
+        self.parser_name = name
         self.parser_config.mayReturnEmpty = True
         self.parser_config.mayIndexError = False
 
