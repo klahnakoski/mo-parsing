@@ -64,7 +64,13 @@ from mo_parsing import (
     replaceWith,
     ZeroOrMore,
     Empty,
-    MatchFirst, Char, LineEnd, CloseMatch, FollowedBy, ParseSyntaxException)
+    MatchFirst,
+    Char,
+    LineEnd,
+    CloseMatch,
+    FollowedBy,
+    ParseSyntaxException,
+)
 from mo_parsing.engine import Engine
 from mo_parsing.helpers import (
     real,
@@ -114,9 +120,22 @@ from mo_parsing.helpers import (
     convertToDatetime,
     stripHTMLTags,
     indentedBlock,
-    htmlComment, srange, ungroup, dictOf)
-from mo_parsing.utils import parsing_unicode, printables, traceParseAction, hexnums, col, lineno, line
+    htmlComment,
+    srange,
+    ungroup,
+    dictOf,
+)
+from mo_parsing.utils import (
+    parsing_unicode,
+    printables,
+    traceParseAction,
+    hexnums,
+    col,
+    lineno,
+    line,
+)
 from tests.json_parser_tests import test1, test2, test3, test4, test5
+
 # see which Python implementation we are running
 from tests.test_simple_unit import PyparsingExpressionTestCase
 
@@ -159,7 +178,6 @@ class resetting:
 
 
 class TestParsing(PyparsingExpressionTestCase, TestCase):
-
     def testParseFourFn(self):
         def test(s, ans):
             fourFn.exprStack[:] = []
@@ -247,11 +265,13 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
         test("Select &&& frox Sys.dual", 0, 7)
         test("Select A from Sys.dual where a in ('RED','GREEN','BLUE')", 12)
         test(
-            "Select A from Sys.dual where a in ('RED','GREEN','BLUE') and b in (10,20,30)",
+            "Select A from Sys.dual where a in ('RED','GREEN','BLUE') and b in"
+            " (10,20,30)",
             20,
         )
         test(
-            "Select A,b from table1,table2 where table1.id eq table2.id -- test out comparison operators",
+            "Select A,b from table1,table2 where table1.id eq table2.id -- test out"
+            " comparison operators",
             10,
         )
 
@@ -273,9 +293,8 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
                 self.assertEqual(
                     var,
                     chk[1],
-                    "ParseConfigFileTest: failed to parse ini {!r} as expected {}, found {}".format(
-                        chk[0], chk[1], var
-                    ),
+                    "ParseConfigFileTest: failed to parse ini {!r} as expected {},"
+                    " found {}".format(chk[0], chk[1], var),
                 )
 
         test(
@@ -301,342 +320,304 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
 
     def testParseJSONData(self):
         expected = [
-            [
+            [[
+                "glossary",
                 [
-                    "glossary",
+                    ["title", "example glossary"],
                     [
-                        ["title", "example glossary"],
+                        "GlossDiv",
                         [
-                            "GlossDiv",
+                            ["title", "S"],
                             [
-                                ["title", "S"],
-                                [
-                                    "GlossList",
+                                "GlossList",
+                                [[
+                                    ["ID", "SGML"],
+                                    ["SortAs", "SGML"],
                                     [
-                                        [
-                                            ["ID", "SGML"],
-                                            ["SortAs", "SGML"],
-                                            [
-                                                "GlossTerm",
-                                                "Standard Generalized Markup Language",
-                                            ],
-                                            ["Acronym", "SGML"],
-                                            ["LargestPrimeLessThan100", 97],
-                                            ["AvogadroNumber", 6.02e23],
-                                            ["EvenPrimesGreaterThan2", None],
-                                            ["PrimesLessThan10", [2, 3, 5, 7]],
-                                            ["WMDsFound", False],
-                                            ["IraqAlQaedaConnections", None],
-                                            ["Abbrev", "ISO 8879:1986"],
-                                            [
-                                                "GlossDef",
-                                                "A meta-markup language, used to create markup languages such as "
-                                                "DocBook.",
-                                            ],
-                                            ["GlossSeeAlso", ["GML", "XML", "markup"]],
-                                            ["EmptyDict", []],
-                                            ["EmptyList", [[]]],
-                                        ]
+                                        "GlossTerm",
+                                        "Standard Generalized Markup Language",
                                     ],
-                                ],
+                                    ["Acronym", "SGML"],
+                                    ["LargestPrimeLessThan100", 97],
+                                    ["AvogadroNumber", 6.02e23],
+                                    ["EvenPrimesGreaterThan2", None],
+                                    ["PrimesLessThan10", [2, 3, 5, 7]],
+                                    ["WMDsFound", False],
+                                    ["IraqAlQaedaConnections", None],
+                                    ["Abbrev", "ISO 8879:1986"],
+                                    [
+                                        "GlossDef",
+                                        "A meta-markup language, used to create markup"
+                                        " languages such as DocBook.",
+                                    ],
+                                    ["GlossSeeAlso", ["GML", "XML", "markup"]],
+                                    ["EmptyDict", []],
+                                    ["EmptyList", [[]]],
+                                ]],
                             ],
                         ],
                     ],
-                ]
-            ],
-            [
+                ],
+            ]],
+            [[
+                "menu",
                 [
-                    "menu",
+                    ["id", "file"],
+                    ["value", "File:"],
                     [
-                        ["id", "file"],
-                        ["value", "File:"],
-                        [
-                            "popup",
+                        "popup",
+                        [[
+                            "menuitem",
                             [
+                                [["value", "New"], ["onclick", "CreateNewDoc()"],],
+                                [["value", "Open"], ["onclick", "OpenDoc()"]],
+                                [["value", "Close"], ["onclick", "CloseDoc()"]],
+                            ],
+                        ]],
+                    ],
+                ],
+            ]],
+            [[
+                "widget",
+                [
+                    ["debug", "on"],
+                    [
+                        "window",
+                        [
+                            ["title", "Sample Konfabulator Widget"],
+                            ["name", "main_window"],
+                            ["width", 500],
+                            ["height", 500],
+                        ],
+                    ],
+                    [
+                        "image",
+                        [
+                            ["src", "Images/Sun.png"],
+                            ["name", "sun1"],
+                            ["hOffset", 250],
+                            ["vOffset", 250],
+                            ["alignment", "center"],
+                        ],
+                    ],
+                    [
+                        "text",
+                        [
+                            ["data", "Click Here"],
+                            ["size", 36],
+                            ["style", "bold"],
+                            ["name", "text1"],
+                            ["hOffset", 250],
+                            ["vOffset", 100],
+                            ["alignment", "center"],
+                            ["onMouseUp", "sun1.opacity = (sun1.opacity / 100) * 90;",],
+                        ],
+                    ],
+                ],
+            ]],
+            [[
+                "web-app",
+                [
+                    [
+                        "servlet",
+                        [
+                            [
+                                ["servlet-name", "cofaxCDS"],
+                                ["servlet-class", "org.cofax.cds.CDSServlet"],
                                 [
-                                    "menuitem",
+                                    "init-param",
                                     [
                                         [
-                                            ["value", "New"],
-                                            ["onclick", "CreateNewDoc()"],
+                                            "configGlossary:installationAt",
+                                            "Philadelphia, PA",
                                         ],
-                                        [["value", "Open"], ["onclick", "OpenDoc()"]],
-                                        [["value", "Close"], ["onclick", "CloseDoc()"]],
-                                    ],
-                                ]
-                            ],
-                        ],
-                    ],
-                ]
-            ],
-            [
-                [
-                    "widget",
-                    [
-                        ["debug", "on"],
-                        [
-                            "window",
-                            [
-                                ["title", "Sample Konfabulator Widget"],
-                                ["name", "main_window"],
-                                ["width", 500],
-                                ["height", 500],
-                            ],
-                        ],
-                        [
-                            "image",
-                            [
-                                ["src", "Images/Sun.png"],
-                                ["name", "sun1"],
-                                ["hOffset", 250],
-                                ["vOffset", 250],
-                                ["alignment", "center"],
-                            ],
-                        ],
-                        [
-                            "text",
-                            [
-                                ["data", "Click Here"],
-                                ["size", 36],
-                                ["style", "bold"],
-                                ["name", "text1"],
-                                ["hOffset", 250],
-                                ["vOffset", 100],
-                                ["alignment", "center"],
-                                [
-                                    "onMouseUp",
-                                    "sun1.opacity = (sun1.opacity / 100) * 90;",
-                                ],
-                            ],
-                        ],
-                    ],
-                ]
-            ],
-            [
-                [
-                    "web-app",
-                    [
-                        [
-                            "servlet",
-                            [
-                                [
-                                    ["servlet-name", "cofaxCDS"],
-                                    ["servlet-class", "org.cofax.cds.CDSServlet"],
-                                    [
-                                        "init-param",
+                                        ["configGlossary:adminEmail", "ksm@pobox.com",],
+                                        ["configGlossary:poweredBy", "Cofax"],
                                         [
-                                            [
-                                                "configGlossary:installationAt",
-                                                "Philadelphia, PA",
-                                            ],
-                                            [
-                                                "configGlossary:adminEmail",
-                                                "ksm@pobox.com",
-                                            ],
-                                            ["configGlossary:poweredBy", "Cofax"],
-                                            [
-                                                "configGlossary:poweredByIcon",
-                                                "/images/cofax.gif",
-                                            ],
-                                            [
-                                                "configGlossary:staticPath",
-                                                "/content/static",
-                                            ],
-                                            [
-                                                "templateProcessorClass",
-                                                "org.cofax.WysiwygTemplate",
-                                            ],
-                                            [
-                                                "templateLoaderClass",
-                                                "org.cofax.FilesTemplateLoader",
-                                            ],
-                                            ["templatePath", "templates"],
-                                            ["templateOverridePath", ""],
-                                            ["defaultListTemplate", "listTemplate.htm"],
-                                            [
-                                                "defaultFileTemplate",
-                                                "articleTemplate.htm",
-                                            ],
-                                            ["useJSP", False],
-                                            ["jspListTemplate", "listTemplate.jsp"],
-                                            ["jspFileTemplate", "articleTemplate.jsp"],
-                                            ["cachePackageTagsTrack", 200],
-                                            ["cachePackageTagsStore", 200],
-                                            ["cachePackageTagsRefresh", 60],
-                                            ["cacheTemplatesTrack", 100],
-                                            ["cacheTemplatesStore", 50],
-                                            ["cacheTemplatesRefresh", 15],
-                                            ["cachePagesTrack", 200],
-                                            ["cachePagesStore", 100],
-                                            ["cachePagesRefresh", 10],
-                                            ["cachePagesDirtyRead", 10],
-                                            [
-                                                "searchEngineListTemplate",
-                                                "forSearchEnginesList.htm",
-                                            ],
-                                            [
-                                                "searchEngineFileTemplate",
-                                                "forSearchEngines.htm",
-                                            ],
-                                            [
-                                                "searchEngineRobotsDb",
-                                                "WEB-INF/robots.db",
-                                            ],
-                                            ["useDataStore", True],
-                                            [
-                                                "dataStoreClass",
-                                                "org.cofax.SqlDataStore",
-                                            ],
-                                            [
-                                                "redirectionClass",
-                                                "org.cofax.SqlRedirection",
-                                            ],
-                                            ["dataStoreName", "cofax"],
-                                            [
-                                                "dataStoreDriver",
-                                                "com.microsoft.jdbc.sqlserver.SQLServerDriver",
-                                            ],
-                                            [
-                                                "dataStoreUrl",
-                                                "jdbc:microsoft:sqlserver://LOCALHOST:1433;DatabaseName=goon",
-                                            ],
-                                            ["dataStoreUser", "sa"],
-                                            ["dataStorePassword", "dataStoreTestQuery"],
-                                            [
-                                                "dataStoreTestQuery",
-                                                "SET NOCOUNT ON;select test='test';",
-                                            ],
-                                            [
-                                                "dataStoreLogFile",
-                                                "/usr/local/tomcat/logs/datastore.log",
-                                            ],
-                                            ["dataStoreInitConns", 10],
-                                            ["dataStoreMaxConns", 100],
-                                            ["dataStoreConnUsageLimit", 100],
-                                            ["dataStoreLogLevel", "debug"],
-                                            ["maxUrlLength", 500],
+                                            "configGlossary:poweredByIcon",
+                                            "/images/cofax.gif",
                                         ],
-                                    ],
-                                ],
-                                [
-                                    ["servlet-name", "cofaxEmail"],
-                                    ["servlet-class", "org.cofax.cds.EmailServlet"],
-                                    [
-                                        "init-param",
                                         [
-                                            ["mailHost", "mail1"],
-                                            ["mailHostOverride", "mail2"],
+                                            "configGlossary:staticPath",
+                                            "/content/static",
                                         ],
-                                    ],
-                                ],
-                                [
-                                    ["servlet-name", "cofaxAdmin"],
-                                    ["servlet-class", "org.cofax.cds.AdminServlet"],
-                                ],
-                                [
-                                    ["servlet-name", "fileServlet"],
-                                    ["servlet-class", "org.cofax.cds.FileServlet"],
-                                ],
-                                [
-                                    ["servlet-name", "cofaxTools"],
-                                    [
-                                        "servlet-class",
-                                        "org.cofax.cms.CofaxToolsServlet",
-                                    ],
-                                    [
-                                        "init-param",
                                         [
-                                            ["templatePath", "toolstemplates/"],
-                                            ["log", 1],
-                                            [
-                                                "logLocation",
-                                                "/usr/local/tomcat/logs/CofaxTools.log",
-                                            ],
-                                            ["logMaxSize", ""],
-                                            ["dataLog", 1],
-                                            [
-                                                "dataLogLocation",
-                                                "/usr/local/tomcat/logs/dataLog.log",
-                                            ],
-                                            ["dataLogMaxSize", ""],
-                                            [
-                                                "removePageCache",
-                                                "/content/admin/remove?cache=pages&id=",
-                                            ],
-                                            [
-                                                "removeTemplateCache",
-                                                "/content/admin/remove?cache=templates&id=",
-                                            ],
-                                            [
-                                                "fileTransferFolder",
-                                                "/usr/local/tomcat/webapps/content/fileTransferFolder",
-                                            ],
-                                            ["lookInContext", 1],
-                                            ["adminGroupID", 4],
-                                            ["betaServer", True],
+                                            "templateProcessorClass",
+                                            "org.cofax.WysiwygTemplate",
                                         ],
+                                        [
+                                            "templateLoaderClass",
+                                            "org.cofax.FilesTemplateLoader",
+                                        ],
+                                        ["templatePath", "templates"],
+                                        ["templateOverridePath", ""],
+                                        ["defaultListTemplate", "listTemplate.htm"],
+                                        ["defaultFileTemplate", "articleTemplate.htm",],
+                                        ["useJSP", False],
+                                        ["jspListTemplate", "listTemplate.jsp"],
+                                        ["jspFileTemplate", "articleTemplate.jsp"],
+                                        ["cachePackageTagsTrack", 200],
+                                        ["cachePackageTagsStore", 200],
+                                        ["cachePackageTagsRefresh", 60],
+                                        ["cacheTemplatesTrack", 100],
+                                        ["cacheTemplatesStore", 50],
+                                        ["cacheTemplatesRefresh", 15],
+                                        ["cachePagesTrack", 200],
+                                        ["cachePagesStore", 100],
+                                        ["cachePagesRefresh", 10],
+                                        ["cachePagesDirtyRead", 10],
+                                        [
+                                            "searchEngineListTemplate",
+                                            "forSearchEnginesList.htm",
+                                        ],
+                                        [
+                                            "searchEngineFileTemplate",
+                                            "forSearchEngines.htm",
+                                        ],
+                                        ["searchEngineRobotsDb", "WEB-INF/robots.db",],
+                                        ["useDataStore", True],
+                                        ["dataStoreClass", "org.cofax.SqlDataStore",],
+                                        [
+                                            "redirectionClass",
+                                            "org.cofax.SqlRedirection",
+                                        ],
+                                        ["dataStoreName", "cofax"],
+                                        [
+                                            "dataStoreDriver",
+                                            "com.microsoft.jdbc.sqlserver.SQLServerDriver",
+                                        ],
+                                        [
+                                            "dataStoreUrl",
+                                            "jdbc:microsoft:sqlserver://LOCALHOST:1433;DatabaseName=goon",
+                                        ],
+                                        ["dataStoreUser", "sa"],
+                                        ["dataStorePassword", "dataStoreTestQuery"],
+                                        [
+                                            "dataStoreTestQuery",
+                                            "SET NOCOUNT ON;select test='test';",
+                                        ],
+                                        [
+                                            "dataStoreLogFile",
+                                            "/usr/local/tomcat/logs/datastore.log",
+                                        ],
+                                        ["dataStoreInitConns", 10],
+                                        ["dataStoreMaxConns", 100],
+                                        ["dataStoreConnUsageLimit", 100],
+                                        ["dataStoreLogLevel", "debug"],
+                                        ["maxUrlLength", 500],
                                     ],
                                 ],
                             ],
-                        ],
-                        [
-                            "servlet-mapping",
                             [
-                                ["cofaxCDS", "/"],
-                                ["cofaxEmail", "/cofaxutil/aemail/*"],
-                                ["cofaxAdmin", "/admin/*"],
-                                ["fileServlet", "/static/*"],
-                                ["cofaxTools", "/tools/*"],
+                                ["servlet-name", "cofaxEmail"],
+                                ["servlet-class", "org.cofax.cds.EmailServlet"],
+                                [
+                                    "init-param",
+                                    [
+                                        ["mailHost", "mail1"],
+                                        ["mailHostOverride", "mail2"],
+                                    ],
+                                ],
                             ],
-                        ],
-                        [
-                            "taglib",
                             [
-                                ["taglib-uri", "cofax.tld"],
-                                ["taglib-location", "/WEB-INF/tlds/cofax.tld"],
+                                ["servlet-name", "cofaxAdmin"],
+                                ["servlet-class", "org.cofax.cds.AdminServlet"],
+                            ],
+                            [
+                                ["servlet-name", "fileServlet"],
+                                ["servlet-class", "org.cofax.cds.FileServlet"],
+                            ],
+                            [
+                                ["servlet-name", "cofaxTools"],
+                                ["servlet-class", "org.cofax.cms.CofaxToolsServlet",],
+                                [
+                                    "init-param",
+                                    [
+                                        ["templatePath", "toolstemplates/"],
+                                        ["log", 1],
+                                        [
+                                            "logLocation",
+                                            "/usr/local/tomcat/logs/CofaxTools.log",
+                                        ],
+                                        ["logMaxSize", ""],
+                                        ["dataLog", 1],
+                                        [
+                                            "dataLogLocation",
+                                            "/usr/local/tomcat/logs/dataLog.log",
+                                        ],
+                                        ["dataLogMaxSize", ""],
+                                        [
+                                            "removePageCache",
+                                            "/content/admin/remove?cache=pages&id=",
+                                        ],
+                                        [
+                                            "removeTemplateCache",
+                                            "/content/admin/remove?cache=templates&id=",
+                                        ],
+                                        [
+                                            "fileTransferFolder",
+                                            "/usr/local/tomcat/webapps/content/fileTransferFolder",
+                                        ],
+                                        ["lookInContext", 1],
+                                        ["adminGroupID", 4],
+                                        ["betaServer", True],
+                                    ],
+                                ],
                             ],
                         ],
                     ],
-                ]
-            ],
-            [
-                [
-                    "menu",
                     [
-                        ["header", "SVG Viewer"],
+                        "servlet-mapping",
                         [
-                            "items",
-                            [
-                                [["id", "Open"]],
-                                [["id", "OpenNew"], ["label", "Open New"]],
-                                None,
-                                [["id", "ZoomIn"], ["label", "Zoom In"]],
-                                [["id", "ZoomOut"], ["label", "Zoom Out"]],
-                                [["id", "OriginalView"], ["label", "Original View"]],
-                                None,
-                                [["id", "Quality"]],
-                                [["id", "Pause"]],
-                                [["id", "Mute"]],
-                                None,
-                                [["id", "Find"], ["label", "Find..."]],
-                                [["id", "FindAgain"], ["label", "Find Again"]],
-                                [["id", "Copy"]],
-                                [["id", "CopyAgain"], ["label", "Copy Again"]],
-                                [["id", "CopySVG"], ["label", "Copy SVG"]],
-                                [["id", "ViewSVG"], ["label", "View SVG"]],
-                                [["id", "ViewSource"], ["label", "View Source"]],
-                                [["id", "SaveAs"], ["label", "Save As"]],
-                                None,
-                                [["id", "Help"]],
-                                [
-                                    ["id", "About"],
-                                    ["label", "About Adobe CVG Viewer..."],
-                                ],
-                            ],
+                            ["cofaxCDS", "/"],
+                            ["cofaxEmail", "/cofaxutil/aemail/*"],
+                            ["cofaxAdmin", "/admin/*"],
+                            ["fileServlet", "/static/*"],
+                            ["cofaxTools", "/tools/*"],
                         ],
                     ],
-                ]
-            ],
+                    [
+                        "taglib",
+                        [
+                            ["taglib-uri", "cofax.tld"],
+                            ["taglib-location", "/WEB-INF/tlds/cofax.tld"],
+                        ],
+                    ],
+                ],
+            ]],
+            [[
+                "menu",
+                [
+                    ["header", "SVG Viewer"],
+                    [
+                        "items",
+                        [
+                            [["id", "Open"]],
+                            [["id", "OpenNew"], ["label", "Open New"]],
+                            None,
+                            [["id", "ZoomIn"], ["label", "Zoom In"]],
+                            [["id", "ZoomOut"], ["label", "Zoom Out"]],
+                            [["id", "OriginalView"], ["label", "Original View"]],
+                            None,
+                            [["id", "Quality"]],
+                            [["id", "Pause"]],
+                            [["id", "Mute"]],
+                            None,
+                            [["id", "Find"], ["label", "Find..."]],
+                            [["id", "FindAgain"], ["label", "Find Again"]],
+                            [["id", "Copy"]],
+                            [["id", "CopyAgain"], ["label", "Copy Again"]],
+                            [["id", "CopySVG"], ["label", "Copy SVG"]],
+                            [["id", "ViewSVG"], ["label", "View SVG"]],
+                            [["id", "ViewSource"], ["label", "View Source"]],
+                            [["id", "SaveAs"], ["label", "Save As"]],
+                            None,
+                            [["id", "Help"]],
+                            [["id", "About"], ["label", "About Adobe CVG Viewer..."],],
+                        ],
+                    ],
+                ],
+            ]],
         ]
 
         for t, exp in zip((test1, test2, test3, test4, test5), expected):
@@ -1246,27 +1227,27 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
 
     def testReStringRange(self):
         testCases = (
-            (r"[A-Z]"),
-            (r"[A-A]"),
-            (r"[A-Za-z]"),
-            (r"[A-z]"),
-            (r"[\ -\~]"),
-            (r"[\0x20-0]"),
-            (r"[\0x21-\0x7E]"),
-            (r"[\0xa1-\0xfe]"),
-            (r"[\040-0]"),
-            (r"[A-Za-z0-9]"),
-            (r"[A-Za-z0-9_]"),
-            (r"[A-Za-z0-9_$]"),
-            (r"[A-Za-z0-9_$\-]"),
-            (r"[^0-9\\]"),
-            (r"[a-zA-Z]"),
-            (r"[/\^~]"),
-            (r"[=\+\-!]"),
-            (r"[A-]"),
-            (r"[-A]"),
-            (r"[\x21]"),
-            (r"[а-яА-ЯёЁA-Z$_\041α-ω]"),
+            r"[A-Z]",
+            r"[A-A]",
+            r"[A-Za-z]",
+            r"[A-z]",
+            r"[\ -\~]",
+            r"[\0x20-0]",
+            r"[\0x21-\0x7E]",
+            r"[\0xa1-\0xfe]",
+            r"[\040-0]",
+            r"[A-Za-z0-9]",
+            r"[A-Za-z0-9_]",
+            r"[A-Za-z0-9_$]",
+            r"[A-Za-z0-9_$\-]",
+            r"[^0-9\\]",
+            r"[a-zA-Z]",
+            r"[/\^~]",
+            r"[=\+\-!]",
+            r"[A-]",
+            r"[-A]",
+            r"[\x21]",
+            r"[а-яА-ЯёЁA-Z$_\041α-ω]",
         )
         expectedResults = (
             "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
@@ -1350,9 +1331,9 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
             "SkipTo created with wrong saveAsList attribute",
         )
 
-        alpha_word = (~Literal("end") + Word(alphas, asKeyword=True)).set_parser_name(
-            "alpha"
-        )
+        alpha_word = (
+            ~Literal("end") + Word(alphas, asKeyword=True)
+        ).set_parser_name("alpha")
         num_word = Word(nums, asKeyword=True).set_parser_name("int")
 
         def test(expr, test_string, expected_list, expected_dict):
@@ -1919,8 +1900,7 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
         self.assertParseResultsEquals(
             res,
             expected_dict={"Achar": ("A", "Z")},
-            msg="Failed accessing named results containing a tuple, "
-            "got {!r}".format(res.Achar),
+            msg="Failed accessing named results containing a tuple, got {!r}".format(res.Achar),
         )
 
     def testParseHTMLTags(self):
@@ -1995,24 +1975,29 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
 
         uword.searchString(a)
 
-        kw = Group(Keyword("mykey", caseless=True).setParseAction(upcaseTokens)("rname"))
+        kw = Group(
+            Keyword("mykey", caseless=True).setParseAction(upcaseTokens)("rname")
+        )
         ret = kw.parseString("mykey")
 
         self.assertEqual(
-            ret['rname'], "MYKEY", "failed to upcase with named result (parsing_common)"
+            ret["rname"], "MYKEY", "failed to upcase with named result (parsing_common)"
         )
 
-        kw = Group(Keyword("MYKEY", caseless=True).setParseAction(downcaseTokens)("rname"))
+        kw = Group(
+            Keyword("MYKEY", caseless=True).setParseAction(downcaseTokens)("rname")
+        )
         ret = kw.parseString("mykey")
 
-        self.assertEqual(ret['rname'], "mykey", "failed to upcase with named result")
+        self.assertEqual(ret["rname"], "mykey", "failed to upcase with named result")
 
         if not IRON_PYTHON_ENV:
             # test html data
-            html = "<TR class=maintxt bgColor=#ffffff> \
-                <TD vAlign=top>Производитель, модель</TD> \
-                <TD vAlign=top><STRONG>BenQ-Siemens CF61</STRONG></TD> \
-            "  # .decode('utf-8')
+            html = (  # .decode('utf-8')
+                "<TR class=maintxt bgColor=#ffffff>                 <TD"
+                " vAlign=top>Производитель, модель</TD>                 <TD"
+                " vAlign=top><STRONG>BenQ-Siemens CF61</STRONG></TD>             "
+            )
 
             # 'Manufacturer, model
             text_manuf = "Производитель, модель"
@@ -2043,11 +2028,9 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
             if shouldPass:
                 try:
                     result = expression.parseString(instring)
-                    print(
-                        "{} correctly matched {}".format(
-                            repr(expression), repr(instring)
-                        )
-                    )
+                    print("{} correctly matched {}".format(
+                        repr(expression), repr(instring)
+                    ))
                     if expectedString != result[0]:
 
                         print(
@@ -2063,11 +2046,9 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
             else:
                 try:
                     result = expression.parseString(instring)
-                    print(
-                        "{} incorrectly matched {}".format(
-                            repr(expression), repr(instring)
-                        )
-                    )
+                    print("{} incorrectly matched {}".format(
+                        repr(expression), repr(instring)
+                    ))
 
                 except ParseException:
                     print(
@@ -2971,11 +2952,9 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
         ]
         for s, parseAllFlag, shouldSucceed in tests:
             try:
-                print(
-                    "'{}' parseAll={} (shouldSucceed={})".format(
-                        s, parseAllFlag, shouldSucceed
-                    )
-                )
+                print("'{}' parseAll={} (shouldSucceed={})".format(
+                    s, parseAllFlag, shouldSucceed
+                ))
                 testExpr.parseString(s, parseAll=parseAllFlag)
                 self.assertTrue(
                     shouldSucceed, "successfully parsed when should have failed"
@@ -2997,11 +2976,9 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
         ]
         for s, parseAllFlag, shouldSucceed in tests:
             try:
-                print(
-                    "'{}' parseAll={} (shouldSucceed={})".format(
-                        s, parseAllFlag, shouldSucceed
-                    )
-                )
+                print("'{}' parseAll={} (shouldSucceed={})".format(
+                    s, parseAllFlag, shouldSucceed
+                ))
                 testExpr.parseString(s, parseAll=parseAllFlag)
                 self.assertTrue(
                     shouldSucceed, "successfully parsed when should have failed"
@@ -3014,9 +2991,9 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
 
         # add test with very long expression string
         # testExpr = MatchFirst([Literal(c) for c in printables if c != 'B'])[1, ...]
-        anything_but_an_f = OneOrMore(
-            MatchFirst([Literal(c) for c in printables if c != "f"])
-        )
+        anything_but_an_f = OneOrMore(MatchFirst([
+            Literal(c) for c in printables if c != "f"
+        ]))
         testExpr = Word("012") + anything_but_an_f
 
         tests = [
@@ -3027,11 +3004,9 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
         ]
         for s, parseAllFlag, shouldSucceed in tests:
             try:
-                print(
-                    "'{}' parseAll={} (shouldSucceed={})".format(
-                        s, parseAllFlag, shouldSucceed
-                    )
-                )
+                print("'{}' parseAll={} (shouldSucceed={})".format(
+                    s, parseAllFlag, shouldSucceed
+                ))
                 testExpr.parseString(s, parseAll=parseAllFlag)
                 self.assertTrue(
                     shouldSucceed, "successfully parsed when should have failed"
@@ -3187,8 +3162,8 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
             "with" + OneOrMore(Group(word("key") + "=" + word("value")))("overrides")
         )
         using_stmt = Group("using" + Regex("id-[0-9a-f]{8}")("id"))
-        modifiers = Optional(with_stmt("with_stmt")) & Optional(
-            using_stmt("using_stmt")
+        modifiers = (
+            Optional(with_stmt("with_stmt")) & Optional(using_stmt("using_stmt"))
         )
 
         result = modifiers.parseString(
@@ -3196,12 +3171,10 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
         )
         result["with_stmt"]
         expecting = {
-            "with_stmt": {
-                "overrides": [
-                    {"key": "foo", "value": "bar"},
-                    {"key": "bing", "value": "baz"},
-                ]
-            },
+            "with_stmt": {"overrides": [
+                {"key": "foo", "value": "bar"},
+                {"key": "bing", "value": "baz"},
+            ]},
             "using_stmt": {"id": "id-deadbeef"},
         }
         self.assertEqual(result, expecting)
@@ -3322,7 +3295,9 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
         for test, expected in zip(tests, results):
             # searchString RETURNS Tokens IN Groups, ADD THEM TOGETHER FOR ONE Group
             person = sum(person_data.searchString(test))
-            result = "ID:{} DOB:{} INFO:{}".format(person['id'], person['dob'], person['info'])
+            result = "ID:{} DOB:{} INFO:{}".format(
+                person["id"], person["dob"], person["info"]
+            )
             self.assertEqual(
                 expected,
                 result,
@@ -3362,9 +3337,7 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
         res = id_ref.searchString(samplestr1)[0][0]
 
         self.assertEqual(
-            samplestr1[
-                res["locn_start"] : res["locn_end"]
-            ].strip(),  # CURRENTLY CAN NOT GET END, ONLY GET BEGINNING OF NEXT TOKEN
+            samplestr1[res["locn_start"] : res["locn_end"]].strip(),  # CURRENTLY CAN NOT GET END, ONLY GET BEGINNING OF NEXT TOKEN
             "ID PARI12345678",
             "incorrect location calculation",
         )
@@ -3436,7 +3409,8 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
             failed = False
         self.assertFalse(
             failed,
-            "invalid logic in Or, fails on longest match with exception in parse action",
+            "invalid logic in Or, fails on longest match with exception in parse"
+            " action",
         )
 
         # from issue #93
@@ -3458,9 +3432,9 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
         self.assertEqual(result, test_string.split(), "failed to match longest choice")
 
     def testEachWithOptionalWithResultsName(self):
-        result = (Optional("foo")("one") & Optional("bar")("two")).parseString(
-            "bar foo"
-        )
+        result = (
+            Optional("foo")("one") & Optional("bar")("two")
+        ).parseString("bar foo")
 
         self.assertEqual(sorted(result.keys()), ["one", "two"])
 
@@ -3472,7 +3446,7 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
         except ParseException as pe:
             self.assertEqual(
                 pe.msg,
-                "Expecting {\"a\"} | {\"ᄑ\"}",
+                'Expecting {"a"} | {"ᄑ"}',
                 "Invalid error message raised, got %r" % pe.msg,
             )
 
@@ -3498,7 +3472,8 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
         )
         self.assertEqual(
             str(arith_expr2.expr),
-            '{?: term} | {{W:(0123...)} | {{{"(" Forward: {?: term} | {{W:(0123...)} | {{{"(" Forward: ...} ")"}}}} ")"}}}',
+            '{?: term} | {{W:(0123...)} | {{{"(" Forward: {?: term} | {{W:(0123...)} |'
+            ' {{{"(" Forward: ...} ")"}}}} ")"}}}',
         )
         self.assertEqual(
             str(recursive), "Forward: {a | b | c [{d | e | f Forward: ...}]...}"
@@ -3515,9 +3490,9 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
         self.assertEqual(str(commonHTMLEntity), "common HTML entity")
         self.assertEqual(
             str(
-                commonHTMLEntity.setParseAction(replaceHTMLEntity).transformString(
-                    "lsdjkf &lt;lsdjkf&gt;&amp;&apos;&quot;&xyzzy;"
-                )
+                commonHTMLEntity
+                .setParseAction(replaceHTMLEntity)
+                .transformString("lsdjkf &lt;lsdjkf&gt;&amp;&apos;&quot;&xyzzy;")
             ),
             "lsdjkf <lsdjkf>&'\"&xyzzy;",
         )
@@ -3623,9 +3598,9 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
             )
 
         number = Word(nums + ",.()").set_parser_name("number with optional commas")
-        parser = OneOrMore(Word(alphanums + "-/."), stopOn=number)("id").setParseAction(
-            " ".join
-        ) + number("data")
+        parser = OneOrMore(
+            Word(alphanums + "-/."), stopOn=number
+        )("id").setParseAction(" ".join) + number("data")
         result = parser.parseString("        XXX Y/123          1,234.567890")
         self.assertEqual(
             result,
@@ -3737,13 +3712,13 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
         integer = Word(nums).setParseAction(lambda t: int(t[0]))
         intrange = integer("start") + "-" + integer("end")
         intrange.addCondition(
-            lambda t: t['end'] > t['start'],
+            lambda t: t["end"] > t["start"],
             message="invalid range, start must be <= end",
             fatal=True,
         )
 
         def _range(s, i, t):
-            return list(range(t['start'], t['end'] + 1))
+            return list(range(t["start"], t["end"] + 1))
 
         intrange = intrange.addParseAction(_range)
 
@@ -3924,10 +3899,12 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
                 "failed to parse date into fields",
             )
 
-        success, results = iso8601_date.addParseAction(convertToDate()).runTests(
-            """
+        success, results = (
+            iso8601_date
+            .addParseAction(convertToDate())
+            .runTests("""
             1997-07-16
-            """
+            """)
         )
         self.assertTrue(
             success, "error in parsing valid iso8601_date with parse action"
@@ -3944,17 +3921,17 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
         )
         self.assertTrue(success, "error in parsing valid iso8601_datetime")
 
-        success, results = iso8601_datetime.addParseAction(
-            convertToDatetime()
-        ).runTests(
-            """
+        success, results = (
+            iso8601_datetime
+            .addParseAction(convertToDatetime())
+            .runTests("""
             1997-07-16T19:20:30.45
-            """
+            """)
         )
         self.assertTrue(success, "error in parsing valid iso8601_datetime")
-        self.assertTrue(
-            results[0][1][0] == datetime.datetime(1997, 7, 16, 19, 20, 30, 450000)
-        )
+        self.assertTrue(results[0][1][0] == datetime.datetime(
+            1997, 7, 16, 19, 20, 30, 450000
+        ))
 
         success = uuid.runTests(
             """
@@ -4176,8 +4153,8 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
         Here is some sample <i>HTML</i> text.
         </html>
         """
-        read_everything = originalTextFor(OneOrMore(Word(printables))).addParseAction(
-            stripHTMLTags
+        read_everything = (
+            originalTextFor(OneOrMore(Word(printables))).addParseAction(stripHTMLTags)
         )
 
         result = read_everything.parseString(sample)
@@ -4415,9 +4392,7 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
 
     def testDefaultKeywordChars(self):
 
-        with self.assertRaisesParseException(
-            msg="failed to fail matching keyword using updated keyword chars"
-        ):
+        with self.assertRaisesParseException(msg="failed to fail matching keyword using updated keyword chars"):
             Keyword("start").parseString("start1000")
 
         try:
@@ -4436,9 +4411,7 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
                     False, "failed to match keyword using updated keyword chars"
                 )
 
-        with self.assertRaisesParseException(
-            msg="failed to fail matching keyword using updated keyword chars"
-        ):
+        with self.assertRaisesParseException(msg="failed to fail matching keyword using updated keyword chars"):
             CaselessKeyword("START").parseString("start1000")
 
         try:
@@ -4475,9 +4448,7 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
             Word,
             Regex,
         ):
-            expr = cls(
-                "xyz"
-            )  # .set_parser_name('{}_expr'.format(cls.__name__.lower()))
+            expr = cls("xyz")  # .set_parser_name('{}_expr'.format(cls.__name__.lower()))
 
             try:
                 expr.parseString(" ")
@@ -4658,8 +4629,10 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
         self.assertParseResultsEquals(
             result,
             expected_list=["Καλημέρα", ",", "κόσμε", "!"],
-            msg="Failed to parse Greek 'Hello, World!' using "
-            "parsing_unicode.Greek.alphas",
+            msg=(
+                "Failed to parse Greek 'Hello, World!' using "
+                "parsing_unicode.Greek.alphas"
+            ),
         )
 
         # define a custom unicode range using multiple inheritance
@@ -4768,15 +4741,13 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
                     ":",
                     [
                         ["BB1"],
-                        [
-                            [
-                                "def",
-                                "BBA",
-                                ["(", ")"],
-                                ":",
-                                [["bba1"], ["bba2"], ["bba3"]],
-                            ]
-                        ],
+                        [[
+                            "def",
+                            "BBA",
+                            ["(", ")"],
+                            ":",
+                            [["bba1"], ["bba2"], ["bba3"]],
+                        ]],
                     ],
                 ],
                 "C",
@@ -4920,70 +4891,52 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
 
         # This input string is a perfect match for the parser, so a single match is found
         p1 = get_parser()
-        r1 = list(
-            p1.scanString(
-                dedent(
-                    """\
+        r1 = list(p1.scanString(dedent(
+            """\
         block:
             A
         """
-                )
-            )
-        )
+        )))
         self.assertEqual(len(r1), 1)
 
         # This input string is a perfect match for the parser, except for the letter B instead of A, so this will fail (and should)
         p2 = get_parser()
-        r2 = list(
-            p2.scanString(
-                dedent(
-                    """\
+        r2 = list(p2.scanString(dedent(
+            """\
         block:
             B
         """
-                )
-            )
-        )
+        )))
         self.assertEqual(len(r2), 0)
 
         # This input string contains both string A and string B, and it finds one match (as it should)
         p3 = get_parser()
-        r3 = list(
-            p3.scanString(
-                dedent(
-                    """\
+        r3 = list(p3.scanString(dedent(
+            """\
         block:
             A
         block:
             B
         """
-                )
-            )
-        )
+        )))
         self.assertEqual(len(r3), 1)
 
         # This input string contains both string A and string B, but in a different order.
         p4 = get_parser()
-        r4 = list(
-            p4.scanString(
-                dedent(
-                    """\
+        r4 = list(p4.scanString(dedent(
+            """\
         block:
             B
         block:
             A
         """
-                )
-            )
-        )
+        )))
         self.assertEqual(len(r4), 1)
 
         # This is the same as case 3, but with nesting
         p5 = get_parser()
-        r5 = list(
-            p5.scanString(
-                dedent(
-                    """\
+        r5 = list(p5.scanString(dedent(
+            """\
         block:
             block:
                 A
@@ -4991,17 +4944,13 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
             block:
                 B
         """
-                )
-            )
-        )
+        )))
         self.assertEqual(len(r5), 1)
 
         # This is the same as case 4, but with nesting
         p6 = get_parser()
-        r6 = list(
-            p6.scanString(
-                dedent(
-                    """\
+        r6 = list(p6.scanString(dedent(
+            """\
         block:
             block:
                 B
@@ -5009,9 +4958,7 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
             block:
                 A
         """
-                )
-            )
-        )
+        )))
         self.assertEqual(len(r6), 1)
 
     def testParseResultsWithNameMatchFirst(self):
@@ -5077,14 +5024,12 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
         EQ = Suppress("=")
         key_value_dict = dictOf(key, EQ + value)
 
-        print(
-            key_value_dict.parseString(
-                """\
+        print(key_value_dict.parseString(
+            """\
             a = 10
             b = 20
             """
-            )
-        )
+        ))
 
         try:
             key_value_dict.parseString("")
@@ -5192,7 +5137,8 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
         except RuntimeError:
             self.assertTrue(
                 False,
-                "still have infinite loop in oneOf with duplicate symbols (string input)",
+                "still have infinite loop in oneOf with duplicate symbols (string"
+                " input)",
             )
 
         try:
@@ -5200,7 +5146,8 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
         except RuntimeError:
             self.assertTrue(
                 False,
-                "still have infinite loop in oneOf with duplicate symbols (generator input)",
+                "still have infinite loop in oneOf with duplicate symbols (generator"
+                " input)",
             )
 
         try:
