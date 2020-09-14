@@ -152,13 +152,14 @@ class ParserElement(object):
 
             result = date_str.parseString("1999/12/31")  # -> Exception: Only support years 2000 and later (at char 0), (line:1, col:1)
         """
+        output = self.copy()
         for fn in fns:
-            self.parseAction.append(
+            output.parseAction.append(
                 conditionAsParseAction(fn, message=message, fatal=fatal)
             )
 
-        self.callDuringTry = self.callDuringTry or callDuringTry
-        return self
+        output.callDuringTry = self.callDuringTry or callDuringTry
+        return output
 
     def setFailAction(self, fn):
         """Define action to perform if parsing fails at this expression.

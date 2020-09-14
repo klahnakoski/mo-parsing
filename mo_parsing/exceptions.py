@@ -238,7 +238,7 @@ def conditionAsParseAction(fn, message=None, fatal=False):
 
     @wraps(fn)
     def pa(s, l, t):
-        if not bool(fn(s, l, t)):
+        if not bool(fn(s, l, t)[0]):
             raise exc_type(s, l, msg)
         return t
 
