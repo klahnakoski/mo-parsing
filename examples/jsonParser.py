@@ -42,28 +42,28 @@ from mo_parsing import *
 def make_keyword(kwd_str, kwd_value):
     return Keyword(kwd_str).setParseAction(replaceWith(kwd_value))
 
-engine = Engine()
 
-TRUE = make_keyword("true", True)
-FALSE = make_keyword("false", False)
-NULL = make_keyword("null", None)
+with Engine() as engine:
 
-LBRACK, RBRACK, LBRACE, RBRACE, COLON = map(Suppress, "[]{}:")
+    TRUE = make_keyword("true", True)
+    FALSE = make_keyword("false", False)
+    NULL = make_keyword("null", None)
 
-jsonString = dblQuotedString.setParseAction(removeQuotes)
-jsonNumber = number
+    LBRACK, RBRACK, LBRACE, RBRACE, COLON = map(Suppress, "[]{}:")
 
-jsonObject = Forward()
-jsonValue = Forward()
-jsonElements = delimitedList(jsonValue)
-jsonArray = Group(LBRACK + Optional(jsonElements, []) + RBRACK)
-jsonValue << (
-    jsonString | jsonNumber | Group(jsonObject) | jsonArray | TRUE | FALSE | NULL
-)
-memberDef = Group(jsonString + COLON + jsonValue)
-jsonMembers = delimitedList(memberDef)
-jsonObject << Dict(LBRACE + Optional(jsonMembers) + RBRACE)
+    jsonString = dblQuotedString.setParseAction(removeQuotes)
+    jsonNumber = number
 
-jsonComment = cppStyleComment
-engine.add_ignore(jsonComment)
-engine.release()
+    jsonObject = Forward()
+    jsonValue = Forward()
+    jsonElements = delimitedList(jsonValue)
+    jsonArray = Group(LBRACK + Optional(jsonElements, []) + RBRACK)
+    jsonValue << (
+        jsonString | jsonNumber | Group(jsonObject) | jsonArray | TRUE | FALSE | NULL
+    )
+    memberDef = Group(jsonString + COLON + jsonValue)
+    jsonMembers = delimitedList(memberDef)
+    jsonObject << Dict(LBRACE + Optional(jsonMembers) + RBRACE)
+
+    jsonComment = cppStyleComment
+    engine.add_ignore(jsonComment)

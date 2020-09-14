@@ -54,7 +54,7 @@ And, MatchFirst = [None] * 2
 
 
 dblQuotedString = Combine(
-    Regex(r'"(?:[^"\n\r\\]|(?:"")|(?:\\(?:[^x]|x[0-9a-fA-F]+)))*') + '"'
+    Regex(r'"(?:[^"\n\r\\]|(?:"")|(?:\\(?:[^x]|x[0-9a-fA-F]+)))*\"')
 ).set_parser_name("string enclosed in double quotes")
 sglQuotedString = Combine(
     Regex(r"'(?:[^'\n\r\\]|(?:'')|(?:\\(?:[^x]|x[0-9a-fA-F]+)))*") + "'"
@@ -63,7 +63,7 @@ quotedString = Combine(
     Regex(r'"(?:[^"\n\r\\]|(?:"")|(?:\\(?:[^x]|x[0-9a-fA-F]+)))*') + '"'
     | Regex(r"'(?:[^'\n\r\\]|(?:'')|(?:\\(?:[^x]|x[0-9a-fA-F]+)))*") + "'"
 ).set_parser_name("quotedString using single or double quotes")
-unicodeString = Combine(Literal("u") + quotedString.copy()).set_parser_name(
+unicodeString = Combine(Literal("u") + quotedString).set_parser_name(
     "unicode string literal"
 )
 
