@@ -58,7 +58,9 @@ class Engine:
                 return self.literal(Literal(expr))
         if not isinstance(expr, ParserElement):
             Log.error("expecting string, or ParserElemenet")
-
+        if expr.engine != self:
+            expr = expr.copy()
+            expr.engine = self
         return expr
 
     def record_exception(self, instring, loc, expr, exc):

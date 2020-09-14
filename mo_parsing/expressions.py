@@ -195,19 +195,22 @@ class And(ParseExpression):
             if isinstance(e, And._ErrorStop):
                 encountered_error_stop = True
                 continue
-            if encountered_error_stop:
-                try:
-                    loc, exprtokens = e._parse(instring, loc, doActions)
-                except ParseSyntaxException:
-                    raise
-                except ParseBaseException as pe:
+            try:
+                loc, exprtokens = e._parse(instring, loc, doActions)
+            except ParseSyntaxException as e:
+                raise e
+            except ParseBaseException as pe:
+                if encountered_error_stop:
                     raise ParseSyntaxException(
                         pe.pstr, pe.loc, pe.parserElement
                     )
-                except IndexError:
+                else:
+                    raise pe
+            except IndexError as ie:
+                if encountered_error_stop:
                     raise ParseSyntaxException(instring, len(instring), self)
-            else:
-                loc, exprtokens = e._parse(instring, loc, doActions)
+                else:
+                    raise ie
 
             if not isinstance(exprtokens, ParseResults):
                 Log.error(

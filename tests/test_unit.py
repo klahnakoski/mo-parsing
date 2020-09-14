@@ -3993,9 +3993,9 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
 
         # disable parse actions that do type conversion so we don't accidentally trigger
         # conversion exceptions when what we want to check is the parsing expression
-        real = helpers.real().setParseAction(None)
-        sci_real = helpers.sci_real().setParseAction(None)
-        signed_integer = helpers.signed_integer().setParseAction(None)
+        real = helpers.real.setParseAction(None)
+        sci_real = helpers.sci_real.setParseAction(None)
+        signed_integer = helpers.signed_integer.setParseAction(None)
 
         def make_tests():
             leading_sign = ["+", "-", ""]
@@ -4058,7 +4058,6 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
 
         # now try all the test sets against their respective expressions
         all_pass = True
-        suppress_results = {"printResults": False}
         for expr, tests, is_fail, fn in zip(
             [real, sci_real, signed_integer] * 2,
             [
@@ -4072,23 +4071,6 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
             [False, False, False, True, True, True],
             [float, float, int] * 2,
         ):
-            #
-            # success, test_results = expr.runTests(sorted(tests, key=len), failureTests=is_fail, **suppress_results)
-            # filter_result_fn = (lambda r: isinstance(r, Exception),
-            #                     lambda r: not isinstance(r, Exception))[is_fail]
-            # print(expr, ('FAIL', 'PASS')[success], "{}valid tests ({})".format(len(tests),
-            #                                                                       'in' if is_fail else ''))
-            # if not success:
-            #     all_pass = False
-            #     for test_string, result in test_results:
-            #         if filter_result_fn(result):
-            #             try:
-            #                 test_value = fn(test_string)
-            #             except ValueError as ve:
-            #                 test_value = str(ve)
-            #             print("{!r}: {} {} {}".format(test_string, result,
-            #                                                expr.matches(test_string, parseAll=True), test_value))
-
             success = True
             for t in tests:
                 if expr.matches(t, parseAll=True):
