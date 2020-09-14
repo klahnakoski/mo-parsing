@@ -1995,17 +1995,17 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
 
         uword.searchString(a)
 
-        kw = Keyword("mykey", caseless=True).setParseAction(upcaseTokens)("rname")
+        kw = Group(Keyword("mykey", caseless=True).setParseAction(upcaseTokens)("rname"))
         ret = kw.parseString("mykey")
 
         self.assertEqual(
-            ret.rname, "MYKEY", "failed to upcase with named result (parsing_common)"
+            ret['rname'], "MYKEY", "failed to upcase with named result (parsing_common)"
         )
 
-        kw = Keyword("MYKEY", caseless=True).setParseAction(downcaseTokens)("rname")
+        kw = Group(Keyword("MYKEY", caseless=True).setParseAction(downcaseTokens)("rname"))
         ret = kw.parseString("mykey")
 
-        self.assertEqual(ret.rname, "mykey", "failed to upcase with named result")
+        self.assertEqual(ret['rname'], "mykey", "failed to upcase with named result")
 
         if not IRON_PYTHON_ENV:
             # test html data
@@ -2022,7 +2022,7 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
             manuf_body = (
                 td_start.suppress()
                 + manufacturer
-                + SkipTo(td_end)("cells*")
+                + SkipTo(td_end)("cells")
                 + td_end.suppress()
             )
 
@@ -3291,7 +3291,6 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
             )
 
     def testSumParseResults(self):
-
         samplestr1 = "garbage;DOB 10-10-2010;more garbage\nID PARI12345678;more garbage"
         samplestr2 = "garbage;ID PARI12345678;more garbage\nDOB 10-10-2010;more garbage"
         samplestr3 = "garbage;DOB 10-10-2010"
@@ -3300,7 +3299,7 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
         res1 = "ID:PARI12345678 DOB:10-10-2010 INFO:"
         res2 = "ID:PARI12345678 DOB:10-10-2010 INFO:"
         res3 = "ID: DOB:10-10-2010 INFO:"
-        res4 = "ID:PARI12345678 DOB: INFO: I am cool"
+        res4 = "ID:PARI12345678 DOB: INFO:I am cool"
 
         dob_ref = "DOB" + Regex(r"\d{2}-\d{2}-\d{4}")("dob")
         id_ref = "ID" + Word(alphanums, exact=12)("id")
@@ -3321,8 +3320,9 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
             res4,
         )
         for test, expected in zip(tests, results):
+            # searchString RETURNS Tokens IN Groups, ADD THEM TOGETHER FOR ONE Group
             person = sum(person_data.searchString(test))
-            result = "ID:{} DOB:{} INFO:{}".format(person.id, person.dob, person.info)
+            result = "ID:{} DOB:{} INFO:{}".format(person['id'], person['dob'], person['info'])
             self.assertEqual(
                 expected,
                 result,
@@ -3472,7 +3472,7 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
         except ParseException as pe:
             self.assertEqual(
                 pe.msg,
-                r"""Expected {"a"} | {"ᄑ"}""",
+                "Expecting {\"a\"} | {\"ᄑ\"}",
                 "Invalid error message raised, got %r" % pe.msg,
             )
 

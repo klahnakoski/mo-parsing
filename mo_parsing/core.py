@@ -14,9 +14,8 @@ from mo_parsing.exceptions import (
 )
 from mo_parsing.results import ParseResults
 from mo_parsing.utils import (
-    PY_3,
     _MAX_INT,
-    wrap_parse_action,
+    wrap_parse_action, empty_tuple,
 )
 
 # import later
@@ -668,12 +667,10 @@ class ParserElement(object):
         :param listAllMatches:
         :return:
         """
+        if name.endswith("*"):
+            Log.warning("stop using")
         if not is_text(name):
             Log.error("not expected")
-        if name.endswith("*"):
-            name = name[:-1]
-            listAllMatches = True
-            Log.warning("stop using")
         output = self.copy()
         output.token_name = name
         return output
@@ -706,14 +703,14 @@ class ParserElement(object):
         self.streamlined = True
         return self
 
-    def checkRecursion(self, parseElementList):
+    def checkRecursion(self, seen=empty_tuple):
         pass
 
-    def validate(self, validateTrace=None):
+    def validate(self, seen=None):
         """
         Check defined expressions for valid structure, check for infinite recursive definitions.
         """
-        self.checkRecursion([])
+        self.checkRecursion()
 
     def parseFile(self, file_or_filename, parseAll=False):
         """

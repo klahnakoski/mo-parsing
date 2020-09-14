@@ -216,9 +216,7 @@ from mo_parsing.tokens import (
     Token,
 )
 from mo_parsing.utils import (
-    PY_3,
     _MAX_INT,
-    _generatorType,
     wrap_parse_action,
     alphanums,
     alphas,
@@ -230,7 +228,6 @@ from mo_parsing.utils import (
     printables,
     parsing_unicode,
     singleArgBuiltins,
-    system_version,
     traceParseAction,
     unichr,
     unicode_set,

@@ -6,7 +6,7 @@ from datetime import datetime
 from mo_dots import Data, listwrap
 from mo_future import text
 
-from mo_parsing.engine import noop, Engine
+from mo_parsing.engine import Engine
 from mo_parsing.enhancement import (
     Combine,
     Dict,
@@ -39,7 +39,6 @@ from mo_parsing.tokens import (
     _escapeRegexRangeChars,
 )
 from mo_parsing.utils import (
-    Iterable,
     _bslash,
     alphanums,
     alphas,

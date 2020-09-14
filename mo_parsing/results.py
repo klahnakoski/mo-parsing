@@ -2,11 +2,10 @@
 from collections import MutableMapping
 
 from mo_dots import is_many
-from mo_future import is_text, text
+from mo_future import is_text, text, PY3
 from mo_logs import Log
 
 from mo_parsing import engine
-from mo_parsing.utils import PY_3
 
 Suppress, ParserElement, Forward, Group, Dict, Token, Empty = [None] * 7
 
@@ -249,7 +248,7 @@ class ParseResults(object):
         for k, v in output.items():
             yield k, v
 
-    if PY_3:
+    if PY3:
         keys = iterkeys
         values = itervalues
         items = iteritems
@@ -339,7 +338,7 @@ class ParseResults(object):
 
     def __add__(self, other):
         return ParseResults(
-            Group(None), self.tokens_for_result + other.tokens_for_result
+            Group(self.type_for_result + other.type_for_result), self.tokens_for_result + other.tokens_for_result
         )
 
     def __radd__(self, other):
@@ -359,17 +358,19 @@ class ParseResults(object):
         return [v.__data__() if isinstance(v, ParserElement) else v for v in self.tokens_for_result]
 
     def __str__(self):
-        # if len(self.tokens_for_result) == 1:
-        #     return str(self.tokens_for_result[0])
-
-        return (
-            "["
-            + ", ".join(
-                text(v) if isinstance(v, ParseResults) else repr(v)
-                for v in self.tokens_for_result
+        if not self.tokens_for_result:
+            return ""
+        elif len(self.tokens_for_result) == 1:
+            return text(self.tokens_for_result[0])
+        else:
+            return (
+                "["
+                + ", ".join(
+                    text(v)
+                    for v in self.tokens_for_result
+                )
+                + "]"
             )
-            + "]"
-        )
 
     def _asStringList(self):
         for t in self:

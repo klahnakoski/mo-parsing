@@ -14,7 +14,7 @@ from mo_parsing.exceptions import (
 )
 from mo_parsing.core import ParserElement
 from mo_parsing.results import ParseResults, Annotation
-from mo_parsing.utils import _MAX_INT
+from mo_parsing.utils import _MAX_INT, empty_list, empty_tuple
 
 # import later
 Token, Literal, Keyword, Word, CharsNotIn, _PositionToken, StringEnd = [None] * 7
@@ -74,20 +74,16 @@ class ParseElementEnhance(ParserElement):
         self.expr.streamline()
         return self
 
-    def checkRecursion(self, parseElementList):
-        if self in parseElementList:
-            raise RecursiveGrammarException(parseElementList + [self])
-        subRecCheckList = parseElementList[:] + [self]
+    def checkRecursion(self, seen=empty_tuple):
+        if self in seen:
+            raise RecursiveGrammarException(seen + (self,))
         if self.expr != None:
-            self.expr.checkRecursion(subRecCheckList)
+            self.expr.checkRecursion(seen + (self,))
 
-    def validate(self, validateTrace=None):
-        if validateTrace is None:
-            validateTrace = []
-        tmp = validateTrace[:] + [self]
+    def validate(self, seen=empty_list):
         if self.expr != None:
-            self.expr.validate(tmp)
-        self.checkRecursion([])
+            self.expr.validate( seen + [self])
+        self.checkRecursion()
 
     def __str__(self):
         try:
@@ -549,15 +545,17 @@ class Forward(ParserElement):
             self.streamlined = False
         return self
 
-    def validate(self, validateTrace=None):
-        if validateTrace is None:
-            validateTrace = []
+    def checkRecursion(self, seen=empty_tuple):
+        if self in seen:
+            raise RecursiveGrammarException(seen + (self,))
+        if self.expr != None:
+            self.expr.checkRecursion(seen + (self,))
 
-        if self not in validateTrace:
-            tmp = validateTrace[:] + [self]
+    def validate(self, seen=empty_list):
+        if self not in seen:
             if self.expr != None:
-                self.expr.validate(tmp)
-        self.checkRecursion([])
+                self.expr.validate(seen + [self])
+        self.checkRecursion()
 
     def parseImpl(self, instring, loc, doActions=True):
         if self.expr != None:
@@ -647,7 +645,11 @@ class Group(TokenConverter):
     """
     MARK A CLOSED PARSE RESULT
     """
-    pass
+    def __init__(self, expr):
+        ParserElement.__init__(self)
+        self.expr = expr = self.engine.normalize(expr)
+        self.parser_config.mayIndexError = expr.parser_config.mayIndexError
+        self.parser_config.mayReturnEmpty = expr.parser_config.mayReturnEmpty
 
 
 class Dict(Group):

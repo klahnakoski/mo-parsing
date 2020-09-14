@@ -1,7 +1,7 @@
 # encoding: utf-8
 from operator import itemgetter
 
-from mo_future import text
+from mo_future import Iterable,text, generator_types
 from mo_logs import Log
 
 from mo_parsing.core import ParserElement, _PendingSkip, is_decorated
@@ -14,7 +14,7 @@ from mo_parsing.exceptions import (
 )
 from mo_parsing.results import ParseResults
 from mo_parsing.tokens import Empty
-from mo_parsing.utils import Iterable, _generatorType
+from mo_parsing.utils import empty_list, empty_tuple
 
 
 class ParseExpression(ParserElement):
@@ -25,7 +25,7 @@ class ParseExpression(ParserElement):
     def __init__(self, exprs):
         super(ParseExpression, self).__init__()
 
-        if isinstance(exprs, _generatorType):
+        if isinstance(exprs, generator_types):
             exprs = list(exprs)
         elif not isinstance(exprs, ParserElement) and isinstance(exprs, Iterable):
             exprs = list(exprs)
@@ -82,11 +82,16 @@ class ParseExpression(ParserElement):
         self.exprs = acc
         return self
 
-    def validate(self, validateTrace=None):
-        tmp = (validateTrace if validateTrace is not None else [])[:] + [self]
+    def validate(self, seen=empty_list):
+        tmp = seen + [self]
         for e in self.exprs:
             e.validate(tmp)
-        self.checkRecursion([])
+        self.checkRecursion()
+
+    def checkRecursion(self, seen=empty_tuple):
+        seen_more = seen + (self,)
+        for e in self.exprs:
+            e.checkRecursion(seen_more)
 
     def __call__(self, name):
         if not name:
@@ -212,8 +217,8 @@ class And(ParseExpression):
 
         return And([self, engine.CURRENT.normalize(other)]).streamline()
 
-    def checkRecursion(self, parseElementList):
-        subRecCheckList = parseElementList[:] + [self]
+    def checkRecursion(self, seen=empty_tuple):
+        subRecCheckList = seen + (self,)
         for e in self.exprs:
             e.checkRecursion(subRecCheckList)
             if not e.parser_config.mayReturnEmpty:
@@ -322,11 +327,6 @@ class Or(ParseExpression):
 
         return "{" + " ^ ".join(text(e) for e in self.exprs) + "}"
 
-    def checkRecursion(self, parseElementList):
-        subRecCheckList = parseElementList[:] + [self]
-        for e in self.exprs:
-            e.checkRecursion(subRecCheckList)
-
 
 class MatchFirst(ParseExpression):
     """Requires that at least one :class:`ParseExpression` is found. If
@@ -393,11 +393,6 @@ class MatchFirst(ParseExpression):
             return self.parser_name
 
         return " | ".join("{" + text(e) + "}" for e in self.exprs)
-
-    def checkRecursion(self, parseElementList):
-        subRecCheckList = parseElementList[:] + [self]
-        for e in self.exprs:
-            e.checkRecursion(subRecCheckList)
 
 
 class Each(ParseExpression):
@@ -547,11 +542,6 @@ class Each(ParseExpression):
             return self.parser_name
 
         return "{" + " & ".join(text(e) for e in self.exprs) + "}"
-
-    def checkRecursion(self, parseElementList):
-        subRecCheckList = parseElementList[:] + [self]
-        for e in self.exprs:
-            e.checkRecursion(subRecCheckList)
 
 
 # export

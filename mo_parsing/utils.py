@@ -5,81 +5,40 @@ import inspect
 import string
 import sys
 import warnings
+from itertools import filterfalse
 
+from mo_future import text, unichr
 from mo_logs import Log, Except
 
-try:
-    # Python 3
-    from itertools import filterfalse
-except ImportError:
-    from itertools import ifilterfalse as filterfalse
+_MAX_INT = sys.maxsize
+empty_list = []
+empty_tuple = tuple()
 
-try:
-    from _thread import RLock
-except ImportError:
-    from threading import RLock
+# build list of single arg builtins, that can be used as parse actions
+singleArgBuiltins = [
+    sum,
+    len,
+    sorted,
+    reversed,
+    list,
+    tuple,
+    set,
+    any,
+    all,
+    min,
+    max,
+]
 
-try:
-    # Python 3
-    from collections.abc import Iterable
-    from collections.abc import MutableMapping, Mapping
-    from collection import deque
-except ImportError:
-    # Python 2.7
-    from collections import Iterable
-    from collections import MutableMapping, Mapping, deque
-
-system_version = tuple(sys.version_info)[:3]
-PY_3 = system_version[0] == 3
-if PY_3:
-    _MAX_INT = sys.maxsize
-    unichr = chr
-
-    # build list of single arg builtins, that can be used as parse actions
-    singleArgBuiltins = [
-        sum,
-        len,
-        sorted,
-        reversed,
-        list,
-        tuple,
-        set,
-        any,
-        all,
-        min,
-        max,
-    ]
-
-    builtin_lookup = {"".join.__name__: ("iterable",)}
-
-    def get_function_arguments(func):
-        try:
-            return func.__code__.co_varnames[: func.__code__.co_argcount]
-        except Exception as e:
-            return builtin_lookup.get(func.__name__, ("unknown",))
+builtin_lookup = {"".join.__name__: ("iterable",)}
 
 
-else:
-    from __builtin__ import unicode
-
-    _MAX_INT = sys.maxint
-    range = xrange
-
-    # build list of single arg builtins, tolerant of Python version, that can be used as parse actions
-    singleArgBuiltins = []
-    import __builtin__
-
-    for fname in "sum len sorted reversed list tuple set any all min max".split():
-        try:
-            singleArgBuiltins.append(getattr(__builtin__, fname))
-        except AttributeError:
-            continue
-
-    def get_function_arguments(func):
-        return func.func_code.co_varnames[: func.func_code.co_argcount]
+def get_function_arguments(func):
+    try:
+        return func.__code__.co_varnames[: func.__code__.co_argcount]
+    except Exception as e:
+        return builtin_lookup.get(func.__name__, ("unknown",))
 
 
-_generatorType = type((y for y in range(1)))
 
 
 class __config_flags:
@@ -358,17 +317,17 @@ class unicode_set(object):
     @_lazyclassproperty
     def printables(cls):
         "all non-whitespace characters in this range"
-        return "".join(filterfalse(unicode.isspace, cls._get_chars_for_ranges()))
+        return "".join(filterfalse(text.isspace, cls._get_chars_for_ranges()))
 
     @_lazyclassproperty
     def alphas(cls):
         "all alphabetic characters in this range"
-        return "".join(filter(unicode.isalpha, cls._get_chars_for_ranges()))
+        return "".join(filter(text.isalpha, cls._get_chars_for_ranges()))
 
     @_lazyclassproperty
     def nums(cls):
         "all numeric digit characters in this range"
-        return "".join(filter(unicode.isdigit, cls._get_chars_for_ranges()))
+        return "".join(filter(text.isdigit, cls._get_chars_for_ranges()))
 
     @_lazyclassproperty
     def alphanums(cls):
@@ -506,18 +465,17 @@ parsing_unicode.Japanese._ranges = (
 )
 
 # define ranges in language character sets
-if PY_3:
-    setattr(parsing_unicode, "العربية", parsing_unicode.Arabic)
-    setattr(parsing_unicode, "中文", parsing_unicode.Chinese)
-    setattr(parsing_unicode, "кириллица", parsing_unicode.Cyrillic)
-    setattr(parsing_unicode, "Ελληνικά", parsing_unicode.Greek)
-    setattr(parsing_unicode, "עִברִית", parsing_unicode.Hebrew)
-    setattr(parsing_unicode, "日本語", parsing_unicode.Japanese)
-    setattr(parsing_unicode.Japanese, "漢字", parsing_unicode.Japanese.Kanji)
-    setattr(parsing_unicode.Japanese, "カタカナ", parsing_unicode.Japanese.Katakana)
-    setattr(parsing_unicode.Japanese, "ひらがな", parsing_unicode.Japanese.Hiragana)
-    setattr(parsing_unicode, "한국어", parsing_unicode.Korean)
-    setattr(parsing_unicode, "ไทย", parsing_unicode.Thai)
-    setattr(parsing_unicode, "देवनागरी", parsing_unicode.Devanagari)
+setattr(parsing_unicode, "العربية", parsing_unicode.Arabic)
+setattr(parsing_unicode, "中文", parsing_unicode.Chinese)
+setattr(parsing_unicode, "кириллица", parsing_unicode.Cyrillic)
+setattr(parsing_unicode, "Ελληνικά", parsing_unicode.Greek)
+setattr(parsing_unicode, "עִברִית", parsing_unicode.Hebrew)
+setattr(parsing_unicode, "日本語", parsing_unicode.Japanese)
+setattr(parsing_unicode.Japanese, "漢字", parsing_unicode.Japanese.Kanji)
+setattr(parsing_unicode.Japanese, "カタカナ", parsing_unicode.Japanese.Katakana)
+setattr(parsing_unicode.Japanese, "ひらがな", parsing_unicode.Japanese.Hiragana)
+setattr(parsing_unicode, "한국어", parsing_unicode.Korean)
+setattr(parsing_unicode, "ไทย", parsing_unicode.Thai)
+setattr(parsing_unicode, "देवनागरी", parsing_unicode.Devanagari)
 
 
