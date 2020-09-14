@@ -219,10 +219,6 @@ def main(testfiles=None, action=printer):
         except Exception:
             failures.append(f)
 
-    if failures:
-
-
-
     if len(retval) == 1 and len(testfiles) == 1:
         # if only one file is parsed, return the parseResults directly
         return retval[list(retval.keys())[0]]

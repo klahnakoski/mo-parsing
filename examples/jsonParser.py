@@ -51,7 +51,7 @@ with Engine() as engine:
 
     LBRACK, RBRACK, LBRACE, RBRACE, COLON = map(Suppress, "[]{}:")
 
-    jsonString = dblQuotedString.setParseAction(removeQuotes)
+    jsonString = dblQuotedString.addParseAction(removeQuotes)
     jsonNumber = number
 
     jsonObject = Forward()
@@ -59,11 +59,10 @@ with Engine() as engine:
     jsonElements = delimitedList(jsonValue)
     jsonArray = Group(LBRACK + Optional(jsonElements, []) + RBRACK)
     jsonValue << (
-        jsonString | jsonNumber | Group(jsonObject) | jsonArray | TRUE | FALSE | NULL
+        jsonString | jsonNumber | jsonObject | jsonArray | TRUE | FALSE | NULL
     )
     memberDef = Group(jsonString + COLON + jsonValue)
     jsonMembers = delimitedList(memberDef)
     jsonObject << Dict(LBRACE + Optional(jsonMembers) + RBRACE)
-
     jsonComment = cppStyleComment
     engine.add_ignore(jsonComment)

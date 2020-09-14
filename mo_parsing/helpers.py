@@ -1,6 +1,7 @@
 # encoding: utf-8
 import re
 import warnings
+from collections import Iterable
 from datetime import datetime
 
 from mo_dots import Data, listwrap
@@ -54,7 +55,7 @@ And, MatchFirst = [None] * 2
 
 
 dblQuotedString = Combine(
-    Regex(r'"(?:[^"\n\r\\]|(?:"")|(?:\\(?:[^x]|x[0-9a-fA-F]+)))*\"')
+    Regex(r'"(?:[^"\n\r\\]|(?:"")|(?:\\(?:[^x]|x[0-9a-fA-F]+)))*') + '"'
 ).set_parser_name("string enclosed in double quotes")
 sglQuotedString = Combine(
     Regex(r"'(?:[^'\n\r\\]|(?:'')|(?:\\(?:[^x]|x[0-9a-fA-F]+)))*") + "'"

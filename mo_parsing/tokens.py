@@ -645,12 +645,7 @@ class Regex(Token):
         return loc, ret
 
     def __str__(self):
-        try:
-            return super(Regex, self).__str__()
-        except Exception:
-            pass
-
-        return "Re:(%s)" % repr(self.pattern)
+        return "RegEx(" + repr(self.pattern) + ")"
 
     def sub(self, repl):
         r"""

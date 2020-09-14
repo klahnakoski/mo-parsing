@@ -12,24 +12,17 @@
 #
 import math
 
-from mo_parsing import ParseException
+from mo_logs import Log
 
-from examples.fourFn import exprStack, BNF, evaluate_stack
+from examples.fourFn import exprStack, bnf, evaluate_stack
 
 
 def test(s, expected):
     exprStack[:] = []
-    try:
-        results = bnf.parseString(s, parseAll=True)
-        val = evaluate_stack(exprStack[:])
-    except ParseException as pe:
-
-    except Exception as e:
-
-    else:
-        if val == expected:
-
-        else:
+    results = bnf.parseString(s, parseAll=True)
+    val = evaluate_stack(exprStack[:])
+    if val != expected:
+        Log.error("wrong")
 
 
 

@@ -7,12 +7,14 @@
 # To dispense a product, you must press an alpha button, then a digit button.
 #
 
-import statemachine
+from examples import statemachine
+from examples.statemachine.statemachine import InvalidTransitionException
 
 # Vending machine buttons:
 #    A, B, C, D
 #    1, 2, 3, 4
 #
+
 vending_machine_state_description = """\
 statemachine VendingMachineState:
     Idle-(press_alpha_button)->WaitingOnDigit
@@ -44,22 +46,21 @@ class VendingMachine(VendingMachineStateMixin):
         elif button in "1234":
             self._pressed = button
             self.press_digit_button()
-        else:
 
 
     def press_alpha_button(self):
         try:
             super().press_alpha_button()
-        except VendingMachineState.InvalidTransitionException as ite:
-
+        except InvalidTransitionException as ite:
+            pass
         else:
             self._alpha_pressed = self._pressed
 
     def press_digit_button(self):
         try:
             super().press_digit_button()
-        except VendingMachineState.InvalidTransitionException as ite:
-
+        except InvalidTransitionException as ite:
+            pass
         else:
             self._digit_pressed = self._pressed
             self.dispense()
@@ -67,8 +68,8 @@ class VendingMachine(VendingMachineStateMixin):
     def dispense(self):
         try:
             super().dispense()
-        except VendingMachineState.InvalidTransitionException as ite:
-
+        except InvalidTransitionException as ite:
+            pass
         else:
 
             self._alpha_pressed = self._digit_pressed = None

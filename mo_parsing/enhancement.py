@@ -705,6 +705,8 @@ def _dict_post_parse(instring, loc, tokenlist):
     acc = tokenlist.tokens_for_result
     for a in list(acc):
         for tok in list(a):
+            if isinstance(tok, int):
+                Log.error('not expected')
             if len(tok) == 0:
                 continue
             ikey = tok[0]

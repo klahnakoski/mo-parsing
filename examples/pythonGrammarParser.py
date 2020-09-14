@@ -197,18 +197,18 @@ ident = Word(alphanums + "_")
 bnfToken = Word(alphanums + "_") + ~FollowedBy(":")
 repSymbol = oneOf("* +")
 bnfExpr = Forward()
-optionalTerm = Group(LBRACK + bnfExpr + RBRACK).setParseAction(
-    makeGroupObject(OptionalGroup)
-)
+optionalTerm = Group(
+    LBRACK + bnfExpr + RBRACK
+).setParseAction(makeGroupObject(OptionalGroup))
 bnfTerm = (
     (bnfToken | quotedString | optionalTerm | (LPAREN + bnfExpr + RPAREN))
     + Optional(repSymbol)
 ).setParseAction(makeGroupObject(Atom))
 andList = Group(bnfTerm + OneOrMore(bnfTerm)).setParseAction(makeGroupObject(AndList))
 bnfFactor = andList | bnfTerm
-orList = Group(bnfFactor + OneOrMore(ALT_OP + bnfFactor)).setParseAction(
-    makeGroupObject(OrList)
-)
+orList = Group(
+    bnfFactor + OneOrMore(ALT_OP + bnfFactor)
+).setParseAction(makeGroupObject(OrList))
 bnfExpr << (orList | bnfFactor)
 bnfLine = ident + COLON + bnfExpr
 
@@ -227,12 +227,3 @@ assert len(bnfDefs) == expected, "Error, found %d BNF defns, expected %d" % (
     len(bnfDefs),
     expected,
 )
-
-# list out defns in order they were parsed (to verify accuracy of parsing)
-for k, v in bnfDefs:
-
-
-
-# list out parsed grammar defns (demonstrates dictionary access to parsed tokens)
-for k in list(bnfDefs.keys()):
-

@@ -50,6 +50,7 @@ import getopt
 
 from mo_parsing import *
 
+string = str
 
 # ===globals======================
 modname = "sparser"
@@ -327,8 +328,6 @@ def main(pargs):
     """
     input_file = sys.argv[1]
     fp = ParseFileLineByLine(input_file)
-    for i in fp:
-
 
 
 # -------------------------
@@ -339,11 +338,8 @@ if __name__ == "__main__":
     )
     for opt in opts:
         if opt[0] == "-h" or opt[0] == "--help":
-
-            usage()
             sys.exit(0)
         elif opt[0] == "-v" or opt[0] == "--version":
-
             sys.exit(0)
         elif opt[0] == "-d" or opt[0] == "--debug":
             debug_p = 1

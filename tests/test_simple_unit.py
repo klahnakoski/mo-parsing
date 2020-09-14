@@ -337,7 +337,7 @@ class TestRepetition(PyparsingExpressionTestCase):
     ):
         self.runTest(
             desc="Match words and numbers - show use of results names to collect types of tokens",
-            expr=(Word(alphas)("alpha*") | integer("int*"))[...],
+            expr=(Word(alphas)("alpha") | integer("int"))[...],
             text="sdlfj23084ksdfs08234kjsdlfkjd0934",
             expected_list=["sdlfj", 23084, "ksdfs", 8234, "kjsdlfkjd", 934],
             expected_dict={

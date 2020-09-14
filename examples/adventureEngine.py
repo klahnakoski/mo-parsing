@@ -72,9 +72,6 @@ class Room:
             else:
                 is_form = "is"
 
-        else:
-
-
 
 class Exit(Room):
     def __init__(self):
@@ -183,8 +180,6 @@ class MoveCommand(Command):
         nextRoom = rm.doors[{"N": 0, "S": 1, "E": 2, "W": 3}[self.direction]]
         if nextRoom:
             player.moveTo(nextRoom)
-        else:
-
 
 
 class TakeCommand(Command):
@@ -203,10 +198,6 @@ class TakeCommand(Command):
             if subj.isTakeable:
                 rm.removeItem(subj)
                 player.take(subj)
-            else:
-
-        else:
-
 
 
 class DropCommand(Command):
@@ -224,8 +215,6 @@ class DropCommand(Command):
         if subj in player.inv:
             rm.addItem(subj)
             player.drop(subj)
-        else:
-
 
 
 class InventoryCommand(Command):
@@ -237,7 +226,7 @@ class InventoryCommand(Command):
         return "INVENTORY or INV or I - lists what items you have"
 
     def _doCommand(self, player):
-
+        pass
 
 
 class LookCommand(Command):
@@ -280,7 +269,6 @@ class DoorsCommand(Command):
             reply += "."
 
 
-
 class UseCommand(Command):
     def __init__(self, quals):
         super().__init__("USE", "using")
@@ -300,10 +288,6 @@ class UseCommand(Command):
         if self.subject in availItems:
             if self.subject.isUsable(player, self.target):
                 self.subject.useItem(player, self.target)
-            else:
-
-        else:
-
 
 
 class OpenCommand(Command):
@@ -322,12 +306,6 @@ class OpenCommand(Command):
             if self.subject.isOpenable:
                 if not self.subject.isOpened:
                     self.subject.openItem(player)
-                else:
-
-            else:
-
-        else:
-
 
 
 class CloseCommand(Command):
@@ -346,12 +324,6 @@ class CloseCommand(Command):
             if self.subject.isOpenable:
                 if self.subject.isOpened:
                     self.subject.closeItem(player)
-                else:
-
-            else:
-
-        else:
-
 
 
 class QuitCommand(Command):
@@ -376,22 +348,7 @@ class HelpCommand(Command):
         return "HELP or H or ? - displays this help message"
 
     def _doCommand(self, player):
-
-        for cmd in [
-            InventoryCommand,
-            DropCommand,
-            TakeCommand,
-            UseCommand,
-            OpenCommand,
-            CloseCommand,
-            MoveCommand,
-            LookCommand,
-            DoorsCommand,
-            QuitCommand,
-            HelpCommand,
-        ]:
-
-
+        pass
 
 
 class AppParseException(ParseException):
@@ -480,19 +437,15 @@ class Parser:
             ret = self.bnf.parseString(cmdstr)
             return ret
         except AppParseException as pe:
-
+            pass
         except ParseException as pe:
-            print(
-                random.choice(
-                    [
-                        "Sorry, I don't understand that.",
-                        "Huh?",
-                        "Excuse me?",
-                        "???",
-                        "What?",
-                    ]
-                )
-            )
+            print(random.choice([
+                "Sorry, I don't understand that.",
+                "Huh?",
+                "Excuse me?",
+                "???",
+                "What?",
+            ]))
 
 
 class Player:
@@ -600,10 +553,6 @@ def playGame(p, startRoom):
             cmd.command(p)
 
 
-    for i in p.inv:
-
-
-
 # ====================
 # start game definition
 roomMap = """
@@ -634,9 +583,7 @@ library = rooms["e"]
 patio = rooms["f"]
 
 # create items
-itemNames = """sword.diamond.apple.flower.coin.shovel.book.mirror.telescope.gold bar""".split(
-    "."
-)
+itemNames = """sword.diamond.apple.flower.coin.shovel.book.mirror.telescope.gold bar""".split(".")
 for itemName in itemNames:
     Item(itemName)
 Item.items["apple"].isDeadly = True
@@ -654,10 +601,6 @@ def useShovel(p, subj, target):
 Item.items["shovel"].useAction = useShovel
 
 Item.items["telescope"].isTakeable = False
-
-
-def useTelescope(p, subj, target):
-
 
 
 Item.items["telescope"].useAction = useTelescope

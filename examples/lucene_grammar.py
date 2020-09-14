@@ -8,6 +8,7 @@
 #
 
 from mo_parsing import *
+from mo_parsing.helpers import integer
 
 COLON, LBRACK, RBRACK, LBRACE, RBRACE, TILDE, CARAT = map(Literal, ":[]{}~^")
 LPAR, RPAR = map(Suppress, "()")
@@ -27,9 +28,8 @@ string = QuotedString('"')
 
 required_modifier = Literal("+")("required")
 prohibit_modifier = Literal("-")("prohibit")
-integer = integer()
 proximity_modifier = Group(TILDE + integer("proximity"))
-number = fnumber()
+number = fnumber
 fuzzy_modifier = TILDE + Optional(number, default=0.5)("fuzzy")
 
 term = Forward()
@@ -325,10 +325,9 @@ failtests = r"""
     """
 
 success1, _ = expression.runTests(tests)
+if not success1:
+    raise Exception("All tests: FAIL")
+
 success2, _ = expression.runTests(failtests, failureTests=True)
-
-
-if success1 and success2:
-
-else:
+if not success2:
     raise Exception("All tests: FAIL")

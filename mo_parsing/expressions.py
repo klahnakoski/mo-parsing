@@ -234,7 +234,7 @@ class And(ParseExpression):
         if self.parser_name:
             return self.parser_name
 
-        return "{" + " ".join(text(e) for e in self.exprs) + "}"
+        return "{" + " + ".join(text(e) for e in self.exprs) + "}"
 
 
 class Or(ParseExpression):

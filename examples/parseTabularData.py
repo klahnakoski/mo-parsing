@@ -29,14 +29,18 @@ def tableValue(expr, colstart, colend):
     empty_cell_is_zero = False
     if empty_cell_is_zero:
         return Optional(
-            expr.copy().addCondition(
+            expr
+            .copy()
+            .addCondition(
                 mustMatchCols(colstart, colend), message="text not in expected columns"
             ),
             default=0,
         )
     else:
         return Optional(
-            expr.copy().addCondition(
+            expr
+            .copy()
+            .addCondition(
                 mustMatchCols(colstart, colend), message="text not in expected columns"
             )
         )
@@ -51,9 +55,3 @@ row = (
     + tableValue(integer, 15, 16)("M")
     + tableValue(integer, 19, 20)("L")
 )
-
-# parse the sample text - skip over the header and counter lines
-for line in table.splitlines()[3:]:
-
-
-
