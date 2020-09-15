@@ -3563,13 +3563,13 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
         )
 
         # clear parse action that converts to float
-        realnum.setParseAction(None)
+        realnum = realnum.setParseAction(None)
         self.assertEqual(
             realnum.parseString("3.14159")[0], "3.14159", "failed clearing parse action"
         )
 
         # add a new parse action that tests if a '.' is prsent
-        realnum.addParseAction(lambda t: "." in t[0])
+        realnum = realnum.addParseAction(lambda t: "." in t[0])
         self.assertEqual(
             realnum.parseString("3.14159")[0],
             True,
@@ -4384,15 +4384,15 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
                 False, "failed to match keyword using updated keyword chars"
             )
 
-        with Timer(""):
-            engine.CURRENT.set_keyword_chars(alphas)
-            try:
-                Keyword("start").parseString("start1000")
-            except ParseException:
-                self.assertTrue(
-                    False, "failed to match keyword using updated keyword chars"
-                )
+        engine.CURRENT.set_keyword_chars(alphas)
+        try:
+            Keyword("start").parseString("start1000")
+        except ParseException:
+            self.assertTrue(
+                False, "failed to match keyword using updated keyword chars"
+            )
 
+        engine.CURRENT.set_keyword_chars(alphanums)
         with self.assertRaisesParseException(msg="failed to fail matching keyword using updated keyword chars"):
             CaselessKeyword("START").parseString("start1000")
 
@@ -4403,14 +4403,13 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
                 False, "failed to match keyword using updated keyword chars"
             )
 
-        with Timer(""):
-            Keyword.setDefaultKeywordChars(alphas)
-            try:
-                CaselessKeyword("START").parseString("start1000")
-            except ParseException:
-                self.assertTrue(
-                    False, "failed to match keyword using updated keyword chars"
-                )
+        engine.CURRENT.set_keyword_chars(alphas)
+        try:
+            CaselessKeyword("START").parseString("start1000")
+        except ParseException:
+            self.assertTrue(
+                False, "failed to match keyword using updated keyword chars"
+            )
 
     def testCol(self):
 
