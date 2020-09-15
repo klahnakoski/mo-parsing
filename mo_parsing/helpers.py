@@ -21,7 +21,7 @@ from mo_parsing.enhancement import (
     ZeroOrMore,
 )
 from mo_parsing.exceptions import ParseException
-from mo_parsing.results import ParseResults
+from mo_parsing.results import ParseResults, Annotation
 from mo_parsing.tokens import (
     CaselessKeyword,
     CaselessLiteral,
@@ -37,7 +37,7 @@ from mo_parsing.tokens import (
     White,
     Word,
     Literal,
-    _escapeRegexRangeChars,
+    _escapeRegexRangeChars, Token,
 )
 from mo_parsing.utils import (
     _bslash,
@@ -48,7 +48,8 @@ from mo_parsing.utils import (
     nums,
     printables,
     unichr,
-    wrap_parse_action)
+    wrap_parse_action,
+)
 
 # import later
 And, MatchFirst = [None] * 2
@@ -64,9 +65,9 @@ quotedString = Combine(
     Regex(r'"(?:[^"\n\r\\]|(?:"")|(?:\\(?:[^x]|x[0-9a-fA-F]+)))*') + '"'
     | Regex(r"'(?:[^'\n\r\\]|(?:'')|(?:\\(?:[^x]|x[0-9a-fA-F]+)))*") + "'"
 ).set_parser_name("quotedString using single or double quotes")
-unicodeString = Combine(Literal("u") + quotedString).set_parser_name(
-    "unicode string literal"
-)
+unicodeString = Combine(
+    Literal("u") + quotedString
+).set_parser_name("unicode string literal")
 
 
 def delimitedList(expr, separator=",", combine=False):
@@ -109,7 +110,6 @@ def countedArray(expr, intExpr=None):
     if intExpr is None:
         intExpr = Word(nums).setParseAction(lambda t: int(t[0]))
 
-
     arrayExpr = Forward()
 
     def countFieldParseAction(s, l, t):
@@ -119,8 +119,8 @@ def countedArray(expr, intExpr=None):
 
     intExpr = (
         intExpr
-            .set_parser_name("arrayLen")
-            .addParseAction(countFieldParseAction, callDuringTry=True)
+        .set_parser_name("arrayLen")
+        .addParseAction(countFieldParseAction, callDuringTry=True)
     )
     return (intExpr + arrayExpr).set_parser_name("(len) " + text(expr) + "...")
 
@@ -289,9 +289,9 @@ def oneOf(strs, caseless=False, useRegex=True, asKeyword=False):
                     "[%s]" % "".join(_escapeRegexRangeChars(sym) for sym in symbols)
                 ).set_parser_name(" | ".join(symbols))
             else:
-                return Regex("|".join(re.escape(sym) for sym in symbols)).set_parser_name(
-                    " | ".join(symbols)
-                )
+                return Regex("|".join(
+                    re.escape(sym) for sym in symbols
+                )).set_parser_name(" | ".join(symbols))
         except Exception:
             warnings.warn(
                 "Exception creating Regex for oneOf, building MatchFirst",
@@ -300,9 +300,9 @@ def oneOf(strs, caseless=False, useRegex=True, asKeyword=False):
             )
 
     # last resort, just use MatchFirst
-    return MatchFirst(parseElementClass(sym) for sym in symbols).set_parser_name(
-        " | ".join(symbols)
-    )
+    return MatchFirst(
+        parseElementClass(sym) for sym in symbols
+    ).set_parser_name(" | ".join(symbols))
 
 
 def dictOf(key, value):
@@ -375,20 +375,15 @@ def originalTextFor(expr, asString=True):
         ['<i>text</i>']
     """
     locMarker = Empty().setParseAction(lambda s, loc, t: loc)
-    matchExpr = locMarker("_original_start") + expr + locMarker("_original_end")
-    if asString:
-        matchExpr = matchExpr.setParseAction(extractText)
-    else:
-        matchExpr = matchExpr.setParseAction(extractTokens)
-
+    matchExpr = locMarker("_original_start") + Group(expr) + locMarker("_original_end")
+    matchExpr = matchExpr.setParseAction(extractText)
     return matchExpr
 
 
 def extractText(s, l, t):
-    return s[t['_original_start'] : t['_original_end']]
-
-def extractTokens(s, l, t):
-    return t[1]
+    d = t[1]
+    content = s[t["_original_start"]: t["_original_end"]]
+    return ParseResults(d.type_for_result, [content]+[Annotation(k, v) for k, v in d.items()])
 
 
 def ungroup(expr):
@@ -424,11 +419,7 @@ def locatedExpr(expr):
         [[18, 'lkkjj', 23]]
     """
     locator = Empty().setParseAction(lambda s, l, t: l)
-    return Group(
-        locator("locn_start")
-        + Group(expr)("value")
-        + locator("locn_end")
-    )
+    return Group(locator("locn_start") + Group(expr)("value") + locator("locn_end"))
 
 
 def nestedExpr(opener="(", closer=")", content=None, ignoreExpr=quotedString):
@@ -501,7 +492,8 @@ def nestedExpr(opener="(", closer=")", content=None, ignoreExpr=quotedString):
     if content is None:
         if not isinstance(opener, text) or not isinstance(closer, text):
             raise ValueError(
-                "opening and closing arguments must be strings if no content expression is given"
+                "opening and closing arguments must be strings if no content expression"
+                " is given"
             )
 
         ignore_chars = engine.CURRENT.white_chars
@@ -513,36 +505,28 @@ def nestedExpr(opener="(", closer=")", content=None, ignoreExpr=quotedString):
 
             if len(opener) == 1 and len(closer) == 1:
                 if ignoreExpr is not None:
-                    content = Combine(
-                        OneOrMore(
-                            ~ignoreExpr
-                            + CharsNotIn(
-                                opener + closer + "".join(ignore_chars), exact=1,
-                            )
-                        )
-                    ).setParseAction(scrub)
+                    content = Combine(OneOrMore(
+                        ~ignoreExpr
+                        + CharsNotIn(opener + closer + "".join(ignore_chars), exact=1,)
+                    )).setParseAction(scrub)
                 else:
                     content = empty.copy() + CharsNotIn(
                         opener + closer + "".join(ignore_chars)
                     ).setParseAction(scrub)
             else:
                 if ignoreExpr is not None:
-                    content = Combine(
-                        OneOrMore(
-                            ~ignoreExpr
-                            + ~Literal(opener)
-                            + ~Literal(closer)
-                            + CharsNotIn(ignore_chars, exact=1)
-                        )
-                    ).setParseAction(scrub)
+                    content = Combine(OneOrMore(
+                        ~ignoreExpr
+                        + ~Literal(opener)
+                        + ~Literal(closer)
+                        + CharsNotIn(ignore_chars, exact=1)
+                    )).setParseAction(scrub)
                 else:
-                    content = Combine(
-                        OneOrMore(
-                            ~Literal(opener)
-                            + ~Literal(closer)
-                            + CharsNotIn(ignore_chars, exact=1)
-                        )
-                    ).setParseAction(scrub)
+                    content = Combine(OneOrMore(
+                        ~Literal(opener)
+                        + ~Literal(closer)
+                        + CharsNotIn(ignore_chars, exact=1)
+                    )).setParseAction(scrub)
     ret = Forward()
     if ignoreExpr is not None:
         ret <<= Group(
@@ -650,6 +634,7 @@ def tokenMap(func, *args):
     :param args: ADDITIONAL PARAMETERS TO func
     :return:  map(func(e), token)
     """
+
     def pa(s, l, t):
         return [func(tokn, *args) for tokn in t]
 
@@ -671,65 +656,7 @@ downcaseTokens = tokenMap(lambda t: text(t).lower())
 Deprecated in favor of :class:`downcaseTokens`"""
 
 
-def _makeTags(tagStr, xml, suppress_LT=Suppress("<"), suppress_GT=Suppress(">")):
-    """Internal helper to construct opening and closing tag expressions, given a tag name"""
-    if isinstance(tagStr, text):
-        resname = tagStr
-        tagStr = Keyword(tagStr, caseless=not xml)
-    else:
-        resname = tagStr.parser_name
-
-    tagAttrName = Word(alphas, alphanums + "_-:")
-    if xml:
-        tagAttrValue = dblQuotedString.copy().setParseAction(removeQuotes)
-        openTag = (
-            suppress_LT
-            + tagStr("tag")
-            + Dict(ZeroOrMore(Group(tagAttrName + Suppress("=") + tagAttrValue)))
-            + Optional("/", default=[False])("empty").setParseAction(
-                lambda s, l, t: t[0] == "/"
-            )
-            + suppress_GT
-        )
-    else:
-        tagAttrValue = quotedString.copy().setParseAction(removeQuotes) | Word(
-            printables, excludeChars=">"
-        )
-        openTag = (
-            suppress_LT
-            + tagStr("tag")
-            + Dict(
-                ZeroOrMore(
-                    Group(
-                        tagAttrName.setParseAction(downcaseTokens)
-                        + Optional(Suppress("=") + tagAttrValue)
-                    )
-                )
-            )
-            + Optional("/", default=[False])("empty").setParseAction(
-                lambda s, l, t: t[0] == "/"
-            )
-            + suppress_GT
-        )
-    closeTag = Combine(Literal("</") + tagStr + ">", adjacent=False)
-
-    openTag.set_parser_name("<%s>" % resname)
-    # add start<tagname> results name in parse action now that ungrouped names are not reported at two levels
-    openTag.addParseAction(
-        lambda t: t.__setitem__(
-            "start" + "".join(resname.replace(":", " ").title().split()), t.copy()
-        )
-    )
-    closeTag = closeTag(
-        "end" + "".join(resname.replace(":", " ").title().split())
-    ).set_parser_name("</%s>" % resname)
-    openTag.tag = resname
-    closeTag.tag = resname
-    openTag.tag_body = SkipTo(closeTag)
-    return openTag, closeTag
-
-
-def makeHTMLTags(tagStr):
+def makeHTMLTags(tagStr, suppress_LT=Suppress("<"), suppress_GT=Suppress(">")):
     """Helper to construct opening and closing tag expressions for HTML,
     given a tag name. Matches tags in either upper or lower case,
     attributes with namespaces and with quoted or unquoted values.
@@ -751,16 +678,47 @@ def makeHTMLTags(tagStr):
 
         mo_parsing -> https://github.com/mo_parsing/mo_parsing/wiki
     """
-    return _makeTags(tagStr, False)
+    if isinstance(tagStr, text):
+        resname = tagStr
+        tagStr = Keyword(tagStr, caseless=True)
+    else:
+        resname = tagStr.parser_name
 
+    tagAttrName = Word(alphas, alphanums + "_-:")
+    tagAttrValue = quotedString.addParseAction(removeQuotes) | Word(
+        printables, excludeChars=">"
+    )
+    simpler_name = "".join(resname.replace(":", " ").title().split())
 
-def makeXMLTags(tagStr):
-    """Helper to construct opening and closing tag expressions for XML,
-    given a tag name. Matches tags only in the given upper/lower case.
+    openTag = (
+        (
+        suppress_LT
+        + tagStr("tag")
+        + Dict(ZeroOrMore(Group(
+            tagAttrName.setParseAction(downcaseTokens)
+            + Optional(Suppress("=") + tagAttrValue)
+        )))("attrs")
+        + Optional(
+            "/", default=[False]
+        )("empty").setParseAction(lambda s, l, t: t[0] == "/")
+        + suppress_GT
+    )
+        .set_token_name("start" + simpler_name)
+        .set_parser_name("<%s>" % resname)
+    )
 
-    Example: similar to :class:`makeHTMLTags`
-    """
-    return _makeTags(tagStr, True)
+    closeTag = (
+        Combine(Literal("</") + tagStr + ">", adjacent=False)
+        .set_token_name("end" + simpler_name)
+        .set_parser_name("</%s>" % resname)
+    )
+
+    openTag.tag = resname
+    closeTag.tag = resname
+    openTag.tag_body = SkipTo(closeTag)
+
+    return openTag, closeTag
+
 
 
 def withAttribute(*args, **attrDict):
@@ -963,7 +921,7 @@ def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
                     (op,),
                     arity,
                     assoc,
-                    parse_actions
+                    parse_actions,
                 ))
             else:
                 opList.append((
@@ -971,7 +929,7 @@ def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
                     (op,),
                     arity,
                     assoc,
-                    parse_actions
+                    parse_actions,
                 ))
         elif arity == 2:
             op = norm(op)
@@ -980,7 +938,7 @@ def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
                 (op,),
                 arity,
                 assoc,
-                parse_actions
+                parse_actions,
             ))
         elif arity == 3:
             op = (norm(op[0]), norm(op[1]))
@@ -989,7 +947,7 @@ def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
                 op,
                 arity,
                 assoc,
-                parse_actions
+                parse_actions,
             ))
     opList = tuple(opList)
 
@@ -999,28 +957,22 @@ def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
 
         return output
 
-    prefix_ops = MatchFirst(
-        [
-            op[0].addParseAction(record_op(op))
-            for expr, op, arity, assoc, pa in opList
-            if arity == 1 and assoc == opAssoc.RIGHT
-        ]
-    )
-    suffix_ops = MatchFirst(
-        [
-            op[0].addParseAction(record_op(op))
-            for expr, op, arity, assoc, pa in opList
-            if arity == 1 and assoc == opAssoc.LEFT
-        ]
-    )
-    ops = MatchFirst(
-        [
-            opPart.addParseAction(record_op(op, opPart))
-            for expr, op, arity, assoc, pa in opList
-            if arity > 1
-            for opPart in op
-        ]
-    )
+    prefix_ops = MatchFirst([
+        op[0].addParseAction(record_op(op))
+        for expr, op, arity, assoc, pa in opList
+        if arity == 1 and assoc == opAssoc.RIGHT
+    ])
+    suffix_ops = MatchFirst([
+        op[0].addParseAction(record_op(op))
+        for expr, op, arity, assoc, pa in opList
+        if arity == 1 and assoc == opAssoc.LEFT
+    ])
+    ops = MatchFirst([
+        opPart.addParseAction(record_op(op, opPart))
+        for expr, op, arity, assoc, pa in opList
+        if arity > 1
+        for opPart in op
+    ])
 
     def make_tree(instring, loc, tokens):
         flat_tokens = list(tokens)
@@ -1034,13 +986,7 @@ def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
                     todo = list(reversed(list(enumerate(flat_tokens[:-1]))))
                     for i, (r, o) in todo:
                         if o == (op,):
-                            result = ParseResults(
-                                expr,
-                                (
-                                    r,
-                                    flat_tokens[i + 1][0]
-                                )
-                            )
+                            result = ParseResults(expr, (r, flat_tokens[i + 1][0]))
                             break
                     else:
                         op_index += 1
@@ -1050,13 +996,7 @@ def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
                     todo = list(enumerate(flat_tokens[1:]))
                     for i, (r, o) in todo:
                         if o == (op,):
-                            result = ParseResults(
-                                expr,
-                                (
-                                    flat_tokens[i][0],
-                                    r,
-                                )
-                            )
+                            result = ParseResults(expr, (flat_tokens[i][0], r,))
                             break
                     else:
                         op_index += 1
@@ -1069,12 +1009,7 @@ def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
                 for i, (r, o) in todo:
                     if o == (op, op[0]):
                         result = ParseResults(
-                            expr,
-                            (
-                                flat_tokens[i][0],
-                                r,
-                                flat_tokens[i + 2][0]
-                            )
+                            expr, (flat_tokens[i][0], r, flat_tokens[i + 2][0])
                         )
                         break
                 else:
@@ -1098,7 +1033,7 @@ def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
                                     flat_tokens[i + 2][0],
                                     r1,
                                     flat_tokens[i + 4][0],
-                                )
+                                ),
                             )
                             break
                 else:
@@ -1236,7 +1171,9 @@ def indentedBlock(blockStatementExpr, indentStack, indent=True):
             indentStack.pop()
 
     NL = OneOrMore(LineEnd().suppress())
-    INDENT = (Empty() + Empty().setParseAction(checkSubIndent)).set_parser_name("INDENT")
+    INDENT = (
+        Empty() + Empty().setParseAction(checkSubIndent)
+    ).set_parser_name("INDENT")
     PEER = Empty().setParseAction(checkPeerIndent).set_parser_name("")
     UNDENT = Empty().setParseAction(checkUnindent).set_parser_name("UNINDENT")
     if indent:
@@ -1274,9 +1211,9 @@ def replaceHTMLEntity(t):
 
 
 # it's easy to get these comment structures wrong - they're very common, so may as well make them available
-cStyleComment = Combine(Regex(r"/\*(?:[^*]|\*(?!/))*") + "*/").set_parser_name(
-    "C style comment"
-)
+cStyleComment = Combine(
+    Regex(r"/\*(?:[^*]|\*(?!/))*") + "*/"
+).set_parser_name("C style comment")
 "Comment of the form ``/* ... */``"
 
 htmlComment = Regex(r"<!--[\s\S]*?-->").set_parser_name("HTML comment")
@@ -1301,21 +1238,17 @@ pythonStyleComment = Regex(r"#.*").set_parser_name("Python style comment")
 "Comment of the form ``# ... (to end of line)``"
 
 _commasepitem = (
-    Combine(
-        OneOrMore(
-            Word(printables, excludeChars=",")
-            + Optional(Word(" \t") + ~Literal(",") + ~LineEnd())
-        )
-    )
-    .addParseAction(
-        lambda t: text(t).strip()
-    )
+    Combine(OneOrMore(
+        Word(printables, excludeChars=",")
+        + Optional(Word(" \t") + ~Literal(",") + ~LineEnd())
+    ))
+    .addParseAction(lambda t: text(t).strip())
     .streamline()
     .set_parser_name("commaItem")
 )
-commaSeparatedList = delimitedList(
-    Optional(quotedString.copy() | _commasepitem, default="")
-).set_parser_name("commaSeparatedList")
+commaSeparatedList = delimitedList(Optional(
+    quotedString.copy() | _commasepitem, default=""
+)).set_parser_name("commaSeparatedList")
 
 """Here are some common low-level expressions that may be useful in
 jump-starting parser development:
@@ -1468,11 +1401,15 @@ convertToFloat = tokenMap(float)
 integer = Word(nums).set_parser_name("integer").setParseAction(convertToInteger)
 """expression that parses an unsigned integer, returns an int"""
 
-hex_integer = Word(hexnums).set_parser_name("hex integer").setParseAction(tokenMap(int, 16))
+hex_integer = (
+    Word(hexnums).set_parser_name("hex integer").setParseAction(tokenMap(int, 16))
+)
 """expression that parses a hexadecimal integer, returns an int"""
 
 signed_integer = (
-    Regex(r"[+-]?\d+").set_parser_name("signed integer").setParseAction(convertToInteger)
+    Regex(r"[+-]?\d+")
+    .set_parser_name("signed integer")
+    .setParseAction(convertToInteger)
 )
 
 fraction = (
@@ -1523,26 +1460,28 @@ ipv4_address = Regex(
 "IPv4 address (``0.0.0.0 - 255.255.255.255``)"
 
 _ipv6_part = Regex(r"[0-9a-fA-F]{1,4}").set_parser_name("hex_integer")
-_full_ipv6_address = (_ipv6_part + (":" + _ipv6_part) * 7).set_parser_name("full IPv6 address")
+_full_ipv6_address = (
+    _ipv6_part + (":" + _ipv6_part) * 7
+).set_parser_name("full IPv6 address")
 _short_ipv6_address = (
     Optional(_ipv6_part + (":" + _ipv6_part) * (0, 6))
     + "::"
     + Optional(_ipv6_part + (":" + _ipv6_part) * (0, 6))
 ).set_parser_name("short IPv6 address")
-_short_ipv6_address.addCondition(
-    lambda t: sum(1 for tt in t if _ipv6_part.matches(tt)) < 8
-)
+_short_ipv6_address.addCondition(lambda t: sum(
+    1 for tt in t if _ipv6_part.matches(tt)
+) < 8)
 _mixed_ipv6_address = ("::ffff:" + ipv4_address).set_parser_name("mixed IPv6 address")
 ipv6_address = Combine(
-    (_full_ipv6_address | _mixed_ipv6_address | _short_ipv6_address).set_parser_name(
-        "IPv6 address"
-    )
+    (
+        _full_ipv6_address | _mixed_ipv6_address | _short_ipv6_address
+    ).set_parser_name("IPv6 address")
 ).set_parser_name("IPv6 address")
 "IPv6 address (long, short, or mixed form)"
 
-mac_address = Regex(
-    r"[0-9a-fA-F]{2}([:.-])[0-9a-fA-F]{2}(?:\1[0-9a-fA-F]{2}){4}"
-).set_parser_name("MAC address")
+mac_address = (
+    Regex(r"[0-9a-fA-F]{2}([:.-])[0-9a-fA-F]{2}(?:\1[0-9a-fA-F]{2}){4}").set_parser_name("MAC address")
+)
 "MAC address xx:xx:xx:xx:xx (may also have '-' or '.' delimiters)"
 
 
@@ -1600,17 +1539,20 @@ def convertToDatetime(fmt="%Y-%m-%dT%H:%M:%S.%f"):
     return cvt_fn
 
 
-iso8601_date = Regex(
-    r"(?P<year>\d{4})(?:-(?P<month>\d\d)(?:-(?P<day>\d\d))?)?"
-).set_parser_name("ISO8601 date")
+iso8601_date = (
+    Regex(r"(?P<year>\d{4})(?:-(?P<month>\d\d)(?:-(?P<day>\d\d))?)?").set_parser_name("ISO8601 date")
+)
 "ISO8601 date (``yyyy-mm-dd``)"
 
 iso8601_datetime = Regex(
-    r"(?P<year>\d{4})-(?P<month>\d\d)-(?P<day>\d\d)[T ](?P<hour>\d\d):(?P<minute>\d\d)(:(?P<second>\d\d(\.\d*)?)?)?(?P<tz>Z|[+-]\d\d:?\d\d)?"
+    r"(?P<year>\d{4})-(?P<month>\d\d)-(?P<day>\d\d)[T"
+    r" ](?P<hour>\d\d):(?P<minute>\d\d)(:(?P<second>\d\d(\.\d*)?)?)?(?P<tz>Z|[+-]\d\d:?\d\d)?"
 ).set_parser_name("ISO8601 datetime")
 "ISO8601 datetime (``yyyy-mm-ddThh:mm:ss.s(Z|+-00:00)``) - trailing seconds, milliseconds, and timezone optional; accepts separating ``'T'`` or ``' '``"
 
-uuid = Regex(r"[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}").set_parser_name("UUID")
+uuid = (
+    Regex(r"[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}").set_parser_name("UUID")
+)
 "UUID (``xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx``)"
 
 _html_stripper = anyOpenTag.suppress() | anyCloseTag.suppress()
@@ -1637,25 +1579,21 @@ def stripHTMLTags(s, l, tokens):
 def _strip(tok):
     return "".join(tok).strip()
 
+
 _commasepitem = (
-    Combine(
-        OneOrMore(
-            ~Literal(",")
-            + ~LineEnd()
-            + Word(printables, excludeChars=",")
-            + Optional(White(" \t"))
-        )
-    )
+    Combine(OneOrMore(
+        ~Literal(",")
+        + ~LineEnd()
+        + Word(printables, excludeChars=",")
+        + Optional(White(" \t"))
+    ))
     .streamline()
     .set_parser_name("commaItem")
     .addParseAction(_strip)
 )
-comma_separated_list = (
-    delimitedList(
-        Optional(quotedString.copy() | _commasepitem, default="")
-    )
-    .set_parser_name("comma separated list")
-)
+comma_separated_list = delimitedList(Optional(
+    quotedString.copy() | _commasepitem, default=""
+)).set_parser_name("comma separated list")
 """Predefined expression of 1 or more printable words or quoted strings, separated by commas."""
 
 
@@ -1666,15 +1604,17 @@ core._flatten = _flatten
 core.replaceWith = replaceWith
 core.quotedString = quotedString
 
-_escapedPunc = Word(_bslash, r"\[]-*.$+^?()~ ", exact=2).setParseAction(
-    lambda s, l, t: t[0][1]
+_escapedPunc = Word(
+    _bslash, r"\[]-*.$+^?()~ ", exact=2
+).setParseAction(lambda s, l, t: t[0][1])
+_escapedHexChar = (
+    Regex(r"\\0?[xX][0-9a-fA-F]+").setParseAction(lambda s, l, t: unichr(int(
+        t[0].lstrip(r"\0x"), 16
+    )))
 )
-_escapedHexChar = Regex(r"\\0?[xX][0-9a-fA-F]+").setParseAction(
-    lambda s, l, t: unichr(int(t[0].lstrip(r"\0x"), 16))
-)
-_escapedOctChar = Regex(r"\\0[0-7]+").setParseAction(
-    lambda s, l, t: unichr(int(t[0][1:], 8))
-)
+_escapedOctChar = Regex(r"\\0[0-7]+").setParseAction(lambda s, l, t: unichr(int(
+    t[0][1:], 8
+)))
 _singleChar = (
     _escapedPunc | _escapedHexChar | _escapedOctChar | CharsNotIn(r"\]", exact=1)
 )

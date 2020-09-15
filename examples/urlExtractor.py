@@ -1,6 +1,5 @@
 # URL extractor
 # Copyright 2004, Paul McGuire
-import pprint
 from urllib.request import urlopen
 
 from mo_parsing import makeHTMLTags

@@ -2685,22 +2685,19 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
 
     def testOriginalTextFor(self):
         def rfn(t):
-            return "%s:%d" % (t.src, len("".join(t)))
+            return "%s:%d" % (t['src'], len("".join(t)))
 
-        makeHTMLStartTag = lambda tag: originalTextFor(
-            makeHTMLTags(tag)[0], asString=False
+        start = originalTextFor(
+            makeHTMLTags("IMG")[0], asString=False
         )
-
-        # use the lambda, Luke
-        start = makeHTMLStartTag("IMG")
 
         # don't replace our fancy parse action with rfn,
         # append rfn to the list of parse actions
-        start.addParseAction(rfn)
+        start1 = start.addParseAction(rfn)
 
         text = """_<img src="images/cal.png"
             alt="cal image" width="16" height="15">_"""
-        s = start.transformString(text)
+        s = start1.transformString(text)
         self.assertTrue(
             s.startswith("_images/cal.png:"), "failed to preserve input s properly"
         )
@@ -2708,7 +2705,7 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
             s.endswith("77_"), "failed to return full original text properly"
         )
 
-        tag_fields = makeHTMLStartTag("IMG").searchString(text)[0]
+        tag_fields = start.searchString(text)[0]
         if VERBOSE:
             self.assertEqual(
                 sorted(tag_fields.keys()),
