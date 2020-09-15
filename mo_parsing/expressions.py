@@ -480,71 +480,41 @@ class Each(ParseExpression):
         return self
 
     def parseImpl(self, instring, loc, doActions=True):
-        if self.initExprGroups:
-            self.opt1map = dict(
-                (id(e.expr), e) for e in self.exprs if isinstance(e, Optional)
-            )
-            opt1 = [e.expr for e in self.exprs if isinstance(e, Optional)]
-            opt2 = [
-                e
-                for e in self.exprs
-                if e.parser_config.mayReturnEmpty and not isinstance(e, Optional)
-            ]
-            self.optionals = opt1 + opt2
-            self.multioptionals = [
-                e.expr for e in self.exprs if isinstance(e, ZeroOrMore)
-            ]
-            self.multirequired = [
-                e.expr for e in self.exprs if isinstance(e, OneOrMore)
-            ]
-            self.required = [
-                e
-                for e in self.exprs
-                if not isinstance(e, (Optional, ZeroOrMore, OneOrMore))
-            ]
-            self.required += self.multirequired
-            self.initExprGroups = False
-        tmpLoc = loc
-        tmpReqd = self.required[:]
-        tmpOpt = self.optionals[:]
+        end_loc = loc
         matchOrder = []
-
-        keepMatching = True
-        while keepMatching:
-            tmpExprs = tmpReqd + tmpOpt + self.multioptionals + self.multirequired
-            failed = []
-            for e in tmpExprs:
+        while True:
+            for e in self.exprs:
                 try:
-                    tmpLoc = e.tryParse(instring, tmpLoc)
+                    temp_loc = e.tryParse(instring, end_loc)
+                    if temp_loc == end_loc:
+                        continue
+                    end_loc = temp_loc
+                    matchOrder.append(e)
+                    break
                 except ParseException:
-                    failed.append(e)
-                else:
-                    matchOrder.append(self.opt1map.get(id(e), e))
-                    if e in tmpReqd:
-                        tmpReqd.remove(e)
-                    elif e in tmpOpt:
-                        tmpOpt.remove(e)
-            if len(failed) == len(tmpExprs):
-                keepMatching = False
+                    continue
+            else:
+                break
 
-        if tmpReqd:
-            missing = ", ".join(text(e) for e in tmpReqd)
+        found = set(id(m) for m in matchOrder)
+        missing = [e for e in self.exprs if id(e) not in found and not e.parser_config.mayReturnEmpty]
+        if missing:
+            missing = ", ".join(text(e) for e in missing)
             raise ParseException(
                 instring, loc, "Missing one or more required elements (%s)" % missing
             )
 
         # add any unmatched Optionals, in case they have default values defined
         matchOrder += [
-            e for e in self.exprs if isinstance(e, Optional) and e.expr in tmpOpt
+            e for e in self.exprs if id(e) not in found and e.parser_config.mayReturnEmpty
         ]
 
-        resultlist = []
+        results = []
         for e in matchOrder:
-            loc, results = e._parse(instring, loc, doActions)
-            resultlist.append(results)
+            loc, result = e._parse(instring, loc, doActions)
+            results.append(result)
 
-        finalResults = ParseResults(self, resultlist)
-        return loc, finalResults
+        return loc, ParseResults(self, results)
 
     def __str__(self):
         if self.parser_name:
