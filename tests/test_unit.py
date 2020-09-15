@@ -3195,21 +3195,19 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
 
         exp = openBrace + (foo[1, ...]("foo") & bar[...]("bar")) + closeBrace
 
-        tests = """\
-            {foo}
-            {bar foo bar foo bar foo}
-            """.splitlines()
-        for test in tests:
-            test = test.strip()
-            if not test:
-                continue
-            result = exp.parseString(test)
+        self.assertEqual(
+            exp.parseString("{foo}"),
+            ["foo"]
+        )
+        self.assertEqual(
+            exp.parseString("{bar foo bar foo bar foo}"),
+            ["bar", "foo", "bar", "foo", "bar", "foo"]
+        )
 
-            self.assertEqual(
-                result,
-                test.strip("{}").split(),
-                "failed to parse Each expression %r" % test,
-            )
+        self.assertEqual(
+            exp.parseString("{foo foo bar foo bar bar}"),
+            ["foo", "foo", "bar", "foo", "bar", "bar"]
+        )
 
         with TestCase.assertRaises(self, ParseException):
             exp.parseString("{bar}")
@@ -5262,7 +5260,7 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
         res = sum(g1.parseString(teststring)[1:])
 
         self.assertEqual(
-            res.get("A", "A not found"), "aaa", "get on existing key failed"
+            res.get("A", "A not found"), ["a", "aa", "aaa"], "get on existing key failed"
         )
         self.assertEqual(res.get("D", "!D"), "!D", "get on missing key failed")
 
