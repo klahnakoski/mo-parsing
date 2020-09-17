@@ -13,7 +13,7 @@ from mo_parsing.exceptions import (
 )
 from mo_parsing.core import ParserElement
 from mo_parsing.tokens import Empty
-from mo_parsing.results import ParseResults, Annotation
+from mo_parsing.results import ParseResults, Annotation, get_name
 from mo_parsing.utils import _MAX_INT, empty_list, empty_tuple
 
 # import later
@@ -650,7 +650,6 @@ class Group(TokenConverter):
         self.parser_config.mayIndexError = expr.parser_config.mayIndexError
         self.parser_config.mayReturnEmpty = expr.parser_config.mayReturnEmpty
 
-
 class Dict(Group):
     """Converter to return a repetitive expression as a list, but also
     as a dictionary. Each element can also be referenced using the first
@@ -692,7 +691,13 @@ class Dict(Group):
     """
 
     def __init__(self, expr):
-        super(Dict, self).__init__(expr)
+        Group.__init__(self, expr)
+        self.parseAction.append(_dict_post_parse)
+
+
+class OpenDict(TokenConverter):
+    def __init__(self, expr):
+        TokenConverter.__init__(self, expr)
         self.parseAction.append(_dict_post_parse)
 
 

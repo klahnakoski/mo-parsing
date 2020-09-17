@@ -18,7 +18,7 @@ from mo_parsing.enhancement import (
     SkipTo,
     Suppress,
     TokenConverter,
-    ZeroOrMore,
+    ZeroOrMore, OpenDict,
 )
 from mo_parsing.exceptions import ParseException
 from mo_parsing.results import ParseResults, Annotation
@@ -699,10 +699,10 @@ def makeHTMLTags(tagStr, suppress_LT=Suppress("<"), suppress_GT=Suppress(">")):
         (
             suppress_LT
             + tagStr("tag")
-            + Dict(ZeroOrMore(Group(
+            + OpenDict(ZeroOrMore(Group(
                 tagAttrName.addParseAction(downcaseTokens)
                 + Optional(Suppress("=") + tagAttrValue)
-            )))("attrs")
+            )))
             + Optional(
                 "/", default=[False]
             )("empty").addParseAction(lambda s, l, t: t[0] == "/")

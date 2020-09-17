@@ -72,6 +72,7 @@ from mo_parsing import (
     ParseSyntaxException,
 )
 from mo_parsing.engine import Engine
+from mo_parsing.enhancement import OpenDict
 from mo_parsing.helpers import (
     real,
     sci_real,
@@ -314,7 +315,7 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
 
     def testParseJSONDataSimple(self):
         jsons = json.dumps({"glossary": {"title": "example glossary"}})
-        expected = [["glossary", [[["title", "example glossary"]]]]]
+        expected = [["glossary", [["title", "example glossary"]]]]
         result = jsonObject.parseString(jsons)
         self.assertEqual(result, expected, "failed test {}".format(jsons))
 
@@ -622,7 +623,7 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
 
         for t, exp in zip((test1, test2, test3, test4, test5), expected):
             result = jsonObject.parseString(t)
-            
+
             self.assertEqual(result, exp, "failed test {}".format(t))
 
     def testParseCommaSeparatedValues(self):
@@ -1929,25 +1930,25 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
 
             if "startBody" in t:
                 self.assertEqual(
-                    bool(t['empty']),
+                    bool(t["empty"]),
                     expectedEmpty,
                     "expected {} token, got {}".format(
                         expectedEmpty and "empty" or "not empty",
-                        t['empty'] and "empty" or "not empty",
+                        t["empty"] and "empty" or "not empty",
                     ),
                 )
                 self.assertEqual(
-                    t['attrs']['bgcolor'],
+                    t["attrs"]["bgcolor"],
                     expectedBG,
                     "failed to match BGCOLOR, expected {}, got {}".format(
-                        expectedBG, t['attrs']['bgcolor']
+                        expectedBG, t["attrs"]["bgcolor"]
                     ),
                 )
                 self.assertEqual(
-                    t['attrs']['fgcolor'],
+                    t["attrs"]["fgcolor"],
                     expectedFG,
                     "failed to match FGCOLOR, expected {}, got {}".format(
-                        expectedFG, t['attrs']['bgcolor']
+                        expectedFG, t["attrs"]["bgcolor"]
                     ),
                 )
             elif "endBody" in t:
@@ -2685,11 +2686,9 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
 
     def testOriginalTextFor(self):
         def rfn(t):
-            return "%s:%d" % (t['attrs']['src'], len("".join(t)))
+            return "%s:%d" % (t["attrs"]["src"], len("".join(t)))
 
-        start = originalTextFor(
-            makeHTMLTags("IMG")[0], asString=False
-        )
+        start = originalTextFor(makeHTMLTags("IMG")[0], asString=False)
 
         # don't replace our fancy parse action with rfn,
         # append rfn to the list of parse actions
@@ -3192,18 +3191,15 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
 
         exp = openBrace + (foo[1, ...]("foo") & bar[...]("bar")) + closeBrace
 
-        self.assertEqual(
-            exp.parseString("{foo}"),
-            ["foo"]
-        )
+        self.assertEqual(exp.parseString("{foo}"), ["foo"])
         self.assertEqual(
             exp.parseString("{bar foo bar foo bar foo}"),
-            ["bar", "foo", "bar", "foo", "bar", "foo"]
+            ["bar", "foo", "bar", "foo", "bar", "foo"],
         )
 
         self.assertEqual(
             exp.parseString("{foo foo bar foo bar bar}"),
-            ["foo", "foo", "bar", "foo", "bar", "bar"]
+            ["foo", "foo", "bar", "foo", "bar", "bar"],
         )
 
         with TestCase.assertRaises(self, ParseException):
@@ -4525,27 +4521,38 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
 
     def testParseResultsNamesInGroupWithDict(self):
 
-        key = identifier()
-        value = integer()
-        lat = real()
-        long = real()
+        key = identifier
+        value = integer
+        lat = real
+        long = real
         EQ = Suppress("=")
 
-        data = lat("lat") + long("long") + Dict(OneOrMore(Group(key + EQ + value)))
+        data = lat("lat") + long("long") + OpenDict(OneOrMore(Group(key + EQ + value)))
         site = QuotedString('"')("name") + Group(data)("data")
 
         test_string = '"Golden Gate Bridge" 37.819722 -122.478611 height=746 span=4200'
-        site.runTests(test_string)
+        result = site.parseString(test_string)
+        self.assertEqual(
+            result,
+            {
+                "name": "Golden Gate Bridge",
+                "data": {
+                    "lat": 37.819722,
+                    "long": -122.478611,
+                    "height": 746,
+                    "span": 4200,
+                },
+            },
+        )
 
         a, aEnd = makeHTMLTags("a")
         attrs = a.parseString("<a href='blah'>")
-
         self.assertParseResultsEquals(
             attrs,
             expected_dict={
-                "startA": {"href": "blah", "tag": "a", "empty": False},
+                "startA": {"href": "blah", "tag": "A", "empty": False},
                 "href": "blah",
-                "tag": "a",
+                "tag": "A",
                 "empty": False,
             },
         )
@@ -5257,7 +5264,9 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
         res = sum(g1.parseString(teststring)[1:])
 
         self.assertEqual(
-            res.get("A", "A not found"), ["a", "aa", "aaa"], "get on existing key failed"
+            res.get("A", "A not found"),
+            ["a", "aa", "aaa"],
+            "get on existing key failed",
         )
         self.assertEqual(res.get("D", "!D"), "!D", "get on missing key failed")
 

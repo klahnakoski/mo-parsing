@@ -113,6 +113,9 @@ class ParseResults(object):
         elif isinstance(i, slice):
             return list(iter(self))[i]
         else:
+            if get_name(self) == i:
+                return self
+
             values = list(self._get_item_by_name(i))
             if len(values) == 1:
                 return values[0]

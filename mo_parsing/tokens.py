@@ -859,6 +859,25 @@ class QuotedString(Token):
 
         return loc, ParseResults(self, [ret])
 
+    def copy(self):
+        output = Token.copy(self)
+
+        output.quoteChar = self.quoteChar
+        output.quoteCharLen = self.quoteCharLen
+        output.firstQuoteChar = self.firstQuoteChar
+        output.endQuoteChar = self.endQuoteChar
+        output.endQuoteCharLen = self.endQuoteCharLen
+        output.escChar = self.escChar
+        output.escQuote = self.escQuote
+        output.unquoteResults = self.unquoteResults
+        output.convertWhitespaceEscapes = self.convertWhitespaceEscapes
+        output.flags = self.flags
+        output.pattern = self.pattern
+        output.re = self.re
+        output.reString = self.reString
+        output.re_match = self.re.match
+        return output
+
     def __str__(self):
         try:
             return super(QuotedString, self).__str__()
