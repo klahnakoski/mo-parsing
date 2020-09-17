@@ -1668,7 +1668,7 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
             reprsymbol = ""
 
             def __init__(self, t):
-                self.args = t[0][0], t[2][0]
+                self.args = t[0], t[2]
 
             def __str__(self):
                 sep = " %s " % self.reprsymbol
@@ -1702,7 +1702,7 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
 
         class BoolNot(BoolOperand):
             def __init__(self, t):
-                self.arg = t[1][0]
+                self.arg = t[1]
 
             def __str__(self):
                 return "~" + str(self.arg)
@@ -1714,7 +1714,7 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
                     v = bool(self.arg)
                 return not v
 
-        boolOperand = Group(oneOf("True False") | Word(alphas, max=1))
+        boolOperand = oneOf("True False") | Word(alphas, max=1)
         boolExpr = infixNotation(
             boolOperand,
             [
@@ -1742,9 +1742,9 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
 
         for t in test:
             res = boolExpr.parseString(t)
-
+            value = bool(res[0])
             expected = eval(t, {}, boolVars)
-            self.assertEquals(expected, bool(res[0]))
+            self.assertEquals(expected, value)
 
     def testInfixNotationGrammarTest3(self):
 
@@ -3325,7 +3325,7 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
 
         id_ref = locatedExpr("ID" + Word(alphanums, exact=12)("id"))
 
-        res = id_ref.searchString(samplestr1)[0][0]
+        res = id_ref.searchString(samplestr1)[0]
 
         self.assertEqual(
             samplestr1[res["locn_start"] : res["locn_end"]].strip(),  # CURRENTLY CAN NOT GET END, ONLY GET BEGINNING OF NEXT TOKEN

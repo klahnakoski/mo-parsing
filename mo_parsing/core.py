@@ -421,6 +421,7 @@ class ParserElement(object):
         """
 
         if isinstance(self, Group):
+            g = self
             scanned = [t for t, s, e in self.scanString(instring, maxMatches)]
         else:
             g = Group(self)
