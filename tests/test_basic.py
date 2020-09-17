@@ -22,13 +22,13 @@ class TestBasic(TestCase):
 
         ident = Word(alphas, alphanums + "_$")
 
-        columnName = delimitedList(ident, ".", combine=True).setParseAction(
+        columnName = delimitedList(ident, ".", combine=True).addParseAction(
             upcaseTokens
         )
         columnNameList = Group(delimitedList(columnName)).set_parser_name("columns")
         columnSpec = "*" | columnNameList
 
-        tableName = delimitedList(ident, ".", combine=True).setParseAction(upcaseTokens)
+        tableName = delimitedList(ident, ".", combine=True).addParseAction(upcaseTokens)
         tableNameList = Group(delimitedList(tableName)).set_parser_name("tables")
 
         simpleSQL = (
@@ -105,7 +105,7 @@ class TestBasic(TestCase):
             """,
         )
 
-        helper_uuid.setParseAction(tokenMap(uuid.UUID))
+        helper_uuid.addParseAction(tokenMap(uuid.UUID))
         runTests(
             helper_uuid,
             """

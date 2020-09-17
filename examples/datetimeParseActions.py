@@ -21,9 +21,9 @@ def convertToInt(tokens):
     return int(tokens[0])
 
 
-integer.setParseAction(convertToInt)
+integer.addParseAction(convertToInt)
 # or can be written as one line as
-# integer = Word(nums).setParseAction(lambda t: int(t[0]))
+# integer = Word(nums).addParseAction(lambda t: int(t[0]))
 
 # define a pattern for a year/month/day date
 date_expr = integer("year") + "/" + integer("month") + "/" + integer("day")
@@ -46,7 +46,7 @@ def convertToDatetime(s, loc, tokens):
         raise ParseException(s, loc, errmsg)
 
 
-date_expr.setParseAction(convertToDatetime)
+date_expr.addParseAction(convertToDatetime)
 
 
 date_expr.runTests(
@@ -65,7 +65,7 @@ date_expr.runTests(
 )
 
 
-date_expr = iso8601_date.setParseAction(convertToDate())
+date_expr = iso8601_date.addParseAction(convertToDate())
 date_expr.ignore(pythonStyleComment)
 
 date_expr.runTests(

@@ -40,8 +40,8 @@ def processMacroRef(s, l, t):
 
 
 # attach parse actions to expressions
-macroExpr.setParseAction(processMacroRef)
-macroDef.setParseAction(processMacroDefn)
+macroExpr.addParseAction(processMacroRef)
+macroDef.addParseAction(processMacroDefn)
 
 # define pattern for scanning through the input string
 macroExpander = macroExpr | macroDef

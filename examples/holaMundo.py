@@ -48,7 +48,7 @@ numcomplex = numreal + "+" + numimag
 
 
 # Cambiar a complejo numero durante parsear:
-numcomplex.setParseAction(lambda t: complex("".join(t).replace("i", "j")))
+numcomplex.addParseAction(lambda t: complex("".join(t).replace("i", "j")))
 
 
 # Excelente!!, bueno, los dejo, me voy a seguir tirando código...

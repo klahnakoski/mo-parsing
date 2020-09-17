@@ -121,7 +121,7 @@ def expand_state_definition(source, loc, tokens):
     return ("\n" + indent).join(statedef) + "\n"
 
 
-stateMachine.setParseAction(expand_state_definition)
+stateMachine.addParseAction(expand_state_definition)
 
 
 def expand_named_state_definition(source, loc, tokens):
@@ -262,7 +262,7 @@ def expand_named_state_definition(source, loc, tokens):
     return ("\n" + indent).join(statedef) + "\n"
 
 
-namedStateMachine.setParseAction(expand_named_state_definition)
+namedStateMachine.addParseAction(expand_named_state_definition)
 
 
 # ======================================================================

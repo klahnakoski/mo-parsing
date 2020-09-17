@@ -64,7 +64,7 @@ def normalizetype(t):
         # ~ return ret
 
 
-vartype.setParseAction(normalizetype)
+vartype.addParseAction(normalizetype)
 
 arg = Group(vartype("argtype") + Optional(ident("argname")))
 func_def = (
@@ -82,7 +82,7 @@ def derivefields(t):
         t["varargs"] = True
 
 
-func_def.setParseAction(derivefields)
+func_def.addParseAction(derivefields)
 
 fn_typedef = "typedef" + func_def
 var_typedef = "typedef" + primitiveType("primType") + ident("name") + SEMI

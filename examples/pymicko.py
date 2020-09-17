@@ -972,18 +972,18 @@ class MicroC:
     def __init__(self):
         # Definitions of terminal symbols for microC programming language
         self.tId = Word(alphas + "_", alphanums + "_")
-        self.tInteger = Word(nums).setParseAction(
+        self.tInteger = Word(nums).addParseAction(
             lambda x: [x[0], SharedData.TYPES.INT]
         )
-        self.tUnsigned = Regex(r"[0-9]+[uU]").setParseAction(
+        self.tUnsigned = Regex(r"[0-9]+[uU]").addParseAction(
             lambda x: [x[0][:-1], SharedData.TYPES.UNSIGNED]
         )
-        self.tConstant = (self.tUnsigned | self.tInteger).setParseAction(
+        self.tConstant = (self.tUnsigned | self.tInteger).addParseAction(
             self.constant_action
         )
-        self.tType = Keyword("int").setParseAction(
+        self.tType = Keyword("int").addParseAction(
             lambda x: SharedData.TYPES.INT
-        ) | Keyword("unsigned").setParseAction(lambda x: SharedData.TYPES.UNSIGNED)
+        ) | Keyword("unsigned").addParseAction(lambda x: SharedData.TYPES.UNSIGNED)
         self.tRelOp = oneOf(SharedData.RELATIONAL_OPERATORS)
         self.tMulOp = oneOf("* /")
         self.tAddOp = oneOf("+ -")
@@ -991,7 +991,7 @@ class MicroC:
         # Definitions of rules for global variables
         self.rGlobalVariable = (
             self.tType("type") + self.tId("name") + FollowedBy(";")
-        ).setParseAction(self.global_variable_action)
+        ).addParseAction(self.global_variable_action)
         self.rGlobalVariableList = ZeroOrMore(self.rGlobalVariable + Suppress(";"))
 
         # Definitions of rules for numeric expressions
@@ -999,48 +999,48 @@ class MicroC:
         self.rMulExp = Forward()
         self.rNumExp = Forward()
         self.rArguments = delimitedList(
-            self.rNumExp("exp").setParseAction(self.argument_action)
+            self.rNumExp("exp").addParseAction(self.argument_action)
         )
         self.rFunctionCall = (
-            (self.tId("name") + FollowedBy("(")).setParseAction(
+            (self.tId("name") + FollowedBy("(")).addParseAction(
                 self.function_call_prepare_action
             )
             + Suppress("(")
             + Optional(self.rArguments)("args")
             + Suppress(")")
-        ).setParseAction(self.function_call_action)
+        ).addParseAction(self.function_call_action)
         self.rExp << (
             self.rFunctionCall
             | self.tConstant
-            | self.tId("name").setParseAction(self.lookup_id_action)
+            | self.tId("name").addParseAction(self.lookup_id_action)
             | Group(Suppress("(") + self.rNumExp + Suppress(")"))
             | Group("+" + self.rExp)
             | Group("-" + self.rExp)
-        ).setParseAction(lambda x: x[0])
+        ).addParseAction(lambda x: x[0])
         self.rMulExp << (
             self.rExp + ZeroOrMore(self.tMulOp + self.rExp)
-        ).setParseAction(self.mulexp_action)
+        ).addParseAction(self.mulexp_action)
         self.rNumExp << (
             self.rMulExp + ZeroOrMore(self.tAddOp + self.rMulExp)
-        ).setParseAction(self.numexp_action)
+        ).addParseAction(self.numexp_action)
 
         # Definitions of rules for logical expressions (these are without parenthesis support)
         self.rAndExp = Forward()
         self.rLogExp = Forward()
-        self.rRelExp = (self.rNumExp + self.tRelOp + self.rNumExp).setParseAction(
+        self.rRelExp = (self.rNumExp + self.tRelOp + self.rNumExp).addParseAction(
             self.relexp_action
         )
         self.rAndExp << (
             self.rRelExp("exp")
             + ZeroOrMore(
-                Literal("&&").setParseAction(self.andexp_action) + self.rRelExp("exp")
-            ).setParseAction(lambda x: self.relexp_code)
+                Literal("&&").addParseAction(self.andexp_action) + self.rRelExp("exp")
+            ).addParseAction(lambda x: self.relexp_code)
         )
         self.rLogExp << (
             self.rAndExp("exp")
             + ZeroOrMore(
-                Literal("||").setParseAction(self.logexp_action) + self.rAndExp("exp")
-            ).setParseAction(lambda x: self.andexp_code)
+                Literal("||").addParseAction(self.logexp_action) + self.rAndExp("exp")
+            ).addParseAction(lambda x: self.andexp_code)
         )
 
         # Definitions of rules for statements
@@ -1048,26 +1048,26 @@ class MicroC:
         self.rStatementList = Forward()
         self.rReturnStatement = (
             Keyword("return") + self.rNumExp("exp") + Suppress(";")
-        ).setParseAction(self.return_action)
+        ).addParseAction(self.return_action)
         self.rAssignmentStatement = (
             self.tId("var") + Suppress("=") + self.rNumExp("exp") + Suppress(";")
-        ).setParseAction(self.assignment_action)
+        ).addParseAction(self.assignment_action)
         self.rFunctionCallStatement = self.rFunctionCall + Suppress(";")
         self.rIfStatement = (
-            (Keyword("if") + FollowedBy("(")).setParseAction(self.if_begin_action)
-            + (Suppress("(") + self.rLogExp + Suppress(")")).setParseAction(
+            (Keyword("if") + FollowedBy("(")).addParseAction(self.if_begin_action)
+            + (Suppress("(") + self.rLogExp + Suppress(")")).addParseAction(
                 self.if_body_action
             )
-            + (self.rStatement + Empty()).setParseAction(self.if_else_action)
+            + (self.rStatement + Empty()).addParseAction(self.if_else_action)
             + Optional(Keyword("else") + self.rStatement)
-        ).setParseAction(self.if_end_action)
+        ).addParseAction(self.if_end_action)
         self.rWhileStatement = (
-            (Keyword("while") + FollowedBy("(")).setParseAction(self.while_begin_action)
-            + (Suppress("(") + self.rLogExp + Suppress(")")).setParseAction(
+            (Keyword("while") + FollowedBy("(")).addParseAction(self.while_begin_action)
+            + (Suppress("(") + self.rLogExp + Suppress(")")).addParseAction(
                 self.while_body_action
             )
             + self.rStatement
-        ).setParseAction(self.while_end_action)
+        ).addParseAction(self.while_end_action)
         self.rCompoundStatement = Group(
             Suppress("{") + self.rStatementList + Suppress("}")
         )
@@ -1083,22 +1083,22 @@ class MicroC:
 
         self.rLocalVariable = (
             self.tType("type") + self.tId("name") + FollowedBy(";")
-        ).setParseAction(self.local_variable_action)
+        ).addParseAction(self.local_variable_action)
         self.rLocalVariableList = ZeroOrMore(self.rLocalVariable + Suppress(";"))
         self.rFunctionBody = (
             Suppress("{")
-            + Optional(self.rLocalVariableList).setParseAction(
+            + Optional(self.rLocalVariableList).addParseAction(
                 self.function_body_action
             )
             + self.rStatementList
             + Suppress("}")
         )
-        self.rParameter = (self.tType("type") + self.tId("name")).setParseAction(
+        self.rParameter = (self.tType("type") + self.tId("name")).addParseAction(
             self.parameter_action
         )
         self.rParameterList = delimitedList(self.rParameter)
         self.rFunction = (
-            (self.tType("type") + self.tId("name")).setParseAction(
+            (self.tType("type") + self.tId("name")).addParseAction(
                 self.function_begin_action
             )
             + Group(
@@ -1107,15 +1107,15 @@ class MicroC:
                 + Suppress(")")
                 + self.rFunctionBody
             )
-        ).setParseAction(self.function_end_action)
+        ).addParseAction(self.function_end_action)
 
         self.rFunctionList = OneOrMore(self.rFunction)
         self.rProgram = (
-            Empty().setParseAction(self.data_begin_action)
+            Empty().addParseAction(self.data_begin_action)
             + self.rGlobalVariableList
-            + Empty().setParseAction(self.code_begin_action)
+            + Empty().addParseAction(self.code_begin_action)
             + self.rFunctionList
-        ).setParseAction(self.program_end_action)
+        ).addParseAction(self.program_end_action)
 
         # shared data
         self.shared = SharedData()

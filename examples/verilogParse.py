@@ -142,7 +142,7 @@ def Verilog_BNF():
             + "]*)*"
         ).set_parser_name("baseIdent")
         identifier2 = (
-            Regex(r"\\\S+").setParseAction(lambda t: t[0][1:]).set_parser_name("escapedIdent")
+            Regex(r"\\\S+").addParseAction(lambda t: t[0][1:]).set_parser_name("escapedIdent")
         )  # .setDebug()
         identifier = identifier1 | identifier2
         assert identifier2 == r"\abc"

@@ -54,14 +54,14 @@ OK, NOT_OK = map(Literal, ["ok", "not ok"])
 testStatus = OK | NOT_OK
 
 description = Regex("[^#\n]+")
-description.setParseAction(lambda t: t[0].lstrip("- "))
+description.addParseAction(lambda t: t[0].lstrip("- "))
 
 TODO, SKIP = map(CaselessLiteral, "TODO SKIP".split())
 directive = Group(
     Suppress("#")
     + (
         TODO + restOfLine
-        | FollowedBy(SKIP) + restOfLine.copy().setParseAction(lambda t: ["SKIP", t[0]])
+        | FollowedBy(SKIP) + restOfLine.copy().addParseAction(lambda t: ["SKIP", t[0]])
     )
 )
 
@@ -167,7 +167,7 @@ class TAPSummary:
 
 # create TAPSummary objects from tapOutput parsed results, by setting
 # class as parse action
-tapOutputParser.setParseAction(TAPSummary)
+tapOutputParser.addParseAction(TAPSummary)
 
 
 test1 = """\

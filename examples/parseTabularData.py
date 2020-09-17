@@ -48,7 +48,7 @@ def tableValue(expr, colstart, colend):
 
 # define the grammar for this simple table
 colorname = Word(alphas)
-integer = Word(nums).setParseAction(lambda t: int(t[0])).set_parser_name("integer")
+integer = Word(nums).addParseAction(lambda t: int(t[0])).set_parser_name("integer")
 row = (
     colorname("name")
     + tableValue(integer, 11, 12)("S")

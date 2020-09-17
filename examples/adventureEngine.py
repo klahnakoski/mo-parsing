@@ -374,11 +374,11 @@ class Parser:
         doorsVerb = CaselessLiteral("DOORS")
         helpVerb = oneOf("H HELP ?", caseless=True)
 
-        itemRef = OneOrMore(Word(alphas)).setParseAction(self.validateItemName)
-        nDir = oneOf("N NORTH", caseless=True).setParseAction(replaceWith("N"))
-        sDir = oneOf("S SOUTH", caseless=True).setParseAction(replaceWith("S"))
-        eDir = oneOf("E EAST", caseless=True).setParseAction(replaceWith("E"))
-        wDir = oneOf("W WEST", caseless=True).setParseAction(replaceWith("W"))
+        itemRef = OneOrMore(Word(alphas)).addParseAction(self.validateItemName)
+        nDir = oneOf("N NORTH", caseless=True).addParseAction(replaceWith("N"))
+        sDir = oneOf("S SOUTH", caseless=True).addParseAction(replaceWith("S"))
+        eDir = oneOf("E EAST", caseless=True).addParseAction(replaceWith("E"))
+        wDir = oneOf("W WEST", caseless=True).addParseAction(replaceWith("W"))
         moveDirection = nDir | sDir | eDir | wDir
 
         invCommand = invVerb
@@ -399,17 +399,17 @@ class Parser:
         helpCommand = helpVerb
 
         # attach command classes to expressions
-        invCommand.setParseAction(InventoryCommand)
-        dropCommand.setParseAction(DropCommand)
-        takeCommand.setParseAction(TakeCommand)
-        useCommand.setParseAction(UseCommand)
-        openCommand.setParseAction(OpenCommand)
-        closeCommand.setParseAction(CloseCommand)
-        moveCommand.setParseAction(MoveCommand)
-        quitCommand.setParseAction(QuitCommand)
-        lookCommand.setParseAction(LookCommand)
-        doorsCommand.setParseAction(DoorsCommand)
-        helpCommand.setParseAction(HelpCommand)
+        invCommand.addParseAction(InventoryCommand)
+        dropCommand.addParseAction(DropCommand)
+        takeCommand.addParseAction(TakeCommand)
+        useCommand.addParseAction(UseCommand)
+        openCommand.addParseAction(OpenCommand)
+        closeCommand.addParseAction(CloseCommand)
+        moveCommand.addParseAction(MoveCommand)
+        quitCommand.addParseAction(QuitCommand)
+        lookCommand.addParseAction(LookCommand)
+        doorsCommand.addParseAction(DoorsCommand)
+        helpCommand.addParseAction(HelpCommand)
 
         # define parser using all command expressions
         return (

@@ -25,10 +25,10 @@ test = "['a', 100, 3.14]"
 lbrack = Literal("[").suppress()
 rbrack = Literal("]").suppress()
 cvtInt = lambda s, l, toks: int(toks[0])
-integer = Word(nums).set_parser_name("integer").setParseAction(cvtInt)
+integer = Word(nums).set_parser_name("integer").addParseAction(cvtInt)
 cvtReal = lambda s, l, toks: float(toks[0])
-real = Regex(r"[+-]?\d+\.\d*").set_parser_name("floating-point number").setParseAction(cvtReal)
-listItem = real | integer | quotedString.setParseAction(removeQuotes)
+real = Regex(r"[+-]?\d+\.\d*").set_parser_name("floating-point number").addParseAction(cvtReal)
+listItem = real | integer | quotedString.addParseAction(removeQuotes)
 
 listStr = lbrack + delimitedList(listItem) + rbrack
 
@@ -41,21 +41,21 @@ cvtReal = lambda s, l, toks: float(toks[0])
 
 lbrack = Literal("[").suppress()
 rbrack = Literal("]").suppress()
-integer = Word(nums).set_parser_name("integer").setParseAction(cvtInt)
-real = Regex(r"[+-]?\d+\.\d*").set_parser_name("floating-point number").setParseAction(cvtReal)
+integer = Word(nums).set_parser_name("integer").addParseAction(cvtInt)
+real = Regex(r"[+-]?\d+\.\d*").set_parser_name("floating-point number").addParseAction(cvtReal)
 tupleStr = Forward()
 listStr = Forward()
 listItem = (
     real
     | integer
-    | quotedString.setParseAction(removeQuotes)
+    | quotedString.addParseAction(removeQuotes)
     | Group(listStr)
     | tupleStr
 )
 tupleStr << (
     Suppress("(") + delimitedList(listItem) + Optional(Suppress(",")) + Suppress(")")
 )
-tupleStr.setParseAction(lambda t: tuple(t))
+tupleStr.addParseAction(lambda t: tuple(t))
 listStr << lbrack + delimitedList(listItem) + Optional(Suppress(",")) + rbrack
 
 test = "['a', 100, ('A', [101,102]), 3.14, [ +2.718, 'xyzzy', -1.414] ]"
@@ -71,8 +71,8 @@ rbrack = Literal("]").suppress()
 lbrace = Literal("{").suppress()
 rbrace = Literal("}").suppress()
 colon = Literal(":").suppress()
-integer = Word(nums).set_parser_name("integer").setParseAction(cvtInt)
-real = Regex(r"[+-]?\d+\.\d*").set_parser_name("real").setParseAction(cvtReal)
+integer = Word(nums).set_parser_name("integer").addParseAction(cvtInt)
+real = Regex(r"[+-]?\d+\.\d*").set_parser_name("real").addParseAction(cvtReal)
 
 tupleStr = Forward()
 listStr = Forward()
@@ -80,7 +80,7 @@ dictStr = Forward()
 listItem = (
     real
     | integer
-    | quotedString.setParseAction(removeQuotes)
+    | quotedString.addParseAction(removeQuotes)
     | Group(listStr)
     | tupleStr
     | dictStr
@@ -88,18 +88,18 @@ listItem = (
 tupleStr <<= (
     Suppress("(") + delimitedList(listItem) + Optional(Suppress(",")) + Suppress(")")
 )
-tupleStr.setParseAction(lambda t: tuple(t))
+tupleStr.addParseAction(lambda t: tuple(t))
 listStr <<= (
     lbrack + Optional(delimitedList(listItem)) + Optional(Suppress(",")) + rbrack
 )
-dictKeyStr = real | integer | quotedString.setParseAction(removeQuotes)
+dictKeyStr = real | integer | quotedString.addParseAction(removeQuotes)
 dictStr <<= (
     lbrace
     + Optional(delimitedList(Group(dictKeyStr + colon + listItem)))
     + Optional(Suppress(","))
     + rbrace
 )
-dictStr.setParseAction(
+dictStr.addParseAction(
     lambda t: {
         k_v[0]: (k_v[1] if isinstance(k_v[1], ParseResults) else k_v[1])
         for k_v in t

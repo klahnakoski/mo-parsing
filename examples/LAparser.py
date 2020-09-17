@@ -131,15 +131,15 @@ expop = Literal("^")
 assignop = Literal("=")
 
 expr = Forward()
-atom = (e | floatnumber | integer | ident).setParseAction(_pushFirst) | (
+atom = (e | floatnumber | integer | ident).addParseAction(_pushFirst) | (
     lpar + expr.suppress() + rpar
 )
 factor = Forward()
-factor << atom + ZeroOrMore((expop + factor).setParseAction(_pushFirst))
+factor << atom + ZeroOrMore((expop + factor).addParseAction(_pushFirst))
 
-term = factor + ZeroOrMore((multop + factor).setParseAction(_pushFirst))
-expr << term + ZeroOrMore((addop + term).setParseAction(_pushFirst))
-equation = (ident + assignop).setParseAction(_assignVar) + expr + StringEnd()
+term = factor + ZeroOrMore((multop + factor).addParseAction(_pushFirst))
+expr << term + ZeroOrMore((addop + term).addParseAction(_pushFirst))
+equation = (ident + assignop).addParseAction(_assignVar) + expr + StringEnd()
 
 # End of grammar definition
 # -----------------------------------------------------------------------------

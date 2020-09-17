@@ -10,7 +10,7 @@ from functools import reduce
 
 def makeLit(s, val):
     ret = CaselessLiteral(s)
-    return ret.setParseAction(replaceWith(val))
+    return ret.addParseAction(replaceWith(val))
 
 
 unitDefinitions = [
@@ -74,13 +74,13 @@ wordprod = lambda t: reduce(mul, t)
 numPart = (
     (
         (
-            (units + Optional(hundreds)).setParseAction(wordprod) + Optional(tens)
-        ).setParseAction(sum)
+            (units + Optional(hundreds)).addParseAction(wordprod) + Optional(tens)
+        ).addParseAction(sum)
         ^ tens
     )
     + Optional(units)
-).setParseAction(sum)
-numWords = ((numPart + Optional(mag)).setParseAction(wordprod)[1, ...]).setParseAction(
+).addParseAction(sum)
+numWords = ((numPart + Optional(mag)).addParseAction(wordprod)[1, ...]).addParseAction(
     sum
 )
 numWords.set_parser_name("num word parser")

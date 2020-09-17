@@ -9,7 +9,7 @@
 
 from mo_parsing import *
 
-integer = Word(nums).setParseAction(lambda t: int(t[0]))
+integer = Word(nums).addParseAction(lambda t: int(t[0]))
 variable = Word(alphas, exact=1)
 operand = integer | variable
 

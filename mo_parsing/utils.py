@@ -233,7 +233,7 @@ def traceParseAction(f):
         def remove_duplicate_chars(tokens):
             return ''.join(sorted(set(''.join(tokens))))
 
-        wds = OneOrMore(wd).setParseAction(remove_duplicate_chars)
+        wds = OneOrMore(wd).addParseAction(remove_duplicate_chars)
         print(wds.parseString("slkdjs sld sldd sdlf sdljf"))
 
     prints::

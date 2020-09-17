@@ -77,9 +77,9 @@ not_digname = Regex("[^\\d\\s\"#%'(),={}][^\\s\"#%'(),={}]*")
 comment = AT + CaselessLiteral("comment") + Regex(r"[\s{(].*").leaveWhitespace()
 
 # The name types with their digiteyness
-not_dig_lower = not_digname.copy().setParseAction(lambda t: t[0].lower())
+not_dig_lower = not_digname.copy().addParseAction(lambda t: t[0].lower())
 macro_def = not_dig_lower.copy()
-macro_ref = not_dig_lower.copy().setParseAction(lambda t: Macro(t[0].lower()))
+macro_ref = not_dig_lower.copy().addParseAction(lambda t: Macro(t[0].lower()))
 field_name = not_dig_lower.copy()
 # Spaces in names mean they cannot clash with field names
 entry_type = not_dig_lower("entry_type")
@@ -103,7 +103,7 @@ macro_contents = macro_def + EQUALS + field_value
 macro = AT + CaselessLiteral("string") + bracketed(macro_contents)
 
 # Implicit comments
-icomment = SkipTo("@").setParseAction(lambda t: t.insert(0, "icomment"))
+icomment = SkipTo("@").addParseAction(lambda t: t.insert(0, "icomment"))
 
 # entries are last in the list (other than the fallback) because they have
 # arbitrary start patterns that would match comments, preamble or macro

@@ -40,7 +40,7 @@ from mo_parsing import *
 
 
 def make_keyword(kwd_str, kwd_value):
-    return Keyword(kwd_str).setParseAction(replaceWith(kwd_value))
+    return Keyword(kwd_str).addParseAction(replaceWith(kwd_value))
 
 
 with Engine() as engine:

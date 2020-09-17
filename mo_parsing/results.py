@@ -244,7 +244,7 @@ class ParseResults(object):
                 if isinstance(r.type_for_result, Group):
                     continue
                 for k, v in r.iteritems():
-                    add(output, k, [v])
+                    add(output, k, v)
         for k, v in output.items():
             yield k, v
 
@@ -494,7 +494,8 @@ def simpler(v):
 def add(obj, key, value):
     if not isinstance(value, list):
         Log.error("not allowed")
-
+    if value and isinstance(value[0], list):
+        Log.error("not expected")
     old_v = obj.get(key)
     if old_v is None:
         obj[key] = value

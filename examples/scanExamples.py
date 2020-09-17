@@ -58,7 +58,7 @@ macros = dict(list(macroDef.searchString(testData)))
 
 # convert C++ namespaces to mangled C-compatible names
 scopedIdent = ident + OneOrMore(Literal("::").suppress() + ident)
-scopedIdent.setParseAction(lambda t: "_".join(t))
+scopedIdent.addParseAction(lambda t: "_".join(t))
 
 
 
@@ -69,7 +69,7 @@ def substituteMacro(s, l, t):
         return macros[t[0]]
 
 
-ident.setParseAction(substituteMacro)
+ident.addParseAction(substituteMacro)
 ident.ignore(macroDef)
 
 
@@ -83,5 +83,5 @@ from mo_parsing import dblQuotedString, LineStart
 
 # remove all string macro definitions (after extracting to a string resource table?)
 stringMacroDef = Literal("#define") + ident + "=" + dblQuotedString + LineStart()
-stringMacroDef.setParseAction(replaceWith(""))
+stringMacroDef.addParseAction(replaceWith(""))
 

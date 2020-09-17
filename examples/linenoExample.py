@@ -24,7 +24,7 @@ def reportLongWords(st, locn, toks):
         )
 
 
-wd = Word(alphas).setParseAction(reportLongWords)
+wd = Word(alphas).addParseAction(reportLongWords)
 OneOrMore(wd).parseString(data)
 
 
@@ -46,4 +46,4 @@ def createTokenObject(st, locn, toks):
     return Token(st, locn, toks[0])
 
 
-wd = Word(alphas).setParseAction(createTokenObject)
+wd = Word(alphas).addParseAction(createTokenObject)

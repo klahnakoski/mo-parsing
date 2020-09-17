@@ -70,7 +70,7 @@ def utcToLocalTime(tokens):
     del tokens["time"]
 
 
-dateRef.setParseAction(utcToLocalTime)
+dateRef.addParseAction(utcToLocalTime)
 
 startsStmt = "starts" + dateRef + SEMI
 endsStmt = "ends" + (dateRef | "never") + SEMI

@@ -683,7 +683,7 @@ class BigQueryViewParser:
                 + Suppress(".")
             )
             + (quoted_table_part("table") | standard_table_part("table"))
-        ).setParseAction(lambda t: record_table_identifier(t))
+        ).addParseAction(lambda t: record_table_identifier(t))
 
         def record_quoted_table_identifier(t):
             identifier_list = t[0].split(".")
@@ -698,7 +698,7 @@ class BigQueryViewParser:
             Suppress('"') + CharsNotIn('"') + Suppress('"')
             | Suppress("'") + CharsNotIn("'") + Suppress("'")
             | Suppress("`") + CharsNotIn("`") + Suppress("`")
-        ).setParseAction(lambda t: record_quoted_table_identifier(t))
+        ).addParseAction(lambda t: record_quoted_table_identifier(t))
 
         table_identifier = (
             quoted_table_parts_identifier | quotable_table_parts_identifier
@@ -805,7 +805,7 @@ class BigQueryViewParser:
             cls._with_aliases.add(tuple(padded_list))
 
         with_clause = Group(
-            identifier.setParseAction(lambda t: record_with_alias(t))
+            identifier.addParseAction(lambda t: record_with_alias(t))
             + AS
             + LPAR
             + select_stmt

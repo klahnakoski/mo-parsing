@@ -47,9 +47,9 @@ from mo_parsing import (
 MARK, UNMARK, AT, COLON, QUOTE = map(Suppress, "[]@:'")
 
 NUMBER = Word(nums)
-NUMBER.setParseAction(lambda t: int(t[0]))
+NUMBER.addParseAction(lambda t: int(t[0]))
 FLOAT = Combine(oneOf("+ -") + Word(nums) + "." + Optional(Word(nums)))
-FLOAT.setParseAction(lambda t: float(t[0]))
+FLOAT.addParseAction(lambda t: float(t[0]))
 STRING = QuotedString('"', multiline=True)
 WORD = Word(alphas, alphanums + "_:")
 ATTRIBUTE = Combine(AT + WORD)
@@ -63,7 +63,7 @@ def setBodyLength(tokens):
 
 
 BLOB = Combine(
-    QUOTE + Word(nums).setParseAction(setBodyLength) + COLON + strBody + QUOTE
+    QUOTE + Word(nums).addParseAction(setBodyLength) + COLON + strBody + QUOTE
 )
 
 item = Forward()
@@ -82,11 +82,11 @@ GROUP = (
     MARK
     + Group(
         ZeroOrMore(
-            (item + Optional(ATTRIBUTE)("attr")).setParseAction(assignUsing("attr"))
+            (item + Optional(ATTRIBUTE)("attr")).addParseAction(assignUsing("attr"))
         )
     )
     + (WORD("name") | UNMARK)
-).setParseAction(assignUsing("name"))
+).addParseAction(assignUsing("name"))
 item << (NUMBER | FLOAT | STRING | BLOB | GROUP)
 
 tests = """\

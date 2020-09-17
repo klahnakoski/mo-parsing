@@ -28,13 +28,13 @@ lbrack = Literal("[").suppress()
 rbrack = Literal("]").suppress()
 cvtInt = lambda s, l, toks: int(toks[0])
 cvtReal = lambda s, l, toks: float(toks[0])
-integer = Word(nums).set_parser_name("integer").setParseAction(cvtInt)
+integer = Word(nums).set_parser_name("integer").addParseAction(cvtInt)
 real = (
     Combine(Optional(oneOf("+ -")) + Word(nums) + "." + Optional(Word(nums)))
     .set_parser_name("real")
-    .setParseAction(cvtReal)
+    .addParseAction(cvtReal)
 )
-listItem = real | integer | quotedString.setParseAction(removeQuotes)
+listItem = real | integer | quotedString.addParseAction(removeQuotes)
 
 listStr = lbrack + delimitedList(listItem) + rbrack
 
@@ -47,11 +47,11 @@ lbrack, rbrack = map(Suppress, "[]")
 cvtInt = tokenMap(int)
 cvtReal = tokenMap(float)
 
-integer = Word(nums).set_parser_name("integer").setParseAction(cvtInt)
-real = Regex(r"[+-]?\d+\.\d*").set_parser_name("real").setParseAction(cvtReal)
+integer = Word(nums).set_parser_name("integer").addParseAction(cvtInt)
+real = Regex(r"[+-]?\d+\.\d*").set_parser_name("real").addParseAction(cvtReal)
 
 listStr = Forward()
-listItem = real | integer | quotedString.setParseAction(removeQuotes) | Group(listStr)
+listItem = real | integer | quotedString.addParseAction(removeQuotes) | Group(listStr)
 listStr << lbrack + delimitedList(listItem) + rbrack
 
 test = "['a', 100, 3.14, [ +2.718, 'xyzzy', -1.414] ]"

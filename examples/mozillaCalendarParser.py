@@ -85,7 +85,7 @@ def gotEvent(s, loc, toks):
 
 
 
-event.setParseAction(gotEvent)
+event.addParseAction(gotEvent)
 
 
 # MAIN PROGRAM

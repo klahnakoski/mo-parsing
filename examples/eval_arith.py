@@ -146,7 +146,7 @@ plusop = oneOf("+ -")
 expop = Literal("**")
 
 # use parse actions to attach EvalXXX constructors to sub-expressions
-operand.setParseAction(EvalConstant)
+operand.addParseAction(EvalConstant)
 arith_expr = infixNotation(
     operand,
     [

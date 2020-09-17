@@ -77,11 +77,11 @@ def getLogLineBNF():
             + Suppress("-")
             + ("-" | Word(alphas + nums + "@._")).set_token_name("auth")
             + serverDateTime.set_token_name("timestamp")
-            + dblQuotedString.set_token_name("cmd").setParseAction(getCmdFields)
+            + dblQuotedString.set_token_name("cmd").addParseAction(getCmdFields)
             + (integer | "-").set_token_name("statusCode")
             + (integer | "-").set_token_name("numBytesSent")
-            + dblQuotedString.set_token_name("referrer").setParseAction(removeQuotes)
-            + dblQuotedString.set_token_name("clientSfw").setParseAction(removeQuotes)
+            + dblQuotedString.set_token_name("referrer").addParseAction(removeQuotes)
+            + dblQuotedString.set_token_name("clientSfw").addParseAction(removeQuotes)
         )
     return logLineBNF
 

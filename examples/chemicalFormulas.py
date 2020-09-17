@@ -58,7 +58,7 @@ formula.runTests(
 
 
 # Version 3 - convert integers during parsing process
-integer = Word(digits).setParseAction(lambda t: int(t[0]))
+integer = Word(digits).addParseAction(lambda t: int(t[0]))
 elementRef = Group(element("symbol") + Optional(integer, default=1)("qty"))
 formula = elementRef[...]
 

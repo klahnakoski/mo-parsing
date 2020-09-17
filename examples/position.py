@@ -30,7 +30,7 @@ def addLocnToTokens(s, l, t):
     t["word"] = t[0]
 
 
-initialVowelWord.setParseAction(addLocnToTokens)
+initialVowelWord.addParseAction(addLocnToTokens)
 
 for ivowelInfo in (initialConsWord | initialVowelWord).searchString(text):
     if not ivowelInfo:
@@ -39,7 +39,7 @@ for ivowelInfo in (initialConsWord | initialVowelWord).searchString(text):
 
 # alternative - add an Empty that will save the current location
 def location(name):
-    return Empty().setParseAction(lambda s, l, t: t.__setitem__(name, l))
+    return Empty().addParseAction(lambda s, l, t: t.__setitem__(name, l))
 
 
 locateInitialVowels = location("locn") + initialVowelWord("word")

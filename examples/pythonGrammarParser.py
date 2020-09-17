@@ -199,16 +199,16 @@ repSymbol = oneOf("* +")
 bnfExpr = Forward()
 optionalTerm = Group(
     LBRACK + bnfExpr + RBRACK
-).setParseAction(makeGroupObject(OptionalGroup))
+).addParseAction(makeGroupObject(OptionalGroup))
 bnfTerm = (
     (bnfToken | quotedString | optionalTerm | (LPAREN + bnfExpr + RPAREN))
     + Optional(repSymbol)
-).setParseAction(makeGroupObject(Atom))
-andList = Group(bnfTerm + OneOrMore(bnfTerm)).setParseAction(makeGroupObject(AndList))
+).addParseAction(makeGroupObject(Atom))
+andList = Group(bnfTerm + OneOrMore(bnfTerm)).addParseAction(makeGroupObject(AndList))
 bnfFactor = andList | bnfTerm
 orList = Group(
     bnfFactor + OneOrMore(ALT_OP + bnfFactor)
-).setParseAction(makeGroupObject(OrList))
+).addParseAction(makeGroupObject(OrList))
 bnfExpr << (orList | bnfFactor)
 bnfLine = ident + COLON + bnfExpr
 

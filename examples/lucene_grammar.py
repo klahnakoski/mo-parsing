@@ -20,7 +20,7 @@ expression = Forward()
 valid_word = Regex(
     r'([a-zA-Z0-9*_+.-]|\\\\|\\([+\-!(){}\[\]^"~*?:]|\|\||&&))+'
 ).set_parser_name("word")
-valid_word.setParseAction(
+valid_word.addParseAction(
     lambda t: t[0].replace("\\\\", chr(127)).replace("\\", "").replace(chr(127), "\\")
 )
 
@@ -46,15 +46,15 @@ term << (
     + (word_expr | string_expr | range_search | Group(LPAR + expression + RPAR))
     + Optional(boost)
 )
-term.setParseAction(lambda t: [t] if "field" in t or "boost" in t else None)
+term.addParseAction(lambda t: [t] if "field" in t or "boost" in t else None)
 
 expression << infixNotation(
     term,
     [
         (required_modifier | prohibit_modifier, 1, opAssoc.RIGHT),
-        ((not_ | "!").setParseAction(lambda: "NOT"), 1, opAssoc.RIGHT),
-        ((and_ | "&&").setParseAction(lambda: "AND"), 2, opAssoc.LEFT),
-        (Optional(or_ | "||").setParseAction(lambda: "OR"), 2, opAssoc.LEFT),
+        ((not_ | "!").addParseAction(lambda: "NOT"), 1, opAssoc.RIGHT),
+        ((and_ | "&&").addParseAction(lambda: "AND"), 2, opAssoc.LEFT),
+        (Optional(or_ | "||").addParseAction(lambda: "OR"), 2, opAssoc.LEFT),
     ],
 )
 

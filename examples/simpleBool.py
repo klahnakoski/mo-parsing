@@ -71,7 +71,7 @@ class BoolNot:
 TRUE = Keyword("True")
 FALSE = Keyword("False")
 boolOperand = TRUE | FALSE | Word(alphas, max=1)
-boolOperand.setParseAction(BoolOperand)
+boolOperand.addParseAction(BoolOperand)
 
 # define expression, based on expression operand and
 # list of operations in precedence order

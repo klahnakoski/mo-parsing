@@ -63,27 +63,27 @@ LPAR, RPAR, LBRK, RBRK, LBRC, RBRC, VBAR, COLON = (
     Suppress(c).set_parser_name(c) for c in "()[]{}|:"
 )
 
-decimal = Regex(r"-?0|[1-9]\d*").setParseAction(lambda t: int(t[0]))
-hexadecimal = ("#" + Word(hexnums)[1, ...] + "#").setParseAction(
+decimal = Regex(r"-?0|[1-9]\d*").addParseAction(lambda t: int(t[0]))
+hexadecimal = ("#" + Word(hexnums)[1, ...] + "#").addParseAction(
     lambda t: int("".join(t[1:-1]), 16)
 )
 bytes = Word(printables)
-raw = Group(decimal("len") + COLON + bytes).setParseAction(verify_length)
+raw = Group(decimal("len") + COLON + bytes).addParseAction(verify_length)
 base64_ = Group(
     Optional(decimal | hexadecimal, default=None)("len")
     + VBAR
-    + Word(alphanums + "+/=")[1, ...].setParseAction(lambda t: b64decode("".join(t)))
+    + Word(alphanums + "+/=")[1, ...].addParseAction(lambda t: b64decode("".join(t)))
     + VBAR
-).setParseAction(verify_length)
+).addParseAction(verify_length)
 
-real = Regex(r"[+-]?\d+\.\d*([eE][+-]?\d+)?").setParseAction(
+real = Regex(r"[+-]?\d+\.\d*([eE][+-]?\d+)?").addParseAction(
     lambda tokens: float(tokens[0])
 )
 token = Word(alphanums + "-./_:*+=!<>")
 qString = Group(
     Optional(decimal, default=None)("len")
-    + dblQuotedString.setParseAction(removeQuotes)
-).setParseAction(verify_length)
+    + dblQuotedString.addParseAction(removeQuotes)
+).addParseAction(verify_length)
 
 simpleString = real | base64_ | raw | decimal | token | hexadecimal | qString
 

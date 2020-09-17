@@ -112,7 +112,7 @@ class FollowedBy(ParseElementEnhance):
         # use FollowedBy to match a label only if it is followed by a ':'
         data_word = Word(alphas)
         label = data_word + FollowedBy(':')
-        attr_expr = Group(label + Suppress(':') + OneOrMore(data_word, stopOn=label).setParseAction(' '.join))
+        attr_expr = Group(label + Suppress(':') + OneOrMore(data_word, stopOn=label).addParseAction(' '.join))
 
         OneOrMore(attr_expr).parseString("shape: SQUARE color: BLACK posn: upper left")
 
@@ -234,13 +234,13 @@ class OneOrMore(_MultipleMatch):
 
         data_word = Word(alphas)
         label = data_word + FollowedBy(':')
-        attr_expr = Group(label + Suppress(':') + OneOrMore(data_word).setParseAction(' '.join))
+        attr_expr = Group(label + Suppress(':') + OneOrMore(data_word).addParseAction(' '.join))
 
         text = "shape: SQUARE posn: upper left color: BLACK"
         OneOrMore(attr_expr).parseString(text)  # Fail! read 'color' as data instead of next label -> [['shape', 'SQUARE color']]
 
         # use stopOn attribute for OneOrMore to avoid reading label string as part of the data
-        attr_expr = Group(label + Suppress(':') + OneOrMore(data_word, stopOn=label).setParseAction(' '.join))
+        attr_expr = Group(label + Suppress(':') + OneOrMore(data_word, stopOn=label).addParseAction(' '.join))
         OneOrMore(attr_expr).parseString(text) # Better -> [['shape', 'SQUARE'], ['posn', 'upper left'], ['color', 'BLACK']]
 
         # could also be written as
@@ -380,7 +380,7 @@ class SkipTo(ParseElementEnhance):
         # - ignore quoted strings, so that a '|' character inside a quoted string does not match
         # - parse action will call token.strip() for each matched token, i.e., the description body
         string_data = SkipTo(SEP, ignore=quotedString)
-        string_data.setParseAction(tokenMap(str.strip))
+        string_data.addParseAction(tokenMap(str.strip))
         ticket_expr = (integer("issue_num") + SEP
                       + string_data("sev") + SEP
                       + string_data("desc") + SEP
@@ -520,11 +520,6 @@ class Forward(ParserElement):
         if name and not self.expr.parser_name:
             self.expr.set_parser_name(name)
         return self
-
-    def setParseAction(self, actions):
-        if not self.expr:
-            Log.error("not allowed")
-        self.expr = self.expr.setParseAction(actions)
 
     def addParseAction(self, action):
         if not self.expr:
@@ -666,10 +661,10 @@ class Dict(Group):
 
         data_word = Word(alphas)
         label = data_word + FollowedBy(':')
-        attr_expr = Group(label + Suppress(':') + OneOrMore(data_word).setParseAction(' '.join))
+        attr_expr = Group(label + Suppress(':') + OneOrMore(data_word).addParseAction(' '.join))
 
         text = "shape: SQUARE posn: upper left color: light blue texture: burlap"
-        attr_expr = (label + Suppress(':') + OneOrMore(data_word, stopOn=label).setParseAction(' '.join))
+        attr_expr = (label + Suppress(':') + OneOrMore(data_word, stopOn=label).addParseAction(' '.join))
 
         # print attributes as plain groups
         print(OneOrMore(attr_expr).parseString(text))

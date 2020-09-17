@@ -16,9 +16,9 @@ def convertToHTML(opening, closing):
     return conversionParseAction
 
 
-italicized = QuotedString("*").setParseAction(convertToHTML("<I>", "</I>"))
-bolded = QuotedString("**").setParseAction(convertToHTML("<B>", "</B>"))
-boldItalicized = QuotedString("***").setParseAction(convertToHTML("<B><I>", "</I></B>"))
+italicized = QuotedString("*").addParseAction(convertToHTML("<I>", "</I>"))
+bolded = QuotedString("**").addParseAction(convertToHTML("<B>", "</B>"))
+boldItalicized = QuotedString("***").addParseAction(convertToHTML("<B><I>", "</I></B>"))
 
 
 def convertToHTML_A(s, l, t):
@@ -29,7 +29,7 @@ def convertToHTML_A(s, l, t):
     return '<A href="{}">{}</A>'.format(url, text)
 
 
-urlRef = QuotedString("{{", endQuoteChar="}}").setParseAction(convertToHTML_A)
+urlRef = QuotedString("{{", endQuoteChar="}}").addParseAction(convertToHTML_A)
 
 wikiMarkup = urlRef | boldItalicized | bolded | italicized
 

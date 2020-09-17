@@ -112,15 +112,14 @@ class ParserElement(object):
                 self._parse = self._parse._originalParseMethod
         return self
 
-    def setParseAction(self, *fns, callDuringTry=False):
+    def clearParseAction(self):
+        """
+        Add one or more parse actions to expression's list of parse actions. See :class:`setParseAction`.
+
+        See examples in :class:`copy`.
+        """
         output = self.copy()
-        if fns == (None, ):
-            output.parseAction = []
-        else:
-            if not all(callable(fn) for fn in fns):
-                raise TypeError("parse actions must be callable")
-            output.parseAction = list(map(wrap_parse_action, list(fns)))
-            output.callDuringTry = callDuringTry
+        output.parseAction = []
         return output
 
     def addParseAction(self, *fns, callDuringTry=False):
@@ -145,7 +144,7 @@ class ParserElement(object):
 
         Example::
 
-            integer = Word(nums).setParseAction(lambda toks: int(toks[0]))
+            integer = Word(nums).addParseAction(lambda toks: int(toks[0]))
             year_int = integer.copy()
             year_int.addCondition(lambda toks: toks[0] >= 2000, message="Only support years 2000 and later")
             date_str = year_int + '/' + integer + '/' + integer
@@ -376,7 +375,7 @@ class ParserElement(object):
         Example::
 
             wd = Word(alphas)
-            wd.setParseAction(lambda toks: toks[0].title())
+            wd.addParseAction(lambda toks: toks[0].title())
 
             print(wd.transformString("now is the winter of our discontent made glorious summer by this sun of york."))
 
@@ -424,10 +423,15 @@ class ParserElement(object):
             ['More', 'Iron', 'Lead', 'Gold', 'I', 'Electricity']
         """
 
-        g = Group(self)
+        if isinstance(self, Group):
+            scanned = [t for t, s, e in self.scanString(instring, maxMatches)]
+        else:
+            g = Group(self)
+            scanned = [ParseResults(g, [t]) for t, s, e in self.scanString(instring, maxMatches)]
+
         output = ParseResults(
             ZeroOrMore(g),
-            [ParseResults(g, [t]) for t, s, e in self.scanString(instring, maxMatches)],
+            scanned,
         )
         return output
 

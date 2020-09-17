@@ -25,7 +25,7 @@ vars().update(keywords)
 any_keyword = MatchFirst(keywords.values())
 
 quoted_identifier = QuotedString('"', escQuote='""')
-identifier = (~any_keyword + Word(alphas, alphanums + "_")).setParseAction(
+identifier = (~any_keyword + Word(alphas, alphanums + "_")).addParseAction(
     downcaseTokens
 ) | quoted_identifier
 collation_name = identifier.copy()

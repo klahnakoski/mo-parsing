@@ -63,23 +63,23 @@ expop = Literal("^")
 expr = Forward()
 expr_list = delimitedList(Group(expr))
 # add parse action that replaces the function identifier with a (name, number of args) tuple
-fn_call = (ident + lpar - Group(expr_list) + rpar).setParseAction(
+fn_call = (ident + lpar - Group(expr_list) + rpar).addParseAction(
     lambda t: ((t[0], len(t[1])),)
 )
 atom = (
     addop[...]
     + (
-        (fn_call | pi | e | fnumber | ident).setParseAction(push_first)
+        (fn_call | pi | e | fnumber | ident).addParseAction(push_first)
         | Group(lpar + expr + rpar)
     )
-).setParseAction(push_unary_minus)
+).addParseAction(push_unary_minus)
 
 # by defining exponentiation as "atom [ ^ factor ]..." instead of "atom [ ^ atom ]...", we get right-to-left
 # exponents, instead of left-to-right that is, 2^3^2 = 2^(3^2), not (2^3)^2.
 factor = Forward()
-factor <<= atom + (expop + factor).setParseAction(push_first)[...]
-term = factor + (multop + factor).setParseAction(push_first)[...]
-expr <<= term + (addop + term).setParseAction(push_first)[...]
+factor <<= atom + (expop + factor).addParseAction(push_first)[...]
+term = factor + (multop + factor).addParseAction(push_first)[...]
+expr <<= term + (addop + term).addParseAction(push_first)[...]
 bnf = expr
 
 # map operator symbols to corresponding arithmetic operations

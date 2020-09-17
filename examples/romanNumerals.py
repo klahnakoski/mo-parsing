@@ -7,7 +7,7 @@ from mo_parsing import *
 
 
 def romanNumeralLiteral(numeralString, value):
-    return Literal(numeralString).setParseAction(replaceWith(value))
+    return Literal(numeralString).addParseAction(replaceWith(value))
 
 
 one = romanNumeralLiteral("I", 1)
@@ -40,7 +40,7 @@ numeral = (
     | one
 ).leaveWhitespace()
 
-romanNumeral = numeral[1, ...].setParseAction(sum)
+romanNumeral = numeral[1, ...].addParseAction(sum)
 
 # unit tests
 def makeRomanNumeral(n):

@@ -8,7 +8,7 @@ from mo_parsing.helpers import stripHTMLTags
 linkOpenTag, linkCloseTag = makeHTMLTags("a")
 
 linkBody = linkOpenTag.tag_body
-linkBody.setParseAction(stripHTMLTags)
+linkBody.addParseAction(stripHTMLTags)
 linkBody.addParseAction(lambda toks: " ".join(toks[0].strip().split()))
 
 link = linkOpenTag + linkBody("body") + linkCloseTag.suppress()

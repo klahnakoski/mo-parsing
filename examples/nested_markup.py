@@ -23,10 +23,10 @@ def convert_markup_to_html(opening, closing):
 # parsed text as a single string containing the outermost nested braces instead
 # of a nested list of parsed tokens
 markup_body = originalTextFor(nestedExpr("{", "}"))
-italicized = ("ital" + markup_body).setParseAction(
+italicized = ("ital" + markup_body).addParseAction(
     convert_markup_to_html("<I>", "</I>")
 )
-bolded = ("bold" + markup_body).setParseAction(convert_markup_to_html("<B>", "</B>"))
+bolded = ("bold" + markup_body).addParseAction(convert_markup_to_html("<B>", "</B>"))
 
 # another markup and parse action to parse links - again using transform string
 # to recursively parse any markup in the link text
@@ -37,7 +37,7 @@ def convert_link_to_html(s, l, t):
     return '<A href="{url}">{link_text}</A>'.format_map(t)
 
 
-urlRef = (Keyword("link") + "{" + ... + "->" + ... + "}").setParseAction(
+urlRef = (Keyword("link") + "{" + ... + "->" + ... + "}").addParseAction(
     convert_link_to_html
 )
 

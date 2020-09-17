@@ -20,7 +20,7 @@ from mo_parsing import (
 
 scriptOpen, scriptClose = makeHTMLTags("script")
 scriptBody = scriptOpen + scriptOpen.tag_body + scriptClose
-commonHTMLEntity.setParseAction(replaceHTMLEntity)
+commonHTMLEntity.addParseAction(replaceHTMLEntity)
 
 # get some HTML
 targetURL = "https://wiki.python.org/moin/PythonDecoratorLibrary"
@@ -36,6 +36,6 @@ firstPass = (
 
 # first pass leaves many blank lines, collapse these down
 repeatedNewlines = LineEnd() * (2,)
-repeatedNewlines.setParseAction(replaceWith("\n\n"))
+repeatedNewlines.addParseAction(replaceWith("\n\n"))
 secondPass = repeatedNewlines.transformString(firstPass)
 

@@ -15,16 +15,16 @@ cvtList = lambda toks: [toks]
 # define punctuation as suppressed literals
 lparen, rparen, lbrack, rbrack, lbrace, rbrace, colon, comma = map(Suppress, "()[]{}:,")
 
-integer = Regex(r"[+-]?\d+").set_parser_name("integer").setParseAction(cvtInt)
-real = Regex(r"[+-]?\d+\.\d*([Ee][+-]?\d+)?").set_parser_name("real").setParseAction(cvtReal)
+integer = Regex(r"[+-]?\d+").set_parser_name("integer").addParseAction(cvtInt)
+real = Regex(r"[+-]?\d+\.\d*([Ee][+-]?\d+)?").set_parser_name("real").addParseAction(cvtReal)
 tupleStr = Forward()
 listStr = Forward()
 dictStr = Forward()
 
-unicodeString.setParseAction(lambda t: t[0][2:-1])
-quotedString.setParseAction(lambda t: t[0][1:-1])
-boolLiteral = oneOf("True False").setParseAction(cvtBool)
-noneLiteral = Literal("None").setParseAction(replaceWith(None))
+unicodeString.addParseAction(lambda t: t[0][2:-1])
+quotedString.addParseAction(lambda t: t[0][1:-1])
+boolLiteral = oneOf("True False").addParseAction(cvtBool)
+noneLiteral = Literal("None").addParseAction(replaceWith(None))
 
 listItem = (
     real
@@ -39,14 +39,14 @@ listItem = (
 )
 
 tupleStr << (lparen + Optional(delimitedList(listItem)) + Optional(comma) + rparen)
-tupleStr.setParseAction(cvtTuple)
+tupleStr.addParseAction(cvtTuple)
 
 listStr << (lbrack + Optional(delimitedList(listItem) + Optional(comma)) + rbrack)
-listStr.setParseAction(cvtList, lambda t: t[0])
+listStr.addParseAction(cvtList, lambda t: t[0])
 
 dictEntry = Group(listItem + colon + listItem)
 dictStr << (lbrace + Optional(delimitedList(dictEntry) + Optional(comma)) + rbrace)
-dictStr.setParseAction(cvtDict)
+dictStr.addParseAction(cvtDict)
 
 tests = """['a', 100, ('A', [101,102]), 3.14, [ +2.718, 'xyzzy', -1.414] ]
            [{0: [2], 1: []}, {0: [], 1: [], 2: []}, {0: [1, 2]}]

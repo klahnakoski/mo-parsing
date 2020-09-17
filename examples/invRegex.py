@@ -212,10 +212,10 @@ def parser():
             | oneOf(list("*+?"))
         )
 
-        reRange.setParseAction(handleRange)
-        reLiteral.setParseAction(handleLiteral)
-        reMacro.setParseAction(handleMacro)
-        reDot.setParseAction(handleDot)
+        reRange.addParseAction(handleRange)
+        reLiteral.addParseAction(handleLiteral)
+        reMacro.addParseAction(handleMacro)
+        reDot.addParseAction(handleDot)
 
         reTerm = reLiteral | reRange | reMacro | reDot | reNonCaptureGroup
         reExpr = infixNotation(

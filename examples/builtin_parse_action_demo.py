@@ -7,7 +7,7 @@
 
 from mo_parsing import *
 
-integer = Word(nums).setParseAction(lambda t: int(t[0]))
+integer = Word(nums).addParseAction(lambda t: int(t[0]))
 
 # make an expression that will match a list of ints (which
 # will be converted to actual ints by the parse action attached

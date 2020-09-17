@@ -37,7 +37,8 @@ from mo_parsing.tokens import (
     White,
     Word,
     Literal,
-    _escapeRegexRangeChars, Token,
+    _escapeRegexRangeChars,
+    Token,
 )
 from mo_parsing.utils import (
     _bslash,
@@ -104,11 +105,11 @@ def countedArray(expr, intExpr=None):
 
         # in this parser, the leading integer value is given in binary,
         # '10' indicating that 2 values are in the array
-        binaryConstant = Word('01').setParseAction(lambda t: int(t[0], 2))
+        binaryConstant = Word('01').addParseAction(lambda t: int(t[0], 2))
         countedArray(Word(alphas), intExpr=binaryConstant).parseString('10 ab cd ef')  # -> ['ab', 'cd']
     """
     if intExpr is None:
-        intExpr = Word(nums).setParseAction(lambda t: int(t[0]))
+        intExpr = Word(nums).addParseAction(lambda t: int(t[0]))
 
     arrayExpr = Forward()
 
@@ -195,7 +196,7 @@ def matchPreviousExpr(expr):
             if theseTokens != matchTokens:
                 raise ParseException("", 0, "")
 
-        rep.setParseAction(mustMatchTheseTokens, callDuringTry=True)
+        rep.addParseAction(mustMatchTheseTokens, callDuringTry=True)
 
     expr.addParseAction(copyTokenToRepeater, callDuringTry=True)
     rep.set_parser_name("(prev) " + text(expr))
@@ -318,11 +319,11 @@ def dictOf(key, value):
     Example::
 
         text = "shape: SQUARE posn: upper left color: light blue texture: burlap"
-        attr_expr = (label + Suppress(':') + OneOrMore(data_word, stopOn=label).setParseAction(' '.join))
+        attr_expr = (label + Suppress(':') + OneOrMore(data_word, stopOn=label).addParseAction(' '.join))
         print(OneOrMore(attr_expr).parseString(text))
 
         attr_label = label
-        attr_value = Suppress(':') + OneOrMore(data_word, stopOn=label).setParseAction(' '.join)
+        attr_value = Suppress(':') + OneOrMore(data_word, stopOn=label).addParseAction(' '.join)
 
         # similar to Dict, but simpler call format
         result = dictOf(attr_label, attr_value).parseString(text)
@@ -374,16 +375,20 @@ def originalTextFor(expr, asString=True):
         ['<b> bold <i>text</i> </b>']
         ['<i>text</i>']
     """
-    locMarker = Empty().setParseAction(lambda s, loc, t: loc)
+    locMarker = Empty().addParseAction(lambda s, loc, t: loc)
     matchExpr = locMarker("_original_start") + Group(expr) + locMarker("_original_end")
-    matchExpr = matchExpr.setParseAction(extractText)
+    matchExpr = matchExpr.addParseAction(extractText)
     return matchExpr
 
 
 def extractText(s, l, t):
     d = t[1]
-    content = s[t["_original_start"]: t["_original_end"]]
-    return ParseResults(d.type_for_result, [content]+[Annotation(k, v) for k, v in d.items()])
+    content = s[t["_original_start"] : t["_original_end"]]
+    annotations = [
+        Annotation(k, v[0].tokens_for_result) if len(v) == 1 and v[0].name_for_result == k else Annotation(k, v)
+        for k, v in d.items()
+    ]
+    return ParseResults(d.type_for_result, [content] + annotations)
 
 
 def ungroup(expr):
@@ -418,7 +423,7 @@ def locatedExpr(expr):
         [[8, 'lksdjjf', 15]]
         [[18, 'lkkjj', 23]]
     """
-    locator = Empty().setParseAction(lambda s, l, t: l)
+    locator = Empty().addParseAction(lambda s, l, t: l)
     return Group(locator("locn_start") + Group(expr)("value") + locator("locn_end"))
 
 
@@ -508,11 +513,11 @@ def nestedExpr(opener="(", closer=")", content=None, ignoreExpr=quotedString):
                     content = Combine(OneOrMore(
                         ~ignoreExpr
                         + CharsNotIn(opener + closer + "".join(ignore_chars), exact=1,)
-                    )).setParseAction(scrub)
+                    )).addParseAction(scrub)
                 else:
                     content = empty.copy() + CharsNotIn(
                         opener + closer + "".join(ignore_chars)
-                    ).setParseAction(scrub)
+                    ).addParseAction(scrub)
             else:
                 if ignoreExpr is not None:
                     content = Combine(OneOrMore(
@@ -520,13 +525,13 @@ def nestedExpr(opener="(", closer=")", content=None, ignoreExpr=quotedString):
                         + ~Literal(opener)
                         + ~Literal(closer)
                         + CharsNotIn(ignore_chars, exact=1)
-                    )).setParseAction(scrub)
+                    )).addParseAction(scrub)
                 else:
                     content = Combine(OneOrMore(
                         ~Literal(opener)
                         + ~Literal(closer)
                         + CharsNotIn(ignore_chars, exact=1)
-                    )).setParseAction(scrub)
+                    )).addParseAction(scrub)
     ret = Forward()
     if ignoreExpr is not None:
         ret <<= Group(
@@ -602,8 +607,8 @@ def replaceWith(replStr):
 
     Example::
 
-        num = Word(nums).setParseAction(lambda toks: int(toks[0]))
-        na = oneOf("N/A NA").setParseAction(replaceWith(math.nan))
+        num = Word(nums).addParseAction(lambda toks: int(toks[0]))
+        na = oneOf("N/A NA").addParseAction(replaceWith(math.nan))
         term = na | num
 
         OneOrMore(term).parseString("324 234 N/A 234") # -> [324, 234, nan, 234]
@@ -621,7 +626,7 @@ def removeQuotes(s, l, t):
         quotedString.parseString("'Now is the Winter of our Discontent'") # -> ["'Now is the Winter of our Discontent'"]
 
         # use removeQuotes to strip quotation marks from parsed results
-        quotedString.setParseAction(removeQuotes)
+        quotedString.addParseAction(removeQuotes)
         quotedString.parseString("'Now is the Winter of our Discontent'") # -> ["Now is the Winter of our Discontent"]
     """
     return t[0][1:-1]
@@ -692,17 +697,17 @@ def makeHTMLTags(tagStr, suppress_LT=Suppress("<"), suppress_GT=Suppress(">")):
 
     openTag = (
         (
-        suppress_LT
-        + tagStr("tag")
-        + Dict(ZeroOrMore(Group(
-            tagAttrName.setParseAction(downcaseTokens)
-            + Optional(Suppress("=") + tagAttrValue)
-        )))("attrs")
-        + Optional(
-            "/", default=[False]
-        )("empty").setParseAction(lambda s, l, t: t[0] == "/")
-        + suppress_GT
-    )
+            suppress_LT
+            + tagStr("tag")
+            + Dict(ZeroOrMore(Group(
+                tagAttrName.addParseAction(downcaseTokens)
+                + Optional(Suppress("=") + tagAttrValue)
+            )))("attrs")
+            + Optional(
+                "/", default=[False]
+            )("empty").addParseAction(lambda s, l, t: t[0] == "/")
+            + suppress_GT
+        )
         .set_token_name("start" + simpler_name)
         .set_parser_name("<%s>" % resname)
     )
@@ -718,7 +723,6 @@ def makeHTMLTags(tagStr, suppress_LT=Suppress("<"), suppress_GT=Suppress(">")):
     openTag.tag_body = SkipTo(closeTag)
 
     return openTag, closeTag
-
 
 
 def withAttribute(*args, **attrDict):
@@ -759,13 +763,13 @@ def withAttribute(*args, **attrDict):
         div,div_end = makeHTMLTags("div")
 
         # only match div tag having a type attribute with value "grid"
-        div_grid = div().setParseAction(withAttribute(type="grid"))
+        div_grid = div().addParseAction(withAttribute(type="grid"))
         grid_expr = div_grid + SkipTo(div | div_end)("body")
         for grid_header in grid_expr.searchString(html):
             print(grid_header.body)
 
         # construct a match with any div tag having a type attribute, regardless of the value
-        div_any_type = div().setParseAction(withAttribute(type=withAttribute.ANY_VALUE))
+        div_any_type = div().addParseAction(withAttribute(type=withAttribute.ANY_VALUE))
         div_expr = div_any_type + SkipTo(div | div_end)("body")
         for div_header in div_expr.searchString(html):
             print(div_header.body)
@@ -818,13 +822,13 @@ def withClass(classname, namespace=""):
 
         '''
         div,div_end = makeHTMLTags("div")
-        div_grid = div().setParseAction(withClass("grid"))
+        div_grid = div().addParseAction(withClass("grid"))
 
         grid_expr = div_grid + SkipTo(div | div_end)("body")
         for grid_header in grid_expr.searchString(html):
             print(grid_header.body)
 
-        div_any_type = div().setParseAction(withClass(withAttribute.ANY_VALUE))
+        div_any_type = div().addParseAction(withClass(withAttribute.ANY_VALUE))
         div_expr = div_any_type + SkipTo(div | div_end)("body")
         for div_header in div_expr.searchString(html):
             print(div_header.body)
@@ -868,7 +872,7 @@ def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
          tuple member may be omitted); if the parse action is passed
          a tuple or list of functions, this is equivalent to calling
          ``setParseAction(*fn)``
-         (:class:`ParserElement.setParseAction`)
+         (:class:`ParserElement.addParseAction`)
     :param lpar: expression for matching left-parentheses
        (default= ``Suppress('(')``)
     :param rpar: expression for matching right-parentheses
@@ -1172,10 +1176,10 @@ def indentedBlock(blockStatementExpr, indentStack, indent=True):
 
     NL = OneOrMore(LineEnd().suppress())
     INDENT = (
-        Empty() + Empty().setParseAction(checkSubIndent)
+        Empty() + Empty().addParseAction(checkSubIndent)
     ).set_parser_name("INDENT")
-    PEER = Empty().setParseAction(checkPeerIndent).set_parser_name("")
-    UNDENT = Empty().setParseAction(checkUnindent).set_parser_name("UNINDENT")
+    PEER = Empty().addParseAction(checkPeerIndent).set_parser_name("")
+    UNDENT = Empty().addParseAction(checkUnindent).set_parser_name("UNINDENT")
     if indent:
         smExpr = Group(
             Optional(NL)
@@ -1316,7 +1320,7 @@ Example::
         ''')
 
     import uuid
-    uuid.setParseAction(tokenMap(uuid.UUID))
+    uuid.addParseAction(tokenMap(uuid.UUID))
     test.runTests(uuid, '''
         # uuid
         12345678-1234-5678-1234-567812345678
@@ -1398,24 +1402,24 @@ convertToInteger = tokenMap(int)
 
 convertToFloat = tokenMap(float)
 
-integer = Word(nums).set_parser_name("integer").setParseAction(convertToInteger)
+integer = Word(nums).set_parser_name("integer").addParseAction(convertToInteger)
 """expression that parses an unsigned integer, returns an int"""
 
 hex_integer = (
-    Word(hexnums).set_parser_name("hex integer").setParseAction(tokenMap(int, 16))
+    Word(hexnums).set_parser_name("hex integer").addParseAction(tokenMap(int, 16))
 )
 """expression that parses a hexadecimal integer, returns an int"""
 
 signed_integer = (
     Regex(r"[+-]?\d+")
     .set_parser_name("signed integer")
-    .setParseAction(convertToInteger)
+    .addParseAction(convertToInteger)
 )
 
 fraction = (
-    signed_integer.setParseAction(convertToFloat)
+    signed_integer.addParseAction(convertToFloat)
     + "/"
-    + signed_integer.setParseAction(convertToFloat)
+    + signed_integer.addParseAction(convertToFloat)
 ).set_parser_name("fraction")
 fraction.addParseAction(lambda t: t[0] / t[-1])
 
@@ -1428,14 +1432,14 @@ mixed_integer.addParseAction(sum)
 real = (
     Regex(r"[+-]?(:?\d+\.\d*|\.\d+)")
     .set_parser_name("real number")
-    .setParseAction(convertToFloat)
+    .addParseAction(convertToFloat)
 )
 """expression that parses a floating point number and returns a float"""
 
 sci_real = (
     Regex(r"[+-]?(:?\d+(:?[eE][+-]?\d+)|(:?\d+\.\d*|\.\d+)(:?[eE][+-]?\d+)?)")
     .set_parser_name("real number with scientific notation")
-    .setParseAction(convertToFloat)
+    .addParseAction(convertToFloat)
 )
 """expression that parses a floating point number with optional
 scientific notation and returns a float"""
@@ -1447,7 +1451,7 @@ number = (sci_real | real | signed_integer).streamline()
 fnumber = (
     Regex(r"[+-]?\d+\.?\d*([eE][+-]?\d+)?")
     .set_parser_name("fnumber")
-    .setParseAction(convertToFloat)
+    .addParseAction(convertToFloat)
 )
 """any int or real number, returned as float"""
 
@@ -1495,7 +1499,7 @@ def convertToDate(fmt="%Y-%m-%d"):
     Example::
 
         date_expr = iso8601_date.copy()
-        date_expr.setParseAction(convertToDate())
+        date_expr.addParseAction(convertToDate())
         print(date_expr.parseString("1999-12-31"))
 
     prints::
@@ -1522,7 +1526,7 @@ def convertToDatetime(fmt="%Y-%m-%dT%H:%M:%S.%f"):
     Example::
 
         dt_expr = iso8601_datetime.copy()
-        dt_expr.setParseAction(convertToDatetime())
+        dt_expr.addParseAction(convertToDatetime())
         print(dt_expr.parseString("1999-12-31T23:59:59.999"))
 
     prints::
@@ -1566,7 +1570,7 @@ def stripHTMLTags(s, l, tokens):
         # strip HTML links from normal text
         text = '<td>More info at the <a href="https://github.com/mo_parsing/mo_parsing/wiki">mo_parsing</a> wiki page</td>'
         td, td_end = makeHTMLTags("TD")
-        table_text = td + SkipTo(td_end).setParseAction(stripHTMLTags)("body") + td_end
+        table_text = td + SkipTo(td_end).addParseAction(stripHTMLTags)("body") + td_end
         print(table_text.parseString(text).body)
 
     Prints::
@@ -1606,13 +1610,13 @@ core.quotedString = quotedString
 
 _escapedPunc = Word(
     _bslash, r"\[]-*.$+^?()~ ", exact=2
-).setParseAction(lambda s, l, t: t[0][1])
+).addParseAction(lambda s, l, t: t[0][1])
 _escapedHexChar = (
-    Regex(r"\\0?[xX][0-9a-fA-F]+").setParseAction(lambda s, l, t: unichr(int(
+    Regex(r"\\0?[xX][0-9a-fA-F]+").addParseAction(lambda s, l, t: unichr(int(
         t[0].lstrip(r"\0x"), 16
     )))
 )
-_escapedOctChar = Regex(r"\\0[0-7]+").setParseAction(lambda s, l, t: unichr(int(
+_escapedOctChar = Regex(r"\\0[0-7]+").addParseAction(lambda s, l, t: unichr(int(
     t[0][1:], 8
 )))
 _singleChar = (
