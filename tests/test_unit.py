@@ -628,18 +628,18 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
 
     def testParseCommaSeparatedValues(self):
         testData = [
+            "d, e, j k , m  ",
             "m  ",
             "a,b,c,100.2,,3",
-            "d, e, j k , m  ",
             "'Hello, World', f, g , , 5.1,x",
             "John Doe, 123 Main St., Cleveland, Ohio",
             "Jane Doe, 456 St. James St., Los Angeles , California   ",
             "",
         ]
         testVals = [
+            [(2, "j k"), (3, "m")],
             [(0, "m")],
             [(3, "100.2"), (4, ""), (5, "3")],
-            [(2, "j k"), (3, "m")],
             [(0, "'Hello, World'"), (2, "g"), (3, "")],
             [(0, "John Doe"), (1, "123 Main St."), (2, "Cleveland"), (3, "Ohio")],
             [
@@ -4440,33 +4440,12 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
         def number_action():
             raise IndexError  # this is the important line!
 
-        number.addParseAction(number_action)
+        number = number.addParseAction(number_action)
         symbol = Word("abcd", max=1)
         expr = number | symbol
 
-        try:
+        with self.assertRaises("IndexError"):
             expr.parseString("1 + 2")
-        except Exception as e:
-            print_traceback = True
-            try:
-                self.assertTrue(
-                    hasattr(e, "__cause__"),
-                    "no __cause__ attribute in the raised exception",
-                )
-                self.assertTrue(
-                    e.__cause__ is not None,
-                    "__cause__ not propagated to outer exception",
-                )
-                self.assertTrue(
-                    type(e.__cause__) == IndexError,
-                    "__cause__ references wrong exception",
-                )
-                print_traceback = False
-            finally:
-                if print_traceback:
-                    traceback.print_exc()
-        else:
-            self.assertTrue(False, "Expected ParseException not raised")
 
     # tests Issue #22
     def testParseActionNesting(self):
@@ -4477,7 +4456,7 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
             tokens["total"] = sum(tokens)
             return tokens
 
-        vals.addParseAction(add_total)
+        vals = vals.addParseAction(add_total)
         results = vals.parseString("244 23 13 2343")
         self.assertParseResultsEquals(
             results,

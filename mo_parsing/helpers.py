@@ -1585,18 +1585,12 @@ def _strip(tok):
 
 
 _commasepitem = (
-    Combine(OneOrMore(
-        ~Literal(",")
-        + ~LineEnd()
-        + Word(printables, excludeChars=",")
-        + Optional(White(" \t"))
-    ))
-    .streamline()
+    Word(printables + " \t", excludeChars=",")
     .set_parser_name("commaItem")
     .addParseAction(_strip)
 )
 comma_separated_list = delimitedList(Optional(
-    quotedString.copy() | _commasepitem, default=""
+    quotedString | _commasepitem, default=""
 )).set_parser_name("comma separated list")
 """Predefined expression of 1 or more printable words or quoted strings, separated by commas."""
 

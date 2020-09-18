@@ -180,19 +180,18 @@ def wrap_parse_action(func):
                 return ParseResults(original_type.expr, [result])
             else:
                 return ParseResults(original_type, [result])
-        except Exception as e:
-            result = func(*args[start:])
+        except Exception as cause:
             if (
-                isinstance(e, TypeError)
+                isinstance(cause, TypeError)
                 and spec.args[0] == "self"
-                and "required positional argument" in e.args[0]
+                and "required positional argument" in cause.args[0]
             ):
                 Log.error(
-                    "Did you provide a `self` argument to a static function?", cause=e
+                    "Did you provide a `self` argument to a static function?", cause=cause
                 )
 
             f = ParseException(*args)
-            f.__cause__ = e
+            f.__cause__ = cause
             raise f
 
     # copy func name to wrapper for sensible debug output

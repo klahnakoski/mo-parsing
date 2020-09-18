@@ -57,7 +57,10 @@ class FuzzyTestCase(unittest.TestCase):
     def assertEqual(self, test_value, expected, msg=None, digits=None, places=None, delta=None):
         self.assertAlmostEqual(test_value, expected, msg=msg, digits=digits, places=places, delta=delta)
 
-    def assertRaises(self, problem, function, *args, **kwargs):
+    def assertRaises(self, problem, function=None, *args, **kwargs):
+        if function is None:
+            return RaiseContext(self, problem)
+
         try:
             function(*args, **kwargs)
         except Exception as e:
@@ -76,6 +79,21 @@ class FuzzyTestCase(unittest.TestCase):
                 return
 
         Log.error("Expecting an exception to be raised")
+
+
+class RaiseContext(object):
+
+    def __init__(self, this, problem):
+        self.this = this
+        self.problem = problem
+
+    def __enter__(self):
+        pass
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        f = Except.wrap(exc_val)
+        self.this.assertIn(self.problem, f)
+        return True
 
 
 def assertAlmostEqual(test, expected, digits=None, places=None, msg=None, delta=None):

@@ -1031,6 +1031,13 @@ class White(Token):
             self.maxLen = exact
             self.minLen = exact
 
+    def copy(self):
+        output = super(White, self).copy()
+        output.matchWhite = self.matchWhite
+        output.minLen = self.minLen
+        output.maxLen = self.maxLen
+        return output
+
     def parseImpl(self, instring, loc, doActions=True):
         if instring[loc] not in self.matchWhite:
             raise ParseException(instring, loc, self)
