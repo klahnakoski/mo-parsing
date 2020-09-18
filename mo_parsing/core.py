@@ -6,6 +6,7 @@ from mo_future import text, is_text
 from mo_logs import Log
 
 from mo_parsing.cache import packrat_cache
+from mo_parsing.engine import Engine
 from mo_parsing.exceptions import (
     ParseBaseException,
     ParseException,
@@ -691,9 +692,8 @@ class ParserElement(object):
         :class:`ParserElement`'s defined pattern.  This is normally only used internally by
         the mo_parsing module, but may be needed in some whitespace-sensitive grammars.
         """
-        output = self.copy()
-        if self.engine.white_chars:
-            Log.error("do not know how to handle")
+        with Engine(""):
+            output = self.copy()
         return output
 
     def __str__(self):

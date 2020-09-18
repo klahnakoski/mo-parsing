@@ -228,7 +228,6 @@ from mo_parsing.utils import (
     parsing_unicode,
     singleArgBuiltins,
     traceParseAction,
-    unichr,
     unicode_set,
 )
 

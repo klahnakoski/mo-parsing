@@ -785,7 +785,7 @@ class PrecededBy(ParseElementEnhance):
 
     def __init__(self, expr, retreat=None):
         super(PrecededBy, self).__init__(expr)
-        self.expr = self.expr().leaveWhitespace()
+        self.expr = self.expr.leaveWhitespace()
         self.parser_config.mayReturnEmpty = True
         self.parser_config.mayIndexError = False
         self.exact = False

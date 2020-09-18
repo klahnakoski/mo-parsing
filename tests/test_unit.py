@@ -22,6 +22,7 @@ from unittest import TestCase, skip
 
 from mo_dots import coalesce
 from mo_logs import Log
+from mo_testing.fuzzytestcase import FuzzyTestCase
 from mo_times import Timer
 
 from examples import fourFn, configParse, idlParse, ebnf
@@ -178,7 +179,7 @@ class resetting:
             setattr(self.ob, attr, value)
 
 
-class TestParsing(PyparsingExpressionTestCase, TestCase):
+class TestParsing(PyparsingExpressionTestCase):
     def testParseFourFn(self):
         def test(s, ans):
             fourFn.exprStack[:] = []
@@ -2026,37 +2027,13 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
 
         def testMatch(expression, instring, shouldPass, expectedString=None):
             if shouldPass:
-                try:
-                    result = expression.parseString(instring)
-                    print("{} correctly matched {}".format(
-                        repr(expression), repr(instring)
-                    ))
-                    if expectedString != result[0]:
-
-                        print(
-                            "\tproduced %s instead of %s"
-                            % (repr(result[0]), repr(expectedString))
-                        )
-                    return True
-                except ParseException:
-                    print(
-                        "%s incorrectly failed to match %s"
-                        % (repr(expression), repr(instring))
-                    )
+                result = expression.parseString(instring)
+                self.assertEqual(result, expectedString)
             else:
-                try:
-                    result = expression.parseString(instring)
-                    print("{} incorrectly matched {}".format(
-                        repr(expression), repr(instring)
-                    ))
+                with self.assertRaises(Exception):
+                    expression.parseString(instring)
 
-                except ParseException:
-                    print(
-                        "%s correctly failed to match %s"
-                        % (repr(expression), repr(instring))
-                    )
-                    return True
-            return False
+            return True
 
         # These should fail
         self.assertTrue(
@@ -2128,21 +2105,15 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
         )
         ret = namedGrouping.parseString('"zork" blah')
 
-        self.assertEqual(ret.content, "zork", "named group lookup failed")
+        self.assertEqual(ret['content'], "zork", "named group lookup failed")
         self.assertEqual(
             ret[0],
             simpleString.parseString('"zork" blah')[0],
             "Regex not properly returning ParseResults for named vs. unnamed groups",
         )
 
-        try:
-            # ~ print "lets try an invalid RE"
-            invRe = Regex("(\"[^\"]*\")|('[^']*'")
-        except Exception as e:
-            pass
-
-        else:
-            self.assertTrue(False, "failed to reject invalid RE")
+        with self.assertRaises(Exception):
+            Regex("(\"[^\"]*\")|('[^']*'")
 
         invRe = Regex("")
 
@@ -2231,9 +2202,9 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
     def testPrecededBy(self):
 
         num = Word(nums).addParseAction(lambda t: int(t[0]))
-        interesting_num = PrecededBy(Char("abc")("prefix*")) + num
+        interesting_num = PrecededBy(Char("abc")("prefix")) + num
         semi_interesting_num = PrecededBy("_") + num
-        crazy_num = PrecededBy(Word("^", "$%^")("prefix*"), 10) + num
+        crazy_num = PrecededBy(Word("^", "$%^")("prefix"), 10) + num
         boring_num = ~PrecededBy(Char("abc_$%^" + nums)) + num
         very_boring_num = PrecededBy(WordStart()) + num
         finicky_num = PrecededBy(Word("^", "$%^"), retreat=3) + num

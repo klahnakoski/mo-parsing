@@ -64,6 +64,8 @@ class FuzzyTestCase(unittest.TestCase):
         try:
             function(*args, **kwargs)
         except Exception as e:
+            if issubclass(problem, BaseException) and isinstance(e, problem):
+                return
             f = Except.wrap(e)
             if is_text(problem):
                 if problem in f:
@@ -91,6 +93,8 @@ class RaiseContext(object):
         pass
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        if issubclass(self.problem, BaseException) and isinstance(exc_val, self.problem):
+            return True
         f = Except.wrap(exc_val)
         self.this.assertIn(self.problem, f)
         return True
