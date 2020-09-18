@@ -61,9 +61,13 @@
 #           for udpInstance.
 #   1.0.11 - Fixed bug in inst_args, content alternatives were reversed
 #
+import gc
+import os
 import time
 import pprint
 import sys
+
+from mo_parsing.cache import enablePackrat
 
 __version__ = "1.0.11"
 
@@ -84,23 +88,16 @@ from mo_parsing import (
     alphanums,
     dblQuotedString,
     empty,
-    ParseException,
     oneOf,
     StringEnd,
     FollowedBy,
-    ParserElement,
     Regex,
     cppStyleComment,
 )
-import mo_parsing
-
-usePackrat = False
-
-packratOn = False
 
 
 def dumpTokens(s, l, t):
-    import pprint
+    pass
 
 
 
@@ -879,84 +876,74 @@ def Verilog_BNF():
     return verilogbnf
 
 
-if __name__ == "__main__":
+def test(strng):
+    tokens = []
+    try:
+        tokens = Verilog_BNF().parseString(strng)
+    except ParseException as err:
+        print(err.line)
+        print(" " * (err.column - 1) + "^")
+        print(err)
+    return tokens
 
 
+failCount = 0
+Verilog_BNF()
+numlines = 0
+startTime = time.clock()
+fileDir = "verilog"
+# ~ fileDir = "verilog/new"
+# ~ fileDir = "verilog/new2"
+# ~ fileDir = "verilog/new3"
+allFiles = [f for f in os.listdir(fileDir) if f.endswith(".v")]
+# ~ allFiles = [ "list_path_delays_test.v" ]
+# ~ allFiles = [ "escapedIdent.v" ]
+# ~ allFiles = filter( lambda f : f.startswith("a") and f.endswith(".v"), os.listdir(fileDir) )
+# ~ allFiles = filter( lambda f : f.startswith("c") and f.endswith(".v"), os.listdir(fileDir) )
+# ~ allFiles = [ "ff.v" ]
 
-    if packratOn:
+pp = pprint.PrettyPrinter(indent=2)
+totalTime = 0
+for vfile in allFiles:
+    gc.collect()
+    fnam = fileDir + "/" + vfile
+    infile = open(fnam)
+    filelines = infile.readlines()
+    infile.close()
+    print(fnam, len(filelines), end=" ")
+    numlines += len(filelines)
+    teststr = "".join(filelines)
+    time1 = time.clock()
+    tokens = test(teststr)
+    time2 = time.clock()
+    elapsed = time2 - time1
+    totalTime += elapsed
+    if len(tokens):
+        print("OK", elapsed)
+        # ~ print "tokens="
+        # ~ pp.pprint( tokens.asList() )
+        # ~ print
 
-
-
-    import os
-    import gc
-
-    failCount = 0
-    Verilog_BNF()
-    numlines = 0
-    startTime = time.clock()
-    fileDir = "verilog"
-    # ~ fileDir = "verilog/new"
-    # ~ fileDir = "verilog/new2"
-    # ~ fileDir = "verilog/new3"
-    allFiles = [f for f in os.listdir(fileDir) if f.endswith(".v")]
-    # ~ allFiles = [ "list_path_delays_test.v" ]
-    # ~ allFiles = [ "escapedIdent.v" ]
-    # ~ allFiles = filter( lambda f : f.startswith("a") and f.endswith(".v"), os.listdir(fileDir) )
-    # ~ allFiles = filter( lambda f : f.startswith("c") and f.endswith(".v"), os.listdir(fileDir) )
-    # ~ allFiles = [ "ff.v" ]
-
-    pp = pprint.PrettyPrinter(indent=2)
-    totalTime = 0
-    for vfile in allFiles:
-        gc.collect()
-        fnam = fileDir + "/" + vfile
-        infile = open(fnam)
-        filelines = infile.readlines()
-        infile.close()
-
-        numlines += len(filelines)
-        teststr = "".join(filelines)
-        time1 = time.clock()
-        tokens = test(teststr)
-        time2 = time.clock()
-        elapsed = time2 - time1
-        totalTime += elapsed
-        if len(tokens):
-
-            # ~ print "tokens="
-            # ~ print( tokens )
-            # ~ print
-
-            ofnam = fileDir + "/parseOutput/" + vfile + ".parsed.txt"
-            outfile = open(ofnam, "w")
-            outfile.write(teststr)
-            outfile.write("\n")
-            outfile.write("\n")
-            outfile.write(pformat(tokens))
-            outfile.write("\n")
-            outfile.close()
-        else:
-
-            failCount += 1
-            for i, line in enumerate(filelines, 1):
-
-    endTime = time.clock()
-
-
-
-    if failCount:
-
+        ofnam = fileDir + "/parseOutput/" + vfile + ".parsed.txt"
+        outfile = open(ofnam, "w")
+        outfile.write(teststr)
+        outfile.write("\n")
+        outfile.write("\n")
+        outfile.write(pp.pformat(tokens.asList()))
+        outfile.write("\n")
+        outfile.close()
     else:
+        print("failed", elapsed)
+        failCount += 1
+        for i, line in enumerate(filelines, 1):
+            print("%4d: %s" % (i, line.rstrip()))
+endTime = time.clock()
+print("Total parse time:", totalTime)
+print("Total source lines:", numlines)
+print("Average lines/sec:", ("%.1f" % (float(numlines) / (totalTime + 0.05))))
+if failCount:
+    print("FAIL - %d files failed to parse" % failCount)
+else:
+    print("SUCCESS - all files parsed")
 
 
-    # ~ from line_profiler import LineProfiler
-    # ~ from mo_parsing import ParseResults
-    # ~ lp = LineProfiler(ParseResults.__init__)
-
-    # ~ lp.print_stats()
-    # ~ import hotshot
-    # ~ p = hotshot.Profile("vparse.prof",1,1)
-    # ~ p.start()
-    # ~ main()
-    # ~ p.stop()
-    # ~ p.close()

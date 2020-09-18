@@ -283,7 +283,7 @@ def oneOf(strs, caseless=False, useRegex=True, asKeyword=False):
                 i += 1
 
     if not (caseless or asKeyword) and useRegex:
-        # ~ print (strs, "->", "|".join([_escapeRegexChars(sym) for sym in symbols]))
+
         try:
             if len(symbols) == len("".join(symbols)):
                 return Regex(
@@ -551,6 +551,29 @@ stringStart = StringStart().set_parser_name("stringStart")
 stringEnd = StringEnd().set_parser_name("stringEnd")
 
 
+_escapedPunc = Word(
+    _bslash, r"\[]-*.$+^?()~ ", exact=2
+).addParseAction(lambda s, l, t: t[0][1])
+_escapedHexChar = (
+    Regex(r"\\0?[xX][0-9a-fA-F]+").addParseAction(lambda s, l, t: unichr(int(
+        t[0].lstrip(r"\0x"), 16
+    )))
+)
+_escapedOctChar = Regex(r"\\0[0-7]+").addParseAction(lambda s, l, t: unichr(int(
+    t[0][1:], 8
+)))
+_singleChar = (
+    _escapedPunc | _escapedHexChar | _escapedOctChar | CharsNotIn(r"\]", exact=1)
+)
+_charRange = Group(_singleChar + Suppress("-") + _singleChar)
+_reBracketExpr = (
+    Literal("[")
+    + Optional("^").set_token_name("negate")
+    + Group(OneOrMore(_charRange | _singleChar)).set_token_name("body")
+    + "]"
+)
+
+
 def srange(s):
     r"""Helper to easily define string ranges for use in Word
     construction. Borrows syntax from regexp '[]' string range
@@ -583,7 +606,7 @@ def srange(s):
         else "".join(unichr(c) for c in range(ord(p[0]), ord(p[1]) + 1))
     )
     try:
-        return "".join(_expanded(part) for part in _reBracketExpr.parseString(s).body)
+        return "".join(_expanded(part) for part in _reBracketExpr.parseString(s)['body'])
     except Exception:
         return ""
 
@@ -1604,24 +1627,3 @@ core._flatten = _flatten
 core.replaceWith = replaceWith
 core.quotedString = quotedString
 
-_escapedPunc = Word(
-    _bslash, r"\[]-*.$+^?()~ ", exact=2
-).addParseAction(lambda s, l, t: t[0][1])
-_escapedHexChar = (
-    Regex(r"\\0?[xX][0-9a-fA-F]+").addParseAction(lambda s, l, t: unichr(int(
-        t[0].lstrip(r"\0x"), 16
-    )))
-)
-_escapedOctChar = Regex(r"\\0[0-7]+").addParseAction(lambda s, l, t: unichr(int(
-    t[0][1:], 8
-)))
-_singleChar = (
-    _escapedPunc | _escapedHexChar | _escapedOctChar | CharsNotIn(r"\]", exact=1)
-)
-_charRange = Group(_singleChar + Suppress("-") + _singleChar)
-_reBracketExpr = (
-    Literal("[")
-    + Optional("^").set_token_name("negate")
-    + Group(OneOrMore(_charRange | _singleChar)).set_token_name("body")
-    + "]"
-)

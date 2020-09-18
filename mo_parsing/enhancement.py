@@ -416,6 +416,13 @@ class SkipTo(ParseElementEnhance):
         self.includeMatch = include
         self.failOn = engine.CURRENT.normalize(failOn)
 
+    def copy(self):
+        output = ParseElementEnhance.copy(self)
+        output.ignoreExpr = self.ignoreExpr
+        output.includeMatch = self.includeMatch
+        output.failOn = self.failOn
+        return output
+
     def parseImpl(self, instring, end, doActions=True):
         start = end
         instrlen = len(instring)
@@ -432,6 +439,7 @@ class SkipTo(ParseElementEnhance):
             if self_failOn_canParseNext is not None:
                 # break if failOn expression matches
                 if self_failOn_canParseNext(instring, tmploc):
+                    before_end = tmploc
                     break
 
             if self_ignoreExpr_tryParse is not None:
@@ -443,6 +451,7 @@ class SkipTo(ParseElementEnhance):
                         break
 
             try:
+                before_end = tmploc
                 tmploc, _ = end_parse(instring, tmploc, doActions=False)
             except (ParseException, IndexError):
                 # no match, advance loc in string
@@ -457,16 +466,17 @@ class SkipTo(ParseElementEnhance):
 
         # build up return values
         end = tmploc
-        skiptext = instring[start:end]
+        skiptext = instring[start:before_end]
         skip_result = []
         if skiptext:
             skip_result.append(skiptext)
 
         if self.includeMatch:
-            end, end_result = end_parse(instring, end, doActions)
+            _, end_result = end_parse(instring, before_end, doActions)
             skip_result.append(end_result)
-
-        return end, ParseResults(self, skip_result)
+            return end, ParseResults(self, skip_result)
+        else:
+            return before_end, ParseResults(self, skip_result)
 
 
 class Forward(ParserElement):

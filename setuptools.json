@@ -1,0 +1,18 @@
+{
+    "author": "Various",
+    "author_email": "kyle@lahnakoski.com",
+    "classifiers": [
+        "Development Status :: 4 - Beta",
+        "License :: OSI Approved :: MIT License",
+        "Programming Language :: Python :: 3.7",
+        "Topic :: Software Development :: Libraries",
+        "Topic :: Software Development :: Libraries :: Python Modules"
+    ],
+    "description": "Another PEG Parsing Tool",
+    "license": "MIT",
+    "long_description_content_type": "text/markdown",
+    "name": "mo-parsing",
+    "packages": ["mo_json"],
+    "url": "https://github.com/klahnakoski/mo-json",
+    "version": "3.93.20259"
+}

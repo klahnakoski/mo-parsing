@@ -58,9 +58,14 @@ class Engine:
                 return self.literal(Literal(expr))
         if not isinstance(expr, ParserElement):
             Log.error("expecting string, or ParserElemenet")
-        if expr.engine != self:
-            expr = expr.copy()
+
+        curr_engine = expr.engine
+        if curr_engine != self:
+            # IF THE copy() INSISTS ON AN ENGINE, THEN KEEP IT
             expr.engine = self
+            new_expr = expr.copy()
+            expr.engine = curr_engine
+            expr = new_expr
         return expr
 
     def record_exception(self, instring, loc, expr, exc):
@@ -161,6 +166,5 @@ def noop(*args):
 
 DebugActions = namedtuple("DebugActions", ["TRY", "MATCH", "FAIL"])
 
-PLAIN_ENGINE = Engine()
-PLAIN_ENGINE.set_whitespace("")
+PLAIN_ENGINE = Engine("")
 Engine()

@@ -6,7 +6,7 @@ from mo_future import text, is_text
 from mo_logs import Log
 
 from mo_parsing.cache import packrat_cache
-from mo_parsing.engine import Engine
+from mo_parsing.engine import Engine, PLAIN_ENGINE
 from mo_parsing.exceptions import (
     ParseBaseException,
     ParseException,
@@ -496,7 +496,7 @@ class ParserElement(object):
         Implementation of + operator when left operand is not a :class:`ParserElement`
         """
         if other is Ellipsis:
-            return SkipTo(self)("_skipped*") + self
+            return SkipTo(self)("_skipped") + self
 
         return engine.CURRENT.normalize(other) + self
 
@@ -623,7 +623,7 @@ class ParserElement(object):
         raise TypeError("%r object is not iterable" % self.__class__.__name__)
 
     def __getattr__(self, item):
-        Log.error("use __getitem__()")
+        Log.error("use __getitem__({{item}})", item=item)
 
     def __getitem__(self, key):
         """
@@ -692,7 +692,7 @@ class ParserElement(object):
         :class:`ParserElement`'s defined pattern.  This is normally only used internally by
         the mo_parsing module, but may be needed in some whitespace-sensitive grammars.
         """
-        with Engine(""):
+        with PLAIN_ENGINE:
             output = self.copy()
         return output
 
@@ -773,7 +773,7 @@ class _PendingSkip(ParserElement):
         self.parser_name = "pending_skip"
 
     def __add__(self, other):
-        skipper = SkipTo(other).set_parser_name("...")("_skipped*")
+        skipper = SkipTo(other).set_parser_name("...")("_skipped")
         return self.anchor + skipper + other
 
     def parseImpl(self, *args):

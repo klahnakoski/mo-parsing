@@ -287,17 +287,20 @@ class TestParsing(PyparsingExpressionTestCase):
             self.assertEqual(
                 len(flatten(iniData)), numToks, "file %s not parsed correctly" % fnam,
             )
-            for chk in resCheckList:
+            for path, expected_value in resCheckList:
                 var = iniData
-                for attr in chk[0].split("."):
-                    var = getattr(var, attr)
+                for attr in path.split("."):
+                    var = var[attr]
 
                 self.assertEqual(
                     var,
-                    chk[1],
+                    expected_value,
                     "ParseConfigFileTest: failed to parse ini {!r} as expected {},"
-                    " found {}".format(chk[0], chk[1], var),
+                    " found {}".format(path, expected_value, var),
                 )
+
+        ini_data = configParse.inifile_BNF().parseString("[users]\nK = 8\n")
+        self.assertEqual(ini_data, {"users": {"K": "8"}})
 
         test(
             "tests/resources/karthik.ini",
@@ -1277,7 +1280,6 @@ class TestParsing(PyparsingExpressionTestCase):
         for test in zip(testCases, expectedResults):
             t, exp = test
             res = srange(t)
-            # print(t, "->", res)
             self.assertEqual(
                 res,
                 exp,
@@ -1287,24 +1289,17 @@ class TestParsing(PyparsingExpressionTestCase):
             )
 
     def testSkipToParserTests(self):
-
         thingToFind = Literal("working")
         testExpr = (
             SkipTo(Literal(";"), include=True, ignore=cStyleComment) + thingToFind
         )
 
         def tryToParse(someText, fail_expected=False):
-            try:
+            if fail_expected:
+                with self.assertRaises(ParseBaseException):
+                    testExpr.parseString(someText)
+            else:
                 testExpr.parseString(someText)
-                self.assertFalse(
-                    fail_expected, "expected failure but no exception raised"
-                )
-            except Exception as e:
-
-                self.assertTrue(
-                    fail_expected and isinstance(e, ParseBaseException),
-                    "Exception {} while parsing string {}".format(e, repr(someText)),
-                )
 
         # This first test works, as the SkipTo expression is immediately following the ignore expression (cStyleComment)
         tryToParse("some text /* comment with ; in */; working")
@@ -1329,7 +1324,7 @@ class TestParsing(PyparsingExpressionTestCase):
         expr = SkipTo(data + suffix)("prefix") + data + suffix
         result = expr.parseString(text)
         self.assertTrue(
-            isinstance(result.prefix, str),
+            isinstance(result['prefix'], str),
             "SkipTo created with wrong saveAsList attribute",
         )
 
@@ -1354,27 +1349,27 @@ class TestParsing(PyparsingExpressionTestCase):
 
         # ellipses for SkipTo
         e = ... + Literal("end")
-        test(e, "start 123 end", ["start 123 ", "end"], {"_skipped": ["start 123 "]})
+        test(e, "start 123 end", ["start 123", "end"], {"_skipped": "start 123"})
 
         e = Literal("start") + ... + Literal("end")
-        test(e, "start 123 end", ["start", "123 ", "end"], {"_skipped": ["123 "]})
+        test(e, "start 123 end", ["start", "123", "end"], {"_skipped": "123"})
 
         e = Literal("start") + ...
         test(e, "start 123 end", None, None)
 
         e = And(["start", ..., "end"])
-        test(e, "start 123 end", ["start", "123 ", "end"], {"_skipped": ["123 "]})
+        test(e, "start 123 end", ["start", "123", "end"], {"_skipped": "123"})
 
         e = And([..., "end"])
-        test(e, "start 123 end", ["start 123 ", "end"], {"_skipped": ["start 123 "]})
+        test(e, "start 123 end", ["start 123", "end"], {"_skipped": "start 123"})
 
         e = "start" + (num_word | ...) + "end"
         test(e, "start 456 end", ["start", "456", "end"], {})
         test(
             e,
             "start 123 456 end",
-            ["start", "123", "456 ", "end"],
-            {"_skipped": ["456 "]},
+            ["start", "123", "456", "end"],
+            {"_skipped": "456"},
         )
         test(e, "start end", ["start", "end"], {"_skipped": ""})
 
@@ -1384,8 +1379,8 @@ class TestParsing(PyparsingExpressionTestCase):
         test(
             e,
             "start 456 red + end",
-            ["start", "456", "red", "+ ", "end"],
-            {"_skipped": ["+ "]},
+            ["start", "456", "red", "+", "end"],
+            {"_skipped": "+"},
         )
         test(e, "start red end", ["start", "red", "end"], {})
         test(e, "start 456 end", ["start", "456", "end"], {})
@@ -2642,18 +2637,8 @@ class TestParsing(PyparsingExpressionTestCase):
         )
 
     def testSingleArgException(self):
-
-        msg = ""
-        raisedMsg = ""
-        testMessage = "just one arg"
-        try:
-            raise ParseFatalException(testMessage)
-        except ParseBaseException as pbe:
-
-            raisedMsg = pbe.msg
-            self.assertEqual(
-                raisedMsg, testMessage, "Failed to get correct exception message"
-            )
+        with self.assertRaises(" missing 2 required positional arguments"):
+            raise ParseFatalException("just one arg")
 
     def testOriginalTextFor(self):
         def rfn(t):
@@ -2780,8 +2765,7 @@ class TestParsing(PyparsingExpressionTestCase):
             ],
             expected,
         ):
-
-            tagStart.addParseAction(attrib)
+            expr = tagStart.addParseAction(attrib) + Word(nums)("value") + tagEnd
             result = expr.searchString(data)
 
             self.assertEqual(
@@ -3039,6 +3023,8 @@ class TestParsing(PyparsingExpressionTestCase):
         internalVowel = ~ws + vowel + ~we
 
         bnf = leadingVowel | trailingVowel
+
+        trailingConsonant.searchString("ABC DEF")
 
         tests = """\
         ABC DEF GHI
@@ -3411,53 +3397,6 @@ class TestParsing(PyparsingExpressionTestCase):
                 'Expecting {"a"} | {"ᄑ"}',
                 "Invalid error message raised, got %r" % pe.msg,
             )
-
-    def testSetName(self):
-        a = oneOf("a b c")
-        b = oneOf("d e f")
-        arith_expr = infixNotation(
-            Word(nums),
-            [(oneOf("* /"), 2, opAssoc.LEFT), (oneOf("+ -"), 2, opAssoc.LEFT),],
-        )
-        arith_expr2 = infixNotation(Word(nums), [(("?", ":"), 3, opAssoc.LEFT),])
-        recursive = Forward()
-        recursive <<= a + (b + recursive)[...]
-
-        self.assertEqual(str(a), "a | b | c")
-        self.assertEqual(str(b), "d | e | f")
-        self.assertEqual(str((a | b)), "{a | b | c} | {d | e | f}")
-        self.assertEqual(str(arith_expr), "Forward: {+ | - term} | {* | / term}")
-        self.assertEqual(str(arith_expr.expr), "{+ | - term} | {* | / term}")
-        self.assertEqual(
-            str(arith_expr2),
-            'Forward: {?: term} | {{W:(0123...)} | {{{"(" Forward: ...} ")"}}}',
-        )
-        self.assertEqual(
-            str(arith_expr2.expr),
-            '{?: term} | {{W:(0123...)} | {{{"(" Forward: {?: term} | {{W:(0123...)} |'
-            ' {{{"(" Forward: ...} ")"}}}} ")"}}}',
-        )
-        self.assertEqual(
-            str(recursive), "Forward: {a | b | c [{d | e | f Forward: ...}]...}"
-        )
-        self.assertEqual(
-            str(delimitedList(Word(nums).set_parser_name("int"))), "int [, int]..."
-        )
-        self.assertEqual(
-            str(countedArray(Word(nums).set_parser_name("int"))), "(len) int..."
-        )
-        self.assertEqual(str(nestedExpr()), "nested () expression")
-        self.assertEqual(str(makeHTMLTags("Z")), "(<Z>, </Z>)")
-        self.assertEqual(str((anyOpenTag, anyCloseTag)), "(<any tag>, </any tag>)")
-        self.assertEqual(str(commonHTMLEntity), "common HTML entity")
-        self.assertEqual(
-            str(
-                commonHTMLEntity
-                .addParseAction(replaceHTMLEntity)
-                .transformString("lsdjkf &lt;lsdjkf&gt;&amp;&apos;&quot;&xyzzy;")
-            ),
-            "lsdjkf <lsdjkf>&'\"&xyzzy;",
-        )
 
     def testTrimArityExceptionMasking(self):
         invalid_message = "<lambda>() missing 1 required positional argument: 't'"
@@ -5113,10 +5052,7 @@ class TestParsing(PyparsingExpressionTestCase):
         # verify streamline of subexpressions
 
         compound = Literal("A") + "B" + "C" + "D"
-        self.assertEqual(len(compound.exprs), 2, "bad test setup")
-
         compound.streamline()
-
         self.assertEqual(len(compound.exprs), 4, "streamline not working")
 
     def testOptionalWithResultsNameAndNoMatch(self):

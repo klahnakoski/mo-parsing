@@ -14,12 +14,9 @@ from mo_parsing import (
     Dict,
     Optional,
     printables,
-    ParseException,
     restOfLine,
-    empty,
+    empty, engine,
 )
-import pprint
-
 
 inibnf = None
 
@@ -36,21 +33,20 @@ def inifile_BNF():
         semi = Literal(";")
 
         comment = semi + Optional(restOfLine)
+        engine.CURRENT.add_ignore(comment)
 
         nonrbrack = "".join([c for c in printables if c != "]"]) + " \t"
         nonequals = "".join([c for c in printables if c != "="]) + " \t"
 
         sectionDef = lbrack + Word(nonrbrack) + rbrack
-        keyDef = ~lbrack + Word(nonequals) + equals + empty + restOfLine
+
         # strip any leading or trailing blanks from key
         def stripKey(tokens):
-            tokens[0] = tokens[0].strip()
+            return [t.strip() for t in tokens]
 
-        keyDef.addParseAction(stripKey)
+        keyDef = ~lbrack + Word(nonequals).addParseAction(stripKey) + equals + empty + restOfLine
 
         # using Dict will allow retrieval of named data fields as attributes of the parsed results
         inibnf = Dict(ZeroOrMore(Group(sectionDef + Dict(ZeroOrMore(Group(keyDef))))))
-
-        inibnf.ignore(comment)
 
     return inibnf

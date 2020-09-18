@@ -67,7 +67,7 @@ def field_act(s, loc, tok):
     return ("<" + tok[0] + "> " + " ".join(tok)).replace('"', '\\"')
 
 
-field_def.addParseAction(field_act)
+field_def = field_def.addParseAction(field_act)
 
 field_list_def = delimitedList(field_def)
 
@@ -76,7 +76,7 @@ def field_list_act(toks):
     return " | ".join(toks)
 
 
-field_list_def.addParseAction(field_list_act)
+field_list_def = field_list_def.addParseAction(field_list_act)
 
 create_table_def = (
     Literal("CREATE")
@@ -134,7 +134,8 @@ comment_def.addParseAction(replaceWith(""))
 statement_def = comment_def | create_table_def | add_fkey_def | other_statement_def
 defs = OneOrMore(statement_def)
 
+print("""digraph g { graph [ rankdir = "LR" ]; """)
 for i in defs.parseString(sampleSQL):
     if i != "":
-
-
+        print(i)
+print("}")

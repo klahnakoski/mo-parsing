@@ -139,7 +139,7 @@ class And(ParseExpression):
                 if expr is Ellipsis:
                     if i < len(exprs) - 1:
                         skipto_arg = (Empty() + exprs[i + 1]).exprs[-1]
-                        tmp.append(SkipTo(skipto_arg)("_skipped*"))
+                        tmp.append(SkipTo(skipto_arg)("_skipped"))
                     else:
                         raise Exception(
                             "cannot construct And with sequence ending in ..."

@@ -6,7 +6,7 @@ import warnings
 from mo_future import text
 from mo_logs import Log
 
-from mo_parsing.engine import Engine
+from mo_parsing.engine import Engine, PLAIN_ENGINE
 from mo_parsing.exceptions import ParseException
 from mo_parsing.core import ParserElement
 from mo_parsing.results import ParseResults
@@ -378,15 +378,9 @@ class Word(Token):
             initChars = "".join(c for c in initChars if c not in excludeChars)
             if bodyChars:
                 bodyChars = "".join(c for c in bodyChars if c not in excludeChars)
-        self.initCharsOrig = initChars
-        self.initChars = set(initChars)
+        self.initChars = self.bodyChars = "".join(sorted(set(initChars)))
         if bodyChars:
-            self.bodyCharsOrig = bodyChars
-            self.bodyChars = set(bodyChars)
-        else:
-            self.bodyCharsOrig = initChars
-            self.bodyChars = set(initChars)
-
+            self.bodyChars = "".join(sorted(set(bodyChars)))
         self.maxSpecified = max > 0
 
         if min < 1:
@@ -410,20 +404,20 @@ class Word(Token):
         self.parser_config.mayIndexError = False
         self.asKeyword = asKeyword
 
-        if " " not in self.initCharsOrig + self.bodyCharsOrig and (
+        if " " not in self.initChars + self.bodyChars and (
             min == 1 and max == 0 and exact == 0
         ):
-            if self.bodyCharsOrig == self.initCharsOrig:
-                self.reString = "[%s]+" % _escapeRegexRangeChars(self.initCharsOrig)
-            elif len(self.initCharsOrig) == 1:
+            if self.bodyChars == self.initChars:
+                self.reString = "[%s]+" % _escapeRegexRangeChars(self.initChars)
+            elif len(self.initChars) == 1:
                 self.reString = "%s[%s]*" % (
-                    re.escape(self.initCharsOrig),
-                    _escapeRegexRangeChars(self.bodyCharsOrig),
+                    re.escape(self.initChars),
+                    _escapeRegexRangeChars(self.bodyChars),
                 )
             else:
                 self.reString = "[%s][%s]*" % (
-                    _escapeRegexRangeChars(self.initCharsOrig),
-                    _escapeRegexRangeChars(self.bodyCharsOrig),
+                    _escapeRegexRangeChars(self.initChars),
+                    _escapeRegexRangeChars(self.bodyChars),
                 )
             if self.asKeyword:
                 self.reString = r"\b" + self.reString + r"\b"
@@ -440,9 +434,7 @@ class Word(Token):
         output = ParserElement.copy(self)
         output.asKeyword = self.asKeyword
         output.bodyChars = self.bodyChars
-        output.bodyCharsOrig = self.bodyCharsOrig
         output.initChars = self.initChars
-        output.initCharsOrig = self.initCharsOrig
         output.maxLen = self.maxLen
         output.maxSpecified = self.maxSpecified
         output.minLen = self.minLen
@@ -496,13 +488,13 @@ class Word(Token):
             else:
                 return s
 
-        if self.initCharsOrig != self.bodyCharsOrig:
+        if self.initChars != self.bodyChars:
             return "W:(%s, %s)" % (
-                charsAsStr(self.initCharsOrig),
-                charsAsStr(self.bodyCharsOrig),
+                charsAsStr(self.initChars),
+                charsAsStr(self.bodyChars),
             )
         else:
-            return "W:(%s)" % charsAsStr(self.initCharsOrig)
+            return "W:(%s)" % charsAsStr(self.initChars)
 
 
 class _WordRegex(Word):
@@ -1191,7 +1183,14 @@ class WordEnd(_PositionToken):
 
     def __init__(self, wordChars=printables):
         super(WordEnd, self).__init__()
+        self.engine = PLAIN_ENGINE
         self.wordChars = set(wordChars)
+
+    def copy(self):
+        output = _PositionToken.copy(self)
+        output.wordChars = self.wordChars
+        output.engine = PLAIN_ENGINE
+        return output
 
     def parseImpl(self, instring, loc, doActions=True):
         instrlen = len(instring)
