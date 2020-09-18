@@ -32,8 +32,7 @@ class Token(ParserElement):
 
 
 class Empty(Token):
-    """An empty token, will always match.
-    """
+    """An empty token, will always match."""
 
     def __init__(self, name="Empty"):
         Token.__init__(self)
@@ -43,8 +42,7 @@ class Empty(Token):
 
 
 class NoMatch(Token):
-    """A token that will never match.
-    """
+    """A token that will never match."""
 
     def __init__(self):
         super(NoMatch, self).__init__()
@@ -140,8 +138,9 @@ class Keyword(Token):
 
     For case-insensitive matching, use :class:`CaselessKeyword`.
     """
+
     def __new__(cls, matchString, identChars=None, caseless=None):
-        if len(matchString)==0:
+        if len(matchString) == 0:
             Log.error("Expecting more than one character in keyword")
         if caseless:
             return object.__new__(CaselessKeyword)
@@ -195,19 +194,18 @@ class CaselessKeyword(Keyword):
             self,
             matchString.upper(),
             set(c.upper() for c in identChars or engine.CURRENT.keyword_chars),
-            caseless=True
+            caseless=True,
         )
 
     def parseImpl(self, instring, loc, doActions=True):
         end = loc + self.matchLen
-        if instring[loc : end].upper() == self.match:
+        if instring[loc:end].upper() == self.match:
             try:
                 if instring[end] not in self.identChars:
                     return end, ParseResults(self, [self.match])
             except IndexError:
                 return end, ParseResults(self, [self.match])
         raise ParseException(instring, loc, self)
-
 
 
 class CaselessLiteral(Literal):
@@ -292,9 +290,9 @@ class CloseMatch(Token):
             mismatches = []
             maxMismatches = self.maxMismatches
 
-            for match_stringloc, s_m in enumerate(
-                zip(instring[loc:maxloc], match_string)
-            ):
+            for match_stringloc, s_m in enumerate(zip(
+                instring[loc:maxloc], match_string
+            )):
                 src, mat = s_m
                 if src != mat:
                     mismatches.append(match_stringloc)
@@ -393,7 +391,8 @@ class Word(Token):
 
         if min < 1:
             raise ValueError(
-                "cannot specify a minimum length < 1; use Optional(Word()) if zero-length word is permitted"
+                "cannot specify a minimum length < 1; use Optional(Word()) if"
+                " zero-length word is permitted"
             )
 
         self.minLen = min
@@ -549,6 +548,14 @@ class Regex(Token):
     """
     compiledREtype = type(re.compile("[A-Z]"))
 
+    def __new__(cls, pattern, flags=0, asGroupList=False, asMatch=False):
+        if asGroupList:
+            return object.__new__(_RegExAsGroup)
+        elif asMatch:
+            return object.__new__(_RegExAsMatch)
+        else:
+            return object.__new__(cls)
+
     def __init__(self, pattern, flags=0, asGroupList=False, asMatch=False):
         """The parameters ``pattern`` and ``flags`` are passed
         to the ``re.compile()`` function as-is. See the Python
@@ -570,51 +577,31 @@ class Regex(Token):
 
             try:
                 self.re = re.compile(self.pattern, self.flags)
-                self.reString = self.pattern
-            except sre_constants.error:
-                warnings.warn(
-                    "invalid pattern (%s) passed to Regex" % pattern,
-                    SyntaxWarning,
-                    stacklevel=2,
-                )
-                raise
+            except sre_constants.error as cause:
+                Log.error("invalid pattern {{pattern}} passed to Regex", pattern=pattern, cause=cause)
 
         elif isinstance(pattern, Regex.compiledREtype):
             self.re = pattern
-            self.pattern = self.reString = str(pattern)
+            self.pattern = str(pattern)
             self.flags = flags
 
         else:
-            raise ValueError(
-                "Regex may only be constructed with a string or a compiled RE object"
-            )
-
-        self.re_match = self.re.match
+            Log.error("Regex may only be constructed with a string or a compiled RE object")
 
         self.parser_name = text(self)
         self.parser_config.mayIndexError = False
         self.parser_config.mayReturnEmpty = True
-        self.asGroupList = asGroupList
-        self.asMatch = asMatch
-        if self.asGroupList:
-            self.parseImpl = self.parseImplAsGroupList
-        if self.asMatch:
-            self.parseImpl = self.parseImplAsMatch
 
     def copy(self):
         output = ParserElement.copy(self)
 
-        output.asGroupList = self.asGroupList
-        output.asMatch = self.asMatch
         output.flags = self.flags
         output.pattern = self.pattern
         output.re = self.re
-        output.reString = self.reString
-        output.re_match = self.re_match
         return output
 
     def parseImpl(self, instring, loc, doActions=True):
-        result = self.re_match(instring, loc)
+        result = self.re.match(instring, loc)
         if not result:
             raise ParseException(instring, loc, self)
 
@@ -624,24 +611,6 @@ class Regex(Token):
         if d:
             for k, v in d.items():
                 ret[k] = v
-        return loc, ret
-
-    def parseImplAsGroupList(self, instring, loc, doActions=True):
-        result = self.re_match(instring, loc)
-        if not result:
-            raise ParseException(instring, loc, self)
-
-        loc = result.end()
-        ret = ParseResults(self, [result.groups()])
-        return loc, ret
-
-    def parseImplAsMatch(self, instring, loc, doActions=True):
-        result = self.re_match(instring, loc)
-        if not result:
-            raise ParseException(instring, loc, self)
-
-        loc = result.end()
-        ret = ParseResults(self, [result])
         return loc, ret
 
     def __str__(self):
@@ -658,33 +627,46 @@ class Regex(Token):
             print(make_html.transformString("h1:main title:"))
             # prints "<h1>main title</h1>"
         """
-        if self.asGroupList:
-            warnings.warn(
-                "cannot use sub() with Regex(asGroupList=True)",
-                SyntaxWarning,
-                stacklevel=2,
-            )
-            raise SyntaxError()
-
-        if self.asMatch and callable(repl):
-            warnings.warn(
-                "cannot use sub() with a callable with Regex(asMatch=True)",
-                SyntaxWarning,
-                stacklevel=2,
-            )
-            raise SyntaxError()
-
-        if self.asMatch:
-
-            def pa(tokens):
-                return tokens[0].expand(repl)
-
-        else:
-
-            def pa(tokens):
-                return self.re.sub(repl, tokens[0])
+        def pa(tokens):
+            return self.re.sub(repl, tokens[0])
 
         return self.addParseAction(pa)
+
+
+class _RegExAsGroup(Regex):
+
+    def parseImpl(self, instring, loc, doActions=True):
+        result = self.re.match(instring, loc)
+        if not result:
+            raise ParseException(instring, loc, self)
+
+        loc = result.end()
+        ret = ParseResults(self, [result.groups()])
+        return loc, ret
+
+    def sub(self, repl):
+        raise SyntaxError("cannot use sub() with Regex(asGroupList=True)")
+
+
+class _RegExAsMatch(Regex):
+    def parseImpl(self, instring, loc, doActions=True):
+        result = self.re.match(instring, loc)
+        if not result:
+            raise ParseException(instring, loc, self)
+
+        loc = result.end()
+        ret = ParseResults(self, [result])
+        return loc, ret
+
+    def sub(self, repl):
+        if callable(repl):
+            raise SyntaxError("cannot use sub() with a callable with Regex(asMatch=True)")
+
+        def pa(tokens):
+            return tokens[0].expand(repl)
+
+        return self.addParseAction(pa)
+
 
 
 class QuotedString(Token):
@@ -1011,11 +993,9 @@ class White(Token):
         super(White, self).__init__()
         self.matchWhite = ws
         e = engine.CURRENT
-        self.engine = Engine(
-            white="".join(
-                c for c in self.engine.white_chars if c not in self.matchWhite
-            )
-        )
+        self.engine = Engine(white="".join(
+            c for c in self.engine.white_chars if c not in self.matchWhite
+        ))
         engine.CURRENT = e
         self.parser_name = "".join(White.whiteStrs[c] for c in self.matchWhite)
         self.parser_config.mayReturnEmpty = True

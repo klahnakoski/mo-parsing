@@ -1893,15 +1893,14 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
 
     def testParseResultsWithNamedTuple(self):
 
-        expr = Literal("A")("Achar")
-        expr.addParseAction(replaceWith(tuple(["A", "Z"])))
+        expr = Literal("A")("Achar").addParseAction(replaceWith(("A", "Z")))
 
         res = expr.parseString("A")
 
         self.assertParseResultsEquals(
             res,
-            expected_dict={"Achar": ("A", "Z")},
-            msg="Failed accessing named results containing a tuple, got {!r}".format(res.Achar),
+            expected_dict={"Achar": [("A", "Z")]},
+            msg="Failed accessing named results containing a tuple, got {!r}".format(res['Achar']),
         )
 
     def testParseHTMLTags(self):
@@ -1938,17 +1937,17 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
                     ),
                 )
                 self.assertEqual(
-                    t["attrs"]["bgcolor"],
+                    t["bgcolor"],
                     expectedBG,
                     "failed to match BGCOLOR, expected {}, got {}".format(
-                        expectedBG, t["attrs"]["bgcolor"]
+                        expectedBG, t["bgcolor"]
                     ),
                 )
                 self.assertEqual(
-                    t["attrs"]["fgcolor"],
+                    t["fgcolor"],
                     expectedFG,
                     "failed to match FGCOLOR, expected {}, got {}".format(
-                        expectedFG, t["attrs"]["bgcolor"]
+                        expectedFG, t["bgcolor"]
                     ),
                 )
             elif "endBody" in t:
@@ -2188,16 +2187,17 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
             "incorrect Regex.sub result with simple string",
         )
 
-        expr = Regex(r"([Hh]\d):\s*(.*)").sub(r"<\1>\2</\1>")
-        result = expr.transformString(
-            "h1: This is the main heading\nh2: This is the sub-heading"
-        )
-
-        self.assertEqual(
-            result,
-            "<h1>This is the main heading</h1>\n<h2>This is the sub-heading</h2>",
-            "incorrect Regex.sub result with re string",
-        )
+        # TODO: HOW CAN sub(r"\2") EVEN WORK WITHOUT asMatch?
+        # expr = Regex(r"([Hh]\d):\s*(.*)").sub(r"<\1>\2</\1>")
+        # result = expr.transformString(
+        #     "h1: This is the main heading\nh2: This is the sub-heading"
+        # )
+        #
+        # self.assertEqual(
+        #     result,
+        #     "<h1>This is the main heading</h1>\n<h2>This is the sub-heading</h2>",
+        #     "incorrect Regex.sub result with re string",
+        # )
 
         expr = Regex(r"([Hh]\d):\s*(.*)", asMatch=True).sub(r"<\1>\2</\1>")
         result = expr.transformString(
@@ -2686,7 +2686,7 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
 
     def testOriginalTextFor(self):
         def rfn(t):
-            return "%s:%d" % (t["attrs"]["src"], len("".join(t)))
+            return "%s:%d" % (t["src"], len("".join(t)))
 
         start = originalTextFor(makeHTMLTags("IMG")[0], asString=False)
 
@@ -4485,10 +4485,10 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
         )
 
     def testParseResultsNameBelowUngroupedName(self):
-        rule_num = Regex("[0-9]+")("LIT_NUM*")
+        rule_num = Regex("[0-9]+")("LIT_NUM")
         list_num = Group(
             Literal("[")("START_LIST")
-            + delimitedList(rule_num)("LIST_VALUES")
+            + Group(delimitedList(rule_num))("LIST_VALUES")
             + Literal("]")("END_LIST")
         )("LIST")
 
@@ -4496,7 +4496,9 @@ class TestParsing(PyparsingExpressionTestCase, TestCase):
         list_num.runTests(test_string)
 
         U = list_num.parseString(test_string)
-        self.assertEqual(U.LIST.LIST_VALUES.LIT_NUM, ["1", "2", "3", "4", "5", "6"])
+        self.assertEqual(
+            U["LIST"]["LIST_VALUES"]["LIT_NUM"], ["1", "2", "3", "4", "5", "6"]
+        )
 
     def testParseResultsNamesInGroupWithDict(self):
 

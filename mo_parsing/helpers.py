@@ -613,7 +613,9 @@ def replaceWith(replStr):
 
         OneOrMore(term).parseString("324 234 N/A 234") # -> [324, 234, nan, 234]
     """
-    return lambda s, l, t: [replStr]
+    def replacer(s, l, t):
+        return [replStr]
+    return replacer
 
 
 def removeQuotes(s, l, t):
