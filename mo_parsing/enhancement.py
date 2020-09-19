@@ -12,12 +12,11 @@ from mo_parsing.exceptions import (
     RecursiveGrammarException,
 )
 from mo_parsing.core import ParserElement
-from mo_parsing.tokens import Empty
 from mo_parsing.results import ParseResults, Annotation, get_name
 from mo_parsing.utils import _MAX_INT, empty_list, empty_tuple
 
 # import later
-Token, Literal, Keyword, Word, CharsNotIn, _PositionToken, StringEnd = [None] * 7
+Token, Literal, Keyword, Word, CharsNotIn, _PositionToken, StringEnd, Empty = [None] * 8
 
 _get = object.__getattribute__
 
@@ -86,7 +85,7 @@ class ParseElementEnhance(ParserElement):
 
     def validate(self, seen=empty_list):
         if self.expr != None:
-            self.expr.validate( seen + [self])
+            self.expr.validate(seen + [self])
         self.checkRecursion()
 
     def __str__(self):
@@ -216,7 +215,10 @@ class _MultipleMatch(ParseElementEnhance):
 
         for e in [self.expr]:
             if isinstance(e, ParserElement) and e.token_name:
-                Log.error("can not set token name, already set in one of the other expressions")
+                Log.error(
+                    "can not set token name, already set in one of the other"
+                    " expressions"
+                )
 
         return ParseElementEnhance.__call__(self, name)
 
@@ -247,11 +249,21 @@ class OneOrMore(_MultipleMatch):
         (attr_expr * (1,)).parseString(text)
     """
 
+    def __init__(self, expr, stopOn=None):
+        _MultipleMatch.__init__(self, expr, stopOn)
+        self.parser_config.lock_engine = expr.parser_config.lock_engine
+        self.parser_config.engine = expr.parser_config.engine
+
     def __str__(self):
         if self.parser_name:
             return self.parser_name
 
         return "{" + text(self.expr) + "}..."
+
+    def copy(self):
+        output = ParseElementEnhance.copy(self)
+        output.not_ender = self.not_ender
+        return output
 
 
 class ZeroOrMore(_MultipleMatch):
@@ -269,6 +281,8 @@ class ZeroOrMore(_MultipleMatch):
     def __init__(self, expr, stopOn=None):
         super(ZeroOrMore, self).__init__(expr, stopOn=stopOn)
         self.parser_config.mayReturnEmpty = True
+        self.parser_config.lock_engine = expr.parser_config.lock_engine
+        self.parser_config.engine = expr.parser_config.engine
 
     def parseImpl(self, instring, loc, doActions=True):
         try:
@@ -350,71 +364,28 @@ class Optional(ParseElementEnhance):
 
 
 class SkipTo(ParseElementEnhance):
-    """Token for skipping over all undefined text until the matched
-    expression is found.
+    """Token for skipping over all undefined text until the matched expression is found."""
 
-    Parameters:
-     - expr - target expression marking the end of the data to be skipped
-     - include - (default= ``False``) if True, the target expression is also parsed
+    def __init__(self, expr, include=False, ignore=None, failOn=None):
+        """
+        :param expr: target expression marking the end of the data to be skipped
+        :param include: if True, the target expression is also parsed
           (the skipped text and target expression are returned as a 2-element list).
-     - ignore - (default= ``None``) used to define grammars (typically quoted strings and
+        :param ignore: used to define grammars (typically quoted strings and
           comments) that might contain false matches to the target expression
-     - failOn - (default= ``None``) define expressions that are not allowed to be
+        :param failOn: define expressions that are not allowed to be
           included in the skipped test; if found before the target expression is found,
           the SkipTo is not a match
-
-    Example::
-
-        report = '''
-            Outstanding Issues Report - 1 Jan 2000
-
-               # | Severity | Description                               |  Days Open
-            -----+----------+-------------------------------------------+-----------
-             101 | Critical | Intermittent system crash                 |          6
-              94 | Cosmetic | Spelling error on Login ('log|n')         |         14
-              79 | Minor    | System slow when running too many reports |         47
-            '''
-        integer = Word(nums)
-        SEP = Suppress('|')
-        # use SkipTo to simply match everything up until the next SEP
-        # - ignore quoted strings, so that a '|' character inside a quoted string does not match
-        # - parse action will call token.strip() for each matched token, i.e., the description body
-        string_data = SkipTo(SEP, ignore=quotedString)
-        string_data.addParseAction(tokenMap(str.strip))
-        ticket_expr = (integer("issue_num") + SEP
-                      + string_data("sev") + SEP
-                      + string_data("desc") + SEP
-                      + integer("days_open"))
-
-        for tkt in ticket_expr.searchString(report):
-            print tkt
-
-    prints::
-
-        ['101', 'Critical', 'Intermittent system crash', '6']
-        - days_open: 6
-        - desc: Intermittent system crash
-        - issue_num: 101
-        - sev: Critical
-        ['94', 'Cosmetic', "Spelling error on Login ('log|n')", '14']
-        - days_open: 14
-        - desc: Spelling error on Login ('log|n')
-        - issue_num: 94
-        - sev: Cosmetic
-        ['79', 'Minor', 'System slow when running too many reports', '47']
-        - days_open: 47
-        - desc: System slow when running too many reports
-        - issue_num: 79
-        - sev: Minor
-    """
-
-    def __init__(self, other, include=False, ignore=None, failOn=None):
-        super(SkipTo, self).__init__(other)
-        self.ignoreExpr = ignore
-        self.parser_config.mayReturnEmpty = True
-        self.parser_config.mayIndexError = False
+        """
+        ParseElementEnhance.__init__(self, expr)
         self.includeMatch = include
         self.failOn = engine.CURRENT.normalize(failOn)
+        self.ignoreExpr = ignore
+
+        self.parser_config.mayReturnEmpty = True
+        self.parser_config.mayIndexError = False
+        # self.engine = expr.engine
+        # self.parser_config.lock_engine = expr.parser_config.lock_engine
 
     def copy(self):
         output = ParseElementEnhance.copy(self)
@@ -449,7 +420,6 @@ class SkipTo(ParseElementEnhance):
                         tmploc = self_ignoreExpr_tryParse(instring, tmploc)
                     except ParseBaseException:
                         break
-
             try:
                 before_end = tmploc
                 tmploc, _ = end_parse(instring, tmploc, doActions=False)
@@ -459,6 +429,7 @@ class SkipTo(ParseElementEnhance):
             else:
                 # matched skipto expr, done
                 break
+
 
         else:
             # ran off the end of the input string without matching skipto expr, fail
@@ -608,6 +579,7 @@ class TokenConverter(ParseElementEnhance):
     """
     Abstract subclass of :class:`ParseExpression`, for converting parsed results.
     """
+
     pass
 
 
@@ -654,11 +626,13 @@ class Group(TokenConverter):
     """
     MARK A CLOSED PARSE RESULT
     """
+
     def __init__(self, expr):
         ParserElement.__init__(self)
         self.expr = expr = self.engine.normalize(expr)
         self.parser_config.mayIndexError = expr.parser_config.mayIndexError
         self.parser_config.mayReturnEmpty = expr.parser_config.mayReturnEmpty
+
 
 class Dict(Group):
     """Converter to return a repetitive expression as a list, but also
@@ -716,7 +690,7 @@ def _dict_post_parse(instring, loc, tokenlist):
     for a in list(acc):
         for tok in list(a):
             if isinstance(tok, int):
-                Log.error('not expected')
+                Log.error("not expected")
             if len(tok) == 0:
                 continue
             ikey = tok[0]
@@ -749,6 +723,7 @@ class Suppress(TokenConverter):
 
     (See also :class:`delimitedList`.)
     """
+
     def __init__(self, expr):
         TokenConverter.__init__(self, expr)
         self.parseAction.append(_suppress_post_parse)
@@ -812,6 +787,13 @@ class PrecededBy(ParseElementEnhance):
             retreat = 0
             self.exact = True
         self.retreat = retreat
+
+    def copy(self):
+        output = ParseElementEnhance.copy(self)
+        output.expr = self.expr
+        output.exact = self.exact
+        output.retreat = self.retreat
+        return output
 
     def parseImpl(self, instring, loc=0, doActions=True):
         if self.exact:

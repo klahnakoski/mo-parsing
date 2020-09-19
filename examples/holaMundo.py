@@ -17,7 +17,7 @@ tokens = saludo.parseString("Hola, Mundo !")
 # el metodo parseString, nos devuelve una lista con los tokens
 # encontrados, en caso de no haber errores...
 for i, token in enumerate(tokens):
-
+    print("Token %d -> %s" % (i, token))
 
 # imprimimos cada uno de los tokens Y listooo!!, he aquí a salida
 # Token 0 -> Hola
@@ -30,7 +30,7 @@ saludo = Group(OneOrMore(Word(alphas))) + "," + Word(alphas) + oneOf("! . ?")
 tokens = saludo.parseString("Hasta mañana, Mundo !")
 
 for i, token in enumerate(tokens):
-
+    print("Token %d -> %s" % (i, token))
 
 # Ahora parseamos algunas cadenas, usando el metodo runTests
 saludo.runTests(
@@ -45,10 +45,10 @@ saludo.runTests(
 numimag = Word(nums) + "i"
 numreal = Word(nums)
 numcomplex = numreal + "+" + numimag
-
+print(numcomplex.parseString("3+5i"))
 
 # Cambiar a complejo numero durante parsear:
-numcomplex.addParseAction(lambda t: complex("".join(t).replace("i", "j")))
-
+numcomplex = numcomplex.addParseAction(lambda t: complex("".join(t).replace("i", "j")))
+print(numcomplex.parseString("3+5i"))
 
 # Excelente!!, bueno, los dejo, me voy a seguir tirando código...

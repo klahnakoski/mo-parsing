@@ -100,6 +100,8 @@ class ParseResults(object):
                             yield t
                 elif isinstance(tok.type_for_result, Group):
                     continue
+                # elif name:
+                #     continue
                 for f in tok._get_item_by_name(i):
                     yield f
 

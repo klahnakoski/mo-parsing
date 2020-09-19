@@ -22,7 +22,7 @@ class InvalidTransitionException(Exception):
     pass
 
 
-engine = Engine()
+engine = Engine().use()
 
 ident = Word(alphas + "_", alphanums + "_$")
 

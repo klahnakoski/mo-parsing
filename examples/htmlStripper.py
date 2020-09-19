@@ -36,6 +36,6 @@ firstPass = (
 
 # first pass leaves many blank lines, collapse these down
 repeatedNewlines = LineEnd() * (2,)
-repeatedNewlines.addParseAction(replaceWith("\n\n"))
+repeatedNewlines = repeatedNewlines.addParseAction(replaceWith("\n\n"))
 secondPass = repeatedNewlines.transformString(firstPass)
 

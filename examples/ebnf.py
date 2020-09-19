@@ -27,7 +27,7 @@ from mo_parsing import (
 )
 from mo_parsing.engine import Engine
 
-engine = Engine()
+engine = Engine().use()
 ebnfComment = (
         "(*" + ZeroOrMore(CharsNotIn("*") | ("*" + ~Literal(")"))) + "*)"
 ).set_parser_name("ebnfComment")
@@ -192,7 +192,6 @@ syntax_rule = (
     .set_parser_name("syntax rule")
 )
 syntax = OneOrMore(syntax_rule).addParseAction(do_syntax)
-
 
 
 def parse(ebnf, given_table={}):

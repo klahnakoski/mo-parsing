@@ -22,7 +22,6 @@ from unittest import TestCase, skip
 
 from mo_dots import coalesce
 from mo_logs import Log
-from mo_testing.fuzzytestcase import FuzzyTestCase
 from mo_times import Timer
 
 from examples import fourFn, configParse, idlParse, ebnf
@@ -104,10 +103,6 @@ from mo_parsing.helpers import (
     withClass,
     iso8601_date,
     locatedExpr,
-    anyOpenTag,
-    anyCloseTag,
-    commonHTMLEntity,
-    replaceHTMLEntity,
     mac_address,
     ipv4_address,
     fnumber,
@@ -137,7 +132,6 @@ from mo_parsing.utils import (
     line,
 )
 from tests.json_parser_tests import test1, test2, test3, test4, test5
-
 # see which Python implementation we are running
 from tests.test_simple_unit import PyparsingExpressionTestCase
 
@@ -2210,9 +2204,9 @@ class TestParsing(PyparsingExpressionTestCase):
             (interesting_num, [384, 8324], {"prefix": ["c", "b"]}),
             (semi_interesting_num, [9293874, 293], {}),
             (boring_num, [404], {}),
-            (crazy_num, [2939], {"prefix": ["^%$"]}),
-            (finicky_num, [2939], {}),
+            (crazy_num, [2939], {"prefix": "^%$"}),
             (very_boring_num, [404], {}),
+            (finicky_num, [2939], {}),
         ]:
             # print(expr.searchString(s))
             result = sum(expr.searchString(s))
@@ -2373,13 +2367,12 @@ class TestParsing(PyparsingExpressionTestCase):
                 )
 
     def testLineAndStringEnd(self):
-        engine.CURRENT.set_whitespace("")
-        NLs = OneOrMore(lineEnd)
-        bnf1 = delimitedList(Word(alphanums), NLs)
-
-        Engine()
-        bnf2 = Word(alphanums) + stringEnd
-        bnf3 = Word(alphanums) + SkipTo(stringEnd)
+        with Engine(""):
+            NLs = OneOrMore(lineEnd)
+            bnf1 = delimitedList(Word(alphanums), NLs)
+            bnf2 = Word(alphanums) + stringEnd
+            bnf3 = Word(alphanums) + SkipTo(stringEnd)
+        # TODO: Is bnf2 match last word?  Does bnf3.skipTo(stringEnd) include the \n?
         tests = [
             ("testA\ntestB\ntestC\n", ["testA", "testB", "testC"]),
             ("testD\ntestE\ntestF", ["testD", "testE", "testF"]),
@@ -2389,17 +2382,17 @@ class TestParsing(PyparsingExpressionTestCase):
         for test, expected in tests:
             res1 = bnf1.parseString(test)
 
-            self.assertParseResultsEquals(res1, expected_list=expected)
+            self.assertEqual(res1, expected)
 
             res2 = bnf2.searchString(test)[0]
 
-            self.assertParseResultsEquals(res2, expected_list=expected[-1:])
+            self.assertEqual(res2, expected[-1:])
 
             res3 = bnf3.parseString(test)
             first = res3[0]
             rest = coalesce(res3[1], "")
 
-            self.assertEqual(rest, test[len(first) + 1 :])
+            self.assertEqual(rest, test[len(first):].rstrip())
 
         k = Regex(r"a+", flags=re.S + re.M)
 

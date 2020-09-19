@@ -982,13 +982,10 @@ class White(Token):
     }
 
     def __init__(self, ws=" \t\r\n", min=1, max=0, exact=0):
-        super(White, self).__init__()
+        with Engine(white="".join(c for c in self.engine.white_chars if c not in ws)) as e:
+            super(White, self).__init__()
+            self.parser_config.lock_engine = e
         self.matchWhite = ws
-        e = engine.CURRENT
-        self.engine = Engine(white="".join(
-            c for c in self.engine.white_chars if c not in self.matchWhite
-        ))
-        engine.CURRENT = e
         self.parser_name = "".join(White.whiteStrs[c] for c in self.matchWhite)
         self.parser_config.mayReturnEmpty = True
 
@@ -1102,7 +1099,9 @@ class LineEnd(_PositionToken):
     """
 
     def __init__(self):
-        super(LineEnd, self).__init__()
+        with Engine(" \t") as e:
+            super(LineEnd, self).__init__()
+            self.parser_config.lock_engine = e
 
     def parseImpl(self, instring, loc, doActions=True):
         if loc < len(instring):
@@ -1138,7 +1137,9 @@ class StringEnd(_PositionToken):
     """
 
     def __init__(self):
-        super(StringEnd, self).__init__()
+        with Engine() as e:
+            super(StringEnd, self).__init__()
+            self.parser_config.lock_engine = e
 
     def parseImpl(self, instring, loc, doActions=True):
         l = len(instring)
@@ -1161,6 +1162,11 @@ class WordStart(_PositionToken):
     def __init__(self, wordChars=printables):
         super(WordStart, self).__init__()
         self.wordChars = set(wordChars)
+
+    def copy(self):
+        output = _PositionToken.copy(self)
+        output.wordChars = self.wordChars
+        return output
 
     def parseImpl(self, instring, loc, doActions=True):
         if loc != 0:
@@ -1222,6 +1228,7 @@ enhancement.Word = Word
 enhancement.CharsNotIn = CharsNotIn
 enhancement._PositionToken = _PositionToken
 enhancement.StringEnd = StringEnd
+enhancement.Empty = Empty
 
 results.Token = Token
 results.Empty = Empty

@@ -26,7 +26,7 @@ from mo_parsing import (
 from mo_parsing.engine import Engine
 from mo_parsing.helpers import real, signed_integer
 
-engine=Engine()
+engine = Engine().use()
 
 selectStmt = Forward()
 SELECT, FROM, WHERE, AND, OR, IN, IS, NOT, NULL = map(

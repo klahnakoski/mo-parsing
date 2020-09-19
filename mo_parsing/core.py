@@ -70,7 +70,8 @@ class ParserElement(object):
 
     def copy(self):
         output = object.__new__(self.__class__)
-        output.engine = engine.CURRENT
+        le = self.parser_config.lock_engine
+        output.engine = le or engine.CURRENT
         output.streamlined = False
         output.parseAction = self.parseAction[:]
         output.parser_name = self.parser_name

@@ -16,7 +16,6 @@ CURRENT = None
 
 class Engine:
     def __init__(self, white=" \n\r\t"):
-        global CURRENT
         self.literal = Literal
         self.keyword_chars = alphanums + "_$"
         self.ignore_list = []
@@ -25,18 +24,17 @@ class Engine:
         self.content = None
         self.skips = {}
         self.set_whitespace(white)
-        self.previous = CURRENT  # WE MAINTAIN A STACK OF ENGINES
-        CURRENT = self
+        self.previous = None  # WE MAINTAIN A STACK OF ENGINES
 
     def __enter__(self):
+        global CURRENT
+        self.previous = CURRENT  # WE MAINTAIN A STACK OF ENGINES
+        CURRENT = self
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        global CURRENT
-        CURRENT = self.previous
-        self.previous = None
+    use = __enter__
 
-    def release(self):
+    def __exit__(self, exc_type, exc_val, exc_tb):
         """
         ENSURE self IS NOT CURRENT
         :return:
@@ -47,6 +45,9 @@ class Engine:
 
         CURRENT = self.previous
         self.previous = None
+
+    def release(self):
+        self.__exit__(None, None, None)
 
     def normalize(self, expr):
         if expr == None:
@@ -60,12 +61,9 @@ class Engine:
             Log.error("expecting string, or ParserElemenet")
 
         curr_engine = expr.engine
-        if curr_engine != self:
-            # IF THE copy() INSISTS ON AN ENGINE, THEN KEEP IT
-            expr.engine = self
-            new_expr = expr.copy()
-            expr.engine = curr_engine
-            expr = new_expr
+        if curr_engine != self and not expr.parser_config.lock_engine:
+            # UPDATE ENGINE IF NOT LOCKED
+            expr = expr.copy()
         return expr
 
     def record_exception(self, instring, loc, expr, exc):
@@ -166,5 +164,5 @@ def noop(*args):
 
 DebugActions = namedtuple("DebugActions", ["TRY", "MATCH", "FAIL"])
 
-PLAIN_ENGINE = Engine("")
-Engine()
+PLAIN_ENGINE = Engine("").use()
+Engine().use()

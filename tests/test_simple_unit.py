@@ -32,7 +32,7 @@ class PyparsingExpressionTestCase(FuzzyTestCase):
     A mixin class to add parse results assertion methods to normal unittest.TestCase classes.
     """
     def setUp(self):
-        self.engine = Engine()
+        self.engine = Engine().use()
 
     def tearDown(self):
         self.engine.release()
