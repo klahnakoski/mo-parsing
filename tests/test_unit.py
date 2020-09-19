@@ -69,7 +69,7 @@ from mo_parsing import (
     LineEnd,
     CloseMatch,
     FollowedBy,
-    ParseSyntaxException,
+    ParseSyntaxException, Each,
 )
 from mo_parsing.engine import Engine
 from mo_parsing.enhancement import OpenDict
@@ -1184,9 +1184,9 @@ class TestParsing(PyparsingExpressionTestCase):
 
     def testParseExpressionResultsAccumulate(self):
 
-        num = Word(nums).set_parser_name("num")("base10*")
-        hexnum = Combine("0x" + Word(nums)).set_parser_name("hexnum")("hex*")
-        name = Word(alphas).set_parser_name("word")("word*")
+        num = Word(nums).set_parser_name("num")("base10")
+        hexnum = Combine("0x" + Word(nums)).set_parser_name("hexnum")("hex")
+        name = Word(alphas).set_parser_name("word")("word")
         list_of_num = delimitedList(hexnum | num | name, ",")
 
         tokens = list_of_num.parseString("1, 0x2, 3, 0x4, aaa")
@@ -1211,7 +1211,7 @@ class TestParsing(PyparsingExpressionTestCase):
         relation_name = Word(alphas + "_", alphanums + "_")
         relation_body = lbrack + Group(delimitedList(relation_body_item)) + rbrack
         Goal = Dict(Group(relation_name + relation_body))
-        Comparison_Predicate = Group(variable + oneOf("< >") + integer)("pred*")
+        Comparison_Predicate = Group(variable + oneOf("< >") + integer)("pred")
         Query = Goal("head") + ":-" + delimitedList(Goal | Comparison_Predicate)
 
         test = """Q(x,y,z):-Bloo(x,"Mitsis",y),Foo(y,z,1243),y>28,x<12,x>3"""
@@ -1219,9 +1219,9 @@ class TestParsing(PyparsingExpressionTestCase):
         queryRes = Query.parseString(test)
 
         self.assertParseResultsEquals(
-            queryRes.pred,
+            queryRes['pred'],
             expected_list=[["y", ">", "28"], ["x", "<", "12"], ["x", ">", "3"]],
-            msg="Incorrect list for attribute pred, %s" % str(queryRes.pred),
+            msg="Incorrect list for attribute pred, %s" % str(queryRes['pred']),
         )
 
     def testReStringRange(self):
@@ -3115,7 +3115,6 @@ class TestParsing(PyparsingExpressionTestCase):
         result = modifiers.parseString(
             "with foo=bar bing=baz using id-deadbeef", parseAll=True
         )
-        result["with_stmt"]
         expecting = {
             "with_stmt": {"overrides": [
                 {"key": "foo", "value": "bar"},
@@ -3139,7 +3138,8 @@ class TestParsing(PyparsingExpressionTestCase):
         openBrace = Suppress(Literal("{"))
         closeBrace = Suppress(Literal("}"))
 
-        exp = openBrace + (foo[1, ...]("foo") & bar[...]("bar")) + closeBrace
+        # TODO: Does this mean one-or-more anywhere, or in order?
+        exp = openBrace + Each([foo("foo"), bar("bar")], mins=[1, 0]) + closeBrace
 
         self.assertEqual(exp.parseString("{foo}"), ["foo"])
         self.assertEqual(

@@ -502,9 +502,7 @@ def nestedExpr(opener="(", closer=")", content=None, ignoreExpr=quotedString):
             )
 
         ignore_chars = engine.CURRENT.white_chars
-        with Engine() as e:
-            e.set_whitespace("")
-
+        with Engine(""):
             def scrub(t):
                 return t[0].strip()
 

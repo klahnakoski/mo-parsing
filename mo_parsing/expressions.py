@@ -1,7 +1,9 @@
 # encoding: utf-8
+import sys
 from operator import itemgetter
 
-from mo_future import Iterable,text, generator_types
+from mo_dots import unwrap
+from mo_future import Iterable, text, generator_types
 from mo_logs import Log
 
 from mo_parsing.core import ParserElement, _PendingSkip, is_decorated
@@ -14,7 +16,7 @@ from mo_parsing.exceptions import (
 )
 from mo_parsing.results import ParseResults
 from mo_parsing.tokens import Empty
-from mo_parsing.utils import empty_list, empty_tuple
+from mo_parsing.utils import empty_list, empty_tuple, _MAX_INT
 
 
 class ParseExpression(ParserElement):
@@ -48,7 +50,7 @@ class ParseExpression(ParserElement):
 
     def leaveWhitespace(self):
         """Extends ``leaveWhitespace`` defined in base class, and also invokes ``leaveWhitespace`` on
-           all contained expressions."""
+        all contained expressions."""
         output = self.copy()
         if self.engine.white_chars:
             Log.error("do not know how to handle")
@@ -201,9 +203,7 @@ class And(ParseExpression):
                 raise e
             except ParseBaseException as pe:
                 if encountered_error_stop:
-                    raise ParseSyntaxException(
-                        pe.pstr, pe.loc, pe.parserElement
-                    )
+                    raise ParseSyntaxException(pe.pstr, pe.loc, pe.parserElement)
                 else:
                     raise pe
             except IndexError as ie:
@@ -405,65 +405,25 @@ class MatchFirst(ParseExpression):
 
 
 class Each(ParseExpression):
-    """Requires all given :class:`ParseExpression` s to be found, but in
+    """
+    Requires all given :class:`ParseExpression` s to be found, but in
     any order. Expressions may be separated by whitespace.
 
     May be constructed using the ``'&'`` operator.
-
-    Example::
-
-        color = oneOf("RED ORANGE YELLOW GREEN BLUE PURPLE BLACK WHITE BROWN")
-        shape_type = oneOf("SQUARE CIRCLE TRIANGLE STAR HEXAGON OCTAGON")
-        integer = Word(nums)
-        shape_attr = "shape:" + shape_type("shape")
-        posn_attr = "posn:" + Group(integer("x") + ',' + integer("y"))("posn")
-        color_attr = "color:" + color("color")
-        size_attr = "size:" + integer("size")
-
-        # use Each (using operator '&') to accept attributes in any order
-        # (shape and posn are required, color and size are optional)
-        shape_spec = shape_attr & posn_attr & Optional(color_attr) & Optional(size_attr)
-
-        test.runTests(shape_spec, '''
-            shape: SQUARE color: BLACK posn: 100, 120
-            shape: CIRCLE size: 50 color: BLUE posn: 50,80
-            color:GREEN size:20 shape:TRIANGLE posn:20,40
-            '''
-            )
-
-    prints::
-
-        shape: SQUARE color: BLACK posn: 100, 120
-        ['shape:', 'SQUARE', 'color:', 'BLACK', 'posn:', ['100', ',', '120']]
-        - color: BLACK
-        - posn: ['100', ',', '120']
-          - x: 100
-          - y: 120
-        - shape: SQUARE
-
-
-        shape: CIRCLE size: 50 color: BLUE posn: 50,80
-        ['shape:', 'CIRCLE', 'size:', '50', 'color:', 'BLUE', 'posn:', ['50', ',', '80']]
-        - color: BLUE
-        - posn: ['50', ',', '80']
-          - x: 50
-          - y: 80
-        - shape: CIRCLE
-        - size: 50
-
-
-        color: GREEN size: 20 shape: TRIANGLE posn: 20,40
-        ['color:', 'GREEN', 'size:', '20', 'shape:', 'TRIANGLE', 'posn:', ['20', ',', '40']]
-        - color: GREEN
-        - posn: ['20', ',', '40']
-          - x: 20
-          - y: 40
-        - shape: TRIANGLE
-        - size: 20
     """
 
-    def __init__(self, exprs):
+    def __init__(self, exprs, mins=None):
+        """
+        :param exprs: The expressions to be matched
+        :param mins: list of integers indincating any minimums
+        """
         super(Each, self).__init__(exprs)
+        if mins is None:
+            mins = [0] * len(exprs)
+        elif len(mins) != len(exprs):
+            Log.error("expecting the mins list to be same length as exprs")
+
+        self.parser_config.mins = mins
         self.parser_config.mayReturnEmpty = all(
             e.parser_config.mayReturnEmpty for e in self.exprs
         )
@@ -482,13 +442,16 @@ class Each(ParseExpression):
     def parseImpl(self, instring, loc, doActions=True):
         end_loc = loc
         matchOrder = []
-        while True:
-            for e in self.exprs:
+        count = [0] * len(self.exprs)
+        remaining = self.exprs[:]
+        while remaining:
+            for i, (e, c) in enumerate(zip(remaining, count)):
                 try:
                     temp_loc = e.tryParse(instring, end_loc)
                     if temp_loc == end_loc:
                         continue
                     end_loc = temp_loc
+                    count[i] = c + 1
                     matchOrder.append(e)
                     break
                 except ParseException:
@@ -496,8 +459,20 @@ class Each(ParseExpression):
             else:
                 break
 
+        for e, m, c in zip(self.exprs, self.parser_config.mins, count):
+            if m > c:
+                raise ParseException(
+                    instring,
+                    loc,
+                    "Missing minimum (%i) more required elements (%s)" % (m, e),
+                )
+
         found = set(id(m) for m in matchOrder)
-        missing = [e for e in self.exprs if id(e) not in found and not e.parser_config.mayReturnEmpty]
+        missing = [
+            e
+            for e, m in zip(self.exprs, self.parser_config.mins)
+            if id(e) not in found and not e.parser_config.mayReturnEmpty and m > 0
+        ]
         if missing:
             missing = ", ".join(text(e) for e in missing)
             raise ParseException(
@@ -506,7 +481,9 @@ class Each(ParseExpression):
 
         # add any unmatched Optionals, in case they have default values defined
         matchOrder += [
-            e for e in self.exprs if id(e) not in found and e.parser_config.mayReturnEmpty
+            e
+            for e in self.exprs
+            if id(e) not in found and e.parser_config.mayReturnEmpty
         ]
 
         results = []

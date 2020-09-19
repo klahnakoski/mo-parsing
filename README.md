@@ -13,15 +13,19 @@ More features
 * ParseResults point to ParserElement for reduced size
 * packrat parser is always on
 * less stack used 
+* the wildcard ("*") could be used to indicate multi-values are expected; this is not allowed: all values are multi-values
 
 
-Less Cruft
+More focused 
 
 * removed all backward-compatibility settings
 * no support for binary serialization (no pickel)
+* ParseActions must adhere to a strict interface
+
+More functional
+
 * tokens are static, can not be changed, parsing functions must emit new objects
 * ParserElements are static: Many are generated during language definition
-* ParseActions must adhere to a strict interface
 
 
 ## Installation

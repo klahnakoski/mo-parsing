@@ -60,10 +60,10 @@ class Engine:
         if not isinstance(expr, ParserElement):
             Log.error("expecting string, or ParserElemenet")
 
-        curr_engine = expr.engine
-        if curr_engine != self and not expr.parser_config.lock_engine:
-            # UPDATE ENGINE IF NOT LOCKED
-            expr = expr.copy()
+        # curr_engine = expr.engine
+        # if curr_engine != self and not expr.parser_config.lock_engine:
+        #     # UPDATE ENGINE IF NOT LOCKED
+        #     expr = expr.copy()
         return expr
 
     def record_exception(self, instring, loc, expr, exc):

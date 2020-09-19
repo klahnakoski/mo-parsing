@@ -98,6 +98,7 @@ class ParseResults(object):
                     else:
                         for t in tok.tokens_for_result:
                             yield t
+                    continue
                 elif isinstance(tok.type_for_result, Group):
                     continue
                 # elif name:
