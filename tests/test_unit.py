@@ -1791,7 +1791,7 @@ class TestParsing(PyparsingExpressionTestCase):
             ("bar = foo", [["bar", "=", "foo"]]),
             (
                 "bar = foo & baz = fee",
-                [[["&", [["bar", "=", "foo"], ["baz", "=", "fee"]]]]],
+                [["&", [["bar", "=", "foo"], ["baz", "=", "fee"]]]],
             ),
         ]
         for test, expected in tests:
