@@ -533,7 +533,7 @@ class ParserElement(object):
         ``expr*(None, n) + ~expr``
         """
         if isinstance(other, tuple):
-           minElements, maxElements = (other + (None, None))[:2]
+            minElements, maxElements = (other + (None, None))[:2]
         else:
             minElements, maxElements = other, other
 
@@ -551,7 +551,7 @@ class ParserElement(object):
             raise ValueError("cannot multiply ParserElement by negative value")
 
         if maxElements == Ellipsis or maxElements == None:
-            return And([self] * minElements) + ZeroOrMore(self)
+            return And([self] * minElements + [ZeroOrMore(self)]).streamline()
         elif not isinstance(maxElements, int) or maxElements < minElements:
             raise TypeError(
                 "cannot multiply 'ParserElement' and ('%s', '%s') objects",
@@ -562,11 +562,11 @@ class ParserElement(object):
         optElements = maxElements - minElements
 
         if optElements:
-            ret = And([self] * minElements) + And([Optional(self)]*optElements)
+            ret = And([self] * minElements + [Optional(self)]*optElements).streamline()
         elif not minElements:
             raise ValueError("cannot multiply ParserElement by 0 or (0, 0)")
         else:
-            ret = And([self] * minElements)
+            ret = And([self] * minElements).streamline()
         return ret
 
     def __rmul__(self, other):

@@ -175,7 +175,7 @@ class And(ParseExpression):
                     e.exprs[-1] = ee
                     e.streamlined = False
                     self.exprs[i + 1] = None
-            self.exprs = [e.streamline() for e in self.exprs if e is not None]
+            self.exprs = [e for e in self.exprs if e is not None]
 
         output = ParseExpression.streamline(self)
         if isinstance(output, Empty):
