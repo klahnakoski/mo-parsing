@@ -79,7 +79,7 @@ class ParseExpression(ParserElement):
 
         acc = []
         for e in self.exprs:
-            e.streamline()
+            e = e.streamline()
             if isinstance(e, self.__class__) and not is_decorated(e):
                 acc.extend(e.exprs)
             else:
@@ -159,24 +159,23 @@ class And(ParseExpression):
             return self
 
         # collapse any _PendingSkip's
-        if self.exprs:
-            if any(
-                isinstance(e, ParseExpression)
-                and e.exprs
-                and isinstance(e.exprs[-1], _PendingSkip)
-                for e in self.exprs[:-1]
-            ):
-                for i, e in enumerate(self.exprs[:-1]):
-                    if e is None:
-                        continue
-                    if (
-                        isinstance(e, ParseExpression)
-                        and e.exprs
-                        and isinstance(e.exprs[-1], _PendingSkip)
-                    ):
-                        e.exprs[-1] = e.exprs[-1] + self.exprs[i + 1]
-                        self.exprs[i + 1] = None
-                self.exprs = [e for e in self.exprs if e is not None]
+        if any(
+            isinstance(e, ParseExpression)
+            and e.exprs
+            and isinstance(e.exprs[-1], _PendingSkip)
+            for e in self.exprs[:-1]
+        ):
+            for i, e in enumerate(self.exprs[:-1]):
+                if (
+                    isinstance(e, ParseExpression)
+                    and e.exprs
+                    and isinstance(e.exprs[-1], _PendingSkip)
+                ):
+                    ee = e.exprs[-1] + self.exprs[i + 1]
+                    e.exprs[-1] = ee
+                    e.streamlined = False
+                    self.exprs[i + 1] = None
+            self.exprs = [e.streamline() for e in self.exprs if e is not None]
 
         output = ParseExpression.streamline(self)
         if isinstance(output, Empty):

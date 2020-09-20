@@ -125,10 +125,14 @@ def assertAlmostEqual(test, expected, digits=None, places=None, msg=None, delta=
                     Log.error("Expecting data, not a list")
                 test = test[0]
             for k, e in expected.items():
-                if is_text(k):
-                    t = mo_dots.get_attr(test, literal_field(k))
-                else:
+                try:
                     t = test[k]
+                    assertAlmostEqual(t, e, msg=msg, digits=digits, places=places, delta=delta)
+                    continue
+                except:
+                    pass
+
+                t = mo_dots.get_attr(test, literal_field(k))
                 assertAlmostEqual(t, e, msg=msg, digits=digits, places=places, delta=delta)
         elif is_container(test) and isinstance(expected, set):
             test = set(to_data(t) for t in test)

@@ -1379,39 +1379,33 @@ class TestParsing(PyparsingExpressionTestCase):
         test(e, "start red end", ["start", "red", "end"], {})
         test(e, "start 456 end", ["start", "456", "end"], {})
         test(e, "start end", ["start", "end"], {})
-        test(e, "start 456 + end", ["start", "456", "+ ", "end"], {"_skipped": ["+ "]})
+        test(e, "start 456 + end", ["start", "456", "+", "end"], {"_skipped": ["+"]})
 
-        e = "start" + (alpha_word[1, ...] & num_word[1, ...] | ...) + "end"
+        e = "start" + (Each([alpha_word, num_word], [1, 1]) | ...) + "end"
         test(e, "start 456 red end", ["start", "456", "red", "end"], {})
         test(e, "start red 456 end", ["start", "red", "456", "end"], {})
         test(
             e,
             "start 456 red + end",
-            ["start", "456", "red", "+ ", "end"],
-            {"_skipped": ["+ "]},
+            ["start", "456", "red", "+", "end"],
+            {"_skipped": ["+"]},
         )
-        test(e, "start red end", ["start", "red ", "end"], {"_skipped": ["red "]})
-        test(e, "start 456 end", ["start", "456 ", "end"], {"_skipped": ["456 "]})
-        test(
-            e, "start end", ["start", "end"], {"_skipped": ""},
-        )
-        test(e, "start 456 + end", ["start", "456 + ", "end"], {"_skipped": ["456 + "]})
+        test(e, "start red end", ["start", "red", "end"], {"_skipped": "red"})
+        test(e, "start 456 end", ["start", "456", "end"], {"_skipped": "456"})
+        test(e, "start end", ["start", "end"], {"_skipped": ""})
+        test(e, "start 456 + end", ["start", "456 +", "end"], {"_skipped": "456 +"})
 
         e = "start" + (alpha_word | ...) + (num_word | ...) + "end"
         test(e, "start red 456 end", ["start", "red", "456", "end"], {})
-        test(
-            e, "start red end", ["start", "red", "end"], {"_skipped": ""},
-        )
-        test(
-            e, "start end", ["start", "end"], {"_skipped": ""},
-        )
+        test(e, "start red end", ["start", "red", "end"], {"_skipped": ""})
+        test(e, "start end", ["start", "end"], {"_skipped": ""})
 
         e = Literal("start") + ... + "+" + ... + "end"
         test(
             e,
             "start red + 456 end",
-            ["start", "red ", "+", "456 ", "end"],
-            {"_skipped": ["red ", "456 "]},
+            ["start", "red", "+", "456", "end"],
+            {"_skipped": ["red", "456"]},
         )
 
     def testEllipsisRepetion(self):
@@ -1461,7 +1455,7 @@ class TestParsing(PyparsingExpressionTestCase):
     def testEllipsisRepetionWithResultsNames(self):
 
         label = Word(alphas)
-        val = integer()
+        val = integer
         parser = label("label") + ZeroOrMore(val)("values")
 
         _, results = parser.runTests(
@@ -1476,9 +1470,7 @@ class TestParsing(PyparsingExpressionTestCase):
             (["b", 1, 2, 3], {"label": "b", "values": [1, 2, 3]}),
             (["c"], {"label": "c", "values": []}),
         ]
-        for obs, exp in zip(results, expected):
-            test, result = obs
-            exp_list, exp_dict = exp
+        for (test, result), (exp_list, exp_dict) in zip(results, expected):
             self.assertParseResultsEquals(
                 result, expected_list=exp_list, expected_dict=exp_dict
             )
@@ -2734,18 +2726,16 @@ class TestParsing(PyparsingExpressionTestCase):
         """
         tagStart, tagEnd = makeHTMLTags("a")
 
-        expr = tagStart + Word(nums)("value") + tagEnd
-
         expected = (
             [
-                ["a", ["b", "x"], False, "2", "</a>"],
-                ["a", ["b", "x"], False, "3", "</a>"],
+                ["A", ["b", "x"], False, "2", "</A>"],
+                ["A", ["b", "x"], False, "3", "</A>"],
             ],
             [
-                ["a", ["b", "x"], False, "2", "</a>"],
-                ["a", ["b", "x"], False, "3", "</a>"],
+                ["A", ["b", "x"], False, "2", "</A>"],
+                ["A", ["b", "x"], False, "3", "</A>"],
             ],
-            [["a", ["class", "boo"], False, "8", "</a>"]],
+            [["A", ["class", "boo"], False, "8", "</A>"]],
         )
 
         for attrib, exp in zip(
@@ -5213,42 +5203,42 @@ class TestParsing(PyparsingExpressionTestCase):
         stmt = Keyword("test")
 
         self.assertEqual(
-            len(stmt[...]("tests").parseString("test test").tests),
+            len(stmt[...]("tests").parseString("test test")['tests']),
             2,
             "ZeroOrMore failure with .set_token_name",
         )
         self.assertEqual(
-            len(stmt[1, ...]("tests").parseString("test test").tests),
+            len(stmt[1, ...]("tests").parseString("test test")['tests']),
             2,
             "OneOrMore failure with .set_token_name",
         )
         self.assertEqual(
-            len(Optional(stmt[1, ...]("tests")).parseString("test test").tests),
+            len(Optional(stmt[1, ...]("tests")).parseString("test test")['tests']),
             2,
             "OneOrMore failure with .set_token_name",
         )
         self.assertEqual(
-            len(Optional(delimitedList(stmt))("tests").parseString("test,test").tests),
+            len(Optional(delimitedList(stmt))("tests").parseString("test,test")['tests']),
             2,
             "delimitedList failure with .set_token_name",
         )
         self.assertEqual(
-            len((stmt * 2)("tests").parseString("test test").tests),
+            len((stmt * 2)("tests").parseString("test test")['tests']),
             2,
             "multiplied(1) failure with .set_token_name",
         )
         self.assertEqual(
-            len(stmt[..., 2]("tests").parseString("test test").tests),
+            len(stmt[..., 2]("tests").parseString("test test")['tests']),
             2,
             "multiplied(2) failure with .set_token_name",
         )
         self.assertEqual(
-            len(stmt[1, ...]("tests").parseString("test test").tests),
+            len(stmt[1, ...]("tests").parseString("test test")['tests']),
             2,
             "multipled(3) failure with .set_token_name",
         )
         self.assertEqual(
-            len(stmt[2, ...]("tests").parseString("test test").tests),
+            len(stmt[2, ...]("tests").parseString("test test")['tests']),
             2,
             "multipled(3) failure with .set_token_name",
         )

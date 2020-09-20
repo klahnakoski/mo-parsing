@@ -292,14 +292,13 @@ class ParserElement(object):
         mo_parsing.ParseException: Expected end of text, found 'b'  (at char 5), (line:1, col:6)
         """
         cache.resetCache()
-        if not self.streamlined:
-            self.streamline()
-            for e in self.engine.ignore_list:
-                e.streamline()
+        expr = self.streamline()
+        for e in expr.engine.ignore_list:
+            e.streamline()
         try:
-            loc, tokens = self._parse(instring, 0)
+            loc, tokens = expr._parse(instring, 0)
             if parseAll:
-                loc = self.engine.skip(instring, loc)
+                loc = expr.engine.skip(instring, loc)
                 se = Empty() + StringEnd()
                 se._parse(instring, loc)
         except ParseBaseException as exc:
@@ -774,6 +773,9 @@ class _PendingSkip(ParserElement):
         self.parser_name = "pending_skip"
 
     def __add__(self, other):
+        if isinstance(other, _PendingSkip):
+            return self.anchor + other
+
         skipper = SkipTo(other).set_parser_name("...")("_skipped")
         return self.anchor + skipper + other
 
