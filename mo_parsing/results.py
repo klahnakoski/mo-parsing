@@ -247,6 +247,7 @@ class ParseResults(object):
                 name = get_name(r)
                 if name:
                     add(output, name, [r])
+                    continue
                 if isinstance(r.type_for_result, Group):
                     continue
                 for k, v in r.iteritems():

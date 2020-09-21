@@ -1894,7 +1894,7 @@ class TestParsing(PyparsingExpressionTestCase):
             <BODY/>
             </BODY>
         """
-        results = [
+        expected = [
             ("startBody", False, "", ""),
             ("startBody", False, "#00FFCC", ""),
             ("startBody", True, "#00FFAA", ""),
@@ -1904,12 +1904,10 @@ class TestParsing(PyparsingExpressionTestCase):
         ]
 
         bodyStart, bodyEnd = makeHTMLTags("BODY")
-        resIter = iter(results)
-        for t, s, e in (bodyStart | bodyEnd).scanString(test):
-
-            (expectedType, expectedEmpty, expectedBG, expectedFG) = next(resIter)
-
+        results = list((bodyStart | bodyEnd).scanString(test))
+        for (t, s, e), (expectedType, expectedEmpty, expectedBG, expectedFG) in zip(results, expected):
             if "startBody" in t:
+                t = t['startBody']
                 self.assertEqual(
                     bool(t["empty"]),
                     expectedEmpty,
