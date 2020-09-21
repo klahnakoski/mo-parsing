@@ -2625,7 +2625,7 @@ class TestParsing(PyparsingExpressionTestCase):
 
     def testOriginalTextFor(self):
         def rfn(t):
-            return "%s:%d" % (t["src"], len("".join(t)))
+            return "%s:%d" % (t['startImg']["src"], len("".join(t)))
 
         start = originalTextFor(makeHTMLTags("IMG")[0], asString=False)
 
@@ -2643,11 +2643,11 @@ class TestParsing(PyparsingExpressionTestCase):
             s.endswith("77_"), "failed to return full original text properly"
         )
 
-        tag_fields = start.searchString(text)[0][0]
+        tag_fields = start.searchString(text)[0][0]['startImg']
         if VERBOSE:
             self.assertEqual(
                 sorted(tag_fields.keys()),
-                ["alt", "empty", "height", "src", "startImg", "tag", "width"],
+                ["alt", "empty", "height", "src", "tag", "width"],
                 "failed to preserve results names in originalTextFor",
             )
 
@@ -3117,6 +3117,7 @@ class TestParsing(PyparsingExpressionTestCase):
                 "with foo=bar bing=baz using id-deadbeef using id-feedfeed",
                 parseAll=True,
             )
+            Log.note("hi")
 
     def testOptionalEachTest3(self):
 
