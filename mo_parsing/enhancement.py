@@ -174,12 +174,16 @@ class NotAny(ParseElementEnhance):
 
 
 class _MultipleMatch(ParseElementEnhance):
-    def __init__(self, expr, stopOn=None):
+    def __init__(self, expr, stopOn=None, min_match=-1, max_match=-1):
         super(_MultipleMatch, self).__init__(expr)
+        self.min_match = min_match
+        self.max_match = max_match
         self.stopOn(stopOn)
 
     def copy(self):
         output = ParseElementEnhance.copy(self)
+        output.min_match = self.min_match
+        output.max_match = self.max_match
         output.not_ender = self.not_ender
         return output
 
@@ -188,7 +192,6 @@ class _MultipleMatch(ParseElementEnhance):
         return self
 
     def parseImpl(self, instring, loc, doActions=True):
-
         if self.not_ender is None:
             try_not_ender = noop
         else:
@@ -203,8 +206,9 @@ class _MultipleMatch(ParseElementEnhance):
                 if tmptokens:
                     acc.append(tmptokens)
         except (ParseException, IndexError) as e:
-            if not acc:
-                # MUST HAVE AT LEAST ONE
+            if self.min_match <= len(acc) <= self.max_match:
+                pass
+            else:
                 raise e
 
         return loc, ParseResults(self, acc)
@@ -250,7 +254,7 @@ class OneOrMore(_MultipleMatch):
     """
 
     def __init__(self, expr, stopOn=None):
-        _MultipleMatch.__init__(self, expr, stopOn)
+        _MultipleMatch.__init__(self, expr, stopOn, min_match=1, max_match=_MAX_INT)
         self.parser_config.lock_engine = expr.parser_config.lock_engine
         self.parser_config.engine = expr.parser_config.engine
 
@@ -261,7 +265,7 @@ class OneOrMore(_MultipleMatch):
         return "{" + text(self.expr) + "}..."
 
     def copy(self):
-        output = ParseElementEnhance.copy(self)
+        output = _MultipleMatch.copy(self)
         output.not_ender = self.not_ender
         return output
 
@@ -279,7 +283,7 @@ class ZeroOrMore(_MultipleMatch):
     """
 
     def __init__(self, expr, stopOn=None):
-        super(ZeroOrMore, self).__init__(expr, stopOn=stopOn)
+        super(ZeroOrMore, self).__init__(expr, stopOn=stopOn, min_match=0, max_match=_MAX_INT)
         self.parser_config.mayReturnEmpty = True
         self.parser_config.lock_engine = expr.parser_config.lock_engine
         self.parser_config.engine = expr.parser_config.engine
@@ -297,7 +301,7 @@ class ZeroOrMore(_MultipleMatch):
         return "[" + text(self.expr) + "]..."
 
 
-class Optional(ParseElementEnhance):
+class Optional(_MultipleMatch):
     """Optional matching of the given expression.
 
     Parameters:
@@ -336,12 +340,12 @@ class Optional(ParseElementEnhance):
     """
 
     def __init__(self, expr, default=None):
-        super(Optional, self).__init__(expr)
+        _MultipleMatch.__init__(self, expr, stopOn=None, min_match=0, max_match=1)
         self.defaultValue = default
         self.parser_config.mayReturnEmpty = True
 
     def copy(self):
-        output = ParseElementEnhance.copy(self)
+        output = _MultipleMatch.copy(self)
         output.defaultValue = self.defaultValue
         return output
 
@@ -822,17 +826,16 @@ class PrecededBy(ParseElementEnhance):
 
 
 # export
-from mo_parsing import core, engine
+from mo_parsing import core, engine, results
 
 core.SkipTo = SkipTo
+core._MultipleMatch = _MultipleMatch
 core.ZeroOrMore = ZeroOrMore
 core.OneOrMore = OneOrMore
 core.Optional = Optional
 core.NotAny = NotAny
 core.Suppress = Suppress
 core.Group = Group
-
-from mo_parsing import results
 
 results.Forward = Forward
 results.Group = Group

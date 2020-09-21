@@ -22,6 +22,7 @@ from mo_parsing.utils import (
 # import later
 (
     SkipTo,
+    _MultipleMatch,
     ZeroOrMore,
     OneOrMore,
     Optional,
@@ -39,7 +40,7 @@ from mo_parsing.utils import (
     Literal,
     Token,
     Group,
-) = [None] * 18
+) = [None] * 19
 
 DEBUG = False
 
@@ -537,9 +538,7 @@ class ParserElement(object):
         else:
             minElements, maxElements = other, other
 
-        if minElements == Ellipsis:
-            return ZeroOrMore(self)
-        elif not minElements:
+        if minElements == Ellipsis or minElements == None:
             minElements = 0
         elif not isinstance(minElements, int):
             raise TypeError(
@@ -551,22 +550,15 @@ class ParserElement(object):
             raise ValueError("cannot multiply ParserElement by negative value")
 
         if maxElements == Ellipsis or maxElements == None:
-            return And([self] * minElements + [ZeroOrMore(self)]).streamline()
-        elif not isinstance(maxElements, int) or maxElements < minElements:
+            maxElements = _MAX_INT
+        elif not isinstance(maxElements, int) or maxElements < minElements or maxElements==0:
             raise TypeError(
                 "cannot multiply 'ParserElement' and ('%s', '%s') objects",
                 type(other[0]),
                 type(other[1]),
             )
 
-        optElements = maxElements - minElements
-
-        if optElements:
-            ret = And([self] * minElements + [Optional(self)]*optElements).streamline()
-        elif not minElements:
-            raise ValueError("cannot multiply ParserElement by 0 or (0, 0)")
-        else:
-            ret = And([self] * minElements).streamline()
+        ret = _MultipleMatch(self, min_match = minElements, max_match=maxElements).streamline()
         return ret
 
     def __rmul__(self, other):

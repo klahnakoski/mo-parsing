@@ -1726,7 +1726,7 @@ class TestParsing(PyparsingExpressionTestCase):
             res = boolExpr.parseString(t)
             value = bool(res[0])
             expected = eval(t, {}, boolVars)
-            self.assertEquals(expected, value)
+            self.assertEqual(expected, value)
 
     def testInfixNotationGrammarTest3(self):
 
@@ -4247,7 +4247,7 @@ class TestParsing(PyparsingExpressionTestCase):
 
         for (r_str, r_tok), exp in zip(results, expected):
             if exp is not None:
-                self.assertEquals(
+                self.assertEqual(
                     r_tok["mismatches"],
                     exp,
                     "fail CloseMatch between {!r} and {!r}".format(
