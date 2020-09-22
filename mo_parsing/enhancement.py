@@ -173,12 +173,21 @@ class NotAny(ParseElementEnhance):
         return "~{" + text(self.expr) + "}"
 
 
-class _MultipleMatch(ParseElementEnhance):
+class Many(ParseElementEnhance):
     def __init__(self, expr, stopOn=None, min_match=-1, max_match=-1):
-        super(_MultipleMatch, self).__init__(expr)
+        """
+        MATCH expr SOME NUMBER OF TIMES (OR UNTIL stopOn IS REACHED
+        :param expr: THE EXPRESSION TO MATCH
+        :param stopOn: THE PATTERN TO INDICATE STOP MATCHING
+        :param min_match: MINIMUM MATCHES REQUIRED FOR SUCCESS (-1 IS INVALID)
+        :param max_match: MAXIMUM MATCH REQUIRED FOR SUCCESS (-1 IS INVALID)
+        """
+        super(Many, self).__init__(expr)
         self.min_match = min_match
         self.max_match = max_match
         self.stopOn(stopOn)
+
+        self.parser_config.mayReturnEmpty = (min_match == 0 or expr.parser_config.mayReturnEmpty)
 
     def copy(self):
         output = ParseElementEnhance.copy(self)
@@ -227,7 +236,7 @@ class _MultipleMatch(ParseElementEnhance):
         return ParseElementEnhance.__call__(self, name)
 
 
-class OneOrMore(_MultipleMatch):
+class OneOrMore(Many):
     """Repetition of one or more of the given expression.
 
     Parameters:
@@ -236,25 +245,10 @@ class OneOrMore(_MultipleMatch):
           (only required if the sentinel would ordinarily match the repetition
           expression)
 
-    Example::
-
-        data_word = Word(alphas)
-        label = data_word + FollowedBy(':')
-        attr_expr = Group(label + Suppress(':') + OneOrMore(data_word).addParseAction(' '.join))
-
-        text = "shape: SQUARE posn: upper left color: BLACK"
-        OneOrMore(attr_expr).parseString(text)  # Fail! read 'color' as data instead of next label -> [['shape', 'SQUARE color']]
-
-        # use stopOn attribute for OneOrMore to avoid reading label string as part of the data
-        attr_expr = Group(label + Suppress(':') + OneOrMore(data_word, stopOn=label).addParseAction(' '.join))
-        OneOrMore(attr_expr).parseString(text) # Better -> [['shape', 'SQUARE'], ['posn', 'upper left'], ['color', 'BLACK']]
-
-        # could also be written as
-        (attr_expr * (1,)).parseString(text)
     """
 
     def __init__(self, expr, stopOn=None):
-        _MultipleMatch.__init__(self, expr, stopOn, min_match=1, max_match=_MAX_INT)
+        Many.__init__(self, expr, stopOn, min_match=1, max_match=_MAX_INT)
         self.parser_config.lock_engine = expr.parser_config.lock_engine
         self.parser_config.engine = expr.parser_config.engine
 
@@ -265,12 +259,12 @@ class OneOrMore(_MultipleMatch):
         return "{" + text(self.expr) + "}..."
 
     def copy(self):
-        output = _MultipleMatch.copy(self)
+        output = Many.copy(self)
         output.not_ender = self.not_ender
         return output
 
 
-class ZeroOrMore(_MultipleMatch):
+class ZeroOrMore(Many):
     """Optional repetition of zero or more of the given expression.
 
     Parameters:
@@ -301,7 +295,7 @@ class ZeroOrMore(_MultipleMatch):
         return "[" + text(self.expr) + "]..."
 
 
-class Optional(_MultipleMatch):
+class Optional(Many):
     """Optional matching of the given expression.
 
     Parameters:
@@ -340,12 +334,12 @@ class Optional(_MultipleMatch):
     """
 
     def __init__(self, expr, default=None):
-        _MultipleMatch.__init__(self, expr, stopOn=None, min_match=0, max_match=1)
+        Many.__init__(self, expr, stopOn=None, min_match=0, max_match=1)
         self.defaultValue = default
         self.parser_config.mayReturnEmpty = True
 
     def copy(self):
-        output = _MultipleMatch.copy(self)
+        output = Many.copy(self)
         output.defaultValue = self.defaultValue
         return output
 
@@ -829,7 +823,7 @@ class PrecededBy(ParseElementEnhance):
 from mo_parsing import core, engine, results
 
 core.SkipTo = SkipTo
-core._MultipleMatch = _MultipleMatch
+core.Many = Many
 core.ZeroOrMore = ZeroOrMore
 core.OneOrMore = OneOrMore
 core.Optional = Optional

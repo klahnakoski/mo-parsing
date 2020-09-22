@@ -8,7 +8,7 @@ from mo_logs import Log
 
 from mo_parsing.core import ParserElement, _PendingSkip, is_decorated
 from mo_parsing.engine import Engine
-from mo_parsing.enhancement import OneOrMore, Optional, SkipTo, ZeroOrMore
+from mo_parsing.enhancement import OneOrMore, Optional, SkipTo, ZeroOrMore, Many
 from mo_parsing.exceptions import (
     ParseBaseException,
     ParseException,
@@ -411,18 +411,15 @@ class Each(ParseExpression):
     May be constructed using the ``'&'`` operator.
     """
 
-    def __init__(self, exprs, mins=None):
+    def __init__(self, exprs):
         """
         :param exprs: The expressions to be matched
         :param mins: list of integers indincating any minimums
         """
         super(Each, self).__init__(exprs)
-        if mins is None:
-            mins = [0] * len(exprs)
-        elif len(mins) != len(exprs):
-            Log.error("expecting the mins list to be same length as exprs")
+        self.parser_config.min_match = [e.min_match if isinstance(e, Many) else 1 for e in exprs]
+        self.parser_config.max_match = [e.max_match if isinstance(e, Many) else 1 for e in exprs]
 
-        self.parser_config.mins = mins
         self.parser_config.mayReturnEmpty = all(
             e.parser_config.mayReturnEmpty for e in self.exprs
         )
@@ -441,16 +438,24 @@ class Each(ParseExpression):
     def parseImpl(self, instring, loc, doActions=True):
         end_loc = loc
         matchOrder = []
+        todo = list(zip(
+            self.exprs,
+            self.parser_config.min_match,
+            self.parser_config.max_match
+        ))
         count = [0] * len(self.exprs)
-        remaining = self.exprs[:]
-        while remaining:
-            for i, (e, c) in enumerate(zip(remaining, count)):
+
+        while todo:
+            for i, (c, (e, mi, ma)) in enumerate(zip(count, todo)):
                 try:
                     temp_loc = e.tryParse(instring, end_loc)
                     if temp_loc == end_loc:
                         continue
                     end_loc = temp_loc
-                    count[i] = c + 1
+                    c2 = count[i] = c + 1
+                    if c2 >= ma:
+                        del todo[i]
+                        del count[i]
                     matchOrder.append(e)
                     break
                 except ParseException:
@@ -458,19 +463,19 @@ class Each(ParseExpression):
             else:
                 break
 
-        for e, m, c in zip(self.exprs, self.parser_config.mins, count):
-            if m > c:
+        for c, (e, mi, ma) in zip(count, todo):
+            if c < mi:
                 raise ParseException(
                     instring,
                     loc,
-                    "Missing minimum (%i) more required elements (%s)" % (m, e),
+                    "Missing minimum (%i) more required elements (%s)" % (mi, e),
                 )
 
         found = set(id(m) for m in matchOrder)
         missing = [
             e
-            for e, m in zip(self.exprs, self.parser_config.mins)
-            if id(e) not in found and not e.parser_config.mayReturnEmpty and m > 0
+            for e, mi in zip(self.exprs, self.parser_config.min_matches)
+            if id(e) not in found and not e.parser_config.mayReturnEmpty and mi > 0
         ]
         if missing:
             missing = ", ".join(text(e) for e in missing)

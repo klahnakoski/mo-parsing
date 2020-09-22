@@ -6,7 +6,7 @@ from mo_future import text, is_text
 from mo_logs import Log
 
 from mo_parsing.cache import packrat_cache
-from mo_parsing.engine import Engine, PLAIN_ENGINE
+from mo_parsing.engine import PLAIN_ENGINE
 from mo_parsing.exceptions import (
     ParseBaseException,
     ParseException,
@@ -22,7 +22,7 @@ from mo_parsing.utils import (
 # import later
 (
     SkipTo,
-    _MultipleMatch,
+    Many,
     ZeroOrMore,
     OneOrMore,
     Optional,
@@ -558,7 +558,7 @@ class ParserElement(object):
                 type(other[1]),
             )
 
-        ret = _MultipleMatch(self, min_match = minElements, max_match=maxElements).streamline()
+        ret = Many(self, min_match = minElements, max_match=maxElements).streamline()
         return ret
 
     def __rmul__(self, other):
