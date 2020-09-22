@@ -1381,7 +1381,7 @@ class TestParsing(PyparsingExpressionTestCase):
         test(e, "start end", ["start", "end"], {})
         test(e, "start 456 + end", ["start", "456", "+", "end"], {"_skipped": ["+"]})
 
-        e = "start" + (Each([alpha_word, num_word], [1, 1]) | ...) + "end"
+        e = "start" + (alpha_word[1, ...] & num_word[1, ...] | ...) + "end"
         test(e, "start 456 red end", ["start", "456", "red", "end"], {})
         test(e, "start red 456 end", ["start", "red", "456", "end"], {})
         test(
