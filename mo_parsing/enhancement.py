@@ -485,7 +485,10 @@ class Forward(ParserElement):
             self << engine.CURRENT.normalize(expr)
 
     def copy(self):
-        return self
+        output = ParserElement.copy(self)
+        output.strRepr = None
+        output.expr = self.expr
+        return output
 
     @property
     def name(self):
@@ -498,9 +501,10 @@ class Forward(ParserElement):
             other = other.expr
 
         expr = self.expr = engine.CURRENT.normalize(other)
-        self.expr = expr(self.token_name)
+        if self.token_name:
+            self.expr = expr(self.token_name)
         if name and not self.expr.parser_name:
-            self.expr.set_parser_name(name)
+            self.expr = self.expr.set_parser_name(name)
         return self
 
     def addParseAction(self, action):
@@ -571,7 +575,8 @@ class Forward(ParserElement):
     def __call__(self, name):
         output = self.copy()
         output.token_name = name
-        output.expr = output.expr(name)
+        if output.expr:
+            output.expr = output.expr(name)
         return output
 
 
