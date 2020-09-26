@@ -2,7 +2,7 @@
 
 An experimental fork of [pyparsing](https://github.com/pyparsing/pyparsing)
 
-## Details
+## Summary of Differences
 
 This has been forked to experiment with faster parsing in the moz-sql-parser.
 
@@ -19,7 +19,7 @@ More features
 More focused 
 
 * removed all backward-compatibility settings
-* no support for binary serialization (no pickel)
+* no support for binary serialization (no pickle)
 * ParseActions must adhere to a strict interface
 
 More functional
@@ -29,4 +29,31 @@ More functional
 
 
 ## Installation
+
+Not in pypi yet
+
+## Details
+
+### The `Engine`
+
+The `mo_parsing.engine.CURRENT` is used during parser creation: It is effectively the lexxer with additional features to simplify the language definition.  You declare a standard `Engine` like so:
+
+    with Engine() as engine:
+        # PUT YOUR LANGUAGE DEFINITION HERE
+
+If you are declaring a large language, and you want to minimize indentation, and you are careful, you may also use this pattern:
+
+    engine = Engine().use()
+    # PUT YOUR LANGUAGE DEFINITION HERE
+    engine.release()
+
+The engine can be used to set global parsing parameters, like
+
+* `set_whitespace()` - set the ignored characters (like whitespace)
+* `add_ignore()` - include whole patterns that are ignored (like commnets)
+* `set_debug_actions()` - insert functions to run for detailed debuigging
+* `set_literal()` - Set the definition for what `Literal()` means
+* `set_keyword_chars()` - For default `Keyword()`
+
+The `engine.CURRENT` is added to every parse element created, and it is used during parsing to packrat the current parsed string.    
 

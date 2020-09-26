@@ -517,8 +517,9 @@ class Forward(ParserElement):
             return self
 
         if self.expr:
-            self.streamlined = True
-            self.expr = self.expr.streamline()
+            return self.expr.streamline()
+            # self.streamlined = True
+            # self.expr =
         else:
             self.streamlined = False
         return self
@@ -537,8 +538,6 @@ class Forward(ParserElement):
 
     def parseImpl(self, instring, loc, doActions=True):
         if self.expr != None:
-            if len(get_stacktrace()) > 300:
-                Log.note("")
             loc, output = self.expr._parse(instring, loc, doActions)
             if output.type_for_result is self:
                 Log.error("not expected")
