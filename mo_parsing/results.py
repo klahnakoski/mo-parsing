@@ -199,7 +199,7 @@ class ParseResults(object):
         if isinstance(key, (int, slice)):
             Log.error("not allowed")
         else:
-            if key == self.name_for_result:
+            if key == self.name:
                 new_type = self.type.copy()
                 new_type.token_name = None
                 self.type = new_type
