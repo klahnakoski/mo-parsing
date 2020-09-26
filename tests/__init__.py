@@ -119,8 +119,6 @@ def runTests(
     if isinstance(comment, text):
         comment = Literal(comment)
 
-    engine.CURRENT.add_ignore(quotedString)
-
     allResults = []
     NL = Literal(r"\n").addParseAction(replaceWith("\n"))
     BOM = u"\ufeff"

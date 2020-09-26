@@ -362,3 +362,5 @@ class PystateImporter(SuffixImporter):
 
 
 PystateImporter.register()
+
+engine.release()

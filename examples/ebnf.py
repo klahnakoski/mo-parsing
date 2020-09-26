@@ -196,12 +196,15 @@ syntax = OneOrMore(syntax_rule).addParseAction(do_syntax)
 
 def parse(ebnf, given_table={}):
     global forward_count
-    symbol_table.clear()
-    symbol_table.update(given_table)
-    forward_count = 0
-    table = syntax.parseString(ebnf)[0]
-    assert forward_count == 0, "Missing definition"
-    for name in table:
-        expr = table[name]
-        expr.set_parser_name(name)
-    return table
+    with Engine():
+        symbol_table.clear()
+        symbol_table.update(given_table)
+        forward_count = 0
+        table = syntax.parseString(ebnf)[0]
+        assert forward_count == 0, "Missing definition"
+        for name in table:
+            expr = table[name]
+            expr.set_parser_name(name)
+        return table
+
+engine.release()

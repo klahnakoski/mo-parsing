@@ -4,7 +4,7 @@ from collections import namedtuple
 
 from mo_dots import Null
 from mo_future import is_text, text
-from mo_logs import Log
+from mo_logs import Log, strings
 
 from mo_parsing.exceptions import ParseException
 from mo_parsing.utils import lineno, col, alphanums
@@ -100,12 +100,8 @@ class Engine:
         ADD TO THE LIST OF IGNORED EXPRESSIONS
         :param ignore_expr:
         """
-        global CURRENT
-        temp = CURRENT
-        CURRENT = PLAIN_ENGINE
         ignore_expr = ignore_expr.suppress()
         self.ignore_list.append(ignore_expr)
-        CURRENT = temp
         return self
 
     def skip(self, instring, start):
@@ -138,6 +134,14 @@ class Engine:
 
         self.skips[start] = end  # THE REAL VALUE
         return end
+
+    def __str__(self):
+        output = ["{"]
+        for k, v in self.__dict__.items():
+            value = str(v)
+            output.append(strings.indent(strings.quote(k) + ":" + value))
+        output.append("}")
+        return "\n".join(output)
 
 
 def _defaultStartDebugAction(instring, loc, expr):
