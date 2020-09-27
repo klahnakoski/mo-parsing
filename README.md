@@ -14,6 +14,7 @@ More features
 * packrat parser is always on
 * less stack used 
 * the wildcard ("*") could be used to indicate multi-values are expected; this is not allowed: all values are multi-values
+* all actions are in `f(token, index, string)` form, which is opposite of pyparsing's flexible `f(string, index token)` form
 
 
 More focused 

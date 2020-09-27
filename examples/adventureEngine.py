@@ -426,7 +426,7 @@ class Parser:
             | quitCommand
         )("command") + LineEnd()
 
-    def validateItemName(self, s, l, t):
+    def validateItemName(self, t, l, s):
         iname = " ".join(t)
         if iname not in Item.items:
             raise AppParseException(s, l, "No such item '%s'." % iname)

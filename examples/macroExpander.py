@@ -27,7 +27,7 @@ macroExpr << NoMatch()
 macros = {}
 
 # parse action for macro definitions
-def processMacroDefn(s, l, t):
+def processMacroDefn(t, l, s):
     macroVal = macroExpander.transformString(t.value)
     macros[t.macro] = macroVal
     macroExpr << MatchFirst(map(Keyword, macros.keys()))
@@ -35,7 +35,7 @@ def processMacroDefn(s, l, t):
 
 
 # parse action to replace macro references with their respective definition
-def processMacroRef(s, l, t):
+def processMacroRef(t, l, s):
     return macros[t[0]]
 
 

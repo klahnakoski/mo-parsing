@@ -64,11 +64,11 @@ object_type = identifier
 
 # Integer and floating point values are converted to Python longs and floats, respectively.
 int_value = Combine(Optional("-") + Word(nums)).addParseAction(
-    lambda s, l, t: [int(t[0])]
+    lambda t, l, s: [int(t[0])]
 )
 float_value = Combine(
     Optional("-") + Optional(Word(nums)) + "." + Word(nums)
-).addParseAction(lambda s, l, t: [float(t[0])])
+).addParseAction(lambda t, l, s: [float(t[0])])
 number_value = float_value | int_value
 
 # Base16 constants are left in string form, including the surrounding braces.
@@ -90,7 +90,7 @@ unquoted_sglQuotedString = Combine(
 pound_char = Combine(
     OneOrMore(
         (Literal("#").suppress() + Word(nums)).addParseAction(
-            lambda s, l, t: to_chr(int(t[0]))
+            lambda t, l, s: to_chr(int(t[0]))
         )
     )
 )
@@ -100,7 +100,7 @@ pound_char = Combine(
 #     a single matched pair of quotes around it.
 delphi_string = Combine(
     OneOrMore(CONCAT | pound_char | unquoted_sglQuotedString), adjacent=False
-).addParseAction(lambda s, l, t: "'%s'" % t[0])
+).addParseAction(lambda t, l, s: "'%s'" % t[0])
 
 string_value = delphi_string | base16_value
 

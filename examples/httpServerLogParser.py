@@ -37,7 +37,7 @@ from mo_parsing import (
 import string
 
 
-def getCmdFields(s, l, t):
+def getCmdFields(t, l, s):
     t["method"], t["requestURI"], t["protocolVersion"] = t[0].strip('"').split()
 
 

@@ -23,7 +23,7 @@ include_directive = INCLUDE + file_ref("include_file_name") + SEMI
 seen = set()
 
 
-def read_include_contents(s, l, t):
+def read_include_contents(t, l, s):
     include_file_ref = t.include_file_name
     include_echo = "/* {} */".format(line(l, s).strip())
 

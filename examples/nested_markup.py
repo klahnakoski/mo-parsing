@@ -13,7 +13,7 @@ wiki_markup = Forward()
 # do the proper wrapping in opening and closing HTML, and recursively call
 # wiki_markup.transformString on the markup body text
 def convert_markup_to_html(opening, closing):
-    def conversionParseAction(s, l, t):
+    def conversionParseAction(t, l, s):
         return opening + wiki_markup.transformString(t[1][1:-1]) + closing
 
     return conversionParseAction
@@ -30,7 +30,7 @@ bolded = ("bold" + markup_body).addParseAction(convert_markup_to_html("<B>", "</
 
 # another markup and parse action to parse links - again using transform string
 # to recursively parse any markup in the link text
-def convert_link_to_html(s, l, t):
+def convert_link_to_html(t, l, s):
     link_text, url = t._skipped
     t["link_text"] = wiki_markup.transformString(link_text)
     t["url"] = url

@@ -126,53 +126,21 @@ def wrap_parse_action(func):
     from mo_parsing.enhancement import Group
 
     if func in singleArgBuiltins:
-        return lambda s, l, t: func(t)
+        return lambda t, l, s: func(t)
 
-    try:
-        if func.__class__.__name__ == "staticmethod":
-            func = func.__func__
-            spec = inspect.getfullargspec(func)
-
-            self_arg = 1 if spec.args and spec.args[0] in ("self", "cls") else 0
-            if spec.varargs:
-                start = 0
-            else:
-                start = 3 + self_arg - len(spec.args)
-        elif isinstance(func, type):
-            # use __init__., assume the self is already bound
-            spec = inspect.getfullargspec(func.__init__)
-            if spec.varargs:
-                start = 0
-            else:
-                start = 4 - len(spec.args)
-        else:
-            spec = inspect.getfullargspec(func)
-
-            self_arg = 1 if spec.args and spec.args[0] in ("self", "cls") else 0
-            if spec.varargs:
-                start = 0
-            else:
-                start = 3 + self_arg - len(spec.args)
-    except Exception as e:
-        e = Except.wrap(e)
-        func = func.__call__
-        spec = inspect.getfullargspec(func)
-        self_arg = 1 if spec.args and spec.args[0] == "self" else 0
-        if spec.varargs:
-            start = 0
-        else:
-            start = 3 + self_arg - len(spec.args)
+    spec = inspect.getfullargspec(func)
+    num_args = len(spec.args)
 
     def wrapper(*args):
         try:
-            s, i, token = args
+            token, index, string = args
             original_type = token.type
-            result = func(*args[start:])
+            result = func(*args[:num_args])
             if result is None:
                 return token
             elif isinstance(result, (list, tuple)):
                 return ParseResults(original_type, result)
-            elif isinstance(result, ParseResults):
+            elif isinstance(result, ParseResults) and result.type == original_type:
                 return result
             elif original_type.__class__.__name__ == "Forward":
                 return ParseResults(original_type.expr, [result])

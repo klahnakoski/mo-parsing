@@ -248,7 +248,7 @@ time_and_day = time_reference + time_ref_present + Optional(
 ) | day_reference + Optional(at_ + absolute_time_of_day + time_ref_present)
 
 # parse actions for total time_and_day expression
-def save_original_string(s, l, t):
+def save_original_string(t, l, s):
     # save original input string and reference time
     t["original"] = " ".join(s.strip().split())
     t["relative_to"] = datetime.now().replace(microsecond=0)

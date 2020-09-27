@@ -45,7 +45,7 @@ commentcharcount = 0
 commentlocs = set()
 
 
-def tallyCommentChars(s, l, t):
+def tallyCommentChars(t, l, s):
     global commentcharcount, commentlocs
     # only count this comment if we haven't seen it before
     if l not in commentlocs:

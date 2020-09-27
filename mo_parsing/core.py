@@ -216,25 +216,27 @@ class ParserElement(object):
             elif tokens.type is not self:
                 Log.error("expecting correct type to come from self")
 
-            retTokens = tokens
             if self.parseAction and (doActions or self.callDuringTry):
                 try:
                     for fn in self.parseAction:
-                        retTokens = fn(instring, start, retTokens)
+                        tokens = fn(instring, start, tokens)
+
+                    if not isinstance(tokens, ParseResults) or tokens.type is not self:
+                        tokens = ParseResults(self, [tokens])
                 except Exception as err:
                     self.engine.debugActions.FAIL(instring, start, self, err)
                     raise
-            self.engine.debugActions.MATCH(instring, start, loc, self, retTokens)
+            self.engine.debugActions.MATCH(instring, start, loc, self, tokens)
         except ParseBaseException as pe:
             # cache a copy of the exception, without the traceback
             packrat_cache.set(lookup, pe.__class__(*pe.args))
             raise
 
         try:
-            packrat_cache.set(lookup, (loc, retTokens))
+            packrat_cache.set(lookup, (loc, tokens))
         except Exception as e:
             raise e
-        return loc, retTokens
+        return loc, tokens
 
     def tryParse(self, instring, loc):
         try:

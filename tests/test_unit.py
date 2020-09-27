@@ -2631,7 +2631,7 @@ class TestParsing(PyparsingExpressionTestCase):
 
         # don't replace our fancy parse action with rfn,
         # append rfn to the list of parse actions
-        start1 = start.addParseAction(rfn)
+        start1 = start.addParseAction(rfn).set_parser_name("get image")
 
         text = """_<img src="images/cal.png"
             alt="cal image" width="16" height="15">_"""
