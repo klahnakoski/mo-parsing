@@ -1778,10 +1778,10 @@ class TestParsing(PyparsingExpressionTestCase):
         f = infixNotation(
             word,
             [
-                (supLiteral("!"), 1, opAssoc.RIGHT, lambda s, l, t: ["!", t[0]]),
+                (supLiteral("!"), 1, opAssoc.RIGHT, lambda t, l, s: ["!", t[0]]),
                 (oneOf("= !="), 2, opAssoc.LEFT,),
-                (supLiteral("&"), 2, opAssoc.LEFT, lambda s, l, t: ["&", t]),
-                (supLiteral("|"), 2, opAssoc.LEFT, lambda s, l, t: ["|", t]),
+                (supLiteral("&"), 2, opAssoc.LEFT, lambda t, l, s: ["&", t]),
+                (supLiteral("|"), 2, opAssoc.LEFT, lambda t, l, s: ["|", t]),
             ],
         )
 
@@ -2404,13 +2404,13 @@ class TestParsing(PyparsingExpressionTestCase):
                 )
 
     def testVariableParseActionArgs(self):
-        pa3 = lambda s, l, t: t
+        pa3 = lambda t, l, s: t
         pa2 = lambda l, t: t
         pa1 = lambda t: t
         pa0 = lambda: None
 
         class Callable3:
-            def __call__(self, s, l, t):
+            def __call__(self, t, l, s):
                 return t
 
         class Callable2:
@@ -2427,7 +2427,7 @@ class TestParsing(PyparsingExpressionTestCase):
 
         class CallableS3:
             @staticmethod
-            def __call__(s, l, t):
+            def __call__(t, l, s):
                 return t
 
         class CallableS2:
@@ -2447,12 +2447,12 @@ class TestParsing(PyparsingExpressionTestCase):
 
         class CallableC3:
             @classmethod
-            def __call__(cls, s, l, t):
+            def __call__(cls, t, l, s):
                 return t
 
         class CallableC2:
             @classmethod
-            def __call__(cls, l, t):
+            def __call__(clt, l, s):
                 return t
 
         class CallableC1:
@@ -2467,7 +2467,7 @@ class TestParsing(PyparsingExpressionTestCase):
 
         class parseActionHolder:
             @staticmethod
-            def pa3(s, l, t):
+            def pa3(t, l, s):
                 return t
 
             @staticmethod
@@ -2509,7 +2509,7 @@ class TestParsing(PyparsingExpressionTestCase):
                 return self.t[0]
 
         class ClassAsPA3:
-            def __init__(self, s, l, t):
+            def __init__(self, t, l, s):
                 self.t = t
 
             def __str__(self):
@@ -3274,16 +3274,16 @@ class TestParsing(PyparsingExpressionTestCase):
     def testAddCondition(self):
         numParser = (
             Word(nums)
-            .addParseAction(lambda s, l, t: int(t[0]))
-            .addCondition(lambda s, l, t: t[0] % 2)
-            .addCondition(lambda s, l, t: t[0] >= 7)
+            .addParseAction(lambda t, l, s: int(t[0]))
+            .addCondition(lambda t, l, s: t[0] % 2)
+            .addCondition(lambda t, l, s: t[0] >= 7)
         )
 
         result = numParser.searchString("1 2 3 4 5 6 7 8 9 10")
 
         self.assertEqual(result, [[7], [9]], "failed to properly process conditions")
 
-        numParser = Word(nums).addParseAction(lambda s, l, t: int(t[0]))
+        numParser = Word(nums).addParseAction(lambda t, l, s: int(t[0]))
         rangeParser = numParser("from_") + Suppress("-") + numParser("to")
 
         result = rangeParser.searchString("1-4 2-4 4-3 5 6 7 8 9 10")
@@ -3599,7 +3599,7 @@ class TestParsing(PyparsingExpressionTestCase):
             fatal=True,
         )
 
-        def _range(s, i, t):
+        def _range(t, l, s):
             return list(range(t["start"], t["end"] + 1))
 
         intrange = intrange.addParseAction(_range)
@@ -5120,7 +5120,7 @@ class TestParsing(PyparsingExpressionTestCase):
         ident = ~(IF | AND | BUT) + Word(alphas)("non-key")
         scanner = OneOrMore(IF | AND | BUT | ident)
 
-        def getNameTester(s, l, t):
+        def getNameTester(t, l, s):
 
             return t
 

@@ -6,6 +6,7 @@ import string
 import sys
 import warnings
 from itertools import filterfalse
+from types import FunctionType
 
 from mo_future import text, unichr
 from mo_logs import Log, Except
@@ -78,7 +79,7 @@ _bslash = chr(92)
 printables = "".join(c for c in string.printable if c not in string.whitespace)
 
 
-def col(loc, strg):
+def col(loc, string):
     """Returns current column within a string, counting newlines as line separators.
    The first column is number 1.
 
@@ -89,11 +90,11 @@ def col(loc, strg):
    methods to maintain a consistent view of the parsed string, the parse
    location, and line and column positions within the parsed string.
    """
-    s = strg
+    s = string
     return 1 if 0 < loc < len(s) and s[loc - 1] == "\n" else loc - s.rfind("\n", 0, loc)
 
 
-def lineno(loc, strg):
+def lineno(loc, string):
     """Returns current line number within a string, counting newlines as line separators.
     The first line is number 1.
 
@@ -103,18 +104,18 @@ def lineno(loc, strg):
     suggested methods to maintain a consistent view of the parsed string, the
     parse location, and line and column positions within the parsed string.
     """
-    return strg.count("\n", 0, loc) + 1
+    return string.count("\n", 0, loc) + 1
 
 
-def line(loc, strg):
+def line(loc, string):
     """Returns the line of text containing loc within a string, counting newlines as line separators.
        """
-    lastCR = strg.rfind("\n", 0, loc)
-    nextCR = strg.find("\n", loc)
+    lastCR = string.rfind("\n", 0, loc)
+    nextCR = string.find("\n", loc)
     if nextCR >= 0:
-        return strg[lastCR + 1 : nextCR]
+        return string[lastCR + 1: nextCR]
     else:
-        return strg[lastCR + 1 :]
+        return string[lastCR + 1:]
 
 
 "decorator to trim function calls to match the arity of the target"
@@ -125,22 +126,35 @@ def wrap_parse_action(func):
     from mo_parsing.results import ParseResults
     from mo_parsing.enhancement import Group
 
+
+
     if func in singleArgBuiltins:
-        return lambda t, l, s: func(t)
+        pass
+    elif func.__class__.__name__ == "staticmethod":
+        func = func.__func__
+    elif isinstance(func, type):
+
+        func = func.__init__
+    elif isinstance(func, FunctionType):
+        pass
+    elif hasattr(func, "__call__"):
+        func = func.__call__
 
     spec = inspect.getfullargspec(func)
-    num_args = len(spec.args)
+    num_args = 3 if spec.varargs else len(spec.args)
 
     def wrapper(*args):
         try:
             token, index, string = args
+            if isinstance(token, str):
+                Log.note("error")
             original_type = token.type
             result = func(*args[:num_args])
             if result is None:
                 return token
             elif isinstance(result, (list, tuple)):
                 return ParseResults(original_type, result)
-            elif isinstance(result, ParseResults) and result.type == original_type:
+            elif isinstance(result, ParseResults):
                 return result
             elif original_type.__class__.__name__ == "Forward":
                 return ParseResults(original_type.expr, [result])
@@ -149,6 +163,11 @@ def wrap_parse_action(func):
             else:
                 return ParseResults(original_type, [result])
         except Exception as cause:
+            cause_ = Except.wrap(cause)
+            if "'str' object has no attribute 'type'" in cause_:
+                Log.warning("", cause = cause)
+            if "sequence item 0: expected str instance" in cause_:
+                Log.warning("", cause=cause)
             if (
                 isinstance(cause, TypeError)
                 and spec.args[0] == "self"
@@ -213,7 +232,7 @@ def traceParseAction(f):
 
     def z(*paArgs):
         thisFunc = f.__name__
-        s, l, t = paArgs[-3:]
+        t, l, s = paArgs[-3:]
         if len(paArgs) > 3:
             thisFunc = paArgs[0].__class__.__name__ + "." + thisFunc
         sys.stderr.write(

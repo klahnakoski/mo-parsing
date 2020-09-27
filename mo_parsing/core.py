@@ -219,10 +219,7 @@ class ParserElement(object):
             if self.parseAction and (doActions or self.callDuringTry):
                 try:
                     for fn in self.parseAction:
-                        tokens = fn(instring, start, tokens)
-
-                    if not isinstance(tokens, ParseResults) or tokens.type is not self:
-                        tokens = ParseResults(self, [tokens])
+                        tokens = fn(tokens, start, instring)
                 except Exception as err:
                     self.engine.debugActions.FAIL(instring, start, self, err)
                     raise

@@ -47,7 +47,7 @@ from mo_parsing import *
 from base64 import b64decode
 
 
-def verify_length(s, l, t):
+def verify_length(t, l, s):
     t = t[0]
     if t.len is not None:
         t1len = len(t[1])

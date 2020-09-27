@@ -25,7 +25,7 @@ initialConsWord = Word(consonants, alphas).suppress()
 
 # add parse action to annotate the parsed tokens with their location in the
 # input string
-def addLocnToTokens(s, l, t):
+def addLocnToTokens(t, l, s):
     t["locn"] = l
     t["word"] = t[0]
 
@@ -39,7 +39,7 @@ for ivowelInfo in (initialConsWord | initialVowelWord).searchString(text):
 
 # alternative - add an Empty that will save the current location
 def location(name):
-    return Empty().addParseAction(lambda s, l, t: t.__setitem__(name, l))
+    return Empty().addParseAction(lambda t, l, s: t.__setitem__(name, l))
 
 
 locateInitialVowels = location("locn") + initialVowelWord("word")

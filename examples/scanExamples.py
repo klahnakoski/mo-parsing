@@ -64,7 +64,7 @@ scopedIdent.addParseAction(lambda t: "_".join(t))
 
 
 # or a crude pre-processor (use parse actions to replace matching text)
-def substituteMacro(s, l, t):
+def substituteMacro(t, l, s):
     if t[0] in macros:
         return macros[t[0]]
 

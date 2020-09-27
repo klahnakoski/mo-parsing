@@ -26,8 +26,8 @@ test = "['a', 100, 3.14]"
 # second pass, cleanup and add converters
 lbrack = Literal("[").suppress()
 rbrack = Literal("]").suppress()
-cvtInt = lambda s, l, toks: int(toks[0])
-cvtReal = lambda s, l, toks: float(toks[0])
+cvtInt = lambda toks, l, s: int(toks[0])
+cvtReal = lambda toks, l, s: float(toks[0])
 integer = Word(nums).set_parser_name("integer").addParseAction(cvtInt)
 real = (
     Combine(Optional(oneOf("+ -")) + Word(nums) + "." + Optional(Word(nums)))

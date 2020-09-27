@@ -96,7 +96,7 @@ from mo_parsing import (
 )
 
 
-def dumpTokens(s, l, t):
+def dumpTokens(t, l, s):
     pass
 
 

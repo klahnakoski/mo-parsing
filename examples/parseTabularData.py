@@ -20,7 +20,7 @@ PURPLE     8"""
 
 # function to create column-specific parse conditions
 def mustMatchCols(startloc, endloc):
-    return lambda s, l, t: startloc <= col(l, s) <= endloc
+    return lambda t, l, s: startloc <= col(l, s) <= endloc
 
 
 # helper to define values in a space-delimited table

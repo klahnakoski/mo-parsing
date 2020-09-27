@@ -508,7 +508,7 @@ class TestParseAction(PyparsingExpressionTestCase):
             expected_list=[datetime(2018, 9, 20, 3, 53, 48)],
         )
 
-    def test_Using_a_built_in_function_that_takes_a_sequence_of_strs_as_a_parse_action(
+    def test_Using_a_built_in_function_that_takes_a_sequence_of_strs_as_a_parse_action1(
         self,
     ):
         self.runTest(
@@ -521,7 +521,7 @@ class TestParseAction(PyparsingExpressionTestCase):
             expected_list=["0A:4B:73:21:FE:76"],
         )
 
-    def test_Using_a_built_in_function_that_takes_a_sequence_of_strs_as_a_parse_action(
+    def test_Using_a_built_in_function_that_takes_a_sequence_of_strs_as_a_parse_action2(
         self,
     ):
         self.runTest(

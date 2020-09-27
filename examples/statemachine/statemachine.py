@@ -28,7 +28,7 @@ ident = Word(alphas + "_", alphanums + "_$")
 
 # add parse-time condition to make sure we do not allow any Python keywords to be used as
 # statemachine identifiers
-def no_keywords_allowed(s, l, t):
+def no_keywords_allowed(t, l, s):
     wd = t[0]
     return not keyword.iskeyword(wd)
 

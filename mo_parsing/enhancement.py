@@ -620,9 +620,9 @@ class Combine(TokenConverter):
         return output
 
 
-def _combine_post_parse(instring, loc, tokenlist):
-    type_ = tokenlist.type
-    retToks = ParseResults(type_, [tokenlist.asString(sep=type_.separator)])
+def _combine_post_parse(tokens, loc, string):
+    type_ = tokens.type
+    retToks = ParseResults(type_, [tokens.asString(sep=type_.separator)])
 
     return retToks
 
@@ -690,8 +690,8 @@ class OpenDict(TokenConverter):
         self.parseAction.append(_dict_post_parse)
 
 
-def _dict_post_parse(instring, loc, tokenlist):
-    acc = tokenlist.tokens
+def _dict_post_parse(tokens, loc, string):
+    acc = tokens.tokens
     for a in list(acc):
         for tok in list(a):
             if isinstance(tok, int):
@@ -703,7 +703,7 @@ def _dict_post_parse(instring, loc, tokenlist):
             new_tok = Annotation(text(ikey), rest)
             acc.append(new_tok)
 
-    return tokenlist
+    return tokens
 
 
 class Suppress(TokenConverter):
@@ -740,8 +740,8 @@ class Suppress(TokenConverter):
         return text(self.expr)
 
 
-def _suppress_post_parse(instring, loc, tokenlist):
-    return ParseResults(tokenlist.type, [])
+def _suppress_post_parse(tokens, loc, string):
+    return ParseResults(tokens.type, [])
 
 
 class PrecededBy(ParseElementEnhance):

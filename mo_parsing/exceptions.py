@@ -220,9 +220,9 @@ class OnlyOnce(object):
         self.callable = wrap_parse_action(methodCall)
         self.called = False
 
-    def __call__(self, s, l, t):
+    def __call__(self, t, l, s):
         if not self.called:
-            results = self.callable(s, l, t)
+            results = self.callable(t, l, s)
             self.called = True
             return results
         raise ParseException(s, l, "")
@@ -237,8 +237,8 @@ def conditionAsParseAction(fn, message=None, fatal=False):
     fn = wrap_parse_action(fn)
 
     @wraps(fn)
-    def pa(s, l, t):
-        if not bool(fn(s, l, t)[0]):
+    def pa(t, l, s):
+        if not bool(fn(t, l, s)[0]):
             raise exc_type(s, l, msg)
         return t
 

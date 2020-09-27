@@ -175,7 +175,7 @@ class Atom(SemanticGroup):
 
 
 def makeGroupObject(cls):
-    def groupAction(s, l, t):
+    def groupAction(t, l, s):
         try:
             return cls(t[0])
         except Exception:

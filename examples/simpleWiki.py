@@ -10,7 +10,7 @@ Here is a simple Wiki input:
 
 
 def convertToHTML(opening, closing):
-    def conversionParseAction(s, l, t):
+    def conversionParseAction(t, l, s):
         return opening + t[0] + closing
 
     return conversionParseAction
@@ -21,7 +21,7 @@ bolded = QuotedString("**").addParseAction(convertToHTML("<B>", "</B>"))
 boldItalicized = QuotedString("***").addParseAction(convertToHTML("<B><I>", "</I></B>"))
 
 
-def convertToHTML_A(s, l, t):
+def convertToHTML_A(t, l, s):
     try:
         text, url = t[0].split("->")
     except ValueError:
