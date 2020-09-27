@@ -163,7 +163,7 @@ class NotAny(ParseElementEnhance):
 
     def parseImpl(self, instring, loc, doActions=True):
         if self.expr.canParseNext(instring, loc):
-            raise ParseException(instring, loc, self)
+            raise ParseException(self, loc, instring)
         return loc, ParseResults(self, [])
 
     def __str__(self):
@@ -430,7 +430,7 @@ class SkipTo(ParseElementEnhance):
 
         else:
             # ran off the end of the input string without matching skipto expr, fail
-            raise ParseException(instring, end, self)
+            raise ParseException(self, end, instring)
 
         # build up return values
         end = tmploc
@@ -550,7 +550,7 @@ class Forward(ParserElement):
                 Log.error("not expected")
             return loc, output
         else:
-            raise ParseException("", loc, self)
+            raise ParseException(self, loc)
 
     def __str__(self):
         if self.parser_name:
@@ -803,14 +803,14 @@ class PrecededBy(ParseElementEnhance):
     def parseImpl(self, instring, loc=0, doActions=True):
         if self.exact:
             if loc < self.retreat:
-                raise ParseException(instring, loc, self)
+                raise ParseException(self, loc, instring)
             start = loc - self.retreat
             _, ret = self.expr._parse(instring, start)
         else:
             # retreat specified a maximum lookbehind window, iterate
             test_expr = self.expr + StringEnd()
             instring_slice = instring[:loc]
-            last_expr = ParseException(instring, loc, self)
+            last_expr = ParseException(self, loc, instring)
             for offset in range(1, min(loc, self.retreat + 1)):
                 try:
                     _, ret = test_expr._parse(instring_slice, loc - offset)

@@ -53,7 +53,7 @@ def verify_length(t, l, s):
         t1len = len(t[1])
         if t1len != t.len:
             raise ParseFatalException(
-                s, l, "invalid data of length {}, expected {}".format(t1len, t.len)
+                "invalid data of length {}, expected {}".format(t1len, t.len), l, s
             )
     return t[1]
 

@@ -128,7 +128,7 @@ def handleRange(toks):
 def handleRepetition(toks):
     toks = toks[0]
     if toks[1] in "*+":
-        raise ParseFatalException("", 0, "unbounded repetition operators not supported")
+        raise ParseFatalException("unbounded repetition operators not supported", 0, "")
     if toks[1] == "?":
         return OptionalEmitter(toks[0])
     if "count" in toks:
@@ -169,7 +169,7 @@ def handleMacro(toks):
         return LiteralEmitter(" ")
     else:
         raise ParseFatalException(
-            "", 0, "unsupported macro character (" + macroChar + ")"
+            "unsupported macro character (" + macroChar + ")", 0, ""
         )
 
 

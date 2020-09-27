@@ -43,7 +43,7 @@ def convertToDatetime(s, loc, tokens):
             tokens.day,
             ve,
         )
-        raise ParseException(s, loc, errmsg)
+        raise ParseException(errmsg, loc, s)
 
 
 date_expr.addParseAction(convertToDatetime)

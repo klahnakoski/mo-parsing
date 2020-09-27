@@ -4159,20 +4159,6 @@ class TestParsing(PyparsingExpressionTestCase):
             expr = "ZZZ" - Word(nums)
             expr.parseString("ZZZ bad")
 
-        # WAS:
-        # success = False
-        # try:
-        #     expr = "ZZZ" - Word(nums)
-        #     expr.parseString("ZZZ bad")
-        # except ParseFatalException as pfe:
-        #     print('ParseFatalException raised correctly')
-        #     success = True
-        # except Exception as e:
-        #     print(type(e))
-        #     print(e)
-        #
-        # self.assertTrue(success, "bad handling of syntax error")
-
     def test_default_literal(self):
 
         wd = Word(alphas)

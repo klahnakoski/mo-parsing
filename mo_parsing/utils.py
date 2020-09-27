@@ -132,8 +132,9 @@ def wrap_parse_action(func):
         pass
     elif func.__class__.__name__ == "staticmethod":
         func = func.__func__
+    elif func.__class__.__name__ == 'builtin_function_or_method':
+        pass
     elif isinstance(func, type):
-
         func = func.__init__
     elif isinstance(func, FunctionType):
         pass
@@ -142,6 +143,7 @@ def wrap_parse_action(func):
 
     spec = inspect.getfullargspec(func)
     num_args = 3 if spec.varargs else len(spec.args)
+    start = 1 if spec.args and spec.args[0] in ['cls', 'self'] else 0
 
     def wrapper(*args):
         try:
@@ -149,7 +151,7 @@ def wrap_parse_action(func):
             if isinstance(token, str):
                 Log.note("error")
             original_type = token.type
-            result = func(*args[:num_args])
+            result = func(*args[:num_args-start])
             if result is None:
                 return token
             elif isinstance(result, (list, tuple)):
@@ -167,6 +169,8 @@ def wrap_parse_action(func):
             if "'str' object has no attribute 'type'" in cause_:
                 Log.warning("", cause = cause)
             if "sequence item 0: expected str instance" in cause_:
+                Log.warning("", cause=cause)
+            if "takes exactly one argument (2 given)" in cause_:
                 Log.warning("", cause=cause)
             if (
                 isinstance(cause, TypeError)

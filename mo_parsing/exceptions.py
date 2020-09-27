@@ -4,6 +4,7 @@ import sys
 
 from mo_dots import coalesce
 from mo_future import text
+from mo_logs import Log
 
 from mo_parsing.utils import wrap_parse_action, col, line, lineno
 
@@ -13,12 +14,14 @@ class ParseBaseException(Exception):
 
     # Performance tuning: we construct a *lot* of these, so keep this
     # constructor as small and fast as possible
-    def __init__(self, pstr, loc, elem):
-        self.pstr = pstr
+    def __init__(self, tokens, loc, string):
+        if not isinstance(string, str):
+            Log.error("expecting string")
+        self.pstr = string
         self.loc = loc
-        self.parserElement = elem
-        self.msg = "Expecting " + text(elem)
-        self.args = (pstr, loc, self.msg)
+        self.parserElement = tokens
+        self.msg = "Expecting " + text(tokens)
+        self.args = (string, loc, self.msg)
 
     def __getattr__(self, aname):
         """supported attributes by name are:
@@ -225,7 +228,7 @@ class OnlyOnce(object):
             results = self.callable(t, l, s)
             self.called = True
             return results
-        raise ParseException(s, l, "")
+        raise ParseException("", l, s)
 
     def reset(self):
         self.called = False

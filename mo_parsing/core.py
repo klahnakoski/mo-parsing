@@ -188,7 +188,7 @@ class ParserElement(object):
             return value[0], value[1]
 
         try:
-            self.engine.debugActions.TRY(instring, loc, self)
+            self.engine.debugActions.TRY(self, loc, instring)
             start = preloc = loc
             try:
                 start = preloc = self.engine.skip(instring, loc)
@@ -197,9 +197,9 @@ class ParserElement(object):
                 except IndexError:
                     if self.parser_config.mayIndexError or preloc >= len(instring):
                         ex = ParseException(
-                            instring,
-                            len(instring),
                             self,
+                            len(instring),
+                            instring,
                         )
                         packrat_cache.set(lookup, ex.__class__(*ex.args))
                         raise ex
@@ -239,7 +239,7 @@ class ParserElement(object):
         try:
             return self._parse(instring, loc, doActions=False)[0]
         except ParseFatalException:
-            raise ParseException(instring, loc, self)
+            raise ParseException(self, loc, instring)
 
     def canParseNext(self, instring, loc):
         try:

@@ -429,7 +429,7 @@ class Parser:
     def validateItemName(self, t, l, s):
         iname = " ".join(t)
         if iname not in Item.items:
-            raise AppParseException(s, l, "No such item '%s'." % iname)
+            raise AppParseException("No such item '%s'." % iname, l, s)
         return iname
 
     def parseCmd(self, cmdstr):
