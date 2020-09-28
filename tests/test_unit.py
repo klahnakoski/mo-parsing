@@ -2404,8 +2404,10 @@ class TestParsing(PyparsingExpressionTestCase):
                 )
 
     def testVariableParseActionArgs(self):
-        pa3 = lambda t, l, s: t
-        pa2 = lambda l, t: t
+        pa3 = lambda t, l, s: (
+            t if t[0] else 0
+        )
+        pa2 = lambda t, l: t
         pa1 = lambda t: t
         pa0 = lambda: None
 
@@ -2414,7 +2416,7 @@ class TestParsing(PyparsingExpressionTestCase):
                 return t
 
         class Callable2:
-            def __call__(self, l, t):
+            def __call__(self, t, l):
                 return t
 
         class Callable1:
@@ -2432,7 +2434,7 @@ class TestParsing(PyparsingExpressionTestCase):
 
         class CallableS2:
             @staticmethod
-            def __call__(l, t):
+            def __call__(t, l):
                 return t
 
         class CallableS1:
@@ -2452,7 +2454,7 @@ class TestParsing(PyparsingExpressionTestCase):
 
         class CallableC2:
             @classmethod
-            def __call__(clt, l, s):
+            def __call__(cls, t, l):
                 return t
 
         class CallableC1:
@@ -2471,7 +2473,7 @@ class TestParsing(PyparsingExpressionTestCase):
                 return t
 
             @staticmethod
-            def pa2(l, t):
+            def pa2(t, l):
                 return t
 
             @staticmethod
@@ -2484,7 +2486,7 @@ class TestParsing(PyparsingExpressionTestCase):
 
         def paArgs(*args):
 
-            return args[2]
+            return args[0]
 
         class ClassAsPA0:
             def __init__(self):
@@ -2502,7 +2504,7 @@ class TestParsing(PyparsingExpressionTestCase):
                 return self.t[0]
 
         class ClassAsPA2:
-            def __init__(self, l, t):
+            def __init__(self, t, l):
                 self.t = t
 
             def __str__(self):
@@ -2517,8 +2519,7 @@ class TestParsing(PyparsingExpressionTestCase):
 
         class ClassAsPAStarNew(tuple):
             def __new__(cls, *args):
-
-                return tuple.__new__(cls, *args[2])
+                return tuple.__new__(cls, *args[0])
 
             def __str__(self):
                 return "".join(self)

@@ -40,8 +40,6 @@ def get_function_arguments(func):
         return builtin_lookup.get(func.__name__, ("unknown",))
 
 
-
-
 class __config_flags:
     """Internal class for defining compatibility and debugging flags"""
 
@@ -52,14 +50,9 @@ class __config_flags:
     @classmethod
     def _set(cls, dname, value):
         if dname in cls._fixed_names:
-            warnings.warn(
-                "{}.{} {} is {} and cannot be overridden".format(
-                    cls.__name__,
-                    dname,
-                    cls._type_desc,
-                    str(getattr(cls, dname)).upper(),
-                )
-            )
+            warnings.warn("{}.{} {} is {} and cannot be overridden".format(
+                cls.__name__, dname, cls._type_desc, str(getattr(cls, dname)).upper(),
+            ))
             return
         if dname in cls._all_names:
             setattr(cls, dname, value)
@@ -68,7 +61,6 @@ class __config_flags:
 
     enable = classmethod(lambda cls, name: cls._set(name, True))
     disable = classmethod(lambda cls, name: cls._set(name, False))
-
 
 
 alphas = string.ascii_uppercase + string.ascii_lowercase
@@ -81,15 +73,15 @@ printables = "".join(c for c in string.printable if c not in string.whitespace)
 
 def col(loc, string):
     """Returns current column within a string, counting newlines as line separators.
-   The first column is number 1.
+    The first column is number 1.
 
-   Note: the default parsing behavior is to expand tabs in the input string
-   before starting the parsing process.  See
-   :class:`ParserElement.parseString` for more
-   information on parsing strings containing ``<TAB>`` s, and suggested
-   methods to maintain a consistent view of the parsed string, the parse
-   location, and line and column positions within the parsed string.
-   """
+    Note: the default parsing behavior is to expand tabs in the input string
+    before starting the parsing process.  See
+    :class:`ParserElement.parseString` for more
+    information on parsing strings containing ``<TAB>`` s, and suggested
+    methods to maintain a consistent view of the parsed string, the parse
+    location, and line and column positions within the parsed string.
+    """
     s = string
     return 1 if 0 < loc < len(s) and s[loc - 1] == "\n" else loc - s.rfind("\n", 0, loc)
 
@@ -108,14 +100,13 @@ def lineno(loc, string):
 
 
 def line(loc, string):
-    """Returns the line of text containing loc within a string, counting newlines as line separators.
-       """
+    """Returns the line of text containing loc within a string, counting newlines as line separators."""
     lastCR = string.rfind("\n", 0, loc)
     nextCR = string.find("\n", loc)
     if nextCR >= 0:
-        return string[lastCR + 1: nextCR]
+        return string[lastCR + 1 : nextCR]
     else:
-        return string[lastCR + 1:]
+        return string[lastCR + 1 :]
 
 
 "decorator to trim function calls to match the arity of the target"
@@ -126,24 +117,27 @@ def wrap_parse_action(func):
     from mo_parsing.results import ParseResults
     from mo_parsing.enhancement import Group
 
-
-
     if func in singleArgBuiltins:
-        pass
+        spec = inspect.getfullargspec(func)
     elif func.__class__.__name__ == "staticmethod":
         func = func.__func__
-    elif func.__class__.__name__ == 'builtin_function_or_method':
-        pass
+        spec = inspect.getfullargspec(func)
+    elif func.__class__.__name__ == "builtin_function_or_method":
+        spec = inspect.getfullargspec(func)
     elif isinstance(func, type):
-        func = func.__init__
-    elif isinstance(func, FunctionType):
-        pass
-    elif hasattr(func, "__call__"):
+        spec = inspect.getfullargspec(func.__init__)
         func = func.__call__
+    elif isinstance(func, FunctionType):
+        spec = inspect.getfullargspec(func)
+    elif hasattr(func, "__call__"):
+        spec = inspect.getfullargspec(func)
 
-    spec = inspect.getfullargspec(func)
-    num_args = 3 if spec.varargs else len(spec.args)
-    start = 1 if spec.args and spec.args[0] in ['cls', 'self'] else 0
+    if spec.varargs:
+        num_args = 3
+    elif spec.args and spec.args[0] in ["cls", "self"]:
+        num_args = len(spec.args) - 1
+    else:
+        num_args = len(spec.args)
 
     def wrapper(*args):
         try:
@@ -151,7 +145,7 @@ def wrap_parse_action(func):
             if isinstance(token, str):
                 Log.note("error")
             original_type = token.type
-            result = func(*args[:num_args-start])
+            result = func(*args[:num_args])
             if result is None:
                 return token
             elif isinstance(result, (list, tuple)):
@@ -166,8 +160,10 @@ def wrap_parse_action(func):
                 return ParseResults(original_type, [result])
         except Exception as cause:
             cause_ = Except.wrap(cause)
+            if "positional arguments but" in cause_:
+                Log.warning("", cause=cause)
             if "'str' object has no attribute 'type'" in cause_:
-                Log.warning("", cause = cause)
+                Log.warning("", cause=cause)
             if "sequence item 0: expected str instance" in cause_:
                 Log.warning("", cause=cause)
             if "takes exactly one argument (2 given)" in cause_:
@@ -178,7 +174,8 @@ def wrap_parse_action(func):
                 and "required positional argument" in cause.args[0]
             ):
                 Log.error(
-                    "Did you provide a `self` argument to a static function?", cause=cause
+                    "Did you provide a `self` argument to a static function?",
+                    cause=cause,
                 )
 
             f = ParseException(*args)
@@ -204,7 +201,6 @@ def _xml_escape(data):
     for from_, to_ in zip(from_symbols, to_symbols):
         data = data.replace(from_, to_)
     return data
-
 
 
 def traceParseAction(f):
@@ -467,5 +463,3 @@ setattr(parsing_unicode.Japanese, "ひらがな", parsing_unicode.Japanese.Hirag
 setattr(parsing_unicode, "한국어", parsing_unicode.Korean)
 setattr(parsing_unicode, "ไทย", parsing_unicode.Thai)
 setattr(parsing_unicode, "देवनागरी", parsing_unicode.Devanagari)
-
-

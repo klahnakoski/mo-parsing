@@ -34,11 +34,11 @@ ebnfComment = (
 engine.add_ignore(ebnfComment)
 
 
-def do_integer(str, loc, toks):
+def do_integer(toks):
     return int(toks[0])
 
 
-def do_meta_identifier(str, loc, toks):
+def do_meta_identifier(toks):
     global forward_count
     name = toks[0]
     if name in symbol_table:
@@ -49,27 +49,27 @@ def do_meta_identifier(str, loc, toks):
         return symbol_table[name]
 
 
-def do_terminal_string(str, loc, toks):
+def do_terminal_string(toks):
     return Literal(toks[0])
 
 
-def do_optional_sequence(str, loc, toks):
+def do_optional_sequence(toks):
     return Optional(toks[0])
 
 
-def do_repeated_sequence(str, loc, toks):
+def do_repeated_sequence(toks):
     return ZeroOrMore(toks[0])
 
 
-def do_grouped_sequence(str, loc, toks):
+def do_grouped_sequence(toks):
     return Group(toks[0])
 
 
-def do_syntactic_primary(str, loc, toks):
+def do_syntactic_primary(toks):
     return toks[0]
 
 
-def do_syntactic_factor(str, loc, toks):
+def do_syntactic_factor(toks):
     if len(toks) == 2:
         # integer * syntactic_primary
         return And([toks[1]] * toks[0])
@@ -78,7 +78,7 @@ def do_syntactic_factor(str, loc, toks):
         return [toks[0]]
 
 
-def do_syntactic_term(str, loc, toks):
+def do_syntactic_term(toks):
     if len(toks) == 2:
         # syntactic_factor - syntactic_factor
         return NotAny(toks[1]) + toks[0]
@@ -87,7 +87,7 @@ def do_syntactic_term(str, loc, toks):
         return [toks[0]]
 
 
-def do_single_definition(str, loc, toks):
+def do_single_definition(toks):
     toks = toks
     if len(toks) > 1:
         # syntactic_term , syntactic_term , ...
@@ -97,7 +97,7 @@ def do_single_definition(str, loc, toks):
         return [toks[0]]
 
 
-def do_definitions_list(str, loc, toks):
+def do_definitions_list(toks):
     toks = toks
     if len(toks) > 1:
         # single_definition | single_definition | ...
@@ -110,7 +110,7 @@ def do_definitions_list(str, loc, toks):
 forward_count = 0
 
 
-def do_syntax_rule(str, loc, toks):
+def do_syntax_rule(toks):
     global forward_count
     # meta_identifier = definitions_list ;
     assert toks[0].expr == None, "Duplicate definition"
@@ -122,7 +122,7 @@ def do_syntax_rule(str, loc, toks):
 symbol_table = {}
 
 
-def do_syntax(str, loc, toks):
+def do_syntax():
     # syntax_rule syntax_rule ...
     return symbol_table
 

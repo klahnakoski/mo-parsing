@@ -1030,7 +1030,7 @@ def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
                     continue
 
             for p in parse_actions:
-                result = p(string, -1, result)
+                result = p(result, -1, string)
             offset = (0, 2, 3, 5)[arity]
             flat_tokens[i : i + offset] = [(result, (expr,))]
             op_index = 0

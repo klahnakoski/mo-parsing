@@ -229,10 +229,7 @@ class ParserElement(object):
             packrat_cache.set(lookup, pe.__class__(*pe.args))
             raise
 
-        try:
-            packrat_cache.set(lookup, (loc, tokens))
-        except Exception as e:
-            raise e
+        packrat_cache.set(lookup, (loc, tokens))
         return loc, tokens
 
     def tryParse(self, instring, loc):
