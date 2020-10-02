@@ -58,3 +58,12 @@ The engine can be used to set global parsing parameters, like
 
 The `engine.CURRENT` is added to every parse element created, and it is used during parsing to packrat the current parsed string.    
 
+
+### Navigating ParseResults
+
+`ParseResults` are in the form of an n-ary tree; with the children found in `ParseResults.tokens`.  Each `ParseResult.type` points to the `ParserElements that made it`.  In general, if you want to get fancy with post processing (or in a `parseAction`), you will be required to navigate the raw `tokens` to generate a final result
+
+There are some convienience methods;  
+* `__iter__()` - allows you to iterate through parse results in **depth first search**. Empty results are skipped, and `Group`ed  resluts are treated as atoms (which can be futher iterated if required) 
+* `name` is a convienient property for `ParseResults.type.token_name`
+* `__getitem__()` - allows you to jump into the parse tree to the given `name`. This is blocked by any names found inside `Group`ed results (becasue groups are considered atoms).      

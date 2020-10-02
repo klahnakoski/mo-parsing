@@ -542,7 +542,7 @@ class TestResultsModifyingParseAction(PyparsingExpressionTestCase):
         # have been converted to ints by a previous parse action, so
         # they can be treated as ints
         t["sum"] = sum(t)
-        t["ave"] = sum(t) / len(t)
+        t["ave"] = sum(t) / t.length()
         t["min"] = min(t)
         t["max"] = max(t)
         return t

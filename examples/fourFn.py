@@ -64,7 +64,7 @@ expr = Forward()
 expr_list = delimitedList(Group(expr))
 # add parse action that replaces the function identifier with a (name, number of args) tuple
 fn_call = (ident + lpar - Group(expr_list) + rpar).addParseAction(
-    lambda t: ((t[0], len(t[1])),)
+    lambda t: ((t[0], t[1].length()),)
 )
 atom = (
     addop[...]

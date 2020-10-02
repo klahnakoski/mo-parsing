@@ -1,61 +1,17 @@
 # encoding: utf-8
+import inspect
 from collections import MutableMapping
 
 from mo_dots import is_many
-from mo_future import is_text, text, PY3
+from mo_future import is_text, text, PY3, NEXT, zip_longest
 from mo_logs import Log
 
 from mo_parsing import engine
 
-Suppress, ParserElement, Forward, Group, Dict, Token, Empty = [None] * 7
-
-_get = object.__getattribute__
+Suppress, ParserElement, NO_PARSER, NO_RESULTS, Forward, Group, Dict, Token, Empty = [None] * 9
 
 
 class ParseResults(object):
-    """Structured parse results, to provide multiple means of access to
-    the parsed data:
-
-       - as a list (``len(results)``)
-       - by list index (``results[0], results[1]``, etc.)
-       - by attribute (``results.<token_name>`` - see :class:`ParserElement.set_token_name`)
-
-    Example::(pars
-
-        integer = Word(nums)
-        date_str = (integer.set_token_name("year") + '/'
-                        + integer.set_token_name("month") + '/'
-                        + integer.set_token_name("day"))
-        # equivalent form:
-        # date_str = integer("year") + '/' + integer("month") + '/' + integer("day")
-
-        # parseString returns a ParseResults object
-        result = date_str.parseString("1999/12/31")
-
-        def test(s, fn=repr):
-            print("%s -> %s" % (s, fn(eval(s))))
-        test("list(result)")
-        test("result[0]")
-        test("result['month']")
-        test("result.day")
-        test("'month' in result")
-        test("'minutes' in result")
-        test("result", str)
-
-    prints::
-
-        list(result) -> ['1999', '/', '12', '/', '31']
-        result[0] -> '1999'
-        result['month'] -> '12'
-        result.day -> '31'
-        'month' in result -> True
-        'minutes' in result -> False
-        result -> ['1999', '/', '12', '/', '31']
-        - day: 31
-        - month: 12
-        - year: 1999
-    """
-
     __slots__ = [
         "tokens",
         "type",
@@ -65,26 +21,16 @@ class ParseResults(object):
     def name(self):
         return self.type.token_name
 
-    # Performance tuning: we construct a *lot* of these, so keep this
-    # constructor as small and fast as possible
     def __init__(self, result_type, toklist=None):
-        if not isinstance(result_type, ParserElement):
-            Log.error("not expected")
-        if isinstance(result_type, Forward):
-            Log.error("not expected")
-        if isinstance(toklist, ParseResults) or not isinstance(toklist, (list, tuple)):
-            Log.error("no longer accepted")
-
         self.tokens = toklist
         self.type = result_type
 
-    def _get_item_by_name(self, i):
+    def _get_item_by_name(self, name):
         # return open list of (modal, value) pairs
         # modal==True means only the last value is relevant
         for tok in self.tokens:
             if isinstance(tok, ParseResults):
-                name = tok.name
-                if name == i:
+                if tok.name == name:
                     if isinstance(tok.type, Group):
                         yield tok
                     else:
@@ -93,28 +39,28 @@ class ParseResults(object):
                     continue
                 elif isinstance(tok.type, Group):
                     continue
-                elif name:
+                elif tok.name:
                     continue
-                for f in tok._get_item_by_name(i):
+                for f in tok._get_item_by_name(name):
                     yield f
 
-    def __getitem__(self, i):
-        if isinstance(i, int):
-            if i < 0:
-                i = len(self) + i
+    def __getitem__(self, item):
+        if isinstance(item, int):
+            if item < 0:
+                item = len(self) + item
             for ii, v in enumerate(self):
-                if i == ii:
+                if item == ii:
                     return v
-        elif isinstance(i, slice):
-            return list(iter(self))[i]
+        elif isinstance(item, slice):
+            return list(iter(self))[item]
         else:
-            if self.name == i:
-                return self
-
-            values = list(self._get_item_by_name(i))
+            values = list(self._get_item_by_name(item))
+            if len(values) == 0:
+                return NO_RESULTS
             if len(values) == 1:
                 return values[0]
-            return ParseResults(self.type, values)
+            # ENCAPSULATE IN A ParseResults FOR FURTHER NAVIGATION
+            return ParseResults(NO_PARSER, values)
 
     def __setitem__(self, k, v):
         if isinstance(k, (slice, int)):
@@ -130,33 +76,44 @@ class ParseResults(object):
     def __contains__(self, k):
         return any((r.name) == k for r in self.tokens)
 
-    def __len__(self):
-        if isinstance(self.type, Group):
-            if not self.tokens:
-                return 0
-            return len(self.tokens[0])
-        else:
-            return sum(1 for t in self)
+    def length(self):
+        return sum(1 for _ in self)
 
     def __eq__(self, other):
         if other == None:
-            return len(self) == 0
+            return not self.__bool__()
         elif is_text(other):
             try:
                 return "".join(self) == other
             except Exception as e:
                 return False
         elif is_many(other):
-            return all(s == o for s, o in zip(self.other))
-        elif len(self) == 1:
+            return all(s == o for s, o in zip_longest(self, other))
+        elif self.length() == 1:
             return self[0] == other
+        elif not self:
+            return False
         else:
             Log.error("do not know how to handle")
 
     def __bool__(self):
-        return not not self.tokens
+        try:
+            NEXT(self.iteritems())()
+            return True
+        except Exception:
+            pass
+
+        try:
+            NEXT(self.__iter__())()
+            return True
+        except Exception:
+            return False
 
     __nonzero__ = __bool__
+
+    # USE self.length()
+    # def __len__(self):
+    #     raise NotImplementedError()
 
     def __iter__(self):
         if isinstance(self, Annotation):
@@ -231,15 +188,14 @@ class ParseResults(object):
 
     def iteritems(self):
         output = {}
-        for r in self.tokens:
-            if isinstance(r, ParseResults):
-                name = r.name
-                if name:
-                    add(output, name, [r])
+        for tok in self.tokens:
+            if isinstance(tok, ParseResults):
+                if tok.name:
+                    add(output, tok.name, [tok])
                     continue
-                if isinstance(r.type, Group):
+                if isinstance(tok.type, Group):
                     continue
-                for k, v in r.iteritems():
+                for k, v in tok.iteritems():
                     add(output, k, v)
         for k, v in output.items():
             yield k, v
@@ -274,32 +230,6 @@ class ParseResults(object):
         semantics and pop the corresponding value from any defined results
         names. A second default return value argument is supported, just as in
         ``dict.pop()``.
-
-        Example::
-
-            def remove_first(tokens):
-                tokens.pop(0)
-            print(OneOrMore(Word(nums)).parseString("0 123 321")) # -> ['0', '123', '321']
-            print(OneOrMore(Word(nums)).addParseAction(remove_first).parseString("0 123 321")) # -> ['123', '321']
-
-            label = Word(alphas)
-            patt = label("LABEL") + OneOrMore(Word(nums))
-            print(patt.parseString("AAB 123 321"))
-
-            # Use pop() in a parse action to remove named result (note that corresponding value is not
-            # removed from list form of results)
-            def remove_LABEL(tokens):
-                tokens.pop("LABEL")
-                return tokens
-            patt.addParseAction(remove_LABEL)
-            print(patt.parseString("AAB 123 321"))
-
-        prints::
-
-            ['AAB', '123', '321']
-            - LABEL: AAB
-
-            ['AAB', '123', '321']
         """
         ret = self[index]
         del self[index]
@@ -308,20 +238,9 @@ class ParseResults(object):
     def get(self, key, defaultValue=None):
         """
         Returns named result matching the given key, or if there is no
-        such name, then returns the given ``defaultValue`` or ``None`` if no
-        ``defaultValue`` is specified.
+        such name, then returns the given ``defaultValue``
 
         Similar to ``dict.get()``.
-
-        Example::
-
-            integer = Word(nums)
-            date_str = integer("year") + '/' + integer("month") + '/' + integer("day")
-
-            result = date_str.parseString("1999/12/31")
-            print(result.get("year")) # -> '1999'
-            print(result.get("hour", "not specified")) # -> 'not specified'
-            print(result.get("hour")) # -> None
         """
         if key in self:
             return self[key]
@@ -353,7 +272,9 @@ class ParseResults(object):
         ]
 
     def __str__(self):
-        if not self.tokens:
+        if len(inspect.stack(0)) > 30:
+            return "..."
+        elif not self.tokens:
             return ""
         elif len(self.tokens) == 1:
             return text(self.tokens[0])
@@ -418,12 +339,6 @@ class ParseResults(object):
         """
         ret = ParseResults(self.type, list(self.tokens))
         return ret
-
-    def __lookup(self, sub):
-        for name, value in self.tokens:
-            if sub is value:
-                return name
-        return None
 
     def getName(self):
         r"""
@@ -497,12 +412,17 @@ class Annotation(ParseResults):
     __slots__ = []
 
     def __init__(self, name, value):
+        if not name:
+            Log.error("expecting a name")
         if not isinstance(value, list):
             Log.error("expecting a list")
         ParseResults.__init__(self, Empty()(name), value)
 
+    def __str__(self):
+        return "{" + text(self.name) + ": " + text(self.tokens) + "}"
+
     def __repr__(self):
-        return "{" + (self.name) + ": ...}"
+        return "Annotation(" + repr(self.name) + ", " + repr(self.tokens) + ")"
 
 
 MutableMapping.register(ParseResults)

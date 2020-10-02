@@ -70,7 +70,7 @@ def do_syntactic_primary(toks):
 
 
 def do_syntactic_factor(toks):
-    if len(toks) == 2:
+    if toks.length() == 2:
         # integer * syntactic_primary
         return And([toks[1]] * toks[0])
     else:
@@ -79,7 +79,7 @@ def do_syntactic_factor(toks):
 
 
 def do_syntactic_term(toks):
-    if len(toks) == 2:
+    if toks.length() == 2:
         # syntactic_factor - syntactic_factor
         return NotAny(toks[1]) + toks[0]
     else:
@@ -89,7 +89,7 @@ def do_syntactic_term(toks):
 
 def do_single_definition(toks):
     toks = toks
-    if len(toks) > 1:
+    if toks.length() > 1:
         # syntactic_term , syntactic_term , ...
         return And(toks)
     else:
@@ -99,7 +99,7 @@ def do_single_definition(toks):
 
 def do_definitions_list(toks):
     toks = toks
-    if len(toks) > 1:
+    if toks.length() > 1:
         # single_definition | single_definition | ...
         return Or(toks)
     else:

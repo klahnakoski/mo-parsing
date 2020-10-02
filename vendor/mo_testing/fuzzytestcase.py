@@ -173,12 +173,12 @@ def assertAlmostEqual(test, expected, digits=None, places=None, msg=None, delta=
                 assertAlmostEqual(t, e, msg=msg, digits=digits, places=places, delta=delta)
         else:
             assertAlmostEqualValue(test, expected, msg=msg, digits=digits, places=places, delta=delta)
-    except Exception as e:
+    except Exception as cause:
         Log.error(
             "{{test|json|limit(10000)}} does not match expected {{expected|json|limit(10000)}}",
             test=test if show_detail else "[can not show]",
             expected=expected if show_detail else "[can not show]",
-            cause=e
+            cause=cause
         )
 
 
