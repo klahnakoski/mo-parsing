@@ -12,7 +12,7 @@ from mo_parsing.exceptions import (
     RecursiveGrammarException,
 )
 from mo_parsing.results import ParseResults, Annotation
-from mo_parsing.utils import _MAX_INT, empty_list, empty_tuple
+from mo_parsing.utils import _MAX_INT, empty_list, empty_tuple, is_forward
 
 # import later
 Token, Literal, Keyword, Word, CharsNotIn, _PositionToken, StringEnd, Empty = [None] * 8
@@ -40,6 +40,8 @@ class ParseElementEnhance(ParserElement):
             Log.error("expecting an expression")
         ParserElement.__init__(self)
         self.expr = expr = engine.CURRENT.normalize(expr)
+        if is_forward(expr):
+            expr.track(self)
         self.parser_config.mayIndexError = expr.parser_config.mayIndexError
         self.parser_config.mayReturnEmpty = expr.parser_config.mayReturnEmpty
 
@@ -476,6 +478,7 @@ class Forward(ParserElement):
     def __init__(self, expr=Null):
         ParserElement.__init__(self)
         self.expr = None
+        self.used_by = []
         self.parser_config.mayIndexError = expr.parser_config.mayIndexError
         self.parser_config.mayReturnEmpty = expr.parser_config.mayReturnEmpty
         self.strRepr = None  # avoid recursion
@@ -484,17 +487,21 @@ class Forward(ParserElement):
 
     def copy(self):
         output = ParserElement.copy(self)
-        output.strRepr = None
         output.expr = self.expr
+        output.strRepr = None
+        output.used_by = []
         return output
 
     @property
     def name(self):
         return self.type.expr.token_name
 
+    def track(self, expr):
+        self.used_by.append(expr)
+
     def __lshift__(self, other):
         name = None
-        while isinstance(other, Forward):
+        while is_forward(other):
             name = coalesce(name, other.parser_name)
             other = other.expr
 

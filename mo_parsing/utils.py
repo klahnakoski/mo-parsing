@@ -33,6 +33,10 @@ singleArgBuiltins = [
 builtin_lookup = {"".join.__name__: ("iterable",)}
 
 
+def is_forward(expr):
+    return expr.__class__.__name__ == "Forward"
+
+
 def get_function_arguments(func):
     try:
         return func.__code__.co_varnames[: func.__code__.co_argcount]
@@ -152,7 +156,7 @@ def wrap_parse_action(func):
                 return ParseResults(original_type, result)
             elif isinstance(result, ParseResults):
                 return result
-            elif original_type.__class__.__name__ == "Forward":
+            elif is_forward(original_type):
                 return ParseResults(original_type.expr, [result])
             elif isinstance(original_type, Group):
                 return ParseResults(original_type.expr, [result])
