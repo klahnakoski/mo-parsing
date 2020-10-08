@@ -598,18 +598,6 @@ class Combine(TokenConverter):
     By default, the matching patterns must also be contiguous in the
     input string; this can be disabled by specifying
     ``'adjacent=False'`` in the constructor.
-
-    Example::
-
-        real = Word(nums) + '.' + Word(nums)
-        print(real.parseString('3.1416')) # -> ['3', '.', '1416']
-        # will also erroneously match the following
-        print(real.parseString('3. 1416')) # -> ['3', '.', '1416']
-
-        real = Combine(Word(nums) + '.' + Word(nums))
-        print(real.parseString('3.1416')) # -> ['3.1416']
-        # no match when there are internal spaces
-        print(real.parseString('3. 1416')) # -> Exception: Expected W:(0123...)
     """
 
     def __init__(self, expr, separator="", adjacent=True):

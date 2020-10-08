@@ -146,18 +146,16 @@ def wrap_parse_action(func):
     def wrapper(*args):
         try:
             token, index, string = args
-            if isinstance(token, str):
-                Log.note("error")
-            original_type = token.type
             result = func(*args[:num_args])
             if result is None:
                 return token
-            elif isinstance(result, (list, tuple)):
-                return ParseResults(original_type, result)
             elif isinstance(result, ParseResults):
                 return result
+
+            if isinstance(result, (list, tuple)):
+                return ParseResults(token.type, result)
             else:
-                return ParseResults(original_type, [result])
+                return ParseResults(token.type, [result])
         except Exception as cause:
             Log.warning("parse action should not raise exception", cause=cause)
             f = ParseException(*args)
