@@ -459,7 +459,7 @@ class Each(ParseExpression):
                         del count[i]
                     matchOrder.append(e)
                     break
-                except ParseException:
+                except ParseException as pe:
                     continue
             else:
                 break

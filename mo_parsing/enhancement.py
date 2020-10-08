@@ -581,6 +581,7 @@ class Forward(ParserElement):
         output = self.copy()
         output.token_name = name
         if output.expr:
+            # WILL TRIGGER A COPY
             output.expr = output.expr(name)
         return output
 
@@ -589,7 +590,6 @@ class TokenConverter(ParseElementEnhance):
     """
     Abstract subclass of :class:`ParseExpression`, for converting parsed results.
     """
-
     pass
 
 
@@ -797,7 +797,6 @@ core.NotAny = NotAny
 core.Suppress = Suppress
 core.Group = Group
 
-results.Forward = Forward
 results.Group = Group
 results.Dict = Dict
 results.Suppress = Suppress

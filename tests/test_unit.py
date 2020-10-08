@@ -1648,7 +1648,7 @@ class TestParsing(PyparsingExpressionTestCase):
             reprsymbol = ""
 
             def __init__(self, t):
-                self.args = t[0], t[2]
+                self.args = t[0][0], t[2][0]
 
             def __str__(self):
                 sep = " %s " % self.reprsymbol
@@ -1682,7 +1682,7 @@ class TestParsing(PyparsingExpressionTestCase):
 
         class BoolNot(BoolOperand):
             def __init__(self, t):
-                self.arg = t[1]
+                self.arg = t[1][0]
 
             def __str__(self):
                 return "~" + str(self.arg)
@@ -1694,7 +1694,7 @@ class TestParsing(PyparsingExpressionTestCase):
                     v = bool(self.arg)
                 return not v
 
-        boolOperand = oneOf("True False") | Word(alphas, max=1)
+        boolOperand = Group(oneOf("True False") | Word(alphas, max=1))
         boolExpr = infixNotation(
             boolOperand,
             [
@@ -1704,9 +1704,9 @@ class TestParsing(PyparsingExpressionTestCase):
             ],
         )
         test = [
+            "not not p",
             "True and False",
             "p and not q",
-            "not not p",
             "not(p and q)",
             "q or not p and r",
             "q or not p or not r",
@@ -1797,7 +1797,6 @@ class TestParsing(PyparsingExpressionTestCase):
             self.assertParseResultsEquals(results, expected_list=expected)
 
     def testInfixNotationGrammarTest5(self):
-
         expop = Literal("**")
         signop = oneOf("+ -")
         multop = oneOf("* /")
@@ -1805,7 +1804,7 @@ class TestParsing(PyparsingExpressionTestCase):
 
         class ExprNode:
             def __init__(self, tokens):
-                self.tokens = list(tokens)
+                self.tokens = tokens
 
             def eval(self):
                 return None
@@ -1821,23 +1820,21 @@ class TestParsing(PyparsingExpressionTestCase):
 
         class BinOp(ExprNode):
             def eval(self):
-                ret = self.tokens[0].eval()
+                ret = self.tokens[0][0].eval()
                 for op, operand in zip(self.tokens[1::2], self.tokens[2::2]):
-                    ret = self.opn_map[op](ret, operand.eval())
+                    ret = self.opn_map[op](ret, operand[0].eval())
                 return ret
 
         class ExpOp(BinOp):
             opn_map = {"**": lambda a, b: b ** a}
 
         class MultOp(BinOp):
-
             opn_map = {"*": operator.mul, "/": operator.truediv}
 
         class AddOp(BinOp):
-
             opn_map = {"+": operator.add, "-": operator.sub}
 
-        operand = number.addParseAction(NumberNode)
+        operand = Group(number).addParseAction(NumberNode)
         expr = infixNotation(
             operand,
             [

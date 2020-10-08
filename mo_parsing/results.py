@@ -8,7 +8,7 @@ from mo_logs import Log
 
 from mo_parsing import engine
 
-Suppress, ParserElement, NO_PARSER, NO_RESULTS, Forward, Group, Dict, Token, Empty = [None] * 9
+Suppress, ParserElement, NO_PARSER, NO_RESULTS, Group, Dict, Token, Empty = [None] * 8
 
 
 class ParseResults(object):

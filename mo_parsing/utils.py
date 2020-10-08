@@ -156,10 +156,6 @@ def wrap_parse_action(func):
                 return ParseResults(original_type, result)
             elif isinstance(result, ParseResults):
                 return result
-            elif is_forward(original_type):
-                return ParseResults(original_type.expr, [result])
-            elif isinstance(original_type, Group):
-                return ParseResults(original_type.expr, [result])
             else:
                 return ParseResults(original_type, [result])
         except Exception as cause:
