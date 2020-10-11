@@ -226,7 +226,7 @@ class Many(ParseElementEnhance):
             return self
 
         for e in [self.expr]:
-            if isinstance(e, ParserElement) and e.token_name:
+            if isinstance(e, ParserElement) and e.token_name == name:
                 Log.error(
                     "can not set token name, already set in one of the other"
                     " expressions"
@@ -551,6 +551,7 @@ class Forward(ParserElement):
     def parseImpl(self, instring, loc, doActions=True):
         if self.expr != None:
             loc, output = self.expr._parse(instring, loc, doActions)
+
             if output.type is self:
                 Log.error("not expected")
             return loc, output

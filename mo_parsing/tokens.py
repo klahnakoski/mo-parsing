@@ -70,9 +70,8 @@ class Literal(Token):
     """
 
     def __init__(self, matchString):
-        super(Literal, self).__init__()
+        Token.__init__(self)
         self.match = matchString
-        self.parser_name = matchString
         self.parser_config.mayReturnEmpty = False
         self.parser_config.mayIndexError = False
 
@@ -91,6 +90,8 @@ class Literal(Token):
             return loc + len(self.match), ParseResults(self, [self.match])
         raise ParseException(self, loc, instring)
 
+    def __str__(self):
+        return self.match
 
 class _SingleCharLiteral(Literal):
     def parseImpl(self, instring, loc, doActions=True):
@@ -140,7 +141,7 @@ class Keyword(Token):
         else:
             self.identChars = "".join(sorted(set(identChars)))
         self.match = matchString
-        self.matchLen = len(matchString)
+        self.token_name = matchString
         self.parser_name = '"%s"' % self.match
         self.parser_config.mayReturnEmpty = False
         self.parser_config.mayIndexError = False
@@ -148,13 +149,12 @@ class Keyword(Token):
     def copy(self):
         output = ParserElement.copy(self)
         output.match = self.match
-        output.matchLen = self.matchLen
         output.identChars = self.identChars
         return output
 
     def parseImpl(self, instring, loc, doActions=True):
         if instring.startswith(self.match, loc):
-            end = loc + self.matchLen
+            end = loc + len(self.match)
             try:
                 if instring[end] not in self.identChars:
                     return end, ParseResults(self, [self.match])
@@ -178,17 +178,20 @@ class CaselessKeyword(Keyword):
     def __init__(self, matchString, identChars=None, caseless=True):
         Keyword.__init__(
             self,
-            matchString.upper(),
+            matchString,
             set(c.upper() for c in identChars or engine.CURRENT.keyword_chars),
             caseless=True,
         )
+        self.re = re.compile(re.escape(matchString), re.IGNORECASE)
+
+    def copy(self):
+        output = Keyword.copy(self)
+        output.re = self.re
+        return output
 
     def parseImpl(self, instring, loc, doActions=True):
-        if instring[loc:].startswith("WHERE") and self.match == "WHERE":
-            a = loc
-
-        end = loc + self.matchLen
-        if instring[loc:end].upper() == self.match:
+        if self.re.match(instring, loc):
+            end = loc + len(self.match)
             try:
                 if instring[end] not in self.identChars:
                     return end, ParseResults(self, [self.match])
