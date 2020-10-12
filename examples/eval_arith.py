@@ -150,16 +150,16 @@ operand.addParseAction(EvalConstant)
 arith_expr = infixNotation(
     operand,
     [
-        (signop, 1, opAssoc.RIGHT, EvalSignOp),
-        (expop, 2, opAssoc.LEFT, EvalPowerOp),
-        (multop, 2, opAssoc.LEFT, EvalMultOp),
-        (plusop, 2, opAssoc.LEFT, EvalAddOp),
+        (signop, 1, RIGHT_ASSOC, EvalSignOp),
+        (expop, 2, LEFT_ASSOC, EvalPowerOp),
+        (multop, 2, LEFT_ASSOC, EvalMultOp),
+        (plusop, 2, LEFT_ASSOC, EvalAddOp),
     ],
 )
 
 comparisonop = oneOf("< <= > >= != = <> LT GT LE GE EQ NE")
 comp_expr = infixNotation(
-    arith_expr, [(comparisonop, 2, opAssoc.LEFT, EvalComparisonOp)]
+    arith_expr, [(comparisonop, 2, LEFT_ASSOC, EvalComparisonOp)]
 )
 
 

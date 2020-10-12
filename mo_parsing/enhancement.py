@@ -500,16 +500,10 @@ class Forward(ParserElement):
         self.used_by.append(expr)
 
     def __lshift__(self, other):
-        name = None
         while is_forward(other):
-            name = coalesce(name, other.parser_name)
             other = other.expr
 
-        expr = self.expr = engine.CURRENT.normalize(other)
-        if self.token_name:
-            self.expr = expr(self.token_name)
-        if name and not self.expr.parser_name:
-            self.expr = self.expr.set_parser_name(name)
+        self.expr = engine.CURRENT.normalize(other)
         return self
 
     def addParseAction(self, action):
@@ -529,11 +523,8 @@ class Forward(ParserElement):
             return self
 
         if self.expr:
-            return self.expr.streamline()
-            # self.streamlined = True
-            # self.expr =
-        else:
-            self.streamlined = False
+            self.expr = self.expr.streamline()
+            self.streamlined = True
         return self
 
     def checkRecursion(self, seen=empty_tuple):
@@ -549,14 +540,13 @@ class Forward(ParserElement):
         self.checkRecursion()
 
     def parseImpl(self, instring, loc, doActions=True):
-        if self.expr != None:
+        try:
             loc, output = self.expr._parse(instring, loc, doActions)
-
-            if output.type is self:
-                Log.error("not expected")
-            return loc, output
-        else:
-            raise ParseException(self, loc, instring)
+            return loc, ParseResults(self, [output])
+        except Exception as cause:
+            if self.expr == None:
+                Log.error("Ensure you have assigned a ParerElement (<<) to this Forward")
+            raise cause
 
     def __str__(self):
         if self.parser_name:
@@ -571,19 +561,16 @@ class Forward(ParserElement):
         self.strRepr = self_name + ": ..."
 
         # Use the string representation of main expression.
-        retString = "..."
         try:
-            retString = text(self.expr)[:1000]
-        finally:
-            self.strRepr = None
-        return self_name + ": " + retString
+            self.strRepr = self_name + ": " + text(self.expr)[:1000]
+        except Exception:
+            pass
+
+        return self.strRepr
 
     def __call__(self, name):
         output = self.copy()
         output.token_name = name
-        if output.expr:
-            # WILL TRIGGER A COPY
-            output.expr = output.expr(name)
         return output
 
 

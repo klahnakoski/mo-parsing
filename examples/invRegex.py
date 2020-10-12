@@ -221,9 +221,9 @@ def parser():
         reExpr = infixNotation(
             reTerm,
             [
-                (repetition, 1, opAssoc.LEFT, handleRepetition),
-                (None, 2, opAssoc.LEFT, handleSequence),
-                (Suppress("|"), 2, opAssoc.LEFT, handleAlternative),
+                (repetition, 1, LEFT_ASSOC, handleRepetition),
+                (None, 2, LEFT_ASSOC, handleSequence),
+                (Suppress("|"), 2, LEFT_ASSOC, handleAlternative),
             ],
         )
         _parser = reExpr

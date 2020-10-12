@@ -33,7 +33,7 @@ factop = Literal("!")
 #          be 1 or 2)
 #       - rightLeftAssoc is the indicator whether the operator is
 #          right or left associative, using the mo_parsing-defined
-#          constants opAssoc.RIGHT and opAssoc.LEFT.
+#          constants RIGHT_ASSOC and LEFT_ASSOC.
 #       - parseAction is the parse action to be associated with
 #          expressions matching this operator expression (the
 #          parse action tuple member may be omitted)
@@ -46,11 +46,11 @@ factop = Literal("!")
 expr = infixNotation(
     operand,
     [
-        ("!", 1, opAssoc.LEFT),
-        ("^", 2, opAssoc.RIGHT),
-        (signop, 1, opAssoc.RIGHT),
-        (multop, 2, opAssoc.LEFT),
-        (plusop, 2, opAssoc.LEFT),
+        ("!", 1, LEFT_ASSOC),
+        ("^", 2, RIGHT_ASSOC),
+        (signop, 1, RIGHT_ASSOC),
+        (multop, 2, LEFT_ASSOC),
+        (plusop, 2, LEFT_ASSOC),
     ],
 )
 

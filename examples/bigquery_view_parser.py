@@ -7,7 +7,7 @@
 # Michael Smedberg
 #
 
-from mo_parsing import ParserElement, Suppress, Forward, CaselessKeyword
+from mo_parsing import ParserElement, Suppress, Forward, CaselessKeyword, RIGHT_ASSOC, LEFT_ASSOC
 from mo_parsing import MatchFirst, alphas, alphanums, Combine, Word
 from mo_parsing import QuotedString, CharsNotIn, Optional, Group, ZeroOrMore
 from mo_parsing import oneOf, delimitedList, restOfLine, cStyleComment
@@ -565,13 +565,13 @@ class BigQueryViewParser:
         expr << infixNotation(
             (expr_term | struct_term),
             [
-                (oneOf("- + ~") | NOT, UNARY, opAssoc.RIGHT),
-                (ISNULL | NOTNULL | NOT + NULL, UNARY, opAssoc.LEFT),
-                ("||", BINARY, opAssoc.LEFT),
-                (oneOf("* / %"), BINARY, opAssoc.LEFT),
-                (oneOf("+ -"), BINARY, opAssoc.LEFT),
-                (oneOf("<< >> & |"), BINARY, opAssoc.LEFT),
-                (oneOf("= > < >= <= <> != !< !>"), BINARY, opAssoc.LEFT),
+                (oneOf("- + ~") | NOT, UNARY, RIGHT_ASSOC),
+                (ISNULL | NOTNULL | NOT + NULL, UNARY, LEFT_ASSOC),
+                ("||", BINARY, LEFT_ASSOC),
+                (oneOf("* / %"), BINARY, LEFT_ASSOC),
+                (oneOf("+ -"), BINARY, LEFT_ASSOC),
+                (oneOf("<< >> & |"), BINARY, LEFT_ASSOC),
+                (oneOf("= > < >= <= <> != !< !>"), BINARY, LEFT_ASSOC),
                 (
                     IS + Optional(NOT)
                     | Optional(NOT) + IN
@@ -580,20 +580,20 @@ class BigQueryViewParser:
                     | MATCH
                     | REGEXP,
                     BINARY,
-                    opAssoc.LEFT,
+                    LEFT_ASSOC,
                 ),
-                ((BETWEEN, AND), TERNARY, opAssoc.LEFT),
+                ((BETWEEN, AND), TERNARY, LEFT_ASSOC),
                 (
-                    Optional(NOT)
+                    Optional(N
                     + IN
                     + LPAR
                     + Group(ungrouped_select_stmt | delimitedList(expr))
                     + RPAR,
                     UNARY,
-                    opAssoc.LEFT,
+                    LEFT_ASSOC,
                 ),
-                (AND, BINARY, opAssoc.LEFT),
-                (OR, BINARY, opAssoc.LEFT),
+                (AND, BINARY, LEFT_ASSOC),
+                (OR, BINARY, LEFT_ASSOC),
             ],
         )
         quoted_expr = (

@@ -138,19 +138,19 @@ rvalue = constant | call | read_integer | read_line | new_statement | new_array 
 arith_expr = infixNotation(
     rvalue,
     [
-        ("-", 1, opAssoc.RIGHT,),
-        (oneOf("* / %"), 2, opAssoc.LEFT,),
-        (oneOf("+ -"), 2, opAssoc.LEFT,),
+        ("-", 1, RIGHT_ASSOC,),
+        (oneOf("* / %"), 2, LEFT_ASSOC,),
+        (oneOf("+ -"), 2, LEFT_ASSOC,),
     ],
 )
 comparison_expr = infixNotation(
     arith_expr,
     [
-        ("!", 1, opAssoc.RIGHT,),
-        (oneOf("< > <= >="), 2, opAssoc.LEFT,),
-        (oneOf("== !="), 2, opAssoc.LEFT,),
-        (oneOf("&&"), 2, opAssoc.LEFT,),
-        (oneOf("||"), 2, opAssoc.LEFT,),
+        ("!", 1, RIGHT_ASSOC,),
+        (oneOf("< > <= >="), 2, LEFT_ASSOC,),
+        (oneOf("== !="), 2, LEFT_ASSOC,),
+        (oneOf("&&"), 2, LEFT_ASSOC,),
+        (oneOf("||"), 2, LEFT_ASSOC,),
     ],
 )
 expr <<= (

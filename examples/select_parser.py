@@ -88,13 +88,13 @@ UNARY, BINARY, TERNARY = 1, 2, 3
 expr << infixNotation(
     expr_term,
     [
-        (oneOf("- + ~") | NOT, UNARY, opAssoc.RIGHT),
-        (ISNULL | NOTNULL | NOT_NULL, UNARY, opAssoc.LEFT),
-        ("||", BINARY, opAssoc.LEFT),
-        (oneOf("* / %"), BINARY, opAssoc.LEFT),
-        (oneOf("+ -"), BINARY, opAssoc.LEFT),
-        (oneOf("<< >> & |"), BINARY, opAssoc.LEFT),
-        (oneOf("< <= > >="), BINARY, opAssoc.LEFT),
+        (oneOf("- + ~") | NOT, UNARY, RIGHT_ASSOC),
+        (ISNULL | NOTNULL | NOT_NULL, UNARY, LEFT_ASSOC),
+        ("||", BINARY, LEFT_ASSOC),
+        (oneOf("* / %"), BINARY, LEFT_ASSOC),
+        (oneOf("+ -"), BINARY, LEFT_ASSOC),
+        (oneOf("<< >> & |"), BINARY, LEFT_ASSOC),
+        (oneOf("< <= > >="), BINARY, LEFT_ASSOC),
         (
             oneOf("= == != <>")
             | IS
@@ -109,16 +109,16 @@ expr << infixNotation(
             | NOT_MATCH
             | NOT_REGEXP,
             BINARY,
-            opAssoc.LEFT,
+            LEFT_ASSOC,
         ),
-        ((BETWEEN | NOT_BETWEEN, AND), TERNARY, opAssoc.LEFT),
+        ((BETWEEN | NOT_BETWEEN, AND), TERNARY, LEFT_ASSOC),
         (
             (IN | NOT_IN) + LPAR + Group(select_stmt | delimitedList(expr)) + RPAR,
             UNARY,
-            opAssoc.LEFT,
+            LEFT_ASSOC,
         ),
-        (AND, BINARY, opAssoc.LEFT),
-        (OR, BINARY, opAssoc.LEFT),
+        (AND, BINARY, LEFT_ASSOC),
+        (OR, BINARY, LEFT_ASSOC),
     ],
 )
 

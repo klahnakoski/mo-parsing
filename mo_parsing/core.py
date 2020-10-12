@@ -211,9 +211,7 @@ class ParserElement(object):
 
             if not isinstance(tokens, ParseResults):
                 Log.error("expecting ParseResult")
-            if is_forward(self):
-                pass  # OK
-            elif tokens.type is not self:
+            if tokens.type is not self:
                 Log.error("expecting correct type to come from self")
 
             if self.parseAction and (doActions or self.callDuringTry):

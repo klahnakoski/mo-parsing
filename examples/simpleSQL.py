@@ -16,7 +16,6 @@ from mo_parsing import (
     oneOf,
     quotedString,
     infixNotation,
-    opAssoc,
     restOfLine,
     CaselessKeyword,
     upcaseTokens,
@@ -24,7 +23,7 @@ from mo_parsing import (
 
 # define SQL tokens
 from mo_parsing.engine import Engine
-from mo_parsing.helpers import real, signed_integer
+from mo_parsing.helpers import real, signed_integer, RIGHT_ASSOC, LEFT_ASSOC
 
 engine = Engine().use()
 
@@ -58,7 +57,7 @@ whereCondition = Group(
 
 whereExpression = infixNotation(
     whereCondition,
-    [(NOT, 1, opAssoc.RIGHT), (AND, 2, opAssoc.LEFT), (OR, 2, opAssoc.LEFT)],
+    [(NOT, 1, RIGHT_ASSOC), (AND, 2, LEFT_ASSOC), (OR, 2, LEFT_ASSOC)],
 )
 
 # define the grammar

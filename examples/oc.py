@@ -89,13 +89,13 @@ operand = func_call | NAME | integer | char | string_
 expr <<= infixNotation(
     operand,
     [
-        (oneOf("! - *"), 1, opAssoc.RIGHT),
-        (oneOf("++ --"), 1, opAssoc.RIGHT),
-        (oneOf("++ --"), 1, opAssoc.LEFT),
-        (oneOf("* / %"), 2, opAssoc.LEFT),
-        (oneOf("+ -"), 2, opAssoc.LEFT),
-        (oneOf("< == > <= >= !="), 2, opAssoc.LEFT),
-        (Regex(r"(?<!=)=(?!=)"), 2, opAssoc.LEFT),
+        (oneOf("! - *"), 1, RIGHT_ASSOC),
+        (oneOf("++ --"), 1, RIGHT_ASSOC),
+        (oneOf("++ --"), 1, LEFT_ASSOC),
+        (oneOf("* / %"), 2, LEFT_ASSOC),
+        (oneOf("+ -"), 2, LEFT_ASSOC),
+        (oneOf("< == > <= >= !="), 2, LEFT_ASSOC),
+        (Regex(r"(?<!=)=(?!=)"), 2, LEFT_ASSOC),
     ],
 ) + Optional(
     LBRACK + expr + RBRACK | LPAR + Group(Optional(delimitedList(expr))) + RPAR

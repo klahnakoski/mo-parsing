@@ -51,10 +51,10 @@ term.addParseAction(lambda t: [t] if "field" in t or "boost" in t else None)
 expression << infixNotation(
     term,
     [
-        (required_modifier | prohibit_modifier, 1, opAssoc.RIGHT),
-        ((not_ | "!").addParseAction(lambda: "NOT"), 1, opAssoc.RIGHT),
-        ((and_ | "&&").addParseAction(lambda: "AND"), 2, opAssoc.LEFT),
-        (Optional(or_ | "||").addParseAction(lambda: "OR"), 2, opAssoc.LEFT),
+        (required_modifier | prohibit_modifier, 1, RIGHT_ASSOC),
+        ((not_ | "!").addParseAction(lambda: "NOT"), 1, RIGHT_ASSOC),
+        ((and_ | "&&").addParseAction(lambda: "AND"), 2, LEFT_ASSOC),
+        (Optional(or_ | "||").addParseAction(lambda: "OR"), 2, LEFT_ASSOC),
     ],
 )
 

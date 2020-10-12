@@ -51,11 +51,11 @@ addOp = oneOf("+ -")
 numericLiteral = number
 operand = numericLiteral | funcCall | cellRange | cellRef
 arithExpr = infixNotation(
-    operand, [(multOp, 2, opAssoc.LEFT), (addOp, 2, opAssoc.LEFT),]
+    operand, [(multOp, 2, LEFT_ASSOC), (addOp, 2, LEFT_ASSOC),]
 )
 
 textOperand = dblQuotedString | cellRef
-textExpr = infixNotation(textOperand, [("&", 2, opAssoc.LEFT),])
+textExpr = infixNotation(textOperand, [("&", 2, LEFT_ASSOC),])
 
 expr << (arithExpr | textExpr)
 

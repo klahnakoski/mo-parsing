@@ -88,7 +88,6 @@ from mo_parsing.helpers import (
     removeQuotes,
     cStyleComment,
     infixNotation,
-    opAssoc,
     countedArray,
     lineEnd,
     stringEnd,
@@ -119,7 +118,7 @@ from mo_parsing.helpers import (
     htmlComment,
     srange,
     ungroup,
-    dictOf,
+    dictOf, LEFT_ASSOC, RIGHT_ASSOC,
 )
 from mo_parsing.utils import (
     parsing_unicode,
@@ -1592,18 +1591,18 @@ class TestParsing(PyparsingExpressionTestCase):
         expr = infixNotation(
             operand,
             [
-                (factop, 1, opAssoc.LEFT),
-                (expop, 2, opAssoc.RIGHT),
-                (signop, 1, opAssoc.RIGHT),
-                (multop, 2, opAssoc.LEFT),
-                (plusop, 2, opAssoc.LEFT),
+                (factop, 1, LEFT_ASSOC),
+                (expop, 2, RIGHT_ASSOC),
+                (signop, 1, RIGHT_ASSOC),
+                (multop, 2, LEFT_ASSOC),
+                (plusop, 2, LEFT_ASSOC),
             ],
         )
 
         test = [
-            "9 + 2 + 3",
-            "9 + 2 * 3",
             "(9 + 2) * 3",
+            "9 + 2 * 3",
+            "9 + 2 + 3",
             "(9 + -2) * 3",
             "(9 + --2) * 3",
             "(9 + -2) * 3^2^2",
@@ -1614,9 +1613,9 @@ class TestParsing(PyparsingExpressionTestCase):
             "3!!",
         ]
         expected = [
-            [[9, "+", 2], "+", 3],
-            [9, "+", [2, "*", 3]],
             [[9, "+", 2], "*", 3],
+            [9, "+", [2, "*", 3]],
+            [[9, "+", 2], "+", 3],
             [[9, "+", ["-", 2]], "*", 3],
             [[9, "+", ["-", ["-", 2]]], "*", 3],
             [[9, "+", ["-", 2]], "*", [3, "^", [2, "^", 2]]],
@@ -1698,9 +1697,9 @@ class TestParsing(PyparsingExpressionTestCase):
         boolExpr = infixNotation(
             boolOperand,
             [
-                ("not", 1, opAssoc.RIGHT, BoolNot),
-                ("and", 2, opAssoc.LEFT, BoolAnd),
-                ("or", 2, opAssoc.LEFT, BoolOr),
+                ("not", 1, RIGHT_ASSOC, BoolNot),
+                ("and", 2, LEFT_ASSOC, BoolAnd),
+                ("or", 2, LEFT_ASSOC, BoolOr),
             ],
         )
         test = [
@@ -1751,11 +1750,11 @@ class TestParsing(PyparsingExpressionTestCase):
         expr = infixNotation(
             operand,
             [
-                ("!", 1, opAssoc.LEFT),
-                ("^", 2, opAssoc.LEFT),
-                (signop, 1, opAssoc.RIGHT),
-                (multop, 2, opAssoc.LEFT),
-                (plusop, 2, opAssoc.LEFT),
+                ("!", 1, LEFT_ASSOC),
+                ("^", 2, LEFT_ASSOC),
+                (signop, 1, RIGHT_ASSOC),
+                (multop, 2, LEFT_ASSOC),
+                (plusop, 2, LEFT_ASSOC),
             ],
         )
 
@@ -1776,10 +1775,10 @@ class TestParsing(PyparsingExpressionTestCase):
         f = infixNotation(
             word,
             [
-                (supLiteral("!"), 1, opAssoc.RIGHT, lambda t, l, s: ["!", t[0]]),
-                (oneOf("= !="), 2, opAssoc.LEFT,),
-                (supLiteral("&"), 2, opAssoc.LEFT, lambda t, l, s: ["&", t]),
-                (supLiteral("|"), 2, opAssoc.LEFT, lambda t, l, s: ["|", t]),
+                (supLiteral("!"), 1, RIGHT_ASSOC, lambda t, l, s: ["!", t[0]]),
+                (oneOf("= !="), 2, LEFT_ASSOC,),
+                (supLiteral("&"), 2, LEFT_ASSOC, lambda t, l, s: ["&", t]),
+                (supLiteral("|"), 2, LEFT_ASSOC, lambda t, l, s: ["|", t]),
             ],
         )
 
@@ -1838,10 +1837,10 @@ class TestParsing(PyparsingExpressionTestCase):
         expr = infixNotation(
             operand,
             [
-                (expop, 2, opAssoc.RIGHT, (lambda pr: pr[::-1], ExpOp)),
-                (signop, 1, opAssoc.RIGHT, SignOp),
-                (multop, 2, opAssoc.LEFT, MultOp),
-                (plusop, 2, opAssoc.LEFT, AddOp),
+                (expop, 2, RIGHT_ASSOC, (lambda pr: pr[::-1], ExpOp)),
+                (signop, 1, RIGHT_ASSOC, SignOp),
+                (multop, 2, LEFT_ASSOC, MultOp),
+                (plusop, 2, LEFT_ASSOC, AddOp),
             ],
         )
 
@@ -2722,14 +2721,14 @@ class TestParsing(PyparsingExpressionTestCase):
 
         expected = (
             [
-                ["A", ["b", "x"], False, "2", "</A>"],
-                ["A", ["b", "x"], False, "3", "</A>"],
+                ["a", ["b", "x"], False, "2", "</a>"],
+                ["a", ["b", "x"], False, "3", "</a>"],
             ],
             [
-                ["A", ["b", "x"], False, "2", "</A>"],
-                ["A", ["b", "x"], False, "3", "</A>"],
+                ["a", ["b", "x"], False, "2", "</a>"],
+                ["a", ["b", "x"], False, "3", "</a>"],
             ],
-            [["A", ["class", "boo"], False, "8", "</A>"]],
+            [["a", ["class", "boo"], False, "8", "</a>"]],
         )
 
         for attrib, exp in zip(
@@ -4404,7 +4403,7 @@ class TestParsing(PyparsingExpressionTestCase):
         self.assertParseResultsEquals(
             attrs,
             expected_dict={
-                "startA": {"href": "blah", "tag": "A", "empty": False},
+                "startA": {"href": "blah", "tag": "a", "empty": False},
                 "href": None,
                 "tag": None,
                 "empty": None,
@@ -4954,13 +4953,13 @@ class TestParsing(PyparsingExpressionTestCase):
 
     def testChainedTernaryOperator(self):
 
-        TERNARY_INFIX = infixNotation(integer, [(("?", ":"), 3, opAssoc.LEFT),])
+        TERNARY_INFIX = infixNotation(integer, [(("?", ":"), 3, LEFT_ASSOC),])
         self.assertParseResultsEquals(
             TERNARY_INFIX.parseString("1?1:0?1:0", parseAll=True),
             expected_list=[[1, "?", 1, ":", 0], "?", 1, ":", 0],
         )
 
-        TERNARY_INFIX = infixNotation(integer, [(("?", ":"), 3, opAssoc.RIGHT),])
+        TERNARY_INFIX = infixNotation(integer, [(("?", ":"), 3, RIGHT_ASSOC),])
         self.assertParseResultsEquals(
             TERNARY_INFIX.parseString("1?1:0?1:0", parseAll=True),
             expected_list=[1, "?", 1, ":", [0, "?", 1, ":", 0]],

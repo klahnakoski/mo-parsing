@@ -12,7 +12,8 @@
 # Copyright 2006, by Paul McGuire
 # Updated 2013-Sep-14 - improved Python 2/3 cross-compatibility
 #
-from mo_parsing import infixNotation, opAssoc, Keyword, Word, alphas
+from mo_parsing import infixNotation, opAssoc, Keyword, Word, alphas, RIGHT_ASSOC, LEFT_ASSOC
+
 
 # define classes to be built at parse time, as each matching
 # expression type is parsed
@@ -78,9 +79,9 @@ boolOperand.addParseAction(BoolOperand)
 boolExpr = infixNotation(
     boolOperand,
     [
-        ("not", 1, opAssoc.RIGHT, BoolNot),
-        ("and", 2, opAssoc.LEFT, BoolAnd),
-        ("or", 2, opAssoc.LEFT, BoolOr),
+        ("not", 1, RIGHT_ASSOC, BoolNot),
+        ("and", 2, LEFT_ASSOC, BoolAnd),
+        ("or", 2, LEFT_ASSOC, BoolOr),
     ],
 )
 

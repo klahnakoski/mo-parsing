@@ -52,13 +52,13 @@ char = Regex(r"'\\?.'")
 expr = infixNotation(
     identifier | integer | char,
     [
-        (oneOf("+ - !"), 1, opAssoc.RIGHT,),
-        (oneOf("* / %"), 2, opAssoc.LEFT,),
-        (oneOf("+ -"), 2, opAssoc.LEFT,),
-        (oneOf("< <= > >="), 2, opAssoc.LEFT,),
-        (oneOf("== !="), 2, opAssoc.LEFT,),
-        (oneOf("&&"), 2, opAssoc.LEFT,),
-        (oneOf("||"), 2, opAssoc.LEFT,),
+        (oneOf("+ - !"), 1, RIGHT_ASSOC,),
+        (oneOf("* / %"), 2, LEFT_ASSOC,),
+        (oneOf("+ -"), 2, LEFT_ASSOC,),
+        (oneOf("< <= > >="), 2, LEFT_ASSOC,),
+        (oneOf("== !="), 2, LEFT_ASSOC,),
+        (oneOf("&&"), 2, LEFT_ASSOC,),
+        (oneOf("||"), 2, LEFT_ASSOC,),
     ],
 )
 
