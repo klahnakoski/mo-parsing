@@ -11,7 +11,7 @@ from mo_parsing.engine import Engine
 modules = [f.name for f in File("examples").children]
 
 
-@unittest.skip
+@unittest.skip("not running examples right now")
 class TestAllExamples(unittest.TestCase):
     pass
 

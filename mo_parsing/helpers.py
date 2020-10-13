@@ -51,7 +51,7 @@ from mo_parsing.utils import (
 )
 
 # import later
-And, MatchFirst = [None] * 2
+And, Or, MatchFirst = [None] * 3
 
 
 dblQuotedString = Combine(
@@ -931,7 +931,7 @@ def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
         for expr, op, is_suppressed, arity, assoc, pa in opList
         if arity == 1 and assoc == LEFT_ASSOC
     ])
-    ops = MatchFirst([
+    ops = Or([
         opPart.addParseAction(record_op(opPart))
         for expr, op, is_suppressed, arity, assoc, pa in opList
         if arity > 1

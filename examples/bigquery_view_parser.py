@@ -7,11 +7,30 @@
 # Michael Smedberg
 #
 
-from mo_parsing import ParserElement, Suppress, Forward, CaselessKeyword, RIGHT_ASSOC, LEFT_ASSOC
-from mo_parsing import MatchFirst, alphas, alphanums, Combine, Word
-from mo_parsing import QuotedString, CharsNotIn, Optional, Group, ZeroOrMore
-from mo_parsing import oneOf, delimitedList, restOfLine, cStyleComment
-from mo_parsing import infixNotation, opAssoc, Regex, nums
+from mo_parsing import (
+    MatchFirst,
+    alphas,
+    alphanums,
+    Combine,
+    Word,
+    QuotedString,
+    CharsNotIn,
+    Optional,
+    Group,
+    ZeroOrMore,
+    Suppress,
+    Forward,
+    CaselessKeyword,
+    RIGHT_ASSOC,
+    LEFT_ASSOC,
+    infixNotation,
+    Regex,
+    nums,
+    oneOf,
+    delimitedList,
+    restOfLine,
+    cStyleComment,
+)
 
 
 class BigQueryViewParser:
@@ -222,93 +241,89 @@ class BigQueryViewParser:
             VAR_SAMP, VARIANCE, TIMESTAMP_ADD, TIMESTAMP_SUB, GENERATE_ARRAY,
             GENERATE_DATE_ARRAY, GENERATE_TIMESTAMP_ARRAY, FOR, SYSTEMTIME, AS,
             OF, WINDOW, RESPECT, IGNORE, NULLS
-                 """.replace(
-                ",", ""
-            ).split(),
+                 """
+            .replace(",", "")
+            .split(),
         )
 
-        keyword_nonfunctions = MatchFirst(
-            (
-                UNION,
-                ALL,
-                INTERSECT,
-                EXCEPT,
-                COLLATE,
-                ASC,
-                DESC,
-                ON,
-                USING,
-                NATURAL,
-                INNER,
-                CROSS,
-                LEFT,
-                RIGHT,
-                OUTER,
-                FULL,
-                JOIN,
-                AS,
-                INDEXED,
-                NOT,
-                SELECT,
-                DISTINCT,
-                FROM,
-                WHERE,
-                GROUP,
-                BY,
-                HAVING,
-                ORDER,
-                BY,
-                LIMIT,
-                OFFSET,
-                CAST,
-                ISNULL,
-                NOTNULL,
-                NULL,
-                IS,
-                BETWEEN,
-                ELSE,
-                END,
-                CASE,
-                WHEN,
-                THEN,
-                EXISTS,
-                COLLATE,
-                IN,
-                LIKE,
-                GLOB,
-                REGEXP,
-                MATCH,
-                STRUCT,
-                WINDOW,
-            )
-        )
+        keyword_nonfunctions = MatchFirst((
+            UNION,
+            ALL,
+            INTERSECT,
+            EXCEPT,
+            COLLATE,
+            ASC,
+            DESC,
+            ON,
+            USING,
+            NATURAL,
+            INNER,
+            CROSS,
+            LEFT,
+            RIGHT,
+            OUTER,
+            FULL,
+            JOIN,
+            AS,
+            INDEXED,
+            NOT,
+            SELECT,
+            DISTINCT,
+            FROM,
+            WHERE,
+            GROUP,
+            BY,
+            HAVING,
+            ORDER,
+            BY,
+            LIMIT,
+            OFFSET,
+            CAST,
+            ISNULL,
+            NOTNULL,
+            NULL,
+            IS,
+            BETWEEN,
+            ELSE,
+            END,
+            CASE,
+            WHEN,
+            THEN,
+            EXISTS,
+            COLLATE,
+            IN,
+            LIKE,
+            GLOB,
+            REGEXP,
+            MATCH,
+            STRUCT,
+            WINDOW,
+        ))
 
-        keyword = keyword_nonfunctions | MatchFirst(
-            (
-                ESCAPE,
-                CURRENT_TIME,
-                CURRENT_DATE,
-                CURRENT_TIMESTAMP,
-                DATE_ADD,
-                DATE_SUB,
-                ADDDATE,
-                SUBDATE,
-                INTERVAL,
-                STRING_AGG,
-                REGEXP_EXTRACT,
-                SPLIT,
-                ORDINAL,
-                UNNEST,
-                SAFE_CAST,
-                PARTITION,
-                TIMESTAMP_ADD,
-                TIMESTAMP_SUB,
-                ARRAY,
-                GENERATE_ARRAY,
-                GENERATE_DATE_ARRAY,
-                GENERATE_TIMESTAMP_ARRAY,
-            )
-        )
+        keyword = keyword_nonfunctions | MatchFirst((
+            ESCAPE,
+            CURRENT_TIME,
+            CURRENT_DATE,
+            CURRENT_TIMESTAMP,
+            DATE_ADD,
+            DATE_SUB,
+            ADDDATE,
+            SUBDATE,
+            INTERVAL,
+            STRING_AGG,
+            REGEXP_EXTRACT,
+            SPLIT,
+            ORDINAL,
+            UNNEST,
+            SAFE_CAST,
+            PARTITION,
+            TIMESTAMP_ADD,
+            TIMESTAMP_SUB,
+            ARRAY,
+            GENERATE_ARRAY,
+            GENERATE_DATE_ARRAY,
+            GENERATE_TIMESTAMP_ARRAY,
+        ))
 
         identifier_word = Word(alphas + "_@#", alphanums + "@$#_")
         identifier = ~keyword + identifier_word.copy()
@@ -445,9 +460,7 @@ class BigQueryViewParser:
             | statistical_aggregate_function_name
             | numbering_function_name
         )("analytic_function_name")
-        partition_expression_list = delimitedList(grouping_term)(
-            "partition_expression_list"
-        )
+        partition_expression_list = delimitedList(grouping_term)("partition_expression_list")
         window_frame_boundary_start = (
             UNBOUNDED + PRECEDING
             | numeric_literal + (PRECEDING | FOLLOWING)
@@ -545,9 +558,9 @@ class BigQueryViewParser:
             | (bind_parameter)("bind_parameter")
             | (EXTRACT + LPAR + expr + FROM + expr + RPAR)("extract")
             | case_stmt
-            | (datetime_operators + LPAR + expr + COMMA + interval + RPAR)(
-                "date_operation"
-            )
+            | (
+                datetime_operators + LPAR + expr + COMMA + interval + RPAR
+            )("date_operation")
             | string_agg_term("string_agg_term")
             | array_literal("array_literal")
             | array_generator("array_generator")
@@ -584,7 +597,7 @@ class BigQueryViewParser:
                 ),
                 ((BETWEEN, AND), TERNARY, LEFT_ASSOC),
                 (
-                    Optional(N
+                    Optional(NOT)
                     + IN
                     + LPAR
                     + Group(ungrouped_select_stmt | delimitedList(expr))
@@ -611,12 +624,10 @@ class BigQueryViewParser:
             | EXCEPT
         )("compound_operator")
 
-        join_constraint = Group(
-            Optional(
-                ON + expr
-                | USING + LPAR + Group(delimitedList(qualified_column_name)) + RPAR
-            )
-        )("join_constraint")
+        join_constraint = Group(Optional(
+            ON + expr
+            | USING + LPAR + Group(delimitedList(qualified_column_name)) + RPAR
+        ))("join_constraint")
 
         join_op = (
             COMMA
@@ -719,9 +730,9 @@ class BigQueryViewParser:
             join_op + single_source + join_constraint
         )
 
-        over_partition = (PARTITION + BY + delimitedList(partition_expression_list))(
-            "over_partition"
-        )
+        over_partition = (
+            PARTITION + BY + delimitedList(partition_expression_list)
+        )("over_partition")
         over_order = ORDER + BY + delimitedList(ordering_term)
         over_unsigned_value_specification = expr
         over_window_frame_preceding = (
@@ -788,9 +799,9 @@ class BigQueryViewParser:
             + ZeroOrMore(compound_operator + grouped_select_core)
             + Optional(
                 LIMIT
-                + (Group(expr + OFFSET + expr) | Group(expr + COMMA + expr) | expr)(
-                    "limit"
-                )
+                + (
+                    Group(expr + OFFSET + expr) | Group(expr + COMMA + expr) | expr
+                )("limit")
             )
         )("select")
         select_stmt = ungrouped_select_stmt | (LPAR + ungrouped_select_stmt + RPAR)
@@ -1634,7 +1645,8 @@ class BigQueryViewParser:
 
             if expected_tables_set != found_tables:
                 raise Exception(
-                    f"Test {test_index} failed- expected {expected_tables_set} but got {found_tables}"
+                    f"Test {test_index} failed- expected {expected_tables_set} but got"
+                    f" {found_tables}"
                 )
 
 
