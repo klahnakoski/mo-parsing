@@ -7,7 +7,7 @@ from mo_future import is_text, text, PY3, NEXT, zip_longest
 from mo_logs import Log
 
 from mo_parsing import engine
-from mo_parsing.utils import is_forward
+from mo_parsing.utils import is_forward, forward_type
 
 Suppress, ParserElement, NO_PARSER, NO_RESULTS, Group, Dict, Token, Empty = [None] * 8
 
@@ -135,6 +135,9 @@ class ParseResults(object):
 
     def __iter__(self):
         if is_forward(self.type):
+            if len(self.tokens) != 1:
+                Log.error("not expected")
+
             output = list(self.tokens[0])
             for i in output:
                 yield i
@@ -148,7 +151,7 @@ class ParseResults(object):
                     return
                 elif isinstance(r.type, Group):
                     yield r
-                elif is_forward(r.type) and isinstance(r.tokens[0].type, Group):
+                elif is_forward(r.type) and isinstance(forward_type(r), Group):
                     yield r
                 elif not isinstance(r.type, Group):
                     for mm in r:

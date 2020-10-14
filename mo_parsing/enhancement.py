@@ -555,10 +555,11 @@ class Forward(ParserElement):
             return self.strRepr
 
         # Avoid infinite recursion by setting a temporary strRepr
+        self.strRepr = "Forward: ..."
         try:
             self.strRepr = "Forward: " + text(self.expr)[:1000]
         except Exception:
-            self.strRepr = "Forward: ..."
+           pass
 
         return self.strRepr
 

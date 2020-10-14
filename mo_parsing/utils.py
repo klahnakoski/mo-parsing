@@ -37,6 +37,16 @@ def is_forward(expr):
     return expr.__class__.__name__ == "Forward"
 
 
+def forward_type(expr):
+    """
+    :param expr:
+    :return:  Effective type of this Forward
+    """
+    while is_forward(expr.type):
+        expr = expr.tokens[0]
+    return expr.type
+
+
 def stack_depth():
     count=0
     f = sys._getframe()
