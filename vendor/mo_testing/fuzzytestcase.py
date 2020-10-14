@@ -96,8 +96,9 @@ class RaiseContext(object):
         if isinstance(self.problem, type) and issubclass(self.problem, BaseException) and isinstance(exc_val, self.problem):
             return True
         f = Except.wrap(exc_val)
-        self.this.assertIn(self.problem, f)
-        return True
+        if self.problem in f:
+            return True
+        Log.error("Expecting {{problem|quote}}, but got exception {{exception}}", problem=self.problem, exception=f)
 
 
 def assertAlmostEqual(test, expected, digits=None, places=None, msg=None, delta=None):

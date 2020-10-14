@@ -3363,6 +3363,9 @@ class TestParsing(PyparsingExpressionTestCase):
         self.assertEqual(sorted(result.keys()), ["one", "two"])
 
     def testUnicodeExpression(self):
+        from mo_parsing import engine
+
+        engine.CURRENT.set_debug_actions()
         z = "a" | Literal("\u1111")
         z.streamline()
         with self.assertRaises("Expecting {a} | {ᄑ}, found 'b'"):

@@ -201,7 +201,7 @@ class ParserElement(object):
                             len(string),
                             string,
                         )
-                        packrat_cache.set(lookup, ex.__class__(*ex.args))
+                        packrat_cache.set(lookup, ex)
                         raise ex
                     raise
             except Exception as err:
@@ -223,8 +223,7 @@ class ParserElement(object):
                     raise
             self.engine.debugActions.MATCH(self, start, loc, string, tokens)
         except ParseBaseException as pe:
-            # cache a copy of the exception, without the traceback
-            packrat_cache.set(lookup, pe.__class__(*pe.args))
+            packrat_cache.set(lookup, pe)
             raise
 
         packrat_cache.set(lookup, (loc, tokens))
@@ -627,10 +626,6 @@ class ParserElement(object):
         :param listAllMatches:
         :return:
         """
-        if name.endswith("*"):
-            Log.warning("stop using")
-        if not is_text(name):
-            Log.error("not expected")
         output = self.copy()
         output.token_name = name
         if not output.parser_name:

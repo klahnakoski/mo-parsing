@@ -559,8 +559,7 @@ class Forward(ParserElement):
         try:
             self.strRepr = "Forward: " + text(self.expr)[:1000]
         except Exception:
-           pass
-
+            pass
         return self.strRepr
 
     def __call__(self, name):
