@@ -497,6 +497,8 @@ class Forward(ParserElement):
 
     def __lshift__(self, other):
         self.strRepr = ""
+        if other == None:
+            Log.error("can not set to None")
         if is_forward(self.expr):
             return self.expr << other
 
@@ -540,11 +542,14 @@ class Forward(ParserElement):
 
     def parseImpl(self, string, loc, doActions=True):
         try:
-            loc, output = self.expr._parse(string, loc, doActions)
+            temp = self.expr
+            result = self.expr._parse(string, loc, doActions)
+            loc, output = result
             return loc, ParseResults(self, [output])
         except Exception as cause:
             if self.expr == None:
-                Log.error("Ensure you have assigned a ParerElement (<<) to this Forward")
+                temp._parse(string, loc, doActions)
+                Log.warning("Ensure you have assigned a ParserElement (<<) to this Forward", cause=cause)
             raise cause
 
     def __str__(self):

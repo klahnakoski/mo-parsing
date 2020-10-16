@@ -5,13 +5,15 @@ import unittest
 from importlib import import_module
 
 from mo_files import File
+from mo_logs import Log
 
 from mo_parsing.engine import Engine
 
 modules = [f.name for f in File("examples").children]
 
+Log.start(trace=True)
 
-@unittest.skip("not running examples right now")
+@unittest.skip("not working")
 class TestAllExamples(unittest.TestCase):
     pass
 

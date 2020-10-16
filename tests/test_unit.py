@@ -118,7 +118,7 @@ from mo_parsing.helpers import (
     htmlComment,
     srange,
     ungroup,
-    dictOf, LEFT_ASSOC, RIGHT_ASSOC,
+    dictOf, LEFT_ASSOC, RIGHT_ASSOC, reset_stack
 )
 from mo_parsing.utils import (
     parsing_unicode,
@@ -3363,9 +3363,6 @@ class TestParsing(PyparsingExpressionTestCase):
         self.assertEqual(sorted(result.keys()), ["one", "two"])
 
     def testUnicodeExpression(self):
-        from mo_parsing import engine
-
-        engine.CURRENT.set_debug_actions()
         z = "a" | Literal("\u1111")
         z.streamline()
         with self.assertRaises("Expecting {a} | {ᄑ}, found 'b'"):
@@ -3582,13 +3579,14 @@ class TestParsing(PyparsingExpressionTestCase):
         integer.addParseAction(traceParseAction(Z()))
         integer.parseString("132")
 
-    def testRunTests(self):
+    def testCondition(self):
         integer = Word(nums).addParseAction(lambda t: int(t[0]))
         intrange = integer("start") + "-" + integer("end")
-        intrange.addCondition(
+
+        intrange = intrange.addCondition(
             lambda t: t["end"] > t["start"],
             message="invalid range, start must be <= end",
-            fatal=True,
+            fatal=True
         )
 
         def _range(t, l, s):
@@ -3630,7 +3628,7 @@ class TestParsing(PyparsingExpressionTestCase):
 
         def eval_fraction(test, result):
             accum.append((test, result))
-            return "eval: {}".format(result.numerator / result.denominator)
+            return "eval: {}".format(result['numerator'] / result['denominator'])
 
         success = fraction.runTests(
             """\
@@ -4218,7 +4216,8 @@ class TestParsing(PyparsingExpressionTestCase):
             ATCAXXGAATGGA
             ATCAXXGAATGXA
             ATCAXXGAATGG
-            """
+            """,
+            failureTests=[False, False, False, False, True, True]
         )
         expected = ([], [0, 12], [9], [4, 5], None, None)
 
@@ -4631,28 +4630,22 @@ class TestParsing(PyparsingExpressionTestCase):
         self.assertEqual(result["c"]["c1"], 200, "invalid indented block result")
         self.assertEqual(result["c"]["c2"]["c21"], 999, "invalid indented block result")
 
-    # exercise indentedBlock with example posted in issue #87
     def testIndentedBlockTest2(self):
-        indent_stack = [1]
-
         key = Word(alphas, alphanums) + Suppress(":")
         stmt = Forward()
-
-        suite = indentedBlock(stmt, indent_stack)
-        body = key + suite
-
+        suite = indentedBlock(stmt)
         pattern = Word(alphas) + Suppress("(") + Word(alphas) + Suppress(")")
         stmt << pattern
 
         def key_parse_action(toks):
             print("Parsing '%s'..." % toks[0])
 
-        key.addParseAction(key_parse_action)
+        body = key.addParseAction(key_parse_action) + suite
         header = Suppress("[") + Literal("test") + Suppress("]")
-        content = header - OneOrMore(indentedBlock(body, indent_stack, False))
+        content = header - OneOrMore(indentedBlock(body, False))
 
         contents = Forward()
-        suites = indentedBlock(content, indent_stack)
+        suites = indentedBlock(OneOrMore(content))
 
         extra = Literal("extra") + Suppress(":") - suites
         contents << (content | extra)
@@ -4689,16 +4682,16 @@ class TestParsing(PyparsingExpressionTestCase):
                 five (seven)
         extra:
             [test]
-            one:
-                two (three)
-            four:
-                five (seven)
+            aone:
+                atwo (athree)
+            afour:
+                afive (aseven)
 
             [test]
-            one:
-                two (three)
-            four:
-                five (seven)
+            bone:
+                btwo (bthree)
+            bfour:
+                bfive (bseven)
 
             [test]
             eight:
@@ -4713,18 +4706,17 @@ class TestParsing(PyparsingExpressionTestCase):
         """
         )
 
-        del indent_stack[1:]
         success, _ = parser.runTests([sample2])
         self.assertTrue(success, "Failed indentedBlock multi-block test for issue #87")
 
+    @unittest.skip("need a stack of parse state to do this correctly")
     def testIndentedBlockScan(self):
         def get_parser():
             """
             A valid statement is the word "block:", followed by an indent, followed by the letter A only, or another block
             """
-            stack = [1]
             block = Forward()
-            body = indentedBlock(Literal("A") ^ block, indentStack=stack, indent=True)
+            body = indentedBlock(Literal("A") ^ block)
             block <<= Literal("block:") + body
             return block
 

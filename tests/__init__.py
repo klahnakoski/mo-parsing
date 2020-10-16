@@ -2,8 +2,7 @@
 from mo_future import text
 from mo_logs import Log
 
-from mo_parsing import engine
-from mo_parsing.core import quotedString, replaceWith, ParserElement
+from mo_parsing.core import replaceWith, ParserElement
 from mo_parsing.exceptions import ParseBaseException
 from mo_parsing.results import ParseResults
 from mo_parsing.tokens import Literal
@@ -113,16 +112,16 @@ def runTests(
 
     (Note that this is a raw string literal, you must include the leading 'r'.)
     """
-    error = Log.warning
+    error = Log.error
     if isinstance(tests, text):
-        tests = list(map(str.strip, tests.rstrip().splitlines()))
+        tests = [tt for t in tests.rstrip().splitlines() for tt in [t.strip()] if tt]
     if isinstance(comment, text):
         comment = Literal(comment)
 
     allResults = []
     NL = Literal(r"\n").addParseAction(replaceWith("\n"))
     BOM = u"\ufeff"
-    for t in tests:
+    for i, (t, failureTest) in enumerate(zip(tests, [failureTests]*len(tests) if not isinstance(failureTests, list) else failureTests)):
         if comment is not None and comment.matches(t, False):
             Log.note(t)
             continue
@@ -133,19 +132,19 @@ def runTests(
             t = NL.transformString(t.lstrip(BOM))
             result = self.parseString(t, parseAll=parseAll)
         except ParseBaseException as pe:
-            if not failureTests:
+            if not failureTest:
                 error("FAIL", cause=pe)
 
             result = pe
         except Exception as exc:
-            if not failureTests:
+            if not failureTest:
                 error("FAIL-EXCEPTION", cause=exc)
             result = exc
         else:
-            if failureTests:
+            if failureTest:
                 error("EXPECTING FAIL")
 
-            if postParse is not None:
+            if postParse:
                 try:
                     pp_value = postParse(t, result)
                     if pp_value is not None:
@@ -155,13 +154,8 @@ def runTests(
                             Log.note(str(pp_value))
                     else:
                         Log.note("{{result}}", result=result)
-                except Exception as e:
-                    Log.note("{{result}}", result=result)
-                    Log.note(
-                        "{0} failed: {1}: {2}".format(
-                            postParse.__name__, type(e).__name__, e
-                        )
-                    )
+                except Exception as cause:
+                    Log.warning("postParse {{name}} failed", name=postParse.__name__, cause=cause)
             else:
                 Log.note("{{result}}", result=result)
 

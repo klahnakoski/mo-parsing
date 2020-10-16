@@ -174,6 +174,8 @@ def wrap_parse_action(func):
                 return ParseResults(token.type, result)
             else:
                 return ParseResults(token.type, [result])
+        except ParseException as pe:
+            raise pe
         except Exception as cause:
             Log.warning("parse action should not raise exception", cause=cause)
             f = ParseException(*args)
