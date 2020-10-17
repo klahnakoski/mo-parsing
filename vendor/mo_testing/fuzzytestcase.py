@@ -16,7 +16,7 @@ import unittest
 from mo_collections.unique_index import UniqueIndex
 import mo_dots
 from mo_dots import coalesce, is_container, is_list, literal_field, unwrap, to_data, is_data, is_many
-from mo_future import is_text, zip_longest
+from mo_future import is_text, zip_longest, first
 from mo_logs import Except, Log, suppress_exception
 from mo_logs.strings import expand_template, quote
 import mo_math
@@ -93,12 +93,25 @@ class RaiseContext(object):
         pass
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        if isinstance(self.problem, type) and issubclass(self.problem, BaseException) and isinstance(exc_val, self.problem):
-            return True
+        if not exc_val:
+            Log.error("Expecting an error")
         f = Except.wrap(exc_val)
-        if self.problem in f:
-            return True
-        Log.error("Expecting {{problem|quote}}, but got exception {{exception}}", problem=self.problem, exception=f)
+
+        if isinstance(self.problem, (list, tuple)):
+            problems = self.problem
+        else:
+            problems = [self.problem]
+
+        causes = []
+        for problem in problems:
+            if isinstance(problem, object.__class__) and issubclass(problem, BaseException) and isinstance(exc_val, problem):
+                return True
+            try:
+                self.this.assertIn(problem, f)
+                return True
+            except Exception as cause:
+                causes.append(cause)
+        Log.error("problem is not raised", cause=first(causes))
 
 
 def assertAlmostEqual(test, expected, digits=None, places=None, msg=None, delta=None):
