@@ -4,7 +4,7 @@ import sys
 
 from mo_dots import coalesce
 from mo_future import text
-from mo_logs import Log
+from mo_parsing.utils import Log
 
 from mo_parsing.utils import wrap_parse_action, col, line, lineno
 

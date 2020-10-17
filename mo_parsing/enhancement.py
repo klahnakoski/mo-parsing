@@ -1,8 +1,7 @@
 # encoding: utf-8
 
-from mo_dots import Null, coalesce
+from mo_dots import Null
 from mo_future import text
-from mo_logs import Log, Except
 
 from mo_parsing.core import ParserElement
 from mo_parsing.engine import noop
@@ -12,6 +11,7 @@ from mo_parsing.exceptions import (
     RecursiveGrammarException,
 )
 from mo_parsing.results import ParseResults, Annotation
+from mo_parsing.utils import Log
 from mo_parsing.utils import _MAX_INT, empty_list, empty_tuple, is_forward
 
 # import later

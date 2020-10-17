@@ -4,7 +4,7 @@ import sre_constants
 import warnings
 
 from mo_future import text
-from mo_logs import Log
+from mo_parsing.utils import Log
 
 from mo_parsing.engine import Engine, PLAIN_ENGINE
 from mo_parsing.exceptions import ParseException

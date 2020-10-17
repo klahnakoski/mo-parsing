@@ -3,7 +3,7 @@ from threading import RLock
 
 from mo_dots import Data
 from mo_future import text
-from mo_logs import Log
+from mo_parsing.utils import Log
 
 from mo_parsing.cache import packrat_cache
 from mo_parsing.engine import PLAIN_ENGINE

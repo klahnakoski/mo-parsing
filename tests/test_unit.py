@@ -22,7 +22,7 @@ from textwrap import dedent
 from unittest import TestCase, skip
 
 from mo_dots import coalesce
-from mo_logs import Log
+from mo_parsing.utils import Log
 from mo_times import Timer
 
 from examples import fourFn, configParse, idlParse, ebnf

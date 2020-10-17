@@ -6,7 +6,7 @@ from datetime import datetime
 
 from mo_dots import listwrap
 from mo_future import text
-from mo_logs import Log
+from mo_parsing.utils import Log
 
 from mo_parsing.core import add_reset_action
 from mo_parsing.engine import Engine

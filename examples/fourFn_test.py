@@ -12,7 +12,7 @@
 #
 import math
 
-from mo_logs import Log
+from mo_parsing.utils import Log
 
 from examples.fourFn import exprStack, bnf, evaluate_stack
 

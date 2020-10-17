@@ -7,12 +7,52 @@ import sys
 import warnings
 from types import FunctionType
 
-from mo_future import text, unichr
-from mo_logs import Log
+from mo_future import unichr, text, generator_types
+
+try:
+    from mo_parsing.utils import Log
+except Exception:
+    class Log(object):
+        @classmethod
+        def note(cls, template, cause=None, **params):
+            pass
+
+        @classmethod
+        def warning(cls, template, cause=None, **params):
+            pass
+
+        @classmethod
+        def error(cls, template, cause=None, **params):
+            raise Exception(template) from cause
+
 
 _MAX_INT = sys.maxsize
 empty_list = []
 empty_tuple = tuple()
+many_types = (list, tuple, set) + generator_types
+
+
+def listwrap(value):
+    """
+    PERFORMS THE FOLLOWING TRANSLATION
+    None -> []
+    value -> [value]
+    [...] -> [...]  (unchanged list)
+    """
+    if value == None:
+        return []
+    elif isinstance(value, many_types):
+        return value
+    else:
+        return [value]
+
+def coalesce(*args):
+    # pick the first not null value
+    # http://en.wikipedia.org/wiki/Null_coalescing_operator
+    for a in args:
+        if a != None:
+            return a
+    return None
 
 # build list of single arg builtins, that can be used as parse actions
 singleArgBuiltins = [

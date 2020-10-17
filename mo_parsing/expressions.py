@@ -2,7 +2,7 @@
 from operator import itemgetter
 
 from mo_future import Iterable, text, generator_types
-from mo_logs import Log
+from mo_parsing.utils import Log
 
 from mo_parsing.core import ParserElement, _PendingSkip, is_decorated
 from mo_parsing.engine import Engine

@@ -4,7 +4,7 @@ from collections import MutableMapping
 
 from mo_dots import is_many
 from mo_future import is_text, text, PY3, NEXT, zip_longest
-from mo_logs import Log
+from mo_parsing.utils import Log
 
 from mo_parsing import engine
 from mo_parsing.utils import is_forward, forward_type
