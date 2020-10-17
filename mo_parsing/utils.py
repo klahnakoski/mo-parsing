@@ -12,6 +12,7 @@ from mo_future import unichr, text, generator_types
 try:
     from mo_parsing.utils import Log
 except Exception:
+
     class Log(object):
         @classmethod
         def note(cls, template, cause=None, **params):
@@ -46,6 +47,7 @@ def listwrap(value):
     else:
         return [value]
 
+
 def coalesce(*args):
     # pick the first not null value
     # http://en.wikipedia.org/wiki/Null_coalescing_operator
@@ -53,6 +55,7 @@ def coalesce(*args):
         if a != None:
             return a
     return None
+
 
 # build list of single arg builtins, that can be used as parse actions
 singleArgBuiltins = [
