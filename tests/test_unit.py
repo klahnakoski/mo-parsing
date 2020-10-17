@@ -15,6 +15,7 @@ import re
 import sys
 import textwrap
 import traceback
+import unittest
 from io import StringIO
 from itertools import product
 from textwrap import dedent

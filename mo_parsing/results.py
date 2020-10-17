@@ -98,6 +98,7 @@ class ParseResults(object):
             self.tokens.append(Annotation(k, [v]))
 
     if USE_ATTRIBUTE_ACCESS:
+
         def __getattribute__(self, item):
             try:
                 return object.__getattribute__(self, item)

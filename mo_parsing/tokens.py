@@ -93,6 +93,7 @@ class Literal(Token):
     def __str__(self):
         return self.match
 
+
 class _SingleCharLiteral(Literal):
     def parseImpl(self, string, loc, doActions=True):
         if string[loc] == self.match:
@@ -472,10 +473,7 @@ class Word(Token):
         if self.parser_name:
             return self.parser_name
         if self.initChars != self.bodyChars:
-            return "W:(%s, %s)" % (
-                self.initChars,
-                self.bodyChars,
-            )
+            return "W:(%s, %s)" % (self.initChars, self.bodyChars,)
         else:
             return "W:(%s)" % self.initChars
 
@@ -553,7 +551,11 @@ class Regex(Token):
             try:
                 self.re = re.compile(self.pattern, self.flags)
             except sre_constants.error as cause:
-                Log.error("invalid pattern {{pattern}} passed to Regex", pattern=pattern, cause=cause)
+                Log.error(
+                    "invalid pattern {{pattern}} passed to Regex",
+                    pattern=pattern,
+                    cause=cause,
+                )
 
         elif isinstance(pattern, Regex.compiledREtype):
             self.re = pattern
@@ -561,7 +563,9 @@ class Regex(Token):
             self.flags = flags
 
         else:
-            Log.error("Regex may only be constructed with a string or a compiled RE object")
+            Log.error(
+                "Regex may only be constructed with a string or a compiled RE object"
+            )
 
         self.parser_name = text(self)
         self.parser_config.mayIndexError = False
@@ -602,6 +606,7 @@ class Regex(Token):
             print(make_html.transformString("h1:main title:"))
             # prints "<h1>main title</h1>"
         """
+
         def pa(tokens):
             return self.re.sub(repl, tokens[0])
 
@@ -609,7 +614,6 @@ class Regex(Token):
 
 
 class _RegExAsGroup(Regex):
-
     def parseImpl(self, string, loc, doActions=True):
         result = self.re.match(string, loc)
         if not result:
@@ -635,13 +639,14 @@ class _RegExAsMatch(Regex):
 
     def sub(self, repl):
         if callable(repl):
-            raise SyntaxError("cannot use sub() with a callable with Regex(asMatch=True)")
+            raise SyntaxError(
+                "cannot use sub() with a callable with Regex(asMatch=True)"
+            )
 
         def pa(tokens):
             return tokens[0].expand(repl)
 
         return self.addParseAction(pa)
-
 
 
 class QuotedString(Token):
@@ -779,9 +784,7 @@ class QuotedString(Token):
 
     def parseImpl(self, string, loc, doActions=True):
         result = (
-            string[loc] == self.firstQuoteChar
-            and self.re_match(string, loc)
-            or None
+            string[loc] == self.firstQuoteChar and self.re_match(string, loc) or None
         )
         if not result:
             raise ParseException(self, loc, string)
@@ -965,7 +968,9 @@ class White(Token):
     }
 
     def __init__(self, ws=" \t\r\n", min=1, max=0, exact=0):
-        with Engine(white="".join(c for c in self.engine.white_chars if c not in ws)) as e:
+        with Engine(white="".join(
+            c for c in self.engine.white_chars if c not in ws
+        )) as e:
             super(White, self).__init__()
             self.parser_config.lock_engine = e
         self.matchWhite = ws
@@ -1153,10 +1158,7 @@ class WordStart(_PositionToken):
 
     def parseImpl(self, string, loc, doActions=True):
         if loc != 0:
-            if (
-                string[loc - 1] in self.wordChars
-                or string[loc] not in self.wordChars
-            ):
+            if string[loc - 1] in self.wordChars or string[loc] not in self.wordChars:
                 raise ParseException(self, loc, string)
         return loc, ParseResults(self, [])
 
@@ -1184,10 +1186,7 @@ class WordEnd(_PositionToken):
     def parseImpl(self, string, loc, doActions=True):
         instrlen = len(string)
         if instrlen > 0 and loc < instrlen:
-            if (
-                string[loc] in self.wordChars
-                or string[loc - 1] not in self.wordChars
-            ):
+            if string[loc] in self.wordChars or string[loc - 1] not in self.wordChars:
                 raise ParseException(self, loc, string)
         return loc, ParseResults(self, [])
 

@@ -20,7 +20,8 @@ from mo_parsing.enhancement import (
     SkipTo,
     Suppress,
     TokenConverter,
-    ZeroOrMore, OpenDict,
+    ZeroOrMore,
+    OpenDict,
 )
 from mo_parsing.exceptions import ParseException
 from mo_parsing.results import ParseResults, Annotation, NO_PARSER
@@ -384,10 +385,7 @@ def originalTextFor(expr, asString=True):
 def extractText(tokens, loc, string):
     start, d, end = tokens
     content = string[start:end]
-    annotations = [
-        Annotation(k, v)
-        for k, v in d.items()
-    ]
+    annotations = [Annotation(k, v) for k, v in d.items()]
     return ParseResults(d.type, [content] + annotations)
 
 
@@ -465,6 +463,7 @@ def nestedExpr(opener="(", closer=")", content=None, ignoreExpr=quotedString):
 
         ignore_chars = engine.CURRENT.white_chars
         with Engine(""):
+
             def scrub(t):
                 return t[0].strip()
 
@@ -566,7 +565,9 @@ def srange(s):
         else "".join(unichr(c) for c in range(ord(p[0]), ord(p[1]) + 1))
     )
     try:
-        return "".join(_expanded(part) for part in _reBracketExpr.parseString(s)['body'])
+        return "".join(
+            _expanded(part) for part in _reBracketExpr.parseString(s)["body"]
+        )
     except Exception:
         return ""
 
@@ -596,8 +597,10 @@ def replaceWith(replStr):
 
         OneOrMore(term).parseString("324 234 N/A 234") # -> [324, 234, nan, 234]
     """
+
     def replacer(t, l, s):
         return [replStr]
+
     return replacer
 
 
@@ -847,6 +850,7 @@ def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
     """
 
     all_op = {}
+
     def norm(op):
         output = all_op.get(id(op))
         if output:
@@ -921,6 +925,7 @@ def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
     def record_op(op):
         def output(tokens):
             return ParseResults(NO_PARSER, [(tokens, op)])
+
         return output
 
     prefix_ops = MatchFirst([
@@ -1043,6 +1048,7 @@ def reset_stack():
     global _indent_stack
     _indent_stack = [(1, None, None)]
 
+
 add_reset_action(reset_stack)
 
 
@@ -1082,6 +1088,7 @@ def indentedBlock(blockStatementExpr, indent=True):
                 if curCol > expectedCol:
                     raise ParseException("illegal nesting", l, s)
                 raise ParseException("not a peer entry", l, s)
+
         return output
 
     def dedent_stack(expectedCol):
@@ -1095,6 +1102,7 @@ def indentedBlock(blockStatementExpr, indent=True):
                 oldCol, oldPeer, oldDedent = _indent_stack.pop()
                 PEER << oldPeer
                 DEDENT << oldDedent
+
         return output
 
     def indent_stack(t, l, s):
@@ -1540,4 +1548,3 @@ from mo_parsing import core, engine
 core._flatten = _flatten
 core.replaceWith = replaceWith
 core.quotedString = quotedString
-

@@ -313,9 +313,7 @@ class Or(ParseExpression):
             maxException.msg = "Expecting " + text(self)
             raise maxException
         else:
-            raise ParseException(
-                string, loc, "no defined alternatives to match", self
-            )
+            raise ParseException(string, loc, "no defined alternatives to match", self)
 
     def __str__(self):
         if self.parser_name:
@@ -405,8 +403,12 @@ class Each(ParseExpression):
         :param mins: list of integers indincating any minimums
         """
         super(Each, self).__init__(exprs)
-        self.parser_config.min_match = [e.min_match if isinstance(e, Many) else 1 for e in exprs]
-        self.parser_config.max_match = [e.max_match if isinstance(e, Many) else 1 for e in exprs]
+        self.parser_config.min_match = [
+            e.min_match if isinstance(e, Many) else 1 for e in exprs
+        ]
+        self.parser_config.max_match = [
+            e.max_match if isinstance(e, Many) else 1 for e in exprs
+        ]
 
         self.parser_config.mayReturnEmpty = all(
             e.parser_config.mayReturnEmpty for e in self.exprs
@@ -427,9 +429,7 @@ class Each(ParseExpression):
         end_loc = loc
         matchOrder = []
         todo = list(zip(
-            self.exprs,
-            self.parser_config.min_match,
-            self.parser_config.max_match
+            self.exprs, self.parser_config.min_match, self.parser_config.max_match
         ))
         count = [0] * len(self.exprs)
 

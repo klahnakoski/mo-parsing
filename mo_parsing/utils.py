@@ -47,11 +47,11 @@ def forward_type(expr):
 
 
 def stack_depth():
-    count=0
+    count = 0
     f = sys._getframe()
     while f:
         f = f.f_back
-        count+=1
+        count += 1
     return count
 
 
@@ -302,7 +302,9 @@ class unicode_set(object):
     @_lazyclassproperty
     def printables(cls):
         "all non-whitespace characters in this range"
-        return "".join(sorted(filter(lambda c: not c.isspace(), cls._get_chars_for_ranges())))
+        return "".join(sorted(filter(
+            lambda c: not c.isspace(), cls._get_chars_for_ranges()
+        )))
 
     @_lazyclassproperty
     def alphas(cls):

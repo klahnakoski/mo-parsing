@@ -181,7 +181,9 @@ class Many(ParseElementEnhance):
         self.max_match = max_match
         self.stopOn(stopOn)
 
-        self.parser_config.mayReturnEmpty = (min_match == 0 or expr.parser_config.mayReturnEmpty)
+        self.parser_config.mayReturnEmpty = (
+            min_match == 0 or expr.parser_config.mayReturnEmpty
+        )
 
     def copy(self):
         output = ParseElementEnhance.copy(self)
@@ -270,7 +272,9 @@ class ZeroOrMore(Many):
     """
 
     def __init__(self, expr, stopOn=None):
-        super(ZeroOrMore, self).__init__(expr, stopOn=stopOn, min_match=0, max_match=_MAX_INT)
+        super(ZeroOrMore, self).__init__(
+            expr, stopOn=stopOn, min_match=0, max_match=_MAX_INT
+        )
         self.parser_config.mayReturnEmpty = True
         self.parser_config.lock_engine = self.expr.parser_config.lock_engine
         self.parser_config.engine = self.expr.parser_config.engine
@@ -421,7 +425,6 @@ class SkipTo(ParseElementEnhance):
                 # matched skipto expr, done
                 break
 
-
         else:
             # ran off the end of the input string without matching skipto expr, fail
             raise ParseException(self, end, string)
@@ -547,7 +550,10 @@ class Forward(ParserElement):
         except Exception as cause:
             if self.expr == None:
                 temp._parse(string, loc, doActions)
-                Log.warning("Ensure you have assigned a ParserElement (<<) to this Forward", cause=cause)
+                Log.warning(
+                    "Ensure you have assigned a ParserElement (<<) to this Forward",
+                    cause=cause,
+                )
             raise cause
 
     def __str__(self):
@@ -575,6 +581,7 @@ class TokenConverter(ParseElementEnhance):
     """
     Abstract subclass of :class:`ParseExpression`, for converting parsed results.
     """
+
     pass
 
 
@@ -627,6 +634,7 @@ class Dict(Group):
     Effectively defining new named ParserElements (called Annotations)
     at parse time
     """
+
     def __init__(self, expr):
         Group.__init__(self, expr)
         self.parseAction.append(_dict_post_parse)
@@ -636,6 +644,7 @@ class OpenDict(TokenConverter):
     """
     Same as Dict, but not grouped: Open to previous (or subsequent) name: value pairs
     """
+
     def __init__(self, expr):
         TokenConverter.__init__(self, expr)
         self.parseAction.append(_dict_post_parse)

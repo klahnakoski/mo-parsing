@@ -147,7 +147,7 @@ class Engine:
 def _defaultStartDebugAction(expr, loc, string):
     print(
         "  Attempt "
-        + strings.quote(string[loc : loc + 10]+"...")
+        + strings.quote(string[loc : loc + 10] + "...")
         + " at loc "
         + text(loc)
         + "(%d,%d)" % (lineno(loc, string), col(loc, string))
