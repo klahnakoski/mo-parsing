@@ -2,3 +2,5 @@
 .svn
 *.iml
 /examples/htmlStripper.out.txt
+/*.tab
+/*.tab#

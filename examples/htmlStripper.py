@@ -32,6 +32,7 @@ with open("examples/htmlStripper.html", "rb") as f:
     targetHTML = f.read().decode('utf8')
 
 # first pass, strip out tags and translate entities
+Log.start(cprofile=True)
 with Timer("remove html"):
     firstPass = (
         (htmlComment | scriptBody | commonHTMLEntity | anyOpenTag | anyCloseTag)
@@ -40,7 +41,6 @@ with Timer("remove html"):
     )
 
 # first pass leaves many blank lines, collapse these down
-Log.start(cprofile=True)
 with Timer("remove extra blank lines"):
     repeatedNewlines = LineEnd()[2:...].addParseAction(replaceWith("\n"))
     secondPass = repeatedNewlines.transformString(firstPass)
