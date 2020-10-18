@@ -1,16 +1,12 @@
-import pprint
-from mo_parsing import ParseException
-
 from examples.verilogParse import Verilog_BNF
+from mo_parsing import ParseException
 
 
 def test(strng):
-    tokens = []
     try:
         tokens = Verilog_BNF().parseString(strng)
     except ParseException as err:
-
-
+        raise err
 
     return tokens
 
