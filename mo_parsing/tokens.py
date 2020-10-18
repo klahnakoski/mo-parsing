@@ -4,7 +4,7 @@ import sre_constants
 import warnings
 
 from mo_future import text
-from mo_logs import Log
+from mo_parsing.utils import Log
 
 from mo_parsing.engine import Engine, PLAIN_ENGINE
 from mo_parsing.exceptions import ParseException
@@ -337,22 +337,6 @@ class Word(Token):
        128-255 - currency, symbols, superscripts, diacriticals, etc.)
      - :class:`printables` (any non-whitespace character)
 
-    Example::
-
-        # a word composed of digits
-        integer = Word(nums) # equivalent to Word("0123456789") or Word(srange("0-9"))
-
-        # a word with a leading capital, and zero or more lowercase
-        capital_word = Word(alphas.upper(), alphas.lower())
-
-        # hostnames are alphanumeric, with leading alpha, and '-'
-        hostname = Word(alphas, alphanums + '-')
-
-        # roman numeral (not a strict parser, accepts invalid mix of characters)
-        roman = Word("IVXLCDM")
-
-        # any string of non-whitespace characters, except for ','
-        csv_value = Word(printables, excludeChars=",")
     """
 
     def __init__(
@@ -366,14 +350,14 @@ class Word(Token):
         excludeChars=None,
     ):
         super(Word, self).__init__()
+        if bodyChars is None:
+            bodyChars = initChars
+
         if excludeChars:
-            excludeChars = set(excludeChars)
-            initChars = "".join(c for c in initChars if c not in excludeChars)
-            if bodyChars:
-                bodyChars = "".join(c for c in bodyChars if c not in excludeChars)
-        self.initChars = self.bodyChars = "".join(sorted(set(initChars)))
-        if bodyChars:
-            self.bodyChars = "".join(sorted(set(bodyChars)))
+            initChars = set(initChars) - set(excludeChars)
+            bodyChars = set(bodyChars) - set(excludeChars)
+        self.initChars = "".join(sorted(set(initChars)))
+        self.bodyChars = "".join(sorted(set(bodyChars)))
         self.maxSpecified = max > 0
 
         if min < 1:
@@ -401,27 +385,25 @@ class Word(Token):
             min == 1 and max == 0 and exact == 0
         ):
             if self.bodyChars == self.initChars:
-                self.reString = "[%s]+" % _escapeRegexRangeChars(self.initChars)
+                regexp = "[%s]+" % _escapeRegexRangeChars(self.initChars)
             elif len(self.initChars) == 1:
-                self.reString = "%s[%s]*" % (
+                regexp = "%s[%s]*" % (
                     re.escape(self.initChars),
                     _escapeRegexRangeChars(self.bodyChars),
                 )
             else:
-                self.reString = "[%s][%s]*" % (
+                regexp = "[%s][%s]*" % (
                     _escapeRegexRangeChars(self.initChars),
                     _escapeRegexRangeChars(self.bodyChars),
                 )
             if self.asKeyword:
-                self.reString = r"\b" + self.reString + r"\b"
+                regexp = r"\b" + regexp + r"\b"
 
             try:
-                self.re = re.compile(self.reString)
-            except Exception:
-                self.re = None
-            else:
-                self.re_match = self.re.match
+                self.re = re.compile(regexp)
                 self.__class__ = _WordRegex
+            except Exception:
+                pass
 
     def copy(self):
         output = ParserElement.copy(self)
@@ -431,10 +413,6 @@ class Word(Token):
         output.maxLen = self.maxLen
         output.maxSpecified = self.maxSpecified
         output.minLen = self.minLen
-        if "re" in dir(self):
-            output.re = self.re
-            output.re_match = self.re.match
-            output.reString = self.reString
         return output
 
     def parseImpl(self, string, loc, doActions=True):
@@ -480,12 +458,17 @@ class Word(Token):
 
 class _WordRegex(Word):
     def parseImpl(self, string, loc, doActions=True):
-        result = self.re_match(string, loc)
+        result = self.re.match(string, loc)
         if not result:
             raise ParseException(self, loc, string)
 
         loc = result.end()
         return loc, ParseResults(self, [result.group()])
+
+    def copy(self):
+        output = Word.copy(self)
+        output.re = self.re
+        return output
 
 
 class Char(_WordRegex):

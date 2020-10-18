@@ -4,8 +4,15 @@
 # a simple SELECT statement parser, taken from SQLite's SELECT statement
 # definition at https://www.sqlite.org/lang_select.html
 #
-import sys
 from mo_parsing import *
+from mo_parsing.engine import Engine
+from mo_parsing.helpers import number
+
+comment = "--" + restOfLine
+
+engine = Engine().use()
+engine.add_ignore(comment)
+
 
 LPAR, RPAR, COMMA = map(Suppress, "(),")
 DOT, STAR = map(Literal, ".*")
@@ -38,7 +45,6 @@ function_name = identifier.copy()
 parameter_name = identifier.copy()
 database_name = identifier.copy()
 
-comment = "--" + restOfLine
 
 # expression
 expr = Forward().set_parser_name("expression")
@@ -183,8 +189,7 @@ select_stmt << (
     )
 )
 
-select_stmt.ignore(comment)
-
+engine.release()
 
 tests = """\
     select * from xyzzy where z > 100
@@ -229,7 +234,5 @@ tests = """\
 """
 
 success, _ = select_stmt.runTests(tests)
-if success:
-
-else:
+if not success:
     raise Exception("FAIL")

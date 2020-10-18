@@ -85,7 +85,7 @@ targetvar = None  # Holds variable name to left of '=' sign in LA equation.
 
 def _pushFirst(str, loc, toks):
     if debug_flag:
-
+        print("pushing ", toks[0], "str is ", str)
     exprStack.append(toks[0])
 
 
@@ -295,8 +295,6 @@ def _evaluateStack(s):
         op2 = _evaluateStack(s)
         op1 = _evaluateStack(s)
         result = opn[op](op1, op2)
-        if debug_flag:
-
         return result
     else:
         return op
@@ -329,11 +327,6 @@ def parse(input_string):
 
             raise
 
-        # show result of parsing the input string
-        if debug_flag:
-
-
-
         # Evaluate the stack of parsed operands, emitting C code.
         try:
             result = _evaluateStack(exprStack)
@@ -351,9 +344,6 @@ def parse(input_string):
                 file=sys.stderr,
             )
             raise
-
-        # Create final assignment and print it.
-        if debug_flag:
 
         if targetvar != None:
             try:
@@ -430,7 +420,7 @@ if __name__ == "__main__":
             debug_flag = False
         else:
             try:
-
+                parse(input_string)
             except Exception:
                 pass
 

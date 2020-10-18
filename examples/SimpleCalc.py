@@ -86,13 +86,7 @@ if __name__ == "__main__":
             except ParseException as err:
                 L = ["Parse Failure", input_string, (str(err), err.line, err.column)]
 
-            # show result of parsing the input string
-            if debug_flag:
-
             if len(L) == 0 or L[0] != "Parse Failure":
-                if debug_flag:
-
-
                 for i, ob in enumerate(exprStack):
                     if isinstance(ob, str) and ob in variables:
                         exprStack[i] = str(variables[ob])
@@ -101,25 +95,15 @@ if __name__ == "__main__":
                 try:
                     result = evaluate_stack(exprStack)
                 except Exception as e:
-
+                    pass
                 else:
                     variables["ans"] = result
-
 
                     # Assign result to a variable if required
                     if L.varname:
                         variables[L.varname] = result
-                    if debug_flag:
-
             else:
-
                 err_str, err_line, err_col = L[-1]
-
-
-
 
         # obtain new input string
         input_string = input("> ")
-
-    # if user type 'quit' then say goodbye
-

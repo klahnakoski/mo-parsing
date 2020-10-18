@@ -1,6 +1,6 @@
 # encoding: utf-8
 from mo_future import text
-from mo_logs import Log
+from mo_parsing.utils import Log
 
 from mo_parsing.core import replaceWith, ParserElement
 from mo_parsing.exceptions import ParseBaseException

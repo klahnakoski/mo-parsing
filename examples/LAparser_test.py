@@ -90,9 +90,7 @@ def test():
                 )
                 raise
 
-            # Create final assignment and print it.
-            if debug_flag:
-
+            # Create final assignment
             if targetvar != None:
                 try:
                     result = _assignfunc(targetvar, result)

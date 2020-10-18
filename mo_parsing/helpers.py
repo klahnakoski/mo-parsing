@@ -1,4 +1,5 @@
 # encoding: utf-8
+import ast
 import re
 import warnings
 from collections import Iterable
@@ -6,7 +7,7 @@ from datetime import datetime
 
 from mo_dots import listwrap
 from mo_future import text
-from mo_logs import Log
+from mo_parsing.utils import Log
 
 from mo_parsing.core import add_reset_action
 from mo_parsing.engine import Engine
@@ -514,8 +515,8 @@ _escapedPunc = Word(
     _bslash, r"\[]-*.$+^?()~ ", exact=2
 ).addParseAction(lambda t, l, s: t[0][1])
 _escapedHexChar = (
-    Regex(r"\\0?[xX][0-9a-fA-F]+").addParseAction(lambda t, l, s: unichr(int(
-        t[0].lstrip(r"\0x"), 16
+    Regex(r"\\0?[xX][0-9a-fA-F]+").addParseAction(lambda t: unichr(int(
+        t[0].lstrip('\\').lstrip('0').lstrip('xX'), 16
     )))
 )
 _escapedOctChar = Regex(r"\\0[0-7]+").addParseAction(lambda t, l, s: unichr(int(
@@ -568,7 +569,7 @@ def srange(s):
         return "".join(
             _expanded(part) for part in _reBracketExpr.parseString(s)["body"]
         )
-    except Exception:
+    except Exception as cause:
         return ""
 
 
@@ -584,22 +585,14 @@ def matchOnlyAtCol(n):
     return verifyCol
 
 
-def replaceWith(replStr):
+def replaceWith(value):
     """Helper method for common parse actions that simply return
     a literal value.  Especially useful when used with
     :class:`transformString<ParserElement.transformString>` ().
-
-    Example::
-
-        num = Word(nums).addParseAction(lambda toks: int(toks[0]))
-        na = oneOf("N/A NA").addParseAction(replaceWith(math.nan))
-        term = na | num
-
-        OneOrMore(term).parseString("324 234 N/A 234") # -> [324, 234, nan, 234]
     """
 
-    def replacer(t, l, s):
-        return [replStr]
+    def replacer():
+        return [value]
 
     return replacer
 

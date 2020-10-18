@@ -30,7 +30,9 @@ from mo_parsing import (
     delimitedList,
     restOfLine,
     cStyleComment,
+    engine,
 )
+from mo_parsing.engine import Engine
 
 
 class BigQueryViewParser:
@@ -75,6 +77,12 @@ class BigQueryViewParser:
     def _get_parser(cls):
         if cls._parser is not None:
             return cls._parser
+
+        # define comment format, and ignore them
+        sql_comment = oneOf("-- #") + restOfLine | cStyleComment
+        engine = Engine().use()
+        engine.add_ignore(sql_comment)
+        # engine.set_debug_actions()
 
         LPAR, RPAR, COMMA, LBRACKET, RBRACKET, LT, GT = map(Suppress, "(),[]<>")
         ungrouped_select_stmt = Forward().set_parser_name("select statement")
@@ -669,8 +677,8 @@ class BigQueryViewParser:
         #  `project`.`dataset.name-with-dashes`
 
         def record_table_identifier(t):
-            identifier_list = t
-            padded_list = [None] * (3 - len(identifier_list)) + identifier_list
+            identifier_list = list(t)
+            padded_list = ([None] * 3 + identifier_list)[-3:]
             cls._table_identifiers.add(tuple(padded_list))
 
         standard_table_part = ~keyword + Word(alphanums + "_")
@@ -685,35 +693,39 @@ class BigQueryViewParser:
             | Suppress("`") + CharsNotIn("`.") + Suppress("`")
         )
         quoted_table_parts_identifier = (
-            Optional(
-                (quoted_project_part("project") | standard_table_part("project"))
-                + Suppress(".")
+            (
+                # NOT SURE HOW THIS EVER WORKED: IS `a.b` AN EXAMPLE OF `project.table`?
+                # Optional(
+                #     (quoted_project_part("project") | standard_table_part("project"))
+                #     + Suppress(".")
+                # )
+                # + Optional(
+                #     (quoted_table_part("dataset") | standard_table_part("dataset"))
+                #     + Suppress(".")
+                # )
+                # + (quoted_table_part("table") | standard_table_part("table"))
+                (quoted_table_part | standard_table_part)
+                + Optional(Suppress(".") + (quoted_table_part | standard_table_part))
+                + Optional(Suppress(".") + (quoted_table_part | standard_table_part))
             )
-            + Optional(
-                (quoted_table_part("dataset") | standard_table_part("dataset"))
-                + Suppress(".")
-            )
-            + (quoted_table_part("table") | standard_table_part("table"))
-        ).addParseAction(lambda t: record_table_identifier(t))
+            .set_parser_name("table_identifier")
+            .addParseAction(record_table_identifier)
+        )
 
         def record_quoted_table_identifier(t):
             identifier_list = t[0].split(".")
-            first = ".".join(identifier_list[0:-2]) or None
-            second = identifier_list[-2]
-            third = identifier_list[-1]
-            identifier_list = [first, second, third]
-            padded_list = [None] * (3 - len(identifier_list)) + identifier_list
+            padded_list = ([None] * 3 + identifier_list)[-3:]
             cls._table_identifiers.add(tuple(padded_list))
 
         quotable_table_parts_identifier = (
             Suppress('"') + CharsNotIn('"') + Suppress('"')
             | Suppress("'") + CharsNotIn("'") + Suppress("'")
             | Suppress("`") + CharsNotIn("`") + Suppress("`")
-        ).addParseAction(lambda t: record_quoted_table_identifier(t))
+        ).addParseAction(record_quoted_table_identifier)
 
         table_identifier = (
             quoted_table_parts_identifier | quotable_table_parts_identifier
-        )
+        ).set_parser_name("table identifier")
         single_source = (
             (
                 table_identifier
@@ -727,7 +739,7 @@ class BigQueryViewParser:
         ) + Optional(Optional(AS) + table_alias)
 
         join_source << single_source + ZeroOrMore(
-            join_op + single_source + join_constraint
+            join_op.set_parser_name("join_op") + single_source + join_constraint
         )
 
         over_partition = (
@@ -777,7 +789,7 @@ class BigQueryViewParser:
             SELECT
             + Optional(DISTINCT | ALL)
             + Group(delimitedList(result_column))("columns")
-            + Optional(FROM + join_source("from*"))
+            + Optional(FROM + join_source("from"))
             + Optional(WHERE + expr)
             + Optional(
                 GROUP + BY + Group(delimitedList(grouping_term))("group_by_terms")
@@ -806,25 +818,21 @@ class BigQueryViewParser:
         )("select")
         select_stmt = ungrouped_select_stmt | (LPAR + ungrouped_select_stmt + RPAR)
 
-        # define comment format, and ignore them
-        sql_comment = oneOf("-- #") + restOfLine | cStyleComment
-        select_stmt.ignore(sql_comment)
-
         def record_with_alias(t):
-            identifier_list = t
+            identifier_list = list(t)
             padded_list = [None] * (3 - len(identifier_list)) + identifier_list
             cls._with_aliases.add(tuple(padded_list))
 
         with_clause = Group(
-            identifier.addParseAction(lambda t: record_with_alias(t))
+            identifier.addParseAction(record_with_alias)
             + AS
             + LPAR
             + select_stmt
             + RPAR
-        )
+        ).set_parser_name("with clause")
         with_stmt << (WITH + delimitedList(with_clause))
-        with_stmt.ignore(sql_comment)
 
+        engine.release()
         cls._parser = select_stmt
         return cls._parser
 
@@ -1640,14 +1648,17 @@ class BigQueryViewParser:
         for test_index, test_case in enumerate(BigQueryViewParser.TEST_CASES):
             sql_stmt, expected_tables = test_case
 
-            found_tables = self.get_table_names(sql_stmt)
-            expected_tables_set = set(expected_tables)
+            try:
+                found_tables = self.get_table_names(sql_stmt.strip())
+                expected_tables_set = set(expected_tables)
 
-            if expected_tables_set != found_tables:
-                raise Exception(
-                    f"Test {test_index} failed- expected {expected_tables_set} but got"
-                    f" {found_tables}"
-                )
+                if expected_tables_set != found_tables:
+                    raise Exception(
+                        f"Test {test_index} failed- expected {expected_tables_set} but"
+                        f" got {found_tables}"
+                    )
+            except Exception as cause:
+                raise Exception(f"Test {sql_stmt} failed") from cause
 
 
 BigQueryViewParser().test()
