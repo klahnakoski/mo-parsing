@@ -2,7 +2,6 @@
 from operator import itemgetter
 
 from mo_future import Iterable, text, generator_types
-from mo_logs import Log
 
 from mo_parsing.core import ParserElement, _PendingSkip, is_decorated
 from mo_parsing.engine import Engine
@@ -52,12 +51,10 @@ class ParseExpression(ParserElement):
     def leaveWhitespace(self):
         """Extends ``leaveWhitespace`` defined in base class, and also invokes ``leaveWhitespace`` on
         all contained expressions."""
-        output = self.copy()
-        if self.engine.white_chars:
-            Log.error("do not know how to handle")
-
-        output.exprs = [e.leaveWhitespace() for e in self.exprs]
-        return output
+        with Engine(""):
+            output = self.copy()
+            output.exprs = [e.leaveWhitespace() for e in self.exprs]
+            return output
 
     def streamline(self):
         if self.streamlined:
@@ -185,15 +182,15 @@ class And(ParseExpression):
         # pre-parsed the string as part of our And pre-parsing
         encountered_error_stop = False
         acc = []
-        for e in self.exprs:
-            if isinstance(e, And._ErrorStop):
+        for expr in self.exprs:
+            if isinstance(expr, And._ErrorStop):
                 encountered_error_stop = True
                 continue
             try:
-                loc, exprtokens = e._parse(string, loc, doActions)
+                loc, exprtokens = expr._parse(string, loc, doActions)
                 acc.append(exprtokens)
-            except ParseSyntaxException as e:
-                raise e
+            except ParseSyntaxException as cause:
+                raise cause
             except ParseBaseException as pe:
                 if encountered_error_stop:
                     raise ParseSyntaxException(pe.parserElement, pe.loc, pe.pstr)

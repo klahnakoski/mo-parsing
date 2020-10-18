@@ -8,7 +8,7 @@
 #
 
 from mo_parsing import *
-from mo_parsing.helpers import integer
+from mo_parsing.helpers import integer, fnumber
 
 COLON, LBRACK, RBRACK, LBRACE, RBRACE, TILDE, CARAT = map(Literal, ":[]{}~^")
 LPAR, RPAR = map(Suppress, "()")
@@ -33,7 +33,7 @@ number = fnumber
 fuzzy_modifier = TILDE + Optional(number, default=0.5)("fuzzy")
 
 term = Forward()
-field_name = valid_word().set_parser_name("fieldname")
+field_name = valid_word.set_parser_name("fieldname")
 incl_range_search = Group(LBRACK - term("lower") + to_ + term("upper") + RBRACK)
 excl_range_search = Group(LBRACE - term("lower") + to_ + term("upper") + RBRACE)
 range_search = incl_range_search("incl_range") | excl_range_search("excl_range")

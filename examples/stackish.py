@@ -27,7 +27,6 @@ SPACE White space is basically ignored. This is interesting because since
     Stackish is serialized consistently this means you can use \n as the
     separation character and perform reasonable diffs on two structures.
 """
-
 from mo_parsing import (
     Suppress,
     Word,
@@ -43,13 +42,14 @@ from mo_parsing import (
     ZeroOrMore,
     srange,
 )
+from mo_testing.fuzzytestcase import assertAlmostEqual
 
 MARK, UNMARK, AT, COLON, QUOTE = map(Suppress, "[]@:'")
 
-NUMBER = Word(nums)
-NUMBER.addParseAction(lambda t: int(t[0]))
-FLOAT = Combine(oneOf("+ -") + Word(nums) + "." + Optional(Word(nums)))
-FLOAT.addParseAction(lambda t: float(t[0]))
+NUMBER = Word(nums).addParseAction(lambda t: int(t[0]))
+FLOAT = Combine(
+    oneOf("+ -") + Word(nums) + "." + Optional(Word(nums))
+).addParseAction(lambda t: float(t[0]))
 STRING = QuotedString('"', multiline=True)
 WORD = Word(alphas, alphanums + "_:")
 ATTRIBUTE = Combine(AT + WORD)
@@ -80,25 +80,35 @@ def assignUsing(s):
 
 GROUP = (
     MARK
-    + Group(
-        ZeroOrMore(
-            (item + Optional(ATTRIBUTE)("attr")).addParseAction(assignUsing("attr"))
-        )
-    )
+    + Group(ZeroOrMore(
+        (item + Optional(ATTRIBUTE)("attr")).addParseAction(assignUsing("attr"))
+    ))
     + (WORD("name") | UNMARK)
 ).addParseAction(assignUsing("name"))
 item << (NUMBER | FLOAT | STRING | BLOB | GROUP)
 
-tests = """\
-[ '10:1234567890' @name 25 @age +0.45 @percentage person:zed
-[ [ "hello" 1 child root
-[ "child" [ 200 '4:like' "I" "hello" things root
-[ [ "data" [ 2 1 ] @numbers child root
-[ [ 1 2 3 ] @test 4 5 6 root
-""".splitlines()
+result = item.parseString("[ '10:1234567890' @name 25 @age +0.45 @percentage person:zed")
+expected = {"person:zed": {"name": "1234567890", "age": 25, "percentage": 0.45}}
+assertAlmostEqual(result, expected)
 
-for test in tests:
-    if test:
+result = item.parseString('[ [ "hello" 1 child root')
+expected = {"root": {"child": ["hello", 1]}}
+assertAlmostEqual(result, expected)
 
+result = item.parseString("[ \"child\" [ 200 '4:like' \"I\" \"hello\" things root")
+expected = {"root": {"things": [200, "like", "I", "hello"]}}
+assertAlmostEqual(result, expected)
+expected = {"root": ["child"]}
+assertAlmostEqual(result, expected)
 
+result = item.parseString("[ [ \"data\" [ 2 1 ] @numbers child root")
+expected = {"root": {"child": ["data"]}}
+assertAlmostEqual(result, expected)
+expected = {"root": {"child": {"numbers": [2, 1]}}}
+assertAlmostEqual(result, expected)
 
+result = item.parseString("[ [ 1 2 3 ] @test 4 5 6 root")
+expected = {"root": {"test": [1, 2, 3]}}
+assertAlmostEqual(result, expected)
+expected = {"root": [[1, 2, 3], 4, 5, 6]}
+assertAlmostEqual(result, expected)

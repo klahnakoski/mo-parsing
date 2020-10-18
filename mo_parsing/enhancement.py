@@ -1,17 +1,17 @@
 # encoding: utf-8
 
-from mo_dots import Null, coalesce
+from mo_dots import Null
 from mo_future import text
-from mo_logs import Log, Except
 
 from mo_parsing.core import ParserElement
-from mo_parsing.engine import noop
+from mo_parsing.engine import noop, Engine
 from mo_parsing.exceptions import (
     ParseBaseException,
     ParseException,
     RecursiveGrammarException,
 )
 from mo_parsing.results import ParseResults, Annotation
+from mo_parsing.utils import Log
 from mo_parsing.utils import _MAX_INT, empty_list, empty_tuple, is_forward
 
 # import later
@@ -56,12 +56,10 @@ class ParseElementEnhance(ParserElement):
         return loc, ParseResults(self, [output])
 
     def leaveWhitespace(self):
-        output = self.copy()
-        if self.engine.white_chars:
-            Log.error("do not know how to handle")
-
+        with Engine(""):
+            output = self.copy()
             output.expr = self.expr.leaveWhitespace()
-        return output
+            return output
 
     def streamline(self):
         if self.streamlined:
@@ -514,11 +512,10 @@ class Forward(ParserElement):
         self.expr = self.expr.addParseAction(action)
 
     def leaveWhitespace(self):
-        output = self.copy()
-        if self.engine.white_chars:
-            Log.error("do not know how to handle")
-
-        return output
+        with Engine(""):
+            output = self.copy()
+            output.expr = self.expr.leaveWhitespace()
+            return output
 
     def streamline(self):
         if self.streamlined:
@@ -549,7 +546,6 @@ class Forward(ParserElement):
             return loc, ParseResults(self, [output])
         except Exception as cause:
             if self.expr == None:
-                temp._parse(string, loc, doActions)
                 Log.warning(
                     "Ensure you have assigned a ParserElement (<<) to this Forward",
                     cause=cause,
