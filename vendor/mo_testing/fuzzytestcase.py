@@ -57,9 +57,9 @@ class FuzzyTestCase(unittest.TestCase):
     def assertEqual(self, test_value, expected, msg=None, digits=None, places=None, delta=None):
         self.assertAlmostEqual(test_value, expected, msg=msg, digits=digits, places=places, delta=delta)
 
-    def assertRaises(self, problem, function=None, *args, **kwargs):
+    def assertRaises(self, problem=None, function=None, *args, **kwargs):
         if function is None:
-            return RaiseContext(self, problem)
+            return RaiseContext(self, problem=problem or Exception)
 
         try:
             function(*args, **kwargs)
