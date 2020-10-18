@@ -6,6 +6,8 @@
 #
 # Copyright (c) 2006, 2016, Paul McGuire
 #
+from mo_logs import Log
+from mo_threads import stop_main_thread, MAIN_THREAD
 from mo_times import Timer
 
 from mo_parsing import (
@@ -38,6 +40,7 @@ with Timer("remove html"):
     )
 
 # first pass leaves many blank lines, collapse these down
+Log.start(cprofile=True)
 with Timer("remove extra blank lines"):
     repeatedNewlines = LineEnd()[2:...].addParseAction(replaceWith("\n"))
     secondPass = repeatedNewlines.transformString(firstPass)
@@ -49,3 +52,4 @@ with open("examples/htmlStripper.txt", "rb") as f:
     expected = f.read().decode('utf8')
 
 assertAlmostEqual(secondPass.strip(), expected.strip())
+MAIN_THREAD.stop()
