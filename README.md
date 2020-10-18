@@ -14,7 +14,7 @@ More features
 * packrat parser is always on
 * less stack used 
 * the wildcard ("`*`") could be used to indicate multi-values are expected; this is not allowed: all values are multi-values
-* all actions are in `f(token, index, string)` form, which is opposite of pyparsing's flexible `f(string, index token)` form
+* all actions are in `f(token, index, string)` form, which is opposite of pyparsing's `f(string, index token)` form
 
 
 More focused 
@@ -27,11 +27,6 @@ More functional
 
 * tokens are static, can not be changed, parsing functions must emit new objects
 * ParserElements are static: Many are generated during language definition
-
-
-## Installation
-
-Not in pypi yet
 
 ## Details
 
@@ -61,19 +56,19 @@ The `engine.CURRENT` is added to every parse element created, and it is used dur
 
 ### Navigating ParseResults
 
-`ParseResults` are in the form of an n-ary tree; with the children found in `ParseResults.tokens`.  Each `ParseResult.type` points to the `ParserElements that made it`.  In general, if you want to get fancy with post processing (or in a `parseAction`), you will be required to navigate the raw `tokens` to generate a final result
+`ParseResults` are in the form of an n-ary tree; with the children found in `ParseResults.tokens`.  Each `ParseResult.type` points to the `ParserElement` that made it.  In general, if you want to get fancy with post processing (or in a `parseAction`), you will be required to navigate the raw `tokens` to generate a final result
 
-There are some convienience methods;  
-* `__iter__()` - allows you to iterate through parse results in **depth first search**. Empty results are skipped, and `Group`ed  resluts are treated as atoms (which can be futher iterated if required) 
-* `name` is a convienient property for `ParseResults.type.token_name`
-* `__getitem__()` - allows you to jump into the parse tree to the given `name`. This is blocked by any names found inside `Group`ed results (becasue groups are considered atoms).      
+There are some convenience methods;  
+* `__iter__()` - allows you to iterate through parse results in **depth first search**. Empty results are skipped, and `Group`ed  results are treated as atoms (which can be further iterated if required) 
+* `name` is a convenient property for `ParseResults.type.token_name`
+* `__getitem__()` - allows you to jump into the parse tree to the given `name`. This is blocked by any names found inside `Group`ed results (because groups are considered atoms).      
 
 ### addParseAction
 
 Parse actions are methods that are run after a ParserElement found a match. 
 
 * Parameters must be accepted in `(tokens, index, string)` order (the opposite of pyparsing)
-* Parse actions are wrapped to ensure the output is a legitmate ParseResult
+* Parse actions are wrapped to ensure the output is a legitimate ParseResult
   * If your parse action returns `None` then the result is the original `tokens`
   * If your parse action returns an object, or list, or tuple, then it will be packaged in a `ParseResult` with same type as `tokens`.
   * If your parse action returns a `ParseResult` then it is accepted ***even if is belongs to some other pattern***
