@@ -2,12 +2,15 @@
 from __future__ import absolute_import, division, unicode_literals
 
 import inspect
+import json
 import string
 import sys
 import warnings
+from json.encoder import encode_basestring
+from math import isnan
 from types import FunctionType
 
-from mo_future import unichr, text, generator_types
+from mo_future import unichr, text, generator_types, is_text
 
 try:
     from mo_parsing.utils import Log
@@ -31,6 +34,55 @@ _MAX_INT = sys.maxsize
 empty_list = []
 empty_tuple = tuple()
 many_types = (list, tuple, set) + generator_types
+
+
+def indent(value, prefix="\t", indent=None):
+    """
+    indent given string, using prefix * indent as prefix for each line
+    :param value:
+    :param prefix:
+    :param indent:
+    :return:
+    """
+    if indent != None:
+        prefix = prefix * indent
+
+    value = toString(value)
+    try:
+        content = value.rstrip()
+        suffix = value[len(content) :]
+        lines = content.splitlines()
+        return prefix + (CR + prefix).join(lines) + suffix
+    except Exception as e:
+        raise Exception(
+            "Problem with indent of value (" + e.message + ")\n" + text(toString(value))
+        )
+
+
+def quote(value):
+    """
+    return JSON-quoted value
+    :param value:
+    :return:
+    """
+    if value == None:
+        output = ""
+    elif is_text(value):
+        output = encode_basestring(value)
+    else:
+        output = json.dumps(value)
+    return output
+
+
+def is_number(s):
+    if s is True or s is False or s == None:
+        return False
+
+    try:
+        s = float(s)
+        return not isnan(s)
+    except Exception:
+        return False
 
 
 def listwrap(value):
