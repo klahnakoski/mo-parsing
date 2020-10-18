@@ -5,6 +5,7 @@ import unittest
 from importlib import import_module
 
 from mo_files import File
+from mo_times import Timer
 
 from mo_parsing.engine import Engine
 
@@ -73,10 +74,10 @@ def _single_test(name):
 
     return output
 
-
-for f in File("examples").children:
-    if f.extension == "py":
-        func = _single_test(f.name)
-        if f.name in skip_list:
-            func = unittest.skip("requires fix")(func)
-        setattr(TestAllExamples, "test_" + f.name, func)
+with Timer("bigquery view parsing"):
+    for f in File("examples").children:
+        if f.extension == "py":
+            func = _single_test(f.name)
+            if f.name in skip_list:
+                func = unittest.skip("requires fix")(func)
+            setattr(TestAllExamples, "test_" + f.name, func)
