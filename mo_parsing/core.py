@@ -769,7 +769,7 @@ from mo_parsing import cache, engine, results
 engine.ParserElement = ParserElement
 results.ParserElement = ParserElement
 
-NO_PARSER = ParserElement()  # USE THIS WHEN YOU DO NOT CARE ABOUT THE PARSER TYPE
+NO_PARSER = ParserElement().set_parser_name("<nothing>")  # USE THIS WHEN YOU DO NOT CARE ABOUT THE PARSER TYPE
 NO_RESULTS = ParseResults(NO_PARSER, [])
 
 results.NO_RESULTS = NO_RESULTS
