@@ -45,6 +45,7 @@
             "",
             "## Details",
             "",
+            "",
             "### The `Engine`",
             "",
             "The `mo_parsing.engine.CURRENT` is used during parser creation: It is effectively the lexxer with additional features to simplify the language definition.  You declare a standard `Engine` like so:",
@@ -96,5 +97,5 @@
     "name": "mo-parsing",
     "packages": ["mo_parsing"],
     "url": "https://github.com/klahnakoski/mo-json",
-    "version": "3.105.20292"
+    "version": "3.106.20292"
 }
