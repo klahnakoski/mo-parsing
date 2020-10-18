@@ -584,22 +584,14 @@ def matchOnlyAtCol(n):
     return verifyCol
 
 
-def replaceWith(replStr):
+def replaceWith(value):
     """Helper method for common parse actions that simply return
     a literal value.  Especially useful when used with
     :class:`transformString<ParserElement.transformString>` ().
-
-    Example::
-
-        num = Word(nums).addParseAction(lambda toks: int(toks[0]))
-        na = oneOf("N/A NA").addParseAction(replaceWith(math.nan))
-        term = na | num
-
-        OneOrMore(term).parseString("324 234 N/A 234") # -> [324, 234, nan, 234]
     """
 
-    def replacer(t, l, s):
-        return [replStr]
+    def replacer():
+        return [value]
 
     return replacer
 

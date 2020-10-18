@@ -337,22 +337,6 @@ class Word(Token):
        128-255 - currency, symbols, superscripts, diacriticals, etc.)
      - :class:`printables` (any non-whitespace character)
 
-    Example::
-
-        # a word composed of digits
-        integer = Word(nums) # equivalent to Word("0123456789") or Word(srange("0-9"))
-
-        # a word with a leading capital, and zero or more lowercase
-        capital_word = Word(alphas.upper(), alphas.lower())
-
-        # hostnames are alphanumeric, with leading alpha, and '-'
-        hostname = Word(alphas, alphanums + '-')
-
-        # roman numeral (not a strict parser, accepts invalid mix of characters)
-        roman = Word("IVXLCDM")
-
-        # any string of non-whitespace characters, except for ','
-        csv_value = Word(printables, excludeChars=",")
     """
 
     def __init__(
@@ -368,9 +352,9 @@ class Word(Token):
         super(Word, self).__init__()
         if excludeChars:
             excludeChars = set(excludeChars)
-            initChars = "".join(c for c in initChars if c not in excludeChars)
+            initChars = set(initChars) - excludeChars
             if bodyChars:
-                bodyChars = "".join(c for c in bodyChars if c not in excludeChars)
+                bodyChars = set(bodyChars) - excludeChars
         self.initChars = self.bodyChars = "".join(sorted(set(initChars)))
         if bodyChars:
             self.bodyChars = "".join(sorted(set(bodyChars)))

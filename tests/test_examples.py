@@ -10,7 +10,7 @@ from mo_parsing.engine import Engine
 
 modules = [f.name for f in File("examples").children]
 
-@unittest.skip("not working")
+# @unittest.skip("not working")
 class TestAllExamples(unittest.TestCase):
     pass
 

@@ -4,6 +4,7 @@
 #
 
 from mo_parsing import *
+from mo_parsing.utils import Log
 
 
 def romanNumeralLiteral(numeralString, value):
@@ -40,7 +41,10 @@ numeral = (
     | one
 ).leaveWhitespace()
 
-romanNumeral = numeral[1, ...].addParseAction(sum)
+def summer(tokens):
+    return sum(tokens)
+
+romanNumeral = numeral[1, ...].addParseAction(summer)
 
 # unit tests
 def makeRomanNumeral(n):
@@ -66,7 +70,6 @@ def makeRomanNumeral(n):
     n, ret = addDigits(n, 1, "I", ret)
     return ret
 
-
 # make a string of all roman numerals from I to MMMMM
 tests = " ".join(makeRomanNumeral(i) for i in range(1, 5000 + 1))
 
@@ -75,7 +78,7 @@ roman_int_map = {}
 for expected, (t, s, e) in enumerate(romanNumeral.scanString(tests), start=1):
     orig = tests[s:e]
     if t[0] != expected:
-
+        Log.error("not matched")
     roman_int_map[orig] = t[0]
 
 

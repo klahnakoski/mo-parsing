@@ -46,10 +46,8 @@ from mo_parsing import (
 
 MARK, UNMARK, AT, COLON, QUOTE = map(Suppress, "[]@:'")
 
-NUMBER = Word(nums)
-NUMBER.addParseAction(lambda t: int(t[0]))
-FLOAT = Combine(oneOf("+ -") + Word(nums) + "." + Optional(Word(nums)))
-FLOAT.addParseAction(lambda t: float(t[0]))
+NUMBER = Word(nums).addParseAction(lambda t: int(t[0]))
+FLOAT = Combine(oneOf("+ -") + Word(nums) + "." + Optional(Word(nums))).addParseAction(lambda t: float(t[0]))
 STRING = QuotedString('"', multiline=True)
 WORD = Word(alphas, alphanums + "_:")
 ATTRIBUTE = Combine(AT + WORD)
@@ -99,6 +97,6 @@ tests = """\
 
 for test in tests:
     if test:
-
+        item.parseString(test)
 
 

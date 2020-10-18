@@ -18,12 +18,15 @@ from examples.fourFn import exprStack, bnf, evaluate_stack
 
 
 def test(s, expected):
-    exprStack[:] = []
-    results = bnf.parseString(s, parseAll=True)
-    val = evaluate_stack(exprStack[:])
-    if val != expected:
-        Log.error("wrong")
-
+    try:
+        exprStack[:] = []
+        bnf.parseString(s, parseAll=True)
+        val = evaluate_stack(exprStack[:])
+        if val != expected:
+            Log.error("wrong")
+    except Exception:
+        if expected:
+           Log.error("wrong")
 
 
 test("9", 9)
