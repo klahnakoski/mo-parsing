@@ -23,7 +23,7 @@ def test(strng):
     return tokens
 
 
-ini = test("examples/setup.ini")
+ini = test("examples/Setup.ini")
 
 
 
