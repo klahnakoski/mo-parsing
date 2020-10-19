@@ -2,6 +2,13 @@
 
 An experimental fork of [pyparsing](https://github.com/pyparsing/pyparsing)
 
+
+|Branch      |Status   |
+|------------|---------|
+|master      | [![Build Status](https://travis-ci.org/klahnakoski/mo-parsing.svg?branch=master)](https://travis-ci.org/mozilla/moz-sql-parser) |
+|dev         | [![Build Status](https://travis-ci.org/klahnakoski/mo-parsing.svg?branch=dev)](https://travis-ci.org/mozilla/moz-sql-parser)    |
+
+
 ## Summary of Differences
 
 This has been forked to experiment with faster parsing in the [moz-sql-parser](https://github.com/klahnakoski/moz-sql-parser).
