@@ -1,15 +1,22 @@
-# mo-parsing
+# More Parsing!
 
 An experimental fork of [pyparsing](https://github.com/pyparsing/pyparsing)
 
+
+|Branch      |Status   |
+|------------|---------|
+|master      | [![Build Status](https://travis-ci.org/klahnakoski/mo-parsing.svg?branch=master)](https://travis-ci.org/mozilla/moz-sql-parser) |
+|dev         | [![Build Status](https://travis-ci.org/klahnakoski/mo-parsing.svg?branch=dev)](https://travis-ci.org/mozilla/moz-sql-parser)    |
+
+
 ## Summary of Differences
 
-This has been forked to experiment with faster parsing in the moz-sql-parser.
+This has been forked to experiment with faster parsing in the [moz-sql-parser](https://github.com/klahnakoski/moz-sql-parser).
 
 More features
 
-* Added `Engine`, which controls parsing context and whitespace (think lexxer)
-* faster infix parsing (main reason for this fork)
+* Added `Engine`, which controls parsing context and whitespace (think of it a a basic lexxer)
+* faster infix operator parsing (main reason for this fork)
 * ParseResults point to ParserElement for reduced size
 * packrat parser is always on
 * less stack used 
@@ -21,15 +28,13 @@ More focused
 
 * removed all backward-compatibility settings
 * no support for binary serialization (no pickle)
-* ParseActions must adhere to a strict interface
 
 More functional
 
-* tokens are static, can not be changed, parsing functions must emit new objects
+* ParseResults are static, can not be changed, parsing functions must emit new objects
 * ParserElements are static: Many are generated during language definition
 
 ## Details
-
 
 ### The `Engine`
 
