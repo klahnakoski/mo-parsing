@@ -1,6 +1,6 @@
 # encoding: utf-8
 
-from mo_dots import Null
+from mo_dots import Null, is_null
 from mo_future import text
 
 from mo_parsing.core import ParserElement
@@ -18,16 +18,6 @@ from mo_parsing.utils import _MAX_INT, empty_list, empty_tuple, is_forward
 Token, Literal, Keyword, Word, CharsNotIn, _PositionToken, StringEnd, Empty = [None] * 8
 
 _get = object.__getattribute__
-
-
-class _NullToken(object):
-    def __bool__(self):
-        return False
-
-    __nonzero__ = __bool__
-
-    def __str__(self):
-        return ""
 
 
 class ParseElementEnhance(ParserElement):
@@ -496,7 +486,7 @@ class Forward(ParserElement):
 
     def __lshift__(self, other):
         self.strRepr = ""
-        if other == None:
+        if is_null(other):
             Log.error("can not set to None")
         if is_forward(self.expr):
             return self.expr << other
@@ -540,12 +530,11 @@ class Forward(ParserElement):
 
     def parseImpl(self, string, loc, doActions=True):
         try:
-            temp = self.expr
             result = self.expr._parse(string, loc, doActions)
             loc, output = result
             return loc, ParseResults(self, [output])
         except Exception as cause:
-            if self.expr == None:
+            if is_null(self.expr):
                 Log.warning(
                     "Ensure you have assigned a ParserElement (<<) to this Forward",
                     cause=cause,

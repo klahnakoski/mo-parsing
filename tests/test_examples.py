@@ -5,7 +5,6 @@ import unittest
 from importlib import import_module
 
 from mo_files import File
-from mo_times import Timer
 
 from mo_parsing.engine import Engine
 
@@ -21,6 +20,7 @@ skip_list = [
     "decaf_parser",
     "delta_time",
     "dhcpd_leases_parser",
+    "dictExample",
     "dictExample2",
     "ebnftest",
     "eval_arith",
@@ -74,10 +74,9 @@ def _single_test(name):
 
     return output
 
-with Timer("bigquery view parsing"):
-    for f in File("examples").children:
-        if f.extension == "py":
-            func = _single_test(f.name)
-            if f.name in skip_list:
-                func = unittest.skip("requires fix")(func)
-            setattr(TestAllExamples, "test_" + f.name, func)
+for f in File("examples").children:
+    if f.extension == "py":
+        func = _single_test(f.name)
+        if f.name in skip_list:
+            func = unittest.skip("please fix " + f.name)(func)
+        setattr(TestAllExamples, "test_" + f.name, func)

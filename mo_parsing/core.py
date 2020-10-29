@@ -1,12 +1,11 @@
 # encoding: utf-8
 from threading import RLock
 
-from mo_dots import Data
+from mo_dots import Data, is_null
 from mo_future import text
-from mo_parsing.utils import Log
 
 from mo_parsing.cache import packrat_cache
-from mo_parsing.engine import PLAIN_ENGINE, Engine
+from mo_parsing.engine import Engine
 from mo_parsing.exceptions import (
     ParseBaseException,
     ParseException,
@@ -15,6 +14,7 @@ from mo_parsing.exceptions import (
 )
 from mo_parsing.results import ParseResults
 from mo_parsing.utils import (
+    Log,
     _MAX_INT,
     wrap_parse_action,
     empty_tuple,
@@ -550,7 +550,7 @@ class ParserElement(object):
         else:
             minElements, maxElements = other, other
 
-        if minElements == Ellipsis or minElements == None:
+        if minElements == Ellipsis or is_null(minElements):
             minElements = 0
         elif not isinstance(minElements, int):
             raise TypeError(
@@ -561,7 +561,7 @@ class ParserElement(object):
         elif minElements < 0:
             raise ValueError("cannot multiply ParserElement by negative value")
 
-        if maxElements == Ellipsis or maxElements == None:
+        if maxElements == Ellipsis or is_null(maxElements):
             maxElements = _MAX_INT
         elif (
             not isinstance(maxElements, int)

@@ -2,7 +2,7 @@
 import inspect
 from collections import MutableMapping
 
-from mo_dots import is_many
+from mo_dots import is_many, is_null
 from mo_future import is_text, text, PY3, NEXT, zip_longest
 from mo_parsing.utils import Log
 
@@ -123,7 +123,7 @@ class ParseResults(object):
         return sum(1 for _ in self)
 
     def __eq__(self, other):
-        if other == None:
+        if is_null(other):
             return not self.__bool__()
         elif is_text(other):
             try:

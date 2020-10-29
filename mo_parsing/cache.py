@@ -1,8 +1,7 @@
 import types
 from collections import OrderedDict
-from threading import RLock, Lock
 
-from mo_dots import Data
+from mo_parsing.utils import Log
 
 
 class FiFoCache(object):
@@ -34,34 +33,40 @@ class FiFoCache(object):
 
 class UnboundedCache(object):
     def __init__(self):
-        cache = {}
+        self.cache = {}
+        self.hit = 0
+        self.miss = 0
 
-        def get(self, key):
-            return cache.get(key)
+    def get(self, key):
+        output = self.cache.get(key)
+        if output is None:
+            self.miss += 1
+        else:
+            self.hit += 1
 
-        def set(self, key, value):
-            cache[key] = value
+    def set(self, key, value):
+        self.cache[key] = value
 
-        def clear(self):
-            cache.clear()
+    def clear(self):
+        if self.hit or self.miss:
+            Log.note(
+                "Hit Rate: {{rate|round(places=2)|percent}} (hits={{hits}},"
+                " misses={{misses}})",
+                rate=self.hit / (self.hit + self.miss),
+                hits=self.hit,
+                misses=self.miss,
+            )
+        self.cache.clear()
 
-        def cache_len(self):
-            return len(cache)
-
-        self.get = types.MethodType(get, self)
-        self.set = types.MethodType(set, self)
-        self.clear = types.MethodType(clear, self)
-        self.__len__ = types.MethodType(cache_len, self)
+    def __len__(self):
+        return len(self.cache)
 
 
 packrat_cache = UnboundedCache()
-packrat_cache_stats = Data()
 
 
 def resetCache():
     packrat_cache.clear()
-    packrat_cache_stats.hit = 0
-    packrat_cache_stats.miss = 0
 
 
 def enablePackrat(cache_size_limit=128):

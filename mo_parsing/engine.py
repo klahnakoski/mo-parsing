@@ -1,17 +1,17 @@
 # encoding: utf-8
-import sys
 from collections import namedtuple
 
 from mo_dots import Null
 from mo_future import is_text, text
 
 from mo_parsing.exceptions import ParseException
-from mo_parsing.utils import Log, indent, quote
+from mo_parsing.utils import Log, indent, quote as plain_quote
 from mo_parsing.utils import lineno, col, alphanums, stack_depth
 
 ParserElement, Literal, Token = [None] * 3
 
 CURRENT = None
+
 
 
 class Engine:
@@ -144,7 +144,7 @@ class Engine:
 def _defaultStartDebugAction(expr, loc, string):
     print(
         "  Attempt "
-        + quote(string[loc : loc + 10] + "...")
+        + quote(string, loc)
         + " at loc "
         + text(loc)
         + "(%d,%d)" % (lineno(loc, string), col(loc, string))
@@ -170,11 +170,15 @@ def _defaultSuccessDebugAction(expr, start, end, string, tokens):
 
 
 def _defaultExceptionDebugAction(expr, loc, string, cause):
-    print("  Except  " + quote(text(cause)))
+    print("  Except  " + plain_quote(text(cause)))
 
 
 def noop(*args):
     return
+
+
+def quote(value, start=0, length=12):
+    return (plain_quote(value[start:start + length - 2]) + (" " * length))[:length]
 
 
 DebugActions = namedtuple("DebugActions", ["TRY", "MATCH", "FAIL"])

@@ -10,6 +10,7 @@ from json.encoder import encode_basestring
 from math import isnan
 from types import FunctionType
 
+from mo_dots import is_null
 from mo_future import unichr, text, generator_types, is_text
 
 try:
@@ -65,7 +66,7 @@ def quote(value):
     :param value:
     :return:
     """
-    if value == None:
+    if is_null(value):
         output = ""
     elif is_text(value):
         output = encode_basestring(value)
@@ -75,7 +76,7 @@ def quote(value):
 
 
 def is_number(s):
-    if s is True or s is False or s == None:
+    if s is True or s is False or is_null(s):
         return False
 
     try:
@@ -92,7 +93,7 @@ def listwrap(value):
     value -> [value]
     [...] -> [...]  (unchanged list)
     """
-    if value == None:
+    if is_null(value):
         return []
     elif isinstance(value, many_types):
         return value

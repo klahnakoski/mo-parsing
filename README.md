@@ -15,7 +15,7 @@ This has been forked to experiment with faster parsing in the [moz-sql-parser](h
 
 More features
 
-* Added `Engine`, which controls parsing context and whitespace (think of it a a basic lexxer)
+* Added `Engine`, which controls parsing context and whitespace (a basic lexxer)
 * faster infix operator parsing (main reason for this fork)
 * ParseResults point to ParserElement for reduced size
 * packrat parser is always on
@@ -52,12 +52,12 @@ If you are declaring a large language, and you want to minimize indentation, and
 The engine can be used to set global parsing parameters, like
 
 * `set_whitespace()` - set the ignored characters (like whitespace)
-* `add_ignore()` - include whole patterns that are ignored (like commnets)
-* `set_debug_actions()` - insert functions to run for detailed debuigging
+* `add_ignore()` - include whole patterns that are ignored (like comments)
+* `set_debug_actions()` - insert functions to run for detailed debugging
 * `set_literal()` - Set the definition for what `Literal()` means
 * `set_keyword_chars()` - For default `Keyword()`
 
-The `engine.CURRENT` is added to every parse element created, and it is used during parsing to packrat the current parsed string.    
+The `engine.CURRENT` is added to every parse element created, and it is used during parsing to packrat the current parsed string. 
 
 
 ### Navigating ParseResults
