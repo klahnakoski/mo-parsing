@@ -203,7 +203,7 @@ class ParserElement(object):
         return self
 
     def parseImpl(self, string, loc, doActions=True):
-        return loc, ParseResults(self, [])
+        return loc, ParseResults(self, loc, [])
 
     def _parse(self, string, loc, doActions=True):
         lookup = (self, string, loc, doActions)
@@ -441,10 +441,10 @@ class ParserElement(object):
         else:
             g = Group(self)
             scanned = [
-                ParseResults(g, [t]) for t, s, e in self.scanString(string, maxMatches)
+                ParseResults(g, t.loc, [t]) for t, s, e in self.scanString(string, maxMatches)
             ]
 
-        output = ParseResults(ZeroOrMore(g), scanned,)
+        output = ParseResults(ZeroOrMore(g), min((s.loc for s in scanned), default=0), scanned)
         return output
 
     def split(self, string, maxsplit=_MAX_INT, includeSeparators=False):
@@ -770,7 +770,7 @@ engine.ParserElement = ParserElement
 results.ParserElement = ParserElement
 
 NO_PARSER = ParserElement().set_parser_name("<nothing>")  # USE THIS WHEN YOU DO NOT CARE ABOUT THE PARSER TYPE
-NO_RESULTS = ParseResults(NO_PARSER, [])
+NO_RESULTS = ParseResults(NO_PARSER, -1, [])
 
 results.NO_RESULTS = NO_RESULTS
 results.NO_PARSER = NO_PARSER

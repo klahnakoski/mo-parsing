@@ -202,7 +202,7 @@ class And(ParseExpression):
                 else:
                     raise ie
 
-        return loc, ParseResults(self, acc)
+        return loc, ParseResults(self, loc, acc)
 
     def __add__(self, other):
         if other is Ellipsis:
@@ -281,7 +281,7 @@ class Or(ParseExpression):
                 # alternative, so the first match will be the best match
                 _, best_expr = matches[0]
                 loc, best_results = best_expr._parse(string, loc, doActions)
-                return loc, ParseResults(self, [best_results])
+                return loc, ParseResults(self, loc, [best_results])
 
             longest = -1, None
             for loc1, expr1 in matches:
@@ -298,10 +298,10 @@ class Or(ParseExpression):
                         maxExcLoc = err.loc
                 else:
                     if loc2 >= loc1:
-                        return loc2, ParseResults(self, [toks])
+                        return loc2, ParseResults(self, loc2, [toks])
                     # didn't match as much as before
                     elif loc2 > longest[0]:
-                        longest = loc2, ParseResults(self, [toks])
+                        longest = loc2, ParseResults(self, loc2, [toks])
 
             if longest != (-1, None):
                 return longest
@@ -352,7 +352,7 @@ class MatchFirst(ParseExpression):
         for e in self.exprs:
             try:
                 loc, ret = e._parse(string, loc, doActions)
-                return loc, ParseResults(self, [ret])
+                return loc, ParseResults(self, loc, [ret])
             except ParseException as err:
                 if err.loc > maxExcLoc:
                     maxException = err
@@ -480,7 +480,7 @@ class Each(ParseExpression):
             loc, result = e._parse(string, loc, doActions)
             results.append(result)
 
-        return loc, ParseResults(self, results)
+        return loc, ParseResults(self, loc, results)
 
     def __str__(self):
         if self.parser_name:

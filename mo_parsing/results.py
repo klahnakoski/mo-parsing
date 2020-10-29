@@ -17,6 +17,7 @@ Suppress, ParserElement, NO_PARSER, NO_RESULTS, Group, Dict, Token, Empty = [Non
 class ParseResults(object):
     __slots__ = [
         "type",
+        "loc",
         "tokens",
     ]
 
@@ -24,8 +25,9 @@ class ParseResults(object):
     def name(self):
         return self.type.token_name
 
-    def __init__(self, result_type, tokens=None):
+    def __init__(self, result_type, loc, tokens=None):
         self.type = result_type
+        self.loc = loc
         self.tokens = tokens
 
     def _get_item_by_name(self, name):
@@ -70,7 +72,7 @@ class ParseResults(object):
             if len(values) == 1:
                 return values[0]
             # ENCAPSULATE IN A ParseResults FOR FURTHER NAVIGATION
-            return ParseResults(NO_PARSER, values)
+            return ParseResults(NO_PARSER, -1, values)
 
     def __setitem__(self, k, v):
         if isinstance(k, (slice, int)):
@@ -98,7 +100,7 @@ class ParseResults(object):
                 tok.__setitem__(k, NO_RESULTS)  # ERASE ALL CHILDREN
 
         if v is not NO_RESULTS:
-            self.tokens.append(Annotation(k, [v]))
+            self.tokens.append(Annotation(-1, k, [v]))
 
     if USE_ATTRIBUTE_ACCESS:
 
@@ -188,7 +190,7 @@ class ParseResults(object):
                     name = t.name
                     if name:
                         if not isinstance(t.type, Annotation):
-                            self.tokens.append(Annotation(name, t.tokens))
+                            self.tokens.append(Annotation(t.loc, name, t.tokens))
                     return
                 else:
                     index -= 1
@@ -288,7 +290,7 @@ class ParseResults(object):
         return bool(self[item])
 
     def __add__(self, other):
-        return ParseResults(Group(self.type + other.type), self.tokens + other.tokens)
+        return ParseResults(Group(self.type + other.type), self.loc, self.tokens + other.tokens)
 
     def __radd__(self, other):
         if not other:  # happens when using sum() on parsers
@@ -374,7 +376,7 @@ class ParseResults(object):
         """
         Returns a new copy of a :class:`ParseResults` object.
         """
-        ret = ParseResults(self.type, list(self.tokens))
+        ret = ParseResults(self.type, self.loc, list(self.tokens))
         return ret
 
     def getName(self):
@@ -448,12 +450,12 @@ class Annotation(ParseResults):
 
     __slots__ = []
 
-    def __init__(self, name, value):
+    def __init__(self, loc, name, value):
         if not name:
             Log.error("expecting a name")
         if not isinstance(value, list):
             Log.error("expecting a list")
-        ParseResults.__init__(self, Empty()(name), value)
+        ParseResults.__init__(self, Empty()(name), loc, value)
 
     def __str__(self):
         return "{" + text(self.name) + ": " + text(self.tokens) + "}"

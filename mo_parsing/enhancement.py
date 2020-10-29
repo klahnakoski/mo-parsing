@@ -43,7 +43,7 @@ class ParseElementEnhance(ParserElement):
 
     def parseImpl(self, string, loc, doActions=True):
         loc, output = self.expr._parse(string, loc, doActions)
-        return loc, ParseResults(self, [output])
+        return loc, ParseResults(self, loc, [output])
 
     def leaveWhitespace(self):
         with Engine(""):
@@ -112,7 +112,7 @@ class FollowedBy(ParseElementEnhance):
         loc, result = self.expr._parse(string, loc, doActions=doActions)
         result.__class__ = Annotation
 
-        return loc, ParseResults(self, [result])
+        return loc, ParseResults(self, loc, [result])
 
 
 class NotAny(ParseElementEnhance):
@@ -147,7 +147,7 @@ class NotAny(ParseElementEnhance):
     def parseImpl(self, string, loc, doActions=True):
         if self.expr.canParseNext(string, loc):
             raise ParseException(self, loc, string)
-        return loc, ParseResults(self, [])
+        return loc, ParseResults(self, loc, [])
 
     def __str__(self):
         if self.parser_name:
@@ -204,7 +204,7 @@ class Many(ParseElementEnhance):
             else:
                 raise e
 
-        return loc, ParseResults(self, acc)
+        return loc, ParseResults(self, loc, acc)
 
     def __call__(self, name):
         if not name:
@@ -271,7 +271,7 @@ class ZeroOrMore(Many):
         try:
             return super(ZeroOrMore, self).parseImpl(string, loc, doActions)
         except (ParseException, IndexError):
-            return loc, ParseResults(self, [])
+            return loc, ParseResults(self, loc, [])
 
     def __str__(self):
         if self.parser_name:
@@ -333,11 +333,11 @@ class Optional(Many):
             loc, tokens = self.expr._parse(string, loc, doActions)
         except (ParseException, IndexError):
             if self.defaultValue is None:
-                return loc, ParseResults(self, [])
+                return loc, ParseResults(self, loc, [])
             else:
                 tokens = self.defaultValue
 
-        return loc, ParseResults(self, [tokens])
+        return loc, ParseResults(self, loc, [tokens])
 
     def __str__(self):
         if self.parser_name:
@@ -427,9 +427,9 @@ class SkipTo(ParseElementEnhance):
         if self.includeMatch:
             _, end_result = end_parse(string, before_end, doActions)
             skip_result.append(end_result)
-            return end, ParseResults(self, skip_result)
+            return end, ParseResults(self, end, skip_result)
         else:
-            return before_end, ParseResults(self, skip_result)
+            return before_end, ParseResults(self, before_end, skip_result)
 
 
 class Forward(ParserElement):
@@ -532,7 +532,7 @@ class Forward(ParserElement):
         try:
             result = self.expr._parse(string, loc, doActions)
             loc, output = result
-            return loc, ParseResults(self, [output])
+            return loc, ParseResults(self, loc, [output])
         except Exception as cause:
             if is_null(self.expr):
                 Log.warning(
@@ -592,7 +592,7 @@ class Combine(TokenConverter):
 
 def _combine_post_parse(tokens, loc, string):
     type_ = tokens.type
-    retToks = ParseResults(type_, [tokens.asString(sep=type_.separator)])
+    retToks = ParseResults(type_, loc, [tokens.asString(sep=type_.separator)])
 
     return retToks
 
@@ -644,7 +644,7 @@ def _dict_post_parse(tokens, loc, string):
             kv = list(tok)
             key = kv[0]
             value = kv[1:]
-            new_tok = Annotation(text(key), value)
+            new_tok = Annotation(loc, text(key), value)
             acc.append(new_tok)
 
     return tokens
@@ -669,7 +669,7 @@ class Suppress(TokenConverter):
 
 
 def _suppress_post_parse(tokens, loc, string):
-    return ParseResults(tokens.type, [])
+    return ParseResults(tokens.type, loc, [])
 
 
 class PrecededBy(ParseElementEnhance):
@@ -751,7 +751,7 @@ class PrecededBy(ParseElementEnhance):
         # return empty list of tokens, but preserve any defined results names
 
         ret.__class__ = Annotation
-        return loc, ParseResults(self, [ret])
+        return loc, ParseResults(self, loc, [ret])
 
 
 # export

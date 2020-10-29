@@ -87,7 +87,7 @@ class Literal(Token):
 
     def parseImpl(self, string, loc, doActions=True):
         if string.startswith(self.match, loc):
-            return loc + len(self.match), ParseResults(self, [self.match])
+            return loc + len(self.match), ParseResults(self, loc, [self.match])
         raise ParseException(self, loc, string)
 
     def __str__(self):
@@ -97,7 +97,7 @@ class Literal(Token):
 class _SingleCharLiteral(Literal):
     def parseImpl(self, string, loc, doActions=True):
         if string[loc] == self.match:
-            return loc + 1, ParseResults(self, [self.match])
+            return loc + 1, ParseResults(self, loc, [self.match])
         raise ParseException(self, loc, string)
 
 
@@ -158,9 +158,9 @@ class Keyword(Token):
             end = loc + len(self.match)
             try:
                 if string[end] not in self.identChars:
-                    return end, ParseResults(self, [self.match])
+                    return end, ParseResults(self, loc, [self.match])
             except IndexError:
-                return end, ParseResults(self, [self.match])
+                return end, ParseResults(self, loc, [self.match])
 
         raise ParseException(self, loc, string)
 
@@ -195,9 +195,9 @@ class CaselessKeyword(Keyword):
             end = loc + len(self.match)
             try:
                 if string[end] not in self.identChars:
-                    return end, ParseResults(self, [self.match])
+                    return end, ParseResults(self, loc, [self.match])
             except IndexError:
-                return end, ParseResults(self, [self.match])
+                return end, ParseResults(self, loc, [self.match])
         raise ParseException(self, loc, string)
 
 
@@ -221,7 +221,7 @@ class CaselessLiteral(Literal):
 
     def parseImpl(self, string, loc, doActions=True):
         if self.pattern.match(string, loc):
-            return loc + len(self.match), ParseResults(self, [self.match])
+            return loc + len(self.match), ParseResults(self, loc, [self.match])
         raise ParseException(self, loc, string)
 
 
@@ -293,7 +293,7 @@ class CloseMatch(Token):
                         break
             else:
                 loc = match_stringloc + 1
-                results = ParseResults(self, [string[start:loc]])
+                results = ParseResults(self, loc, [string[start:loc]])
                 results["original"] = match_string
                 results["mismatches"] = mismatches
                 return loc, results
@@ -445,7 +445,7 @@ class Word(Token):
         if throwException:
             raise ParseException(self, loc, string)
 
-        return loc, ParseResults(self, [string[start:loc]])
+        return loc, ParseResults(self, loc, [string[start:loc]])
 
     def __str__(self):
         if self.parser_name:
@@ -463,7 +463,7 @@ class _WordRegex(Word):
             raise ParseException(self, loc, string)
 
         loc = result.end()
-        return loc, ParseResults(self, [result.group()])
+        return loc, ParseResults(self, loc, [result.group()])
 
     def copy(self):
         output = Word.copy(self)
@@ -568,7 +568,7 @@ class Regex(Token):
             raise ParseException(self, loc, string)
 
         loc = result.end()
-        ret = ParseResults(self, [result.group()])
+        ret = ParseResults(self, loc, [result.group()])
         d = result.groupdict()
         if d:
             for k, v in d.items():
@@ -603,7 +603,7 @@ class _RegExAsGroup(Regex):
             raise ParseException(self, loc, string)
 
         loc = result.end()
-        ret = ParseResults(self, [result.groups()])
+        ret = ParseResults(self, loc, [result.groups()])
         return loc, ret
 
     def sub(self, repl):
@@ -617,7 +617,7 @@ class _RegExAsMatch(Regex):
             raise ParseException(self, loc, string)
 
         loc = result.end()
-        ret = ParseResults(self, [result])
+        ret = ParseResults(self, loc, [result])
         return loc, ret
 
     def sub(self, repl):
@@ -800,7 +800,7 @@ class QuotedString(Token):
                 if self.escQuote:
                     ret = ret.replace(self.escQuote, self.endQuoteChar)
 
-        return loc, ParseResults(self, [ret])
+        return loc, ParseResults(self, loc, [ret])
 
     def copy(self):
         output = Token.copy(self)
@@ -900,7 +900,7 @@ class CharsNotIn(Token):
         if loc - start < self.minLen:
             raise ParseException(self, loc, string)
 
-        return loc, ParseResults(self, [string[start:loc]])
+        return loc, ParseResults(self, loc, [string[start:loc]])
 
     def __str__(self):
         try:
@@ -991,7 +991,7 @@ class White(Token):
         if loc - start < self.minLen:
             raise ParseException(self, loc, string)
 
-        return loc, ParseResults(self, [string[start:loc]])
+        return loc, ParseResults(self, loc, string[start:loc])
 
 
 class _PositionToken(Token):
@@ -1060,7 +1060,7 @@ class LineStart(_PositionToken):
 
     def parseImpl(self, string, loc, doActions=True):
         if col(loc, string) == 1:
-            return loc, ParseResults(self, [])
+            return loc, ParseResults(self, loc, [])
         raise ParseException(self, loc, string)
 
 
@@ -1077,11 +1077,11 @@ class LineEnd(_PositionToken):
     def parseImpl(self, string, loc, doActions=True):
         if loc < len(string):
             if string[loc] == "\n":
-                return loc + 1, ParseResults(self, ["\n"])
+                return loc + 1, ParseResults(self, loc + 1, ["\n"])
             else:
                 raise ParseException(self, loc, string)
         elif loc == len(string):
-            return loc + 1, ParseResults(self, [])
+            return loc + 1, ParseResults(self, loc + 1, [])
         else:
             raise ParseException(self, loc, string)
 
@@ -1115,7 +1115,7 @@ class StringEnd(_PositionToken):
     def parseImpl(self, string, loc, doActions=True):
         l = len(string)
         if loc >= l:
-            return l, ParseResults(self, [])
+            return l, ParseResults(self, l, [])
 
         raise ParseException(self, loc, string)
 
@@ -1143,7 +1143,7 @@ class WordStart(_PositionToken):
         if loc != 0:
             if string[loc - 1] in self.wordChars or string[loc] not in self.wordChars:
                 raise ParseException(self, loc, string)
-        return loc, ParseResults(self, [])
+        return loc, ParseResults(self, loc, [])
 
 
 class WordEnd(_PositionToken):
@@ -1171,7 +1171,7 @@ class WordEnd(_PositionToken):
         if instrlen > 0 and loc < instrlen:
             if string[loc] in self.wordChars or string[loc - 1] not in self.wordChars:
                 raise ParseException(self, loc, string)
-        return loc, ParseResults(self, [])
+        return loc, ParseResults(self, loc, [])
 
 
 # export

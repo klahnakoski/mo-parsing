@@ -266,9 +266,9 @@ def wrap_parse_action(func):
                 return result
 
             if isinstance(result, (list, tuple)):
-                return ParseResults(token.type, result)
+                return ParseResults(token.type, token.loc, result)
             else:
-                return ParseResults(token.type, [result])
+                return ParseResults(token.type, token.loc, [result])
         except ParseException as pe:
             raise pe
         except Exception as cause:

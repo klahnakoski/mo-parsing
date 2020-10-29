@@ -6,7 +6,7 @@ from collections import Iterable
 from datetime import datetime
 
 from mo_dots import listwrap
-from mo_future import text
+from mo_future import text, first
 from mo_parsing.utils import Log
 
 from mo_parsing.core import add_reset_action
@@ -386,8 +386,8 @@ def originalTextFor(expr, asString=True):
 def extractText(tokens, loc, string):
     start, d, end = tokens
     content = string[start:end]
-    annotations = [Annotation(k, v) for k, v in d.items()]
-    return ParseResults(d.type, [content] + annotations)
+    annotations = [Annotation(v[0].loc, k, v) for k, v in d.items()]
+    return ParseResults(d.type, start, [content] + annotations)
 
 
 def ungroup(expr):
@@ -850,7 +850,7 @@ def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
             return output
 
         def record_self(tok):
-            ParseResults(tok.type, [tok.type.parser_name])
+            ParseResults(tok.type, tok.loc, [tok.type.parser_name])
 
         output = engine.CURRENT.normalize(op)
         is_suppressed = isinstance(output, Suppress)
@@ -917,7 +917,7 @@ def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
 
     def record_op(op):
         def output(tokens):
-            return ParseResults(NO_PARSER, [(tokens, op)])
+            return ParseResults(NO_PARSER, tokens.loc, [(tokens, op)])
 
         return output
 
@@ -951,9 +951,9 @@ def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
                     for i, (r, o) in todo:
                         if o == op:
                             if is_suppressed:
-                                result = ParseResults(expr, (flat_tokens[i + 1][0],))
+                                result = ParseResults(expr, flat_tokens[i + 1][0].loc, (flat_tokens[i + 1][0],))
                             else:
-                                result = ParseResults(expr, (r, flat_tokens[i + 1][0]))
+                                result = ParseResults(expr, r.loc, (r, flat_tokens[i + 1][0]))
                             break
                     else:
                         op_index += 1
@@ -964,9 +964,9 @@ def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
                     for i, (r, o) in todo:
                         if o == op:
                             if is_suppressed:
-                                result = ParseResults(expr, (flat_tokens[i][0],))
+                                result = ParseResults(expr, flat_tokens[i][0].loc, (flat_tokens[i][0],))
                             else:
-                                result = ParseResults(expr, (flat_tokens[i][0], r,))
+                                result = ParseResults(expr, flat_tokens[i][0].loc, (flat_tokens[i][0], r,))
                             break
                     else:
                         op_index += 1
@@ -980,11 +980,11 @@ def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
                     if o == op:
                         if is_suppressed:
                             result = ParseResults(
-                                expr, (flat_tokens[i][0], flat_tokens[i + 2][0])
+                                expr, flat_tokens[i][0].loc, (flat_tokens[i][0], flat_tokens[i + 2][0])
                             )
                         else:
                             result = ParseResults(
-                                expr, (flat_tokens[i][0], r, flat_tokens[i + 2][0])
+                                expr, flat_tokens[i][0].loc, (flat_tokens[i][0], r, flat_tokens[i + 2][0])
                             )
                         break
                 else:
@@ -1011,7 +1011,7 @@ def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
                             if not s0:
                                 seq.insert(1, r0)
 
-                            result = ParseResults(expr, seq)
+                            result = ParseResults(expr, seq[0].loc, seq)
                             break
                 else:
                     op_index += 1
