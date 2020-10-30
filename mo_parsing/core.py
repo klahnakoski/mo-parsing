@@ -202,24 +202,23 @@ class ParserElement(object):
         self.parser_config.failAction = fn
         return self
 
-    def parseImpl(self, string, loc, doActions=True):
-        return loc, ParseResults(self, loc, [])
+    def parseImpl(self, string, start, doActions=True):
+        return ParseResults(self, start, start, [])
 
-    def _parse(self, string, loc, doActions=True):
-        lookup = (self, string, loc, doActions)
+    def _parse(self, string, start, doActions=True):
+        lookup = (self, string, start, doActions)
         value = packrat_cache.get(lookup)
         if value is not None:
             if isinstance(value, Exception):
                 raise value
-            return value[0], value[1]
+            return value
 
         try:
-            self.engine.debugActions.TRY(self, loc, string)
-            start = preloc = loc
+            self.engine.debugActions.TRY(self, start, string)
             try:
-                start = preloc = self.engine.skip(string, loc)
+                preloc = self.engine.skip(string, start)
                 try:
-                    loc, tokens = self.parseImpl(string, preloc, doActions)
+                    tokens = self.parseImpl(string, preloc, doActions)
                 except IndexError:
                     if self.parser_config.mayIndexError or preloc >= len(string):
                         ex = ParseException(self, len(string), string,)
@@ -238,23 +237,23 @@ class ParserElement(object):
                 except Exception as err:
                     self.engine.debugActions.FAIL(self, start, string, err)
                     raise
-            self.engine.debugActions.MATCH(self, start, loc, string, tokens)
+            self.engine.debugActions.MATCH(self, start, tokens.end, string, tokens)
         except ParseBaseException as pe:
             packrat_cache.set(lookup, pe)
             raise
 
-        packrat_cache.set(lookup, (loc, tokens))
-        return loc, tokens
+        packrat_cache.set(lookup, tokens)
+        return tokens
 
-    def tryParse(self, string, loc):
+    def tryParse(self, string, start):
         try:
-            return self._parse(string, loc, doActions=False)[0]
+            return self._parse(string, start, doActions=False).end
         except ParseFatalException:
-            raise ParseException(self, loc, string)
+            raise ParseException(self, start, string)
 
-    def canParseNext(self, string, loc):
+    def canParseNext(self, string, start):
         try:
-            self.tryParse(string, loc)
+            self.tryParse(string, start)
         except (ParseException, IndexError):
             return False
         else:
@@ -310,11 +309,11 @@ class ParserElement(object):
             # TOP LEVEL NAMES ARE NOT ALLOWED
             expr = Group(expr)
         try:
-            loc, tokens = expr._parse(string, 0)
+            tokens = expr._parse(string, 0)
+            end = tokens.end
             if parseAll:
-                loc = expr.engine.skip(string, loc)
-                se = Empty() + StringEnd()
-                se._parse(string, loc)
+                end = expr.engine.skip(string, end)
+                StringEnd()._parse(string, end)
         except ParseBaseException as exc:
             raise exc
         else:
@@ -331,26 +330,6 @@ class ParserElement(object):
         Note that the start and end locations are reported relative to the string
         being parsed.  See :class:`parseString` for more information on parsing
         strings with embedded tabs.
-
-        Example::
-
-            source = "sldjf123lsdjjkf345sldkjf879lkjsfd987"
-            print(source)
-            for tokens, start, end in Word(alphas).scanString(source):
-                print(' '*start + '^'*(end-start))
-                print(' '*start + tokens[0])
-
-        prints::
-
-            sldjf123lsdjjkf345sldkjf879lkjsfd987
-            ^^^^^
-            sldjf
-                    ^^^^^^^
-                    lsdjjkf
-                              ^^^^^^
-                              sldkjf
-                                       ^^^^^^
-                                       lkjsfd
         """
         if not self.streamlined:
             self.streamline()
@@ -358,22 +337,22 @@ class ParserElement(object):
                 e.streamline()
 
         instrlen = len(string)
-        loc = 0
+        end = 0
         cache.resetCache()
         matches = 0
-        while loc <= instrlen and matches < maxMatches:
+        while end <= instrlen and matches < maxMatches:
             try:
-                preloc = self.engine.skip(string, loc)
-                nextLoc, tokens = self._parse(string, preloc)
+                start = self.engine.skip(string, end)
+                tokens = self._parse(string, start)
             except ParseException:
-                loc = preloc + 1
+                end = start + 1
             else:
                 matches += 1
-                yield tokens, preloc, nextLoc
-                if overlap or nextLoc <= loc:
-                    loc += 1
+                yield tokens, start, tokens.end
+                if overlap or tokens.end <= end:
+                    end += 1
                 else:
-                    loc = nextLoc
+                    end = tokens.end
 
     def transformString(self, string):
         """
@@ -441,11 +420,16 @@ class ParserElement(object):
         else:
             g = Group(self)
             scanned = [
-                ParseResults(g, t.loc, [t]) for t, s, e in self.scanString(string, maxMatches)
+                ParseResults(g, s, e, [t])
+                for t, s, e in self.scanString(string, maxMatches)
             ]
 
-        output = ParseResults(ZeroOrMore(g), min((s.loc for s in scanned), default=0), scanned)
-        return output
+        if not scanned:
+            return ParseResults(ZeroOrMore(g), -1, -1, [])
+        else:
+            return ParseResults(
+                ZeroOrMore(g), scanned[0].start, scanned[-1].end, scanned
+            )
 
     def split(self, string, maxsplit=_MAX_INT, includeSeparators=False):
         """
@@ -630,7 +614,7 @@ class ParserElement(object):
 
     def __getitem__(self, key):
         if isinstance(key, slice):
-            return self*(key.start, key.stop)
+            return self * (key.start, key.stop)
         return self * key
 
     def __call__(self, name):
@@ -769,9 +753,11 @@ from mo_parsing import cache, engine, results
 engine.ParserElement = ParserElement
 results.ParserElement = ParserElement
 
-NO_PARSER = ParserElement().set_parser_name("<nothing>")  # USE THIS WHEN YOU DO NOT CARE ABOUT THE PARSER TYPE
-NO_RESULTS = ParseResults(NO_PARSER, -1, [])
+NO_PARSER = (
+    ParserElement().set_parser_name("<nothing>")
+)  # USE THIS WHEN YOU DO NOT CARE ABOUT THE PARSER TYPE
+NO_RESULTS = ParseResults(NO_PARSER, -1, -1, [])
 
-results.NO_RESULTS = NO_RESULTS
 results.NO_PARSER = NO_PARSER
+results.NO_RESULTS = NO_RESULTS
 del results

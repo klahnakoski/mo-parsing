@@ -13,7 +13,6 @@ ParserElement, Literal, Token = [None] * 3
 CURRENT = None
 
 
-
 class Engine:
     def __init__(self, white=" \n\r\t"):
         self.literal = Literal
@@ -122,7 +121,7 @@ class Engine:
 
             for i in self.ignore_list:
                 try:
-                    next_end, _ = i.parseImpl(string, end)
+                    next_end = i.parseImpl(string, end).end
                     if next_end > end:
                         more = True
                         end = next_end
@@ -178,7 +177,7 @@ def noop(*args):
 
 
 def quote(value, start=0, length=12):
-    return (plain_quote(value[start:start + length - 2]) + (" " * length))[:length]
+    return (plain_quote(value[start : start + length - 2]) + (" " * length))[:length]
 
 
 DebugActions = namedtuple("DebugActions", ["TRY", "MATCH", "FAIL"])

@@ -86,7 +86,8 @@ class ParseBaseException(Exception):
         return "lineno col line".split() + dir(type(self))
 
 
-class ParseException(ParseBaseException):
+class \
+        ParseException(ParseBaseException):
     """
     Exception thrown when parse expressions don't match class;
     supported attributes by name are:

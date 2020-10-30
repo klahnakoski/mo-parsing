@@ -35,4 +35,4 @@ with urlopen(nistTimeServerURL) as serverListPage:
 addrs = {}
 for srvr, startloc, endloc in timeServerPattern.scanString(serverListHTML):
 
-    addrs[srvr.ipAddr] = srvr.loc
+    addrs[srvr.ipAddr] = srvr.end

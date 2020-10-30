@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 from mo_dots import Null, is_null
-from mo_future import text
+from mo_future import text, is_text
 
 from mo_parsing.core import ParserElement
 from mo_parsing.engine import noop, Engine
@@ -11,7 +11,7 @@ from mo_parsing.exceptions import (
     RecursiveGrammarException,
 )
 from mo_parsing.results import ParseResults, Annotation
-from mo_parsing.utils import Log
+from mo_parsing.utils import Log, listwrap
 from mo_parsing.utils import _MAX_INT, empty_list, empty_tuple, is_forward
 
 # import later
@@ -41,9 +41,9 @@ class ParseElementEnhance(ParserElement):
             output.expr = self.expr.copy()
         return output
 
-    def parseImpl(self, string, loc, doActions=True):
-        loc, output = self.expr._parse(string, loc, doActions)
-        return loc, ParseResults(self, loc, [output])
+    def parseImpl(self, string, start, doActions=True):
+        output = self.expr._parse(string, start, doActions)
+        return ParseResults(self, output.start, output.end, [output])
 
     def leaveWhitespace(self):
         with Engine(""):
@@ -106,13 +106,13 @@ class FollowedBy(ParseElementEnhance):
         super(FollowedBy, self).__init__(expr)
         self.parser_config.mayReturnEmpty = True
 
-    def parseImpl(self, string, loc, doActions=True):
+    def parseImpl(self, string, start, doActions=True):
         # by using self._expr.parse and deleting the contents of the returned ParseResults list
         # we keep any named results that were defined in the FollowedBy expression
-        loc, result = self.expr._parse(string, loc, doActions=doActions)
+        result = self.expr._parse(string, start, doActions=doActions)
         result.__class__ = Annotation
 
-        return loc, ParseResults(self, loc, [result])
+        return ParseResults(self, start, result.end, [result])
 
 
 class NotAny(ParseElementEnhance):
@@ -144,10 +144,10 @@ class NotAny(ParseElementEnhance):
         # do NOT use self.leaveWhitespace(), don't want to propagate to exprs
         self.parser_config.mayReturnEmpty = True
 
-    def parseImpl(self, string, loc, doActions=True):
-        if self.expr.canParseNext(string, loc):
-            raise ParseException(self, loc, string)
-        return loc, ParseResults(self, loc, [])
+    def parseImpl(self, string, start, doActions=True):
+        if self.expr.canParseNext(string, start):
+            raise ParseException(self, start, string)
+        return ParseResults(self, start, start, [])
 
     def __str__(self):
         if self.parser_name:
@@ -184,18 +184,19 @@ class Many(ParseElementEnhance):
         self.not_ender = ~self.engine.normalize(ender) if ender else None
         return self
 
-    def parseImpl(self, string, loc, doActions=True):
+    def parseImpl(self, string, start, doActions=True):
         if self.not_ender is None:
             try_not_ender = noop
         else:
             try_not_ender = self.not_ender.tryParse
 
         acc = []
+        end = start
         try:
-            while True:
-                try_not_ender(string, loc)
-                preloc = loc
-                loc, tmptokens = self.expr._parse(string, preloc, doActions)
+            while end < len(string):
+                try_not_ender(string, end)
+                tmptokens = self.expr._parse(string, end, doActions)
+                end = tmptokens.end
                 if tmptokens:
                     acc.append(tmptokens)
         except (ParseException, IndexError) as e:
@@ -204,7 +205,12 @@ class Many(ParseElementEnhance):
             else:
                 raise e
 
-        return loc, ParseResults(self, loc, acc)
+        if len(acc) < self.min_match or self.max_match< len(acc):
+            raise ParseException(self, acc[0].start, f"Expecting between {self.min_match} and {self.max_match} of {self}")
+        elif acc:
+            return ParseResults(self, acc[0].start, acc[-1].end, acc)
+        else:
+            return ParseResults(self, start, start, acc)
 
     def __call__(self, name):
         if not name:
@@ -267,11 +273,11 @@ class ZeroOrMore(Many):
         self.parser_config.lock_engine = self.expr.parser_config.lock_engine
         self.parser_config.engine = self.expr.parser_config.engine
 
-    def parseImpl(self, string, loc, doActions=True):
+    def parseImpl(self, string, start, doActions=True):
         try:
-            return super(ZeroOrMore, self).parseImpl(string, loc, doActions)
+            return super(ZeroOrMore, self).parseImpl(string, start, doActions)
         except (ParseException, IndexError):
-            return loc, ParseResults(self, loc, [])
+            return ParseResults(self, start, start, [])
 
     def __str__(self):
         if self.parser_name:
@@ -320,7 +326,7 @@ class Optional(Many):
 
     def __init__(self, expr, default=None):
         Many.__init__(self, expr, stopOn=None, min_match=0, max_match=1)
-        self.defaultValue = default
+        self.defaultValue = listwrap(default)
         self.parser_config.mayReturnEmpty = True
 
     def copy(self):
@@ -328,16 +334,12 @@ class Optional(Many):
         output.defaultValue = self.defaultValue
         return output
 
-    def parseImpl(self, string, loc, doActions=True):
+    def parseImpl(self, string, start, doActions=True):
         try:
-            loc, tokens = self.expr._parse(string, loc, doActions)
+            tokens = self.expr._parse(string, start, doActions)
+            return ParseResults(self, tokens.start, tokens.end, [tokens])
         except (ParseException, IndexError):
-            if self.defaultValue is None:
-                return loc, ParseResults(self, loc, [])
-            else:
-                tokens = self.defaultValue
-
-        return loc, ParseResults(self, loc, [tokens])
+            return ParseResults(self, start, start, self.defaultValue)
 
     def __str__(self):
         if self.parser_name:
@@ -377,10 +379,8 @@ class SkipTo(ParseElementEnhance):
         output.failOn = self.failOn
         return output
 
-    def parseImpl(self, string, end, doActions=True):
-        start = end
+    def parseImpl(self, string, start, doActions=True):
         instrlen = len(string)
-        end_parse = self.expr._parse
         self_failOn_canParseNext = (
             self.failOn.canParseNext if self.failOn is not None else None
         )
@@ -388,48 +388,48 @@ class SkipTo(ParseElementEnhance):
             self.ignoreExpr.tryParse if self.ignoreExpr is not None else None
         )
 
-        tmploc = end
-        while tmploc <= instrlen:
+        loc = start
+        while loc <= instrlen:
             if self_failOn_canParseNext is not None:
                 # break if failOn expression matches
-                if self_failOn_canParseNext(string, tmploc):
-                    before_end = tmploc
+                if self_failOn_canParseNext(string, loc):
+                    before_end = loc
                     break
 
             if self_ignoreExpr_tryParse is not None:
                 # advance past ignore expressions
                 while 1:
                     try:
-                        tmploc = self_ignoreExpr_tryParse(string, tmploc)
+                        loc = self_ignoreExpr_tryParse(string, loc)
                     except ParseBaseException:
                         break
             try:
-                before_end = tmploc
-                tmploc, _ = end_parse(string, tmploc, doActions=False)
+                before_end = loc
+                loc = self.expr._parse(string, loc, doActions=False).end
             except (ParseException, IndexError):
                 # no match, advance loc in string
-                tmploc += 1
+                loc += 1
             else:
                 # matched skipto expr, done
                 break
 
         else:
             # ran off the end of the input string without matching skipto expr, fail
-            raise ParseException(self, end, string)
+            raise ParseException(self, start, string)
 
         # build up return values
-        end = tmploc
+        end = loc
         skiptext = string[start:before_end]
         skip_result = []
         if skiptext:
             skip_result.append(skiptext)
 
         if self.includeMatch:
-            _, end_result = end_parse(string, before_end, doActions)
+            end_result = self.expr._parse(string, before_end, doActions)
             skip_result.append(end_result)
-            return end, ParseResults(self, end, skip_result)
+            return ParseResults(self, start, end, skip_result)
         else:
-            return before_end, ParseResults(self, before_end, skip_result)
+            return ParseResults(self, start, before_end, skip_result)
 
 
 class Forward(ParserElement):
@@ -531,8 +531,7 @@ class Forward(ParserElement):
     def parseImpl(self, string, loc, doActions=True):
         try:
             result = self.expr._parse(string, loc, doActions)
-            loc, output = result
-            return loc, ParseResults(self, loc, [output])
+            return ParseResults(self, result.start, result.end, [result])
         except Exception as cause:
             if is_null(self.expr):
                 Log.warning(
@@ -590,10 +589,11 @@ class Combine(TokenConverter):
         return output
 
 
-def _combine_post_parse(tokens, loc, string):
+def _combine_post_parse(tokens, start, string):
     type_ = tokens.type
-    retToks = ParseResults(type_, loc, [tokens.asString(sep=type_.separator)])
-
+    retToks = ParseResults(
+        tokens.type, start, tokens.end, [tokens.asString(sep=type_.separator)]
+    )
     return retToks
 
 
@@ -641,10 +641,13 @@ def _dict_post_parse(tokens, loc, string):
         for tok in list(a):
             if not tok:
                 continue
-            kv = list(tok)
-            key = kv[0]
-            value = kv[1:]
-            new_tok = Annotation(loc, text(key), value)
+            if is_text(tok):
+                new_tok = Annotation(tok, a.start, a.end, [])
+            else:
+                kv = list(tok)
+                key = kv[0]
+                value = kv[1:]
+                new_tok = Annotation(text(key), tok.start, tok.end, value)
             acc.append(new_tok)
 
     return tokens
@@ -668,8 +671,8 @@ class Suppress(TokenConverter):
         return text(self.expr)
 
 
-def _suppress_post_parse(tokens, loc, string):
-    return ParseResults(tokens.type, loc, [])
+def _suppress_post_parse(tokens, start, string):
+    return ParseResults(tokens.type, tokens.start, tokens.end, [])
 
 
 class PrecededBy(ParseElementEnhance):
@@ -728,20 +731,20 @@ class PrecededBy(ParseElementEnhance):
         output.retreat = self.retreat
         return output
 
-    def parseImpl(self, string, loc=0, doActions=True):
+    def parseImpl(self, string, start=0, doActions=True):
         if self.exact:
-            if loc < self.retreat:
-                raise ParseException(self, loc, string)
-            start = loc - self.retreat
-            _, ret = self.expr._parse(string, start)
+            if start < self.retreat:
+                raise ParseException(self, start, string)
+            start = start - self.retreat
+            ret = self.expr._parse(string, start)
         else:
             # retreat specified a maximum lookbehind window, iterate
             test_expr = self.expr + StringEnd()
-            instring_slice = string[:loc]
-            last_expr = ParseException(self, loc, string)
-            for offset in range(1, min(loc, self.retreat + 1)):
+            instring_slice = string[:start]
+            last_expr = ParseException(self, start, string)
+            for offset in range(1, min(start, self.retreat + 1)):
                 try:
-                    _, ret = test_expr._parse(instring_slice, loc - offset)
+                    ret = test_expr._parse(instring_slice, start - offset)
                 except ParseBaseException as pbe:
                     last_expr = pbe
                 else:
@@ -751,7 +754,7 @@ class PrecededBy(ParseElementEnhance):
         # return empty list of tokens, but preserve any defined results names
 
         ret.__class__ = Annotation
-        return loc, ParseResults(self, loc, [ret])
+        return ParseResults(self, start, ret.end, [ret])
 
 
 # export

@@ -386,8 +386,8 @@ def originalTextFor(expr, asString=True):
 def extractText(tokens, loc, string):
     start, d, end = tokens
     content = string[start:end]
-    annotations = [Annotation(v[0].loc, k, v) for k, v in d.items()]
-    return ParseResults(d.type, start, [content] + annotations)
+    annotations = [Annotation(k, v[0].start, v[-1].end, v) for k, v in d.items()]
+    return ParseResults(d.type, start, end, [content] + annotations)
 
 
 def ungroup(expr):
@@ -514,11 +514,9 @@ stringEnd = StringEnd().set_parser_name("stringEnd")
 _escapedPunc = Word(
     _bslash, r"\[]-*.$+^?()~ ", exact=2
 ).addParseAction(lambda t, l, s: t[0][1])
-_escapedHexChar = (
-    Regex(r"\\0?[xX][0-9a-fA-F]+").addParseAction(lambda t: unichr(int(
-        t[0].lstrip('\\').lstrip('0').lstrip('xX'), 16
-    )))
-)
+_escapedHexChar = Regex(r"\\0?[xX][0-9a-fA-F]+").addParseAction(lambda t: unichr(int(
+    t[0].lstrip("\\").lstrip("0").lstrip("xX"), 16
+)))
 _escapedOctChar = Regex(r"\\0[0-7]+").addParseAction(lambda t, l, s: unichr(int(
     t[0][1:], 8
 )))
@@ -850,7 +848,7 @@ def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
             return output
 
         def record_self(tok):
-            ParseResults(tok.type, tok.loc, [tok.type.parser_name])
+            ParseResults(tok.type, tok.start, tok.end, [tok.type.parser_name])
 
         output = engine.CURRENT.normalize(op)
         is_suppressed = isinstance(output, Suppress)
@@ -917,7 +915,7 @@ def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
 
     def record_op(op):
         def output(tokens):
-            return ParseResults(NO_PARSER, tokens.loc, [(tokens, op)])
+            return ParseResults(NO_PARSER, tokens.start, tokens.end, [(tokens, op)])
 
         return output
 
@@ -950,10 +948,11 @@ def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
                     todo = list(reversed(list(enumerate(flat_tokens[:-1]))))
                     for i, (r, o) in todo:
                         if o == op:
+                            tok = flat_tokens[i + 1][0]
                             if is_suppressed:
-                                result = ParseResults(expr, flat_tokens[i + 1][0].loc, (flat_tokens[i + 1][0],))
+                                result = ParseResults(expr, tok.start, tok.end, (tok,))
                             else:
-                                result = ParseResults(expr, r.loc, (r, flat_tokens[i + 1][0]))
+                                result = ParseResults(expr, r.start, tok.end, (r, tok))
                             break
                     else:
                         op_index += 1
@@ -963,10 +962,11 @@ def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
                     todo = list(enumerate(flat_tokens[1:]))
                     for i, (r, o) in todo:
                         if o == op:
+                            tok = flat_tokens[i][0]
                             if is_suppressed:
-                                result = ParseResults(expr, flat_tokens[i][0].loc, (flat_tokens[i][0],))
+                                result = ParseResults(expr, tok.start, tok.end, (tok,))
                             else:
-                                result = ParseResults(expr, flat_tokens[i][0].loc, (flat_tokens[i][0], r,))
+                                result = ParseResults(expr, tok.start, r.end, (tok, r,))
                             break
                     else:
                         op_index += 1
@@ -980,11 +980,17 @@ def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
                     if o == op:
                         if is_suppressed:
                             result = ParseResults(
-                                expr, flat_tokens[i][0].loc, (flat_tokens[i][0], flat_tokens[i + 2][0])
+                                expr,
+                                flat_tokens[i][0].start,
+                                flat_tokens[i + 2][0].end,
+                                (flat_tokens[i][0], flat_tokens[i + 2][0]),
                             )
                         else:
                             result = ParseResults(
-                                expr, flat_tokens[i][0].loc, (flat_tokens[i][0], r, flat_tokens[i + 2][0])
+                                expr,
+                                flat_tokens[i][0].start,
+                                flat_tokens[i + 2][0].end,
+                                (flat_tokens[i][0], r, flat_tokens[i + 2][0]),
                             )
                         break
                 else:
@@ -1011,7 +1017,7 @@ def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
                             if not s0:
                                 seq.insert(1, r0)
 
-                            result = ParseResults(expr, seq[0].loc, seq)
+                            result = ParseResults(expr, seq[0].start, seq[-1].end, seq)
                             break
                 else:
                     op_index += 1
