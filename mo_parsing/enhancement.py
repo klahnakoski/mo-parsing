@@ -6,7 +6,7 @@ from mo_future import text, is_text
 from mo_parsing.core import ParserElement
 from mo_parsing.engine import noop, Engine
 from mo_parsing.exceptions import (
-    ParseBaseException,
+    ParseException,
     ParseException,
     RecursiveGrammarException,
 )
@@ -30,7 +30,6 @@ class ParseElementEnhance(ParserElement):
         self.expr = expr = engine.CURRENT.normalize(expr)
         if is_forward(expr):
             expr.track(self)
-        self.parser_config.mayIndexError = expr.parser_config.mayIndexError
         self.parser_config.mayReturnEmpty = expr.parser_config.mayReturnEmpty
 
     def copy(self):
@@ -199,18 +198,29 @@ class Many(ParseElementEnhance):
                 end = tmptokens.end
                 if tmptokens:
                     acc.append(tmptokens)
-        except (ParseException, IndexError) as e:
+        except ParseException as e:
             if self.min_match <= len(acc) <= self.max_match:
                 pass
             else:
                 raise e
-
-        if len(acc) < self.min_match or self.max_match< len(acc):
-            raise ParseException(self, acc[0].start, f"Expecting between {self.min_match} and {self.max_match} of {self}")
-        elif acc:
-            return ParseResults(self, acc[0].start, acc[-1].end, acc)
+        num = len(acc)
+        if num:
+            if num < self.min_match or self.max_match < num:
+                raise ParseException(
+                    self,
+                    acc[0].start,
+                    msg=f"Expecting between {self.min_match} and {self.max_match} of"
+                    f" {self}",
+                )
+            else:
+                return ParseResults(self, acc[0].start, acc[-1].end, acc)
         else:
-            return ParseResults(self, start, start, acc)
+            if not self.min_match:
+                return ParseResults(self, start, start, [])
+            else:
+                raise ParseException(
+                    self, start, string, msg=f"Expecting at least {self.min_match} of {self}"
+                )
 
     def __call__(self, name):
         if not name:
@@ -276,7 +286,7 @@ class ZeroOrMore(Many):
     def parseImpl(self, string, start, doActions=True):
         try:
             return super(ZeroOrMore, self).parseImpl(string, start, doActions)
-        except (ParseException, IndexError):
+        except ParseException:
             return ParseResults(self, start, start, [])
 
     def __str__(self):
@@ -338,7 +348,7 @@ class Optional(Many):
         try:
             tokens = self.expr._parse(string, start, doActions)
             return ParseResults(self, tokens.start, tokens.end, [tokens])
-        except (ParseException, IndexError):
+        except ParseException:
             return ParseResults(self, start, start, self.defaultValue)
 
     def __str__(self):
@@ -368,7 +378,7 @@ class SkipTo(ParseElementEnhance):
         self.ignoreExpr = ignore
 
         self.parser_config.mayReturnEmpty = True
-        self.parser_config.mayIndexError = False
+
         # self.engine = expr.engine
         # self.parser_config.lock_engine = expr.parser_config.lock_engine
 
@@ -401,12 +411,12 @@ class SkipTo(ParseElementEnhance):
                 while 1:
                     try:
                         loc = self_ignoreExpr_tryParse(string, loc)
-                    except ParseBaseException:
+                    except ParseException:
                         break
             try:
                 before_end = loc
                 loc = self.expr._parse(string, loc, doActions=False).end
-            except (ParseException, IndexError):
+            except ParseException:
                 # no match, advance loc in string
                 loc += 1
             else:
@@ -464,7 +474,6 @@ class Forward(ParserElement):
         ParserElement.__init__(self)
         self.expr = None
         self.used_by = []
-        self.parser_config.mayIndexError = expr.parser_config.mayIndexError
         self.parser_config.mayReturnEmpty = expr.parser_config.mayReturnEmpty
         self.strRepr = None  # avoid recursion
         if expr:
@@ -605,7 +614,6 @@ class Group(TokenConverter):
     def __init__(self, expr):
         ParserElement.__init__(self)
         self.expr = expr = self.engine.normalize(expr)
-        self.parser_config.mayIndexError = expr.parser_config.mayIndexError
         self.parser_config.mayReturnEmpty = expr.parser_config.mayReturnEmpty
 
 
@@ -708,7 +716,7 @@ class PrecededBy(ParseElementEnhance):
         super(PrecededBy, self).__init__(expr)
         self.expr = self.expr.leaveWhitespace()
         self.parser_config.mayReturnEmpty = True
-        self.parser_config.mayIndexError = False
+
         self.exact = False
         if isinstance(expr, str):
             retreat = len(expr)
@@ -745,7 +753,7 @@ class PrecededBy(ParseElementEnhance):
             for offset in range(1, min(start, self.retreat + 1)):
                 try:
                     ret = test_expr._parse(instring_slice, start - offset)
-                except ParseBaseException as pbe:
+                except ParseException as pbe:
                     last_expr = pbe
                 else:
                     break

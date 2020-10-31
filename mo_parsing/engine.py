@@ -98,16 +98,24 @@ class Engine:
         """
         ignore_expr = ignore_expr.suppress()
         self.ignore_list.append(ignore_expr)
+        self.content = None
         return self
 
     def skip(self, string, start):
         if string is self.content:
-            end = self.skips.get(start)
-            if end is not None:
-                return end
+            try:
+                end = self.skips[start]
+                if end != -1:
+                    return end
+            except IndexError:
+                return start
         else:
-            self.skips = {}
+            num = len(string)
+            self.skips = [-1] * num
             self.content = string
+            if start >= num:
+                return start
+
         end = self.skips[start] = start  # TO AVOID RECURSIVE LOOP
         wt = self.white_chars
         instrlen = len(string)
@@ -128,7 +136,10 @@ class Engine:
                 except ParseException as e:
                     pass
 
-        self.skips[start] = end  # THE REAL VALUE
+        try:
+            self.skips[start] = end  # THE REAL VALUE
+        except Exception:
+            print("hi")
         return end
 
     def __str__(self):

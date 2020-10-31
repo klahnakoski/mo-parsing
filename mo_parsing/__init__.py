@@ -113,7 +113,7 @@ from mo_parsing.enhancement import (
 )
 from mo_parsing.exceptions import (
     OnlyOnce,
-    ParseBaseException,
+    ParseException,
     ParseException,
     ParseFatalException,
     ParseSyntaxException,
@@ -256,7 +256,7 @@ __all__ = [
     "OnlyOnce",
     "Optional",
     "Or",
-    "ParseBaseException",
+    "ParseException",
     "ParseElementEnhance",
     "ParseException",
     "ParseExpression",

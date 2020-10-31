@@ -3,7 +3,7 @@ from mo_future import text
 from mo_parsing.utils import Log
 
 from mo_parsing.core import replaceWith, ParserElement
-from mo_parsing.exceptions import ParseBaseException
+from mo_parsing.exceptions import ParseException
 from mo_parsing.results import ParseResults
 from mo_parsing.tokens import Literal
 
@@ -131,7 +131,7 @@ def runTests(
             # convert newline marks to actual newlines, and strip leading BOM if present
             t = NL.transformString(t.lstrip(BOM))
             result = self.parseString(t, parseAll=parseAll)
-        except ParseBaseException as pe:
+        except ParseException as pe:
             if not failureTest:
                 error("FAIL", cause=pe)
 

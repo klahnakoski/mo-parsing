@@ -7,7 +7,6 @@ from mo_parsing.core import ParserElement, _PendingSkip, is_decorated
 from mo_parsing.engine import Engine
 from mo_parsing.enhancement import Optional, SkipTo, Many
 from mo_parsing.exceptions import (
-    ParseBaseException,
     ParseException,
     ParseSyntaxException,
 )
@@ -193,16 +192,11 @@ class And(ParseExpression):
                 acc.append(exprtokens)
             except ParseSyntaxException as cause:
                 raise cause
-            except ParseBaseException as pe:
+            except ParseException as pe:
                 if encountered_error_stop:
                     raise ParseSyntaxException(pe.parserElement, pe.loc, pe.pstr)
                 else:
                     raise pe
-            except IndexError as ie:
-                if encountered_error_stop:
-                    raise ParseSyntaxException(string, len(string), self)
-                else:
-                    raise ie
 
         return ParseResults(self, start, end, acc)
 
@@ -231,17 +225,6 @@ class Or(ParseExpression):
     two expressions match, the expression that matches the longest
     string will be used. May be constructed using the ``'^'``
     operator.
-
-    Example::
-
-        # construct Or using '^' operator
-
-        number = Word(nums) ^ Combine(Word(nums) + '.' + Word(nums))
-        print(number.searchString("123 3.1416 789"))
-
-    prints::
-
-        [['123'], ['3.1416'], ['789']]
     """
 
     def __init__(self, exprs):
@@ -254,7 +237,6 @@ class Or(ParseExpression):
             self.parser_config.mayReturnEmpty = True
 
     def parseImpl(self, string, start, doActions=True):
-        maxExcLoc = -1
         maxException = None
         matches = []
         for e in self.exprs:
@@ -263,13 +245,8 @@ class Or(ParseExpression):
                 matches.append((end, e))
             except ParseException as err:
                 err.__traceback__ = None
-                if err.loc > maxExcLoc:
+                if not maxException or err.loc > maxException.loc:
                     maxException = err
-                    maxExcLoc = err.loc
-            except IndexError:
-                if len(string) > maxExcLoc:
-                    maxException = ParseException(string, len(string), self)
-                    maxExcLoc = len(string)
 
         if matches:
             # re-evaluate all matches in descending order of length of match, in case attached actions
@@ -295,9 +272,8 @@ class Or(ParseExpression):
                     toks = expr1._parse(string, start, doActions)
                 except ParseException as err:
                     err.__traceback__ = None
-                    if err.loc > maxExcLoc:
+                    if not maxException or err.loc > maxException.loc:
                         maxException = err
-                        maxExcLoc = err.loc
                 else:
                     if toks.end >= loc:
                         return ParseResults(self, toks.start, toks.end, [toks])
@@ -311,12 +287,12 @@ class Or(ParseExpression):
             if longest != (-1, None):
                 return longest
 
-        if maxException is not None:
+        if maxException:
             maxException.msg = "Expecting " + text(self)
             raise maxException
         else:
             raise ParseException(
-                string, start, "no defined alternatives to match", self
+                self, start, "no defined alternatives to match"
             )
 
     def __str__(self):
@@ -363,9 +339,6 @@ class MatchFirst(ParseExpression):
             except ParseException as err:
                 if not maxException or err.loc > maxException.loc:
                     maxException = err
-            except IndexError:
-                if not maxException or len(string) > maxException.loc:
-                    maxException = ParseException(string, len(string), self)
 
         # only got here if no expression matched, raise exception for match that made it the furthest
         else:

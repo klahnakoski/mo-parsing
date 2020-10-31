@@ -9,18 +9,18 @@ from mo_parsing.utils import Log
 from mo_parsing.utils import wrap_parse_action, col, line, lineno
 
 
-class ParseBaseException(Exception):
+class ParseException(Exception):
     """base exception class for all parsing runtime exceptions"""
 
     # Performance tuning: we construct a *lot* of these, so keep this
     # constructor as small and fast as possible
-    def __init__(self, tokens, loc, string):
+    def __init__(self, expr, start, string, msg=""):
         if not isinstance(string, str):
             Log.error("expecting string")
         self.pstr = string
-        self.loc = loc
-        self.parserElement = tokens
-        self._msg = ""
+        self.loc = start
+        self.parserElement = expr
+        self._msg = msg
 
     @property
     def msg(self):
@@ -85,31 +85,6 @@ class ParseBaseException(Exception):
     def __dir__(self):
         return "lineno col line".split() + dir(type(self))
 
-
-class \
-        ParseException(ParseBaseException):
-    """
-    Exception thrown when parse expressions don't match class;
-    supported attributes by name are:
-    - lineno - returns the line number of the exception text
-    - col - returns the column number of the exception text
-    - line - returns the line containing the exception text
-
-    Example::
-
-        try:
-            Word(nums).set_parser_name("integer").parseString("ABC")
-        except ParseException as pe:
-            print(pe)
-            print("column: {}".format(pe.col))
-
-    prints::
-
-       Expected integer (at char 0), (line:1, col:1)
-        column: 1
-
-    """
-
     @staticmethod
     def explain(exc, depth=16):
         """
@@ -140,7 +115,7 @@ class \
         if depth is None:
             depth = sys.getrecursionlimit()
         ret = []
-        if isinstance(exc, ParseBaseException):
+        if isinstance(exc, ParseException):
             ret.append(exc.line)
             ret.append(" " * (exc.col - 1) + "^")
         ret.append("{0}: {1}".format(type(exc).__name__, exc))
@@ -182,11 +157,12 @@ class \
         return "\n".join(ret)
 
 
-class ParseFatalException(ParseBaseException):
+class ParseFatalException(Exception):
     """user-throwable exception thrown when inconsistent parse content
     is found; stops all parsing immediately"""
 
-    pass
+    def __init__(self, expr, start, string, msg=""):
+        self.internal = ParseException(expr, start, string, msg)
 
 
 class ParseSyntaxException(ParseFatalException):
@@ -199,7 +175,7 @@ class ParseSyntaxException(ParseFatalException):
     pass
 
 
-# ~ class ReparseException(ParseBaseException):
+# ~ class ReparseException(ParseException):
 # ~ """Experimental class - parse actions can raise this exception to cause
 # ~ mo_parsing to reparse the input string:
 # ~ - with a modified input string, and/or
@@ -251,7 +227,7 @@ def conditionAsParseAction(fn, message=None, fatal=False):
     @wraps(fn)
     def pa(t, l, s):
         if not bool(fn(t, l, s)[0]):
-            raise exc_type(s, l, msg)
+            raise exc_type(t.type, l, s, msg)
         return t
 
     return pa

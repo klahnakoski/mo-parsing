@@ -38,7 +38,6 @@ class Empty(Token):
         Token.__init__(self)
         self.parser_name = name
         self.parser_config.mayReturnEmpty = True
-        self.parser_config.mayIndexError = False
 
 
 class NoMatch(Token):
@@ -48,32 +47,19 @@ class NoMatch(Token):
         super(NoMatch, self).__init__()
         self.parser_name = "NoMatch"
         self.parser_config.mayReturnEmpty = True
-        self.parser_config.mayIndexError = False
 
     def parseImpl(self, string, loc, doActions=True):
         raise ParseException(self, loc, string)
 
 
 class Literal(Token):
-    """Token to exactly match a specified string.
-
-    Example::
-
-        Literal('blah').parseString('blah')  # -> ['blah']
-        Literal('blah').parseString('blahfooblah')  # -> ['blah']
-        Literal('blah').parseString('bla')  # -> Exception: Expected "blah"
-
-    For case-insensitive matching, use :class:`CaselessLiteral`.
-
-    For keyword matching (force word break before and after the matched string),
-    use :class:`Keyword` or :class:`CaselessKeyword`.
-    """
+    """Token to exactly match a specified string."""
 
     def __init__(self, matchString):
         Token.__init__(self)
         self.match = matchString
         self.parser_config.mayReturnEmpty = False
-        self.parser_config.mayIndexError = False
+
 
         if len(matchString) == 0:
             Log.error("Literal must be at least one character")
@@ -97,8 +83,12 @@ class Literal(Token):
 
 class _SingleCharLiteral(Literal):
     def parseImpl(self, string, start, doActions=True):
-        if string[start] == self.match:
-            return ParseResults(self, start, start + 1, [self.match])
+        try:
+            if string[start] == self.match:
+                return ParseResults(self, start, start + 1, [self.match])
+        except IndexError:
+            pass
+
         raise ParseException(self, start, string)
 
 
@@ -146,7 +136,7 @@ class Keyword(Token):
         # self.token_name = matchString
         self.parser_name = self.match
         self.parser_config.mayReturnEmpty = False
-        self.parser_config.mayIndexError = False
+
 
     def copy(self):
         output = ParserElement.copy(self)
@@ -259,7 +249,7 @@ class CloseMatch(Token):
         self.parser_name = match_string
         self.match_string = match_string
         self.maxMismatches = maxMismatches
-        self.parser_config.mayIndexError = False
+
         self.parser_config.mayReturnEmpty = False
 
     def copy(self):
@@ -373,7 +363,7 @@ class Word(Token):
             self.minLen = exact
 
         self.parser_name = text(self)
-        self.parser_config.mayIndexError = False
+
         self.asKeyword = asKeyword
 
         if " " not in self.initChars + self.bodyChars and (
@@ -411,7 +401,12 @@ class Word(Token):
         return output
 
     def parseImpl(self, string, start, doActions=True):
-        if string[start] not in self.initChars:
+        try:
+            first = string[start]
+        except IndexError:
+            raise ParseException(self, start, string)
+
+        if first not in self.initChars:
             raise ParseException(self, start, string)
 
         end = start + 1
@@ -544,7 +539,7 @@ class Regex(Token):
             )
 
         self.parser_name = text(self)
-        self.parser_config.mayIndexError = False
+
         self.parser_config.mayReturnEmpty = True
 
     def copy(self):
@@ -693,10 +688,7 @@ class QuotedString(Token):
                 raise SyntaxError()
 
         self.quoteChar = quoteChar
-        self.quoteCharLen = len(quoteChar)
-        self.firstQuoteChar = quoteChar[0]
         self.endQuoteChar = endQuoteChar
-        self.endQuoteCharLen = len(endQuoteChar)
         self.escChar = escChar
         self.escQuote = escQuote
         self.unquoteResults = unquoteResults
@@ -749,15 +741,11 @@ class QuotedString(Token):
             raise
 
         self.parser_name = text(self)
-        self.parser_config.mayIndexError = False
+
         self.parser_config.mayReturnEmpty = True
 
     def parseImpl(self, string, start, doActions=True):
-        result = (
-            string[start] == self.firstQuoteChar
-            and self.re.match(string, start)
-            or None
-        )
+        result = self.re.match(string, start)
         if not result:
             raise ParseException(self, start, string)
 
@@ -767,7 +755,7 @@ class QuotedString(Token):
         if self.unquoteResults:
 
             # strip off quotes
-            ret = ret[self.quoteCharLen : -self.endQuoteCharLen]
+            ret = ret[len(self.quoteChar) : -len(self.endQuoteChar)]
 
             if isinstance(ret, text):
                 # replace escaped whitespace
@@ -795,10 +783,7 @@ class QuotedString(Token):
         output = Token.copy(self)
 
         output.quoteChar = self.quoteChar
-        output.quoteCharLen = self.quoteCharLen
-        output.firstQuoteChar = self.firstQuoteChar
         output.endQuoteChar = self.endQuoteChar
-        output.endQuoteCharLen = self.endQuoteCharLen
         output.escChar = self.escChar
         output.escQuote = self.escQuote
         output.unquoteResults = self.unquoteResults
@@ -865,7 +850,7 @@ class CharsNotIn(Token):
 
         self.parser_name = text(self)
         self.parser_config.mayReturnEmpty = self.minLen == 0
-        self.parser_config.mayIndexError = False
+
 
     def copy(self):
         output = ParserElement.copy(self)
@@ -987,7 +972,7 @@ class _PositionToken(Token):
         super(_PositionToken, self).__init__()
         self.parser_name = self.__class__.__name__
         self.parser_config.mayReturnEmpty = True
-        self.parser_config.mayIndexError = False
+
 
 
 class GoToColumn(_PositionToken):
@@ -1011,12 +996,12 @@ class GoToColumn(_PositionToken):
                 loc += 1
         return loc
 
-    def parseImpl(self, string, loc, doActions=True):
-        thiscol = col(loc, string)
+    def parseImpl(self, string, start, doActions=True):
+        thiscol = col(start, string)
         if thiscol > self.col:
-            raise ParseException("Text not in expected column", loc, string)
-        newloc = loc + self.col - thiscol
-        ret = string[loc:newloc]
+            raise ParseException(self, start, string, "Text not in expected column")
+        newloc = start + self.col - thiscol
+        ret = string[start:newloc]
         return newloc, ret
 
 
@@ -1128,7 +1113,9 @@ class WordStart(_PositionToken):
         return output
 
     def parseImpl(self, string, start, doActions=True):
-        if start != 0:
+        if start:
+            if start >= len(string):
+                raise ParseException(self, start, string)
             if (
                 string[start - 1] in self.wordChars
                 or string[start] not in self.wordChars

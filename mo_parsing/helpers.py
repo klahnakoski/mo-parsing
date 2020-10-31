@@ -752,13 +752,13 @@ def withAttribute(*args, **attrDict):
     def pa(tokens, loc, string):
         for attrName, attrValue in attrs:
             if attrName not in tokens:
-                raise ParseException("no matching attribute " + attrName, loc, string)
+                raise ParseException(tokens.type, loc, string, "no matching attribute ")
             if attrValue != withAttribute.ANY_VALUE and tokens[attrName] != attrValue:
                 raise ParseException(
-                    "attribute '%s' has value '%s', must be '%s'"
-                    % (attrName, tokens[attrName], attrValue),
-                    string,
+                    tokens.type,
                     loc,
+                    string,
+                    f"attribute '{attrName}' has value '{tokens[attrName]}', must be '{attrValue}'"
                 )
 
     return pa
@@ -1085,8 +1085,8 @@ def indentedBlock(blockStatementExpr, indent=True):
             curCol = col(l, s)
             if curCol != expectedCol:
                 if curCol > expectedCol:
-                    raise ParseException("illegal nesting", l, s)
-                raise ParseException("not a peer entry", l, s)
+                    raise ParseException(t.type, s, l, "illegal nesting")
+                raise ParseException(t.type, s, l, "not a peer entry")
 
         return output
 
@@ -1111,7 +1111,7 @@ def indentedBlock(blockStatementExpr, indent=True):
             DEDENT << Empty().addParseAction(dedent_stack(curCol))
             _indent_stack.append((curCol, PEER, DEDENT))
         else:
-            raise ParseException("not a subentry", l, s)
+            raise ParseException(t.type, l, s, "not a subentry")
 
     def nodent_stack(t, l, s):
         curCol = col(l, s)
@@ -1120,7 +1120,7 @@ def indentedBlock(blockStatementExpr, indent=True):
             DEDENT << Empty().addParseAction(dedent_stack(curCol))
             _indent_stack.append((curCol, PEER, DEDENT))
         else:
-            raise ParseException("not a subentry", l, s)
+            raise ParseException(t.type, s, l, "not a subentry")
 
     NL = OneOrMore(LineEnd().suppress())
     INDENT = Empty().addParseAction(indent_stack)
@@ -1457,7 +1457,7 @@ def convertToDate(fmt="%Y-%m-%d"):
         try:
             return datetime.strptime(t[0], fmt).date()
         except ValueError as ve:
-            raise ParseException(str(ve), l, s)
+            raise ParseException(t.type, l, s, str(ve))
 
     return cvt_fn
 
@@ -1484,7 +1484,7 @@ def convertToDatetime(fmt="%Y-%m-%dT%H:%M:%S.%f"):
         try:
             return datetime.strptime(t[0], fmt)
         except ValueError as ve:
-            raise ParseException(str(ve), l, s)
+            raise ParseException(t.type, l, s, str(ve))
 
     return cvt_fn
 

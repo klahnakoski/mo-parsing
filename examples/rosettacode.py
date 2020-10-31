@@ -279,7 +279,8 @@ for test in tests:
     try:
         results = code.parseString(test)
     except ParseException as pe:
-        ParseException.explain(pe)
+        pe.explain()
     else:
+        pass
 
 

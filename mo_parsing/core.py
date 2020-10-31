@@ -7,7 +7,7 @@ from mo_future import text
 from mo_parsing.cache import packrat_cache
 from mo_parsing.engine import Engine
 from mo_parsing.exceptions import (
-    ParseBaseException,
+    ParseException,
     ParseException,
     ParseFatalException,
     conditionAsParseAction,
@@ -91,7 +91,6 @@ class ParserElement(object):
         self.parser_config.mayReturnEmpty = (
             False  # used when checking for left-recursion
         )
-        self.parser_config.mayIndexError = True  # used to optimize exception handling for subclasses that don't advance parse index
 
     def copy(self):
         output = object.__new__(self.__class__)
@@ -171,14 +170,6 @@ class ParserElement(object):
         - message = define a custom message to be used in the raised exception
         - fatal   = if True, will raise ParseFatalException to stop parsing immediately; otherwise will raise ParseException
 
-        Example::
-
-            integer = Word(nums).addParseAction(lambda toks: int(toks[0]))
-            year_int = integer.copy()
-            year_int.addCondition(lambda toks: toks[0] >= 2000, message="Only support years 2000 and later")
-            date_str = year_int + '/' + integer + '/' + integer
-
-            result = date_str.parseString("1999/12/31")  # -> Exception: Only support years 2000 and later (at char 0), (line:1, col:1)
         """
         output = self.copy()
         for fn in fns:
@@ -217,14 +208,7 @@ class ParserElement(object):
             self.engine.debugActions.TRY(self, start, string)
             try:
                 preloc = self.engine.skip(string, start)
-                try:
-                    tokens = self.parseImpl(string, preloc, doActions)
-                except IndexError:
-                    if self.parser_config.mayIndexError or preloc >= len(string):
-                        ex = ParseException(self, len(string), string,)
-                        packrat_cache.set(lookup, ex)
-                        raise ex
-                    raise
+                tokens = self.parseImpl(string, preloc, doActions)
             except Exception as err:
                 self.engine.debugActions.FAIL(self, start, string, err)
                 self.parser_config.failAction(self, start, string, err)
@@ -238,7 +222,7 @@ class ParserElement(object):
                     self.engine.debugActions.FAIL(self, start, string, err)
                     raise
             self.engine.debugActions.MATCH(self, start, tokens.end, string, tokens)
-        except ParseBaseException as pe:
+        except ParseException as pe:
             packrat_cache.set(lookup, pe)
             raise
 
@@ -253,11 +237,9 @@ class ParserElement(object):
 
     def canParseNext(self, string, start):
         try:
-            self.tryParse(string, start)
-        except (ParseException, IndexError):
+            return self.tryParse(string, start)
+        except ParseException:
             return False
-        else:
-            return True
 
     @entrypoint
     def parseString(self, string, parseAll=False):
@@ -314,7 +296,7 @@ class ParserElement(object):
             if parseAll:
                 end = expr.engine.skip(string, end)
                 StringEnd()._parse(string, end)
-        except ParseBaseException as exc:
+        except ParseException as exc:
             raise exc
         else:
             return tokens
@@ -341,8 +323,8 @@ class ParserElement(object):
         cache.resetCache()
         matches = 0
         while end <= instrlen and matches < maxMatches:
+            start = self.engine.skip(string, end)
             try:
-                start = self.engine.skip(string, end)
                 tokens = self._parse(string, start)
             except ParseException:
                 end = start + 1
@@ -397,21 +379,6 @@ class ParserElement(object):
         Another extension to :class:`scanString`, simplifying the access to the tokens found
         to match the given parse expression.  May be called with optional
         ``maxMatches`` argument, to clip searching after 'n' matches are found.
-
-        Example::
-
-            # a capitalized word starts with an uppercase letter, followed by zero or more lowercase letters
-            cap_word = Word(alphas.upper(), alphas.lower())
-
-            print(cap_word.searchString("More than Iron, more than Lead, more than Gold I need Electricity"))
-
-            # the sum() builtin can be used to merge results into a single ParseResults object
-            print(sum(cap_word.searchString("More than Iron, more than Lead, more than Gold I need Electricity")))
-
-        prints::
-
-            [['More'], ['Iron'], ['Lead'], ['Gold'], ['I'], ['Electricity']]
-            ['More', 'Iron', 'Lead', 'Gold', 'I', 'Electricity']
         """
 
         if isinstance(self, Group):
@@ -719,7 +686,7 @@ class ParserElement(object):
         try:
             self.parseString(text(testString), parseAll=parseAll)
             return True
-        except ParseBaseException:
+        except ParseException:
             return False
 
 

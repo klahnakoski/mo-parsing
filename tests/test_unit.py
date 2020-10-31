@@ -42,7 +42,7 @@ from mo_parsing import (
     QuotedString,
     alphanums,
     Dict,
-    ParseBaseException,
+    ParseException,
     Forward,
     Regex,
     ParseFatalException,
@@ -1288,7 +1288,7 @@ class TestParsing(PyparsingExpressionTestCase):
 
         def tryToParse(someText, fail_expected=False):
             if fail_expected:
-                with self.assertRaises(ParseBaseException):
+                with self.assertRaises(ParseException):
                     testExpr.parseString(someText)
             else:
                 testExpr.parseString(someText)
@@ -3311,7 +3311,7 @@ class TestParsing(PyparsingExpressionTestCase):
         # should always detect the "Word" expression.
         def validate(token):
             if token[0] == "def":
-                raise ParseException("signalling invalid token")
+                raise ParseException(token, token.start, "signalling invalid token")
             return token
 
         a = Word("de").set_parser_name("Word")  # .setDebug()
@@ -3648,63 +3648,63 @@ class TestParsing(PyparsingExpressionTestCase):
 
     def testCommonExpressions(self):
 
-        # success = mac_address.runTests(
-        #     """
-        #     AA:BB:CC:DD:EE:FF
-        #     AA.BB.CC.DD.EE.FF
-        #     AA-BB-CC-DD-EE-FF
-        #     """
-        # )[0]
-        # self.assertTrue(success, "error in parsing valid MAC address")
-        #
-        # success = mac_address.runTests(
-        #     """
-        #     # mixed delimiters
-        #     AA.BB:CC:DD:EE:FF
-        #     """,
-        #     failureTests=True,
-        # )[0]
-        # self.assertTrue(success, "error in detecting invalid mac address")
-        #
-        # success = ipv4_address.runTests(
-        #     """
-        #     0.0.0.0
-        #     1.1.1.1
-        #     127.0.0.1
-        #     1.10.100.199
-        #     255.255.255.255
-        #     """
-        # )[0]
-        # self.assertTrue(success, "error in parsing valid IPv4 address")
-        #
-        # success = ipv4_address.runTests(
-        #     """
-        #     # out of range value
-        #     256.255.255.255
-        #     """,
-        #     failureTests=True,
-        # )[0]
-        # self.assertTrue(success, "error in detecting invalid IPv4 address")
-        #
-        # success = ipv6_address.runTests(
-        #     """
-        #     2001:0db8:85a3:0000:0000:8a2e:0370:7334
-        #     2134::1234:4567:2468:1236:2444:2106
-        #     0:0:0:0:0:0:A00:1
-        #     1080::8:800:200C:417A
-        #     ::A00:1
-        #
-        #     # loopback address
-        #     ::1
-        #
-        #     # the null address
-        #     ::
-        #
-        #     # ipv4 compatibility form
-        #     ::ffff:192.168.0.1
-        #     """
-        # )[0]
-        # self.assertTrue(success, "error in parsing valid IPv6 address")
+        success = mac_address.runTests(
+            """
+            AA:BB:CC:DD:EE:FF
+            AA.BB.CC.DD.EE.FF
+            AA-BB-CC-DD-EE-FF
+            """
+        )[0]
+        self.assertTrue(success, "error in parsing valid MAC address")
+
+        success = mac_address.runTests(
+            """
+            # mixed delimiters
+            AA.BB:CC:DD:EE:FF
+            """,
+            failureTests=True,
+        )[0]
+        self.assertTrue(success, "error in detecting invalid mac address")
+
+        success = ipv4_address.runTests(
+            """
+            0.0.0.0
+            1.1.1.1
+            127.0.0.1
+            1.10.100.199
+            255.255.255.255
+            """
+        )[0]
+        self.assertTrue(success, "error in parsing valid IPv4 address")
+
+        success = ipv4_address.runTests(
+            """
+            # out of range value
+            256.255.255.255
+            """,
+            failureTests=True,
+        )[0]
+        self.assertTrue(success, "error in detecting invalid IPv4 address")
+
+        success = ipv6_address.runTests(
+            """
+            2001:0db8:85a3:0000:0000:8a2e:0370:7334
+            2134::1234:4567:2468:1236:2444:2106
+            0:0:0:0:0:0:A00:1
+            1080::8:800:200C:417A
+            ::A00:1
+
+            # loopback address
+            ::1
+
+            # the null address
+            ::
+
+            # ipv4 compatibility form
+            ::ffff:192.168.0.1
+            """
+        )[0]
+        self.assertTrue(success, "error in parsing valid IPv6 address")
 
         success = ipv6_address.runTests(
             """
@@ -4296,7 +4296,7 @@ class TestParsing(PyparsingExpressionTestCase):
             except Exception as e:
 
                 self.assertTrue(
-                    isinstance(e, ParseBaseException),
+                    isinstance(e, ParseException),
                     "class {} raised wrong exception type {}".format(
                         cls.__name__, type(e).__name__
                     ),
