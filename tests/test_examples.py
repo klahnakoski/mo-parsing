@@ -9,7 +9,6 @@ from mo_files import File
 from mo_parsing.engine import Engine
 
 skip_list = [
-    "SimpleCalc",
     "TAP",
     "adventureEngine",
     "antlr_grammar",
@@ -57,7 +56,8 @@ skip_list = [
     "verilogParse",
     "verilogParse_test",
     "withAttribute",
-    "wordsToNum"
+    "wordsToNum",
+    "LAparser_test"
 ]
 
 modules = [f.name for f in File("examples").children]
@@ -73,6 +73,7 @@ def _single_test(name):
             import_module("examples." + name)
 
     return output
+
 
 for f in File("examples").children:
     if f.extension == "py":

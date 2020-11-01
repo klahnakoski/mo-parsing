@@ -451,7 +451,7 @@ class ParserTest(BooleanSearchParser):
         for text, matches in texts_matcheswith.items():
             _matches = []
             for _id, expr in exprs.items():
-                if self.match(text, expr):
+                if self.parser_config.match(text, expr):
                     _matches.append(_id)
 
             test_passed = sorted(matches) == sorted(_matches)

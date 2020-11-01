@@ -8,14 +8,13 @@ from mo_parsing.cache import packrat_cache
 from mo_parsing.engine import Engine
 from mo_parsing.exceptions import (
     ParseException,
-    ParseException,
     ParseFatalException,
     conditionAsParseAction,
 )
 from mo_parsing.results import ParseResults
 from mo_parsing.utils import (
     Log,
-    _MAX_INT,
+    MAX_INT,
     wrap_parse_action,
     empty_tuple,
 )
@@ -70,7 +69,11 @@ def entrypoint(func):
                 except Exception as e:
                     Log.error("reset action failed", cause=e)
 
-            return func(*args, **kwargs)
+            self = args[0]
+            if not args[0].streamlined:
+                Log.warning('Expecting expression to be streamlined before use')
+                self = self.streamline()
+            return func(self, *args[1:], **kwargs)
 
     return output
 
@@ -84,13 +87,10 @@ class ParserElement(object):
         self.token_name = None
         self.engine = engine.CURRENT
         self.streamlined = False
-        self.callDuringTry = False
 
         self.parser_config = Data()
+        self.parser_config.callDuringTry = False
         self.parser_config.failAction = None
-        self.parser_config.mayReturnEmpty = (
-            False  # used when checking for left-recursion
-        )
 
     def copy(self):
         output = object.__new__(self.__class__)
@@ -100,7 +100,6 @@ class ParserElement(object):
         output.parseAction = self.parseAction[:]
         output.parser_name = self.parser_name
         output.token_name = self.token_name
-        output.callDuringTry = self.callDuringTry
         output.parser_config = self.parser_config.copy()
         return output
 
@@ -140,9 +139,9 @@ class ParserElement(object):
 
     def clearParseAction(self):
         """
-        Add one or more parse actions to expression's list of parse actions. See :class:`setParseAction`.
+        Add one or more parse actions to expression's list of parse actions. See `setParseAction`.
 
-        See examples in :class:`copy`.
+        See examples in `copy`.
         """
         output = self.copy()
         output.parseAction = []
@@ -150,20 +149,22 @@ class ParserElement(object):
 
     def addParseAction(self, *fns, callDuringTry=False):
         """
-        Add one or more parse actions to expression's list of parse actions. See :class:`setParseAction`.
+        Add one or more parse actions to expression's list of parse actions. See `setParseAction`.
 
-        See examples in :class:`copy`.
+        See examples in `copy`.
         """
         output = self.copy()
         output.parseAction += list(map(wrap_parse_action, fns))
-        output.callDuringTry = self.callDuringTry or callDuringTry
+        output.parser_config.callDuringTry = (
+            self.parser_config.callDuringTry or callDuringTry
+        )
         return output
 
     def addCondition(
         self, *fns, message=None, fatal=False, callDuringTry=False, **kwargs
     ):
         """Add a boolean predicate function to expression's list of parse actions. See
-        :class:`setParseAction` for function call signatures. Unlike ``setParseAction``,
+        `setParseAction` for function call signatures. Unlike ``setParseAction``,
         functions passed to ``addCondition`` need to return boolean success/fail of the condition.
 
         Optional keyword arguments:
@@ -177,7 +178,9 @@ class ParserElement(object):
                 fn, message=message, fatal=fatal
             ))
 
-        output.callDuringTry = self.callDuringTry or callDuringTry
+        output.parser_config.callDuringTry = (
+            self.parser_config.callDuringTry or callDuringTry
+        )
         return output
 
     def setFailAction(self, fn):
@@ -188,10 +191,16 @@ class ParserElement(object):
         - loc = location where expression match was attempted and failed
         - s = string being parsed
         - err = the exception thrown
-        The function returns no value.  It may throw :class:`ParseFatalException`
+        The function returns no value.  It may throw `ParseFatalException`
         if it is desired to stop parsing immediately."""
         self.parser_config.failAction = fn
         return self
+
+    def consume_at_least_one_char(self):
+        return True
+
+    def is_annotated(self):
+        return self.parseAction or self.parser_name or self.token_name
 
     def parseImpl(self, string, start, doActions=True):
         return ParseResults(self, start, start, [])
@@ -209,21 +218,21 @@ class ParserElement(object):
             try:
                 preloc = self.engine.skip(string, start)
                 tokens = self.parseImpl(string, preloc, doActions)
-            except Exception as err:
-                self.engine.debugActions.FAIL(self, start, string, err)
-                self.parser_config.failAction(self, start, string, err)
+            except Exception as cause:
+                self.engine.debugActions.FAIL(self, start, string, cause)
+                self.parser_config.failAction(self, start, string, cause)
                 raise
 
-            if self.parseAction and (doActions or self.callDuringTry):
+            if self.parseAction and (doActions or self.parser_config.callDuringTry):
                 try:
                     for fn in self.parseAction:
                         tokens = fn(tokens, start, string)
-                except Exception as err:
-                    self.engine.debugActions.FAIL(self, start, string, err)
+                except Exception as cause:
+                    self.engine.debugActions.FAIL(self, start, string, cause)
                     raise
             self.engine.debugActions.MATCH(self, start, tokens.end, string, tokens)
-        except ParseException as pe:
-            packrat_cache.set(lookup, pe)
+        except ParseException as cause:
+            packrat_cache.set(lookup, cause)
             raise
 
         packrat_cache.set(lookup, tokens)
@@ -232,8 +241,8 @@ class ParserElement(object):
     def tryParse(self, string, start):
         try:
             return self._parse(string, start, doActions=False).end
-        except ParseFatalException:
-            raise ParseException(self, start, string)
+        except ParseFatalException as cause:
+            raise ParseException(self, start, string, cause=cause)
 
     def canParseNext(self, string, start):
         try:
@@ -250,7 +259,7 @@ class ParserElement(object):
         :param string: The input string to be parsed.
         :param parseAll: If set, the entire input string must match the grammar.
         :raises ParseException: Raised if ``parseAll`` is set and the input string does not match the whole grammar.
-        :returns: the parsed data as a :class:`ParseResults` object, which may be accessed as a `list`, a `dict`, or
+        :returns: the parsed data as a `ParseResults` object, which may be accessed as a `list`, a `dict`, or
           an object with attributes if the given parser includes results names.
 
         If the input string is required to match the entire grammar, ``parseAll`` flag must be set to True. This
@@ -265,23 +274,6 @@ class ParserElement(object):
           parse action's ``s`` argument, or
         - explicitly expand the tabs in your input string before calling ``parseString``.
 
-        Examples:
-
-        By default, partial matches are OK.
-
-        >>> res = Word('a').parseString('aaaaabaaa')
-        >>> print(res)
-        ['aaaaa']
-
-        The parsing behavior varies by the inheriting class of this abstract class. Please refer to the children
-        directly to see more examples.
-
-        It raises an exception if parseAll flag is set and string does not match the whole grammar.
-
-        >>> res = Word('a').parseString('aaaaabaaa', parseAll=True)
-        Traceback (most recent call last):
-        ...
-        mo_parsing.ParseException: Expected end of text, found 'b'  (at char 5), (line:1, col:6)
         """
         cache.resetCache()
         expr = self.streamline()
@@ -290,19 +282,16 @@ class ParserElement(object):
         if expr.token_name:
             # TOP LEVEL NAMES ARE NOT ALLOWED
             expr = Group(expr)
-        try:
-            tokens = expr._parse(string, 0)
-            end = tokens.end
-            if parseAll:
-                end = expr.engine.skip(string, end)
-                StringEnd()._parse(string, end)
-        except ParseException as exc:
-            raise exc
-        else:
-            return tokens
+        tokens = expr._parse(string, 0)
+        end = tokens.end
+        if parseAll:
+            end = expr.engine.skip(string, end)
+            StringEnd()._parse(string, end)
+        return tokens
+
 
     @entrypoint
-    def scanString(self, string, maxMatches=_MAX_INT, overlap=False):
+    def scanString(self, string, maxMatches=MAX_INT, overlap=False):
         """
         Scan the input string for expression matches.  Each match will return the
         matching tokens, start location, and end location.  May be called with optional
@@ -310,7 +299,7 @@ class ParserElement(object):
         ``overlap`` is specified, then overlapping matches will be reported.
 
         Note that the start and end locations are reported relative to the string
-        being parsed.  See :class:`parseString` for more information on parsing
+        being parsed.  See `parseString` for more information on parsing
         strings with embedded tabs.
         """
         if not self.streamlined:
@@ -338,7 +327,7 @@ class ParserElement(object):
 
     def transformString(self, string):
         """
-        Extension to :class:`scanString`, to modify matching text with modified tokens that may
+        Extension to `scanString`, to modify matching text with modified tokens that may
         be returned from a parse action.  To use ``transformString``, define a grammar and
         attach a parse action to it that modifies the returned token list.
         Invoking ``transformString()`` on a target string will then scan for matches,
@@ -374,9 +363,9 @@ class ParserElement(object):
         out = [o for o in out if o]
         return "".join(map(text, _flatten(out)))
 
-    def searchString(self, string, maxMatches=_MAX_INT):
+    def searchString(self, string, maxMatches=MAX_INT):
         """
-        Another extension to :class:`scanString`, simplifying the access to the tokens found
+        Another extension to `scanString`, simplifying the access to the tokens found
         to match the given parse expression.  May be called with optional
         ``maxMatches`` argument, to clip searching after 'n' matches are found.
         """
@@ -398,7 +387,7 @@ class ParserElement(object):
                 ZeroOrMore(g), scanned[0].start, scanned[-1].end, scanned
             )
 
-    def split(self, string, maxsplit=_MAX_INT, includeSeparators=False):
+    def split(self, string, maxsplit=MAX_INT, includeSeparators=False):
         """
         Generator method to split a string using the given expression as a separator.
         May be called with optional ``maxsplit`` argument, to limit the number of splits;
@@ -425,30 +414,8 @@ class ParserElement(object):
 
     def __add__(self, other):
         """
-        Implementation of + operator - returns :class:`And`. Adding strings to a ParserElement
-        converts them to :class:`Literal`s by default.
-
-        Example::
-
-            greet = Word(alphas) + "," + Word(alphas) + "!"
-            hello = "Hello, World!"
-            print (hello, "->", greet.parseString(hello))
-
-        prints::
-
-            Hello, World! -> ['Hello', ',', 'World', '!']
-
-        ``...`` may be used as a parse expression as a short form of :class:`SkipTo`.
-
-            Literal('start') + ... + Literal('end')
-
-        is equivalent to:
-
-            Literal('start') + SkipTo('end')("_skipped*") + Literal('end')
-
-        Note that the skipped text is returned with '_skipped' as a results name,
-        and to support having multiple skips in the same parser, the value returned is
-        a list of all skipped text.
+        Implementation of + operator - returns `And`. Adding strings to a ParserElement
+        converts them to `Literal`s by default.
         """
         if other is Ellipsis:
             return _PendingSkip(self)
@@ -457,7 +424,7 @@ class ParserElement(object):
 
     def __radd__(self, other):
         """
-        Implementation of + operator when left operand is not a :class:`ParserElement`
+        Implementation of + operator when left operand is not a `ParserElement`
         """
         if other is Ellipsis:
             return SkipTo(self)("_skipped") + self
@@ -466,13 +433,13 @@ class ParserElement(object):
 
     def __sub__(self, other):
         """
-        Implementation of - operator, returns :class:`And` with error stop
+        Implementation of - operator, returns `And` with error stop
         """
         return self + And._ErrorStop() + engine.CURRENT.normalize(other)
 
     def __rsub__(self, other):
         """
-        Implementation of - operator when left operand is not a :class:`ParserElement`
+        Implementation of - operator when left operand is not a `ParserElement`
         """
         return engine.CURRENT.normalize(other) - self
 
@@ -513,7 +480,7 @@ class ParserElement(object):
             raise ValueError("cannot multiply ParserElement by negative value")
 
         if maxElements == Ellipsis or is_null(maxElements):
-            maxElements = _MAX_INT
+            maxElements = MAX_INT
         elif (
             not isinstance(maxElements, int)
             or maxElements < minElements
@@ -533,7 +500,7 @@ class ParserElement(object):
 
     def __or__(self, other):
         """
-        Implementation of | operator - returns :class:`MatchFirst`
+        Implementation of | operator - returns `MatchFirst`
         """
         if other is Ellipsis:
             return _PendingSkip(Optional(self))
@@ -542,42 +509,39 @@ class ParserElement(object):
 
     def __ror__(self, other):
         """
-        Implementation of | operator when left operand is not a :class:`ParserElement`
+        Implementation of | operator when left operand is not a `ParserElement`
         """
         return engine.CURRENT.normalize(other) | self
 
     def __xor__(self, other):
         """
-        Implementation of ^ operator - returns :class:`Or`
+        Implementation of ^ operator - returns `Or`
         """
         return Or([self, engine.CURRENT.normalize(other)])
 
     def __rxor__(self, other):
         """
-        Implementation of ^ operator when left operand is not a :class:`ParserElement`
+        Implementation of ^ operator when left operand is not a `ParserElement`
         """
         return engine.CURRENT.normalize(other) ^ self
 
     def __and__(self, other):
         """
-        Implementation of & operator - returns :class:`Each`
+        Implementation of & operator - returns `Each`
         """
         return Each([self, engine.CURRENT.normalize(other)])
 
     def __rand__(self, other):
         """
-        Implementation of & operator when left operand is not a :class:`ParserElement`
+        Implementation of & operator when left operand is not a `ParserElement`
         """
         return engine.CURRENT.normalize(other) & self
 
     def __invert__(self):
         """
-        Implementation of ~ operator - returns :class:`NotAny`
+        Implementation of ~ operator - returns `NotAny`
         """
         return NotAny(self)
-
-    def __iter__(self):
-        raise NotImplemented()
 
     def __getitem__(self, key):
         if isinstance(key, slice):
@@ -586,7 +550,7 @@ class ParserElement(object):
 
     def __call__(self, name):
         """
-        Shortcut for :class:`.set_token_name`, with ``listAllMatches=False``.
+        Shortcut for `.set_token_name`, with ``listAllMatches=False``.
         """
         if not name:
             return self
@@ -596,8 +560,6 @@ class ParserElement(object):
         """
         SET name AS PART OF A LARGER GROUP
         :param name:
-        :param listAllMatches:
-        :return:
         """
         output = self.copy()
         output.token_name = name
@@ -607,7 +569,7 @@ class ParserElement(object):
 
     def suppress(self):
         """
-        Suppresses the output of this :class:`ParserElement`; useful to keep punctuation from
+        Suppresses the output of this `ParserElement`; useful to keep punctuation from
         cluttering up returned output.
         """
         return Suppress(self)
@@ -615,7 +577,7 @@ class ParserElement(object):
     def leaveWhitespace(self):
         """
         Disables the skipping of whitespace before matching the characters in the
-        :class:`ParserElement`'s defined pattern.  This is normally only used internally by
+        `ParserElement`'s defined pattern.  This is normally only used internally by
         the mo_parsing module, but may be needed in some whitespace-sensitive grammars.
         """
         with Engine(""):
@@ -634,12 +596,6 @@ class ParserElement(object):
 
     def checkRecursion(self, seen=empty_tuple):
         pass
-
-    def validate(self, seen=None):
-        """
-        Check defined expressions for valid structure, check for infinite recursive definitions.
-        """
-        self.checkRecursion()
 
     def parseFile(self, file_or_filename, parseAll=False):
         """
@@ -676,7 +632,7 @@ class ParserElement(object):
 
         Parameters:
          - testString - to test against this expression for a match
-         - parseAll - (default= ``True``) - flag to pass to :class:`parseString` when running tests
+         - parseAll - (default= ``True``) - flag to pass to `parseString` when running tests
 
         Example::
 
@@ -702,7 +658,7 @@ class _PendingSkip(ParserElement):
         if isinstance(other, _PendingSkip):
             return self.anchor + other
 
-        skipper = SkipTo(other).set_parser_name("...")("_skipped")
+        skipper = SkipTo(other)("_skipped")
         return self.anchor + skipper + other
 
     def parseImpl(self, *args):

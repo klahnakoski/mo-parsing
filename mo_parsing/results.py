@@ -383,7 +383,7 @@ class ParseResults(object):
 
     def __copy__(self):
         """
-        Returns a new copy of a :class:`ParseResults` object.
+        Returns a new copy of a `ParseResults` object.
         """
         ret = ParseResults(self.type, self.start, self.end, list(self.tokens))
         return ret

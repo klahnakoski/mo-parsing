@@ -150,7 +150,7 @@ def matchPreviousLiteral(expr):
     will match ``"1:1"``, but not ``"1:2"``.  Because this
     matches a previous literal, will also match the leading
     ``"1:1"`` in ``"1:10"``. If this is not desired, use
-    :class:`matchPreviousExpr`. Do *not* use with packrat parsing
+    `matchPreviousExpr`. Do *not* use with packrat parsing
     enabled.
     """
     rep = Forward()
@@ -209,7 +209,7 @@ def oneOf(strs, caseless=False, useRegex=True, asKeyword=False):
     """Helper to quickly define a set of alternative Literals, and makes
     sure to do longest-first testing when there is a conflict,
     regardless of the input order, but returns
-    a :class:`MatchFirst` for best performance.
+    a `MatchFirst` for best performance.
 
     Parameters:
 
@@ -219,8 +219,8 @@ def oneOf(strs, caseless=False, useRegex=True, asKeyword=False):
        caseless
      - useRegex - (default= ``True``) - as an optimization, will
        generate a Regex object; otherwise, will generate
-       a :class:`MatchFirst` object (if ``caseless=True`` or ``asKeyword=True``, or if
-       creating a :class:`Regex` raises an exception)
+       a `MatchFirst` object (if ``caseless=True`` or ``asKeyword=True``, or if
+       creating a `Regex` raises an exception)
      - asKeyword - (default=``False``) - enforce Keyword-style matching on the
        generated expressions
 
@@ -311,11 +311,11 @@ def oneOf(strs, caseless=False, useRegex=True, asKeyword=False):
 def dictOf(key, value):
     """Helper to easily and clearly define a dictionary by specifying
     the respective patterns for the key and value.  Takes care of
-    defining the :class:`Dict`, :class:`ZeroOrMore`, and
-    :class:`Group` tokens in the proper order.  The key pattern
+    defining the `Dict`, `ZeroOrMore`, and
+    `Group` tokens in the proper order.  The key pattern
     can include delimiting markers or punctuation, as long as they are
     suppressed, thereby leaving the significant key text.  The value
-    pattern can include named results, so that the :class:`Dict` results
+    pattern can include named results, so that the `Dict` results
     can include named token fields.
 
     Example::
@@ -357,10 +357,10 @@ def originalTextFor(expr, asString=True):
 
     If the optional ``asString`` argument is passed as
     ``False``, then the return value is
-    a :class:`ParseResults` containing any results names that
+    a `ParseResults` containing any results names that
     were originally matched, and a single token containing the original
     matched text from the input string.  So if the expression passed to
-    :class:`originalTextFor` contains expressions with defined
+    `originalTextFor` contains expressions with defined
     results names, you must set ``asString`` to ``False`` if you
     want to preserve those results name values.
 
@@ -408,7 +408,7 @@ def locatedExpr(expr):
      - value = the actual parsed results
 
     Be careful if the input text contains ``<TAB>`` characters, you
-    may want to call :class:`ParserElement.parseWithTabs`
+    may want to call `ParserElement.parseWithTabs`
 
     Example::
 
@@ -438,7 +438,7 @@ def nestedExpr(opener="(", closer=")", content=None, ignoreExpr=quotedString):
      - content - expression for items within the nested lists
        (default= ``None``)
      - ignoreExpr - expression for ignoring opening and closing
-       delimiters (default= :class:`quotedString`)
+       delimiters (default= `quotedString`)
 
     If an expression is not provided for the content argument, the
     nested expression will capture all whitespace-delimited content
@@ -448,8 +448,8 @@ def nestedExpr(opener="(", closer=")", content=None, ignoreExpr=quotedString):
     contain opening or closing characters that should not be treated as
     opening or closing characters for nesting, such as quotedString or
     a comment expression.  Specify multiple expressions using an
-    :class:`Or` or :class:`MatchFirst`. The default is
-    :class:`quotedString`, but if no expressions are to be ignored, then
+    `Or` or `MatchFirst`. The default is
+    `quotedString`, but if no expressions are to be ignored, then
     pass ``None`` for this argument.
 
     """
@@ -586,7 +586,7 @@ def matchOnlyAtCol(n):
 def replaceWith(value):
     """Helper method for common parse actions that simply return
     a literal value.  Especially useful when used with
-    :class:`transformString<ParserElement.transformString>` ().
+    `transformString<ParserElement.transformString>` ().
     """
 
     def replacer():
@@ -633,11 +633,11 @@ def tokenMap(func, *args):
 
 upcaseTokens = tokenMap(lambda t: text(t).upper())
 """(Deprecated) Helper parse action to convert tokens to upper case.
-Deprecated in favor of :class:`upcaseTokens`"""
+Deprecated in favor of `upcaseTokens`"""
 
 downcaseTokens = tokenMap(lambda t: text(t).lower())
 """(Deprecated) Helper parse action to convert tokens to lower case.
-Deprecated in favor of :class:`downcaseTokens`"""
+Deprecated in favor of `downcaseTokens`"""
 
 
 def makeHTMLTags(tagStr, suppress_LT=Suppress("<"), suppress_GT=Suppress(">")):
@@ -675,7 +675,7 @@ def makeHTMLTags(tagStr, suppress_LT=Suppress("<"), suppress_GT=Suppress(">")):
     )
 
     closeTag = (
-        Combine(Literal("</") + tagStr + ">", adjacent=False)
+        Combine(Literal("</") + tagStr + ">")
         .set_token_name("end" + simpler_name)
         .set_parser_name("</%s>" % resname)
     )
@@ -689,8 +689,8 @@ def makeHTMLTags(tagStr, suppress_LT=Suppress("<"), suppress_GT=Suppress(">")):
 
 def withAttribute(*args, **attrDict):
     """Helper to create a validating parse action to be used with start
-    tags created with :class:`makeXMLTags` or
-    :class:`makeHTMLTags`. Use ``withAttribute`` to qualify
+    tags created with `makeXMLTags` or
+    `makeHTMLTags`. Use ``withAttribute`` to qualify
     a starting tag with a required attribute value, to avoid false
     matches on common tags such as ``<TD>`` or ``<DIV>``.
 
@@ -706,7 +706,7 @@ def withAttribute(*args, **attrDict):
     form.  Attribute names are matched insensitive to upper/lower case.
 
     If just testing for ``class`` (with or without a namespace), use
-    :class:`withClass`.
+    `withClass`.
 
     To verify that the attribute exists, but without specifying a value,
     pass ``withAttribute.ANY_VALUE`` as the value.
@@ -758,7 +758,8 @@ def withAttribute(*args, **attrDict):
                     tokens.type,
                     loc,
                     string,
-                    f"attribute '{attrName}' has value '{tokens[attrName]}', must be '{attrValue}'"
+                    f"attribute '{attrName}' has value '{tokens[attrName]}', must be"
+                    f" '{attrValue}'",
                 )
 
     return pa
@@ -768,7 +769,7 @@ withAttribute.ANY_VALUE = object()
 
 
 def withClass(classname, namespace=""):
-    """Simplified version of :class:`withAttribute` when
+    """Simplified version of `withAttribute` when
     matching on a div class - made difficult because ``class`` is
     a reserved word in Python.
 
@@ -832,7 +833,7 @@ def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
          tuple member may be omitted); if the parse action is passed
          a tuple or list of functions, this is equivalent to calling
          ``setParseAction(*fn)``
-         (:class:`ParserElement.addParseAction`)
+         (`ParserElement.addParseAction`)
     :param lpar: expression for matching left-parentheses
        (default= ``Suppress('(')``)
     :param rpar: expression for matching right-parentheses
@@ -1179,10 +1180,10 @@ dblSlashComment = Regex(r"//(?:\\\n|[^\n])*").set_parser_name("// comment")
 cppStyleComment = Combine(
     Regex(r"/\*(?:[^*]|\*(?!/))*") + "*/" | dblSlashComment
 ).set_parser_name("C++ style comment")
-"Comment of either form :class:`cStyleComment` or :class:`dblSlashComment`"
+"Comment of either form `cStyleComment` or `dblSlashComment`"
 
 javaStyleComment = cppStyleComment
-"Same as :class:`cppStyleComment`"
+"Same as `cppStyleComment`"
 
 pythonStyleComment = Regex(r"#.*").set_parser_name("Python style comment")
 "Comment of the form ``# ... (to end of line)``"
@@ -1193,35 +1194,34 @@ _commasepitem = (
         + Optional(Word(" \t") + ~Literal(",") + ~LineEnd())
     ))
     .addParseAction(lambda t: text(t).strip())
-    .streamline()
     .set_parser_name("commaItem")
 )
 commaSeparatedList = delimitedList(Optional(
-    quotedString.copy() | _commasepitem, default=""
+    quotedString | _commasepitem, default=""
 )).set_parser_name("commaSeparatedList")
 
 """Here are some common low-level expressions that may be useful in
 jump-starting parser development:
 
- - numeric forms (:class:`integers<integer>`, :class:`reals<real>`,
-   :class:`scientific notation<sci_real>`)
- - common :class:`programming identifiers<identifier>`
- - network addresses (:class:`MAC<mac_address>`,
-   :class:`IPv4<ipv4_address>`, :class:`IPv6<ipv6_address>`)
- - ISO8601 :class:`dates<iso8601_date>` and
-   :class:`datetime<iso8601_datetime>`
- - :class:`UUID<uuid>`
- - :class:`comma-separated list<comma_separated_list>`
+ - numeric forms (`integers<integer>`, `reals<real>`,
+   `scientific notation<sci_real>`)
+ - common `programming identifiers<identifier>`
+ - network addresses (`MAC<mac_address>`,
+   `IPv4<ipv4_address>`, `IPv6<ipv6_address>`)
+ - ISO8601 `dates<iso8601_date>` and
+   `datetime<iso8601_datetime>`
+ - `UUID<uuid>`
+ - `comma-separated list<comma_separated_list>`
 
 Parse actions:
 
- - :class:`convertToInteger`
- - :class:`convertToFloat`
- - :class:`convertToDate`
- - :class:`convertToDatetime`
- - :class:`stripHTMLTags`
- - :class:`upcaseTokens`
- - :class:`downcaseTokens`
+ - `convertToInteger`
+ - `convertToFloat`
+ - `convertToDate`
+ - `convertToDatetime`
+ - `stripHTMLTags`
+ - `upcaseTokens`
+ - `downcaseTokens`
 
 Example::
 

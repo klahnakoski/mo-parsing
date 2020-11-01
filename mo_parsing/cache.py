@@ -86,7 +86,7 @@ def enablePackrat(cache_size_limit=128):
     This speedup may break existing programs that use parse actions that
     have side-effects.  For this reason, packrat parsing is disabled when
     you first import mo_parsing.  To activate the packrat feature, your
-    program must call the class method :class:`enablePackrat`.
+    program must call the class method `enablePackrat`.
     For best results, call ``enablePackrat()`` immediately after
     importing mo_parsing.
 

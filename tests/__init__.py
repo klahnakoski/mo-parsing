@@ -26,7 +26,7 @@ def runTests(
 
     Parameters:
      - tests - a list of separate test strings, or a multiline string of test strings
-     - parseAll - (default= ``True``) - flag to pass to :class:`parseString` when running tests
+     - parseAll - (default= ``True``) - flag to pass to `parseString` when running tests
      - comment - (default= ``'#'``) - expression for indicating embedded comments in the test
           string; pass None to disable comment filtering
      - fullDump - (default= ``True``) - dump results as list followed by results names in nested outline;

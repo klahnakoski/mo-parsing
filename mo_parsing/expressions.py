@@ -1,7 +1,7 @@
 # encoding: utf-8
 from operator import itemgetter
 
-from mo_future import Iterable, text, generator_types
+from mo_future import Iterable, text, generator_types, first
 
 from mo_parsing.core import ParserElement, _PendingSkip, is_decorated
 from mo_parsing.engine import Engine
@@ -12,7 +12,7 @@ from mo_parsing.exceptions import (
 )
 from mo_parsing.results import ParseResults
 from mo_parsing.tokens import Empty
-from mo_parsing.utils import empty_list, empty_tuple, is_forward
+from mo_parsing.utils import empty_list, empty_tuple, is_forward, Log
 
 
 class ParseExpression(ParserElement):
@@ -77,17 +77,6 @@ class ParseExpression(ParserElement):
         self.exprs = acc
         return self
 
-    def validate(self, seen=empty_list):
-        tmp = seen + [self]
-        for e in self.exprs:
-            e.validate(tmp)
-        self.checkRecursion()
-
-    def checkRecursion(self, seen=empty_tuple):
-        seen_more = seen + (self,)
-        for e in self.exprs:
-            e.checkRecursion(seen_more)
-
     def __call__(self, name):
         if not name:
             return self
@@ -100,20 +89,12 @@ class ParseExpression(ParserElement):
 
 class And(ParseExpression):
     """
-    Requires all given :class:`ParseExpression` s to be found in the given order.
+    Requires all given `ParseExpression` s to be found in the given order.
     Expressions may be separated by whitespace.
     May be constructed using the ``'+'`` operator.
     May also be constructed using the ``'-'`` operator, which will
     suppress backtracking.
 
-    Example::
-
-        integer = Word(nums)
-        name_expr = OneOrMore(Word(alphas))
-
-        expr = And([integer("id"), name_expr("name"), integer("age")])
-        # more easily written as:
-        expr = integer("id") + name_expr("name") + integer("age")
     """
 
     class _ErrorStop(Empty):
@@ -139,13 +120,14 @@ class And(ParseExpression):
                     tmp.append(expr)
             exprs[:] = tmp
         super(And, self).__init__(exprs)
-        self.parser_config.mayReturnEmpty = all(
-            e.parser_config.mayReturnEmpty for e in self.exprs
-        )
 
     def streamline(self):
         if self.streamlined:
             return self
+        if not self.exprs:
+            return Empty(self.parser_name)
+        if len(self.exprs) == 1 and not is_decorated(self):
+            return self.exprs[0].streamline()
 
         # collapse any _PendingSkip's
         if any(
@@ -166,15 +148,51 @@ class And(ParseExpression):
                     self.exprs[i + 1] = None
             self.exprs = [e for e in self.exprs if e is not None]
 
-        output = ParseExpression.streamline(self)
-        if isinstance(output, Empty):
+        # streamline INDIVIDUAL EXPRESSIONS
+        acc = []
+        for e in self.exprs:
+            e = e.streamline()
+            if isinstance(e, self.__class__) and not is_decorated(e):
+                acc.extend(e.exprs)
+            elif isinstance(e, Empty) and not e.is_annotated():
+                pass
+            else:
+                acc.append(e)
+
+        # HANDLE OPTIONAL ParserElement ON THE LEFT
+        optionals = [i for i, e in enumerate(acc[:-1]) if isinstance(e, Many) and e.min_match == 0]
+        if len(optionals) > 1:
+            # ONLY OPTIMIZE IF THERE ARE MULTIPLE optionals, NOT INCLUDING THE RIGHTMOST
+            last = max(optionals)
+            tail = acc[last + 1:] # COMMON tail FOR ALL PERMUTATIONS
+            mult = [[acc[last]]]  # DISJUNCTIVE NORMAL FORM (AKA ALL PERMUTATIONS)
+            for e in reversed(acc[:last]):
+                new_mult = []
+                if isinstance(e, Many) and e.min_match == 0:
+                    at_least_one = e.copy()
+                    at_least_one.__class__ = Many
+                    at_least_one.min_match = 1
+                    # WITH, AND WITHOUT
+                    new_mult.extend([at_least_one] + m for m in mult)
+                    new_mult.extend(mult)
+                    mult = new_mult
+                else:
+                    mult = [[e] + m for m in mult]
+
+            output = And([MatchFirst([And(m) for m in mult]), And(tail)]).streamline()
+            output.streamlined = True
             return output
-        elif len(output.exprs) == 1 and not is_decorated(output):
-            return output.exprs[0]
-        output.parser_config.mayReturnEmpty = all(
-            e.parser_config.mayReturnEmpty for e in self.exprs
-        )
+
+        output = self.copy()
+        output.exprs = acc
+        output.streamlined = True
         return output
+
+    def consume_at_least_one_char(self):
+        for e in self.exprs:
+            if e.consume_at_least_one_char():
+                return True
+        return False
 
     def parseImpl(self, string, start, doActions=True):
         # pass False as last arg to _parse for first element, since we already
@@ -194,7 +212,7 @@ class And(ParseExpression):
                 raise cause
             except ParseException as pe:
                 if encountered_error_stop:
-                    raise ParseSyntaxException(pe.parserElement, pe.loc, pe.pstr)
+                    raise ParseSyntaxException(pe.expr, pe.loc, pe.string)
                 else:
                     raise pe
 
@@ -210,8 +228,8 @@ class And(ParseExpression):
         subRecCheckList = seen + (self,)
         for e in self.exprs:
             e.checkRecursion(subRecCheckList)
-            if not e.parser_config.mayReturnEmpty:
-                break
+            if e.consume_at_least_one_char():
+                return
 
     def __str__(self):
         if self.parser_name:
@@ -221,7 +239,7 @@ class And(ParseExpression):
 
 
 class Or(ParseExpression):
-    """Requires that at least one :class:`ParseExpression` is found. If
+    """Requires that at least one `ParseExpression` is found. If
     two expressions match, the expression that matches the longest
     string will be used. May be constructed using the ``'^'``
     operator.
@@ -229,24 +247,19 @@ class Or(ParseExpression):
 
     def __init__(self, exprs):
         super(Or, self).__init__(exprs)
-        if self.exprs:
-            self.parser_config.mayReturnEmpty = any(
-                e.parser_config.mayReturnEmpty for e in self.exprs
-            )
-        else:
-            self.parser_config.mayReturnEmpty = True
+
+    def consume_at_least_one_char(self):
+        return all(e.consume_at_least_one_char() for e in self.exprs)
 
     def parseImpl(self, string, start, doActions=True):
-        maxException = None
+        causes = []
         matches = []
         for e in self.exprs:
             try:
                 end = e.tryParse(string, start)
                 matches.append((end, e))
             except ParseException as err:
-                err.__traceback__ = None
-                if not maxException or err.loc > maxException.loc:
-                    maxException = err
+                causes.append(err)
 
         if matches:
             # re-evaluate all matches in descending order of length of match, in case attached actions
@@ -271,9 +284,7 @@ class Or(ParseExpression):
                 try:
                     toks = expr1._parse(string, start, doActions)
                 except ParseException as err:
-                    err.__traceback__ = None
-                    if not maxException or err.loc > maxException.loc:
-                        maxException = err
+                    causes.append(err)
                 else:
                     if toks.end >= loc:
                         return ParseResults(self, toks.start, toks.end, [toks])
@@ -287,13 +298,12 @@ class Or(ParseExpression):
             if longest != (-1, None):
                 return longest
 
-        if maxException:
-            maxException.msg = "Expecting " + text(self)
-            raise maxException
-        else:
-            raise ParseException(
-                self, start, "no defined alternatives to match"
-            )
+        raise ParseException(self, start, string, msg="no defined alternatives to match", cause=causes)
+
+    def checkRecursion(self, seen=empty_tuple):
+        seen_more = seen + (self,)
+        for e in self.exprs:
+            e.checkRecursion(seen_more)
 
     def __str__(self):
         if self.parser_name:
@@ -303,50 +313,49 @@ class Or(ParseExpression):
 
 
 class MatchFirst(ParseExpression):
-    """Requires that at least one :class:`ParseExpression` is found. If
+    """Requires that at least one `ParseExpression` is found. If
     two expressions match, the first one listed is the one that will
     match. May be constructed using the ``'|'`` operator.
-
-    Example::
-
-        # construct MatchFirst using '|' operator
-
-        # watch the order of expressions to match
-        number = Word(nums) | Combine(Word(nums) + '.' + Word(nums))
-        print(number.searchString("123 3.1416 789")) #  Fail! -> [['123'], ['3'], ['1416'], ['789']]
-
-        # put more selective expression first
-        number = Combine(Word(nums) + '.' + Word(nums)) | Word(nums)
-        print(number.searchString("123 3.1416 789")) #  Better -> [['123'], ['3.1416'], ['789']]
     """
 
     def __init__(self, exprs):
         super(MatchFirst, self).__init__(exprs)
-        if self.exprs:
-            self.parser_config.mayReturnEmpty = any(
-                e.parser_config.mayReturnEmpty for e in self.exprs
-            )
-        else:
-            self.parser_config.mayReturnEmpty = True
+
+    def consume_at_least_one_char(self):
+        return all(e.consume_at_least_one_char() for e in self.exprs)
 
     def parseImpl(self, string, start, doActions=True):
-        maxException = None
+        causes = []
         loc = start
         for e in self.exprs:
             try:
                 ret = e._parse(string, loc, doActions)
                 return ParseResults(self, ret.start, ret.end, [ret])
             except ParseException as err:
-                if not maxException or err.loc > maxException.loc:
-                    maxException = err
+                causes.append(err)
 
-        # only got here if no expression matched, raise exception for match that made it the furthest
-        else:
-            if maxException:
-                maxException.msg = "Expecting " + text(self)
-                raise maxException
-            else:
-                raise ParseException(self, start, string)
+        raise ParseException(self, start, string, cause=causes)
+
+    def streamline(self):
+        if self.streamlined:
+            return self
+
+        output = ParseExpression.streamline(self)
+
+        if not output.is_annotated():
+            if len(output.exprs) == 0:
+                output = Empty()
+            if len(output.exprs) == 1:
+                output = output.exprs[0]
+
+        output.streamlined = True
+        output.checkRecursion()
+        return output
+
+    def checkRecursion(self, seen=empty_tuple):
+        seen_more = seen + (self,)
+        for e in self.exprs:
+            e.checkRecursion(seen_more)
 
     def __or__(self, other):
         if other is Ellipsis:
@@ -366,7 +375,7 @@ class MatchFirst(ParseExpression):
 
 class Each(ParseExpression):
     """
-    Requires all given :class:`ParseExpression` s to be found, but in
+    Requires all given `ParseExpression` s to be found, but in
     any order. Expressions may be separated by whitespace.
 
     May be constructed using the ``'&'`` operator.
@@ -384,21 +393,16 @@ class Each(ParseExpression):
         self.parser_config.max_match = [
             e.max_match if isinstance(e, Many) else 1 for e in exprs
         ]
-
-        self.parser_config.mayReturnEmpty = all(
-            e.parser_config.mayReturnEmpty for e in self.exprs
-        )
         self.initExprGroups = True
 
     def streamline(self):
         if self.streamlined:
             return self
+        return super(Each, self).streamline()
 
-        super(Each, self).streamline()
-        self.parser_config.mayReturnEmpty = all(
-            e.parser_config.mayReturnEmpty for e in self.exprs
-        )
-        return self
+    def consume_at_least_one_char(self):
+        # TODO: MAY BE TOO CONSERVATIVE, WE MAY BE ABLE TO PROVE self CAN CONSUME A CHARACTER
+        return all(e.consume_at_least_one_char() for e in self.exprs)
 
     def parseImpl(self, string, start, doActions=True):
         end = start
@@ -438,7 +442,7 @@ class Each(ParseExpression):
         missing = [
             e
             for e, mi in zip(self.exprs, self.parser_config.min_matches)
-            if id(e) not in found and not e.parser_config.mayReturnEmpty and mi > 0
+            if id(e) not in found and mi > 0
         ]
         if missing:
             missing = ", ".join(text(e) for e in missing)
@@ -447,11 +451,7 @@ class Each(ParseExpression):
             )
 
         # add any unmatched Optionals, in case they have default values defined
-        matchOrder += [
-            e
-            for e in self.exprs
-            if id(e) not in found and e.parser_config.mayReturnEmpty
-        ]
+        matchOrder += [e for e in self.exprs if id(e) not in found]
 
         results = []
         end = start

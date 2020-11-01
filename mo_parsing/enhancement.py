@@ -7,12 +7,11 @@ from mo_parsing.core import ParserElement
 from mo_parsing.engine import noop, Engine
 from mo_parsing.exceptions import (
     ParseException,
-    ParseException,
     RecursiveGrammarException,
 )
 from mo_parsing.results import ParseResults, Annotation
-from mo_parsing.utils import Log, listwrap
-from mo_parsing.utils import _MAX_INT, empty_list, empty_tuple, is_forward
+from mo_parsing.utils import Log, listwrap, empty_tuple
+from mo_parsing.utils import MAX_INT, is_forward
 
 # import later
 Token, Literal, Keyword, Word, CharsNotIn, _PositionToken, StringEnd, Empty = [None] * 8
@@ -21,7 +20,7 @@ _get = object.__getattribute__
 
 
 class ParseElementEnhance(ParserElement):
-    """Abstract subclass of :class:`ParserElement`, for combining and
+    """Abstract subclass of `ParserElement`, for combining and
     post-processing parsed tokens.
     """
 
@@ -30,7 +29,6 @@ class ParseElementEnhance(ParserElement):
         self.expr = expr = engine.CURRENT.normalize(expr)
         if is_forward(expr):
             expr.track(self)
-        self.parser_config.mayReturnEmpty = expr.parser_config.mayReturnEmpty
 
     def copy(self):
         output = ParserElement.copy(self)
@@ -39,6 +37,9 @@ class ParseElementEnhance(ParserElement):
         else:
             output.expr = self.expr.copy()
         return output
+
+    def consume_at_least_one_char(self):
+        return self.expr.consume_at_least_one_char()
 
     def parseImpl(self, string, start, doActions=True):
         output = self.expr._parse(string, start, doActions)
@@ -67,15 +68,10 @@ class ParseElementEnhance(ParserElement):
         if self.expr != None:
             self.expr.checkRecursion(seen + (self,))
 
-    def validate(self, seen=empty_list):
-        if self.expr != None:
-            self.expr.validate(seen + [self])
-        self.checkRecursion()
-
     def __str__(self):
         if self.parser_name:
             return self.parser_name
-        return "%s:(%s)" % (self.__class__.__name__, text(self.expr))
+        return f"{self.__class__.__name__}:({self.expr})"
 
 
 class FollowedBy(ParseElementEnhance):
@@ -103,7 +99,6 @@ class FollowedBy(ParseElementEnhance):
 
     def __init__(self, expr):
         super(FollowedBy, self).__init__(expr)
-        self.parser_config.mayReturnEmpty = True
 
     def parseImpl(self, string, start, doActions=True):
         # by using self._expr.parse and deleting the contents of the returned ParseResults list
@@ -141,7 +136,6 @@ class NotAny(ParseElementEnhance):
     def __init__(self, expr):
         super(NotAny, self).__init__(expr)
         # do NOT use self.leaveWhitespace(), don't want to propagate to exprs
-        self.parser_config.mayReturnEmpty = True
 
     def parseImpl(self, string, start, doActions=True):
         if self.expr.canParseNext(string, start):
@@ -151,7 +145,7 @@ class NotAny(ParseElementEnhance):
     def __str__(self):
         if self.parser_name:
             return self.parser_name
-        return "~{" + text(self.expr) + "}"
+        return "~{{self.expr}}"
 
 
 class Many(ParseElementEnhance):
@@ -168,10 +162,6 @@ class Many(ParseElementEnhance):
         self.max_match = max_match
         self.stopOn(stopOn)
 
-        self.parser_config.mayReturnEmpty = (
-            min_match == 0 or expr.parser_config.mayReturnEmpty
-        )
-
     def copy(self):
         output = ParseElementEnhance.copy(self)
         output.min_match = self.min_match
@@ -182,6 +172,11 @@ class Many(ParseElementEnhance):
     def stopOn(self, ender):
         self.not_ender = ~self.engine.normalize(ender) if ender else None
         return self
+
+    def consume_at_least_one_char(self):
+        if self.min_match == 0:
+            return False
+        return self.expr.consume_at_least_one_char()
 
     def parseImpl(self, string, start, doActions=True):
         if self.not_ender is None:
@@ -209,8 +204,10 @@ class Many(ParseElementEnhance):
                 raise ParseException(
                     self,
                     acc[0].start,
-                    msg=f"Expecting between {self.min_match} and {self.max_match} of"
-                    f" {self}",
+                    msg=(
+                        f"Expecting between {self.min_match} and {self.max_match} of"
+                        f" {self}"
+                    ),
                 )
             else:
                 return ParseResults(self, acc[0].start, acc[-1].end, acc)
@@ -219,8 +216,20 @@ class Many(ParseElementEnhance):
                 return ParseResults(self, start, start, [])
             else:
                 raise ParseException(
-                    self, start, string, msg=f"Expecting at least {self.min_match} of {self}"
+                    self,
+                    start,
+                    string,
+                    msg=f"Expecting at least {self.min_match} of {self}",
                 )
+
+    def streamline(self):
+        if self.streamlined:
+            return self
+        if self.min_match == self.max_match and self.min_match == 1:
+            return self.expr.streamline()
+
+        self.streamlined = True
+        return self
 
     def __call__(self, name):
         if not name:
@@ -248,7 +257,7 @@ class OneOrMore(Many):
     """
 
     def __init__(self, expr, stopOn=None):
-        Many.__init__(self, expr, stopOn, min_match=1, max_match=_MAX_INT)
+        Many.__init__(self, expr, stopOn, min_match=1, max_match=MAX_INT)
         self.parser_config.lock_engine = expr.parser_config.lock_engine
         self.parser_config.engine = expr.parser_config.engine
 
@@ -272,14 +281,14 @@ class ZeroOrMore(Many):
           (only required if the sentinel would ordinarily match the repetition
           expression)
 
-    Example: similar to :class:`OneOrMore`
+    Example: similar to `OneOrMore`
     """
 
     def __init__(self, expr, stopOn=None):
         super(ZeroOrMore, self).__init__(
-            expr, stopOn=stopOn, min_match=0, max_match=_MAX_INT
+            expr, stopOn=stopOn, min_match=0, max_match=MAX_INT
         )
-        self.parser_config.mayReturnEmpty = True
+
         self.parser_config.lock_engine = self.expr.parser_config.lock_engine
         self.parser_config.engine = self.expr.parser_config.engine
 
@@ -302,42 +311,11 @@ class Optional(Many):
     Parameters:
      - expr - expression that must match zero or more times
      - default (optional) - value to be returned if the optional expression is not found.
-
-    Example::
-
-        # US postal code can be a 5-digit zip, plus optional 4-digit qualifier
-        zip = Combine(Word(nums, exact=5) + Optional('-' + Word(nums, exact=4)))
-        test.runTests(zip, '''
-            # traditional ZIP code
-            12345
-
-            # ZIP+4 form
-            12101-0001
-
-            # invalid ZIP
-            98765-
-            ''')
-
-    prints::
-
-        # traditional ZIP code
-        12345
-        ['12345']
-
-        # ZIP+4 form
-        12101-0001
-        ['12101-0001']
-
-        # invalid ZIP
-        98765-
-             ^
-        FAIL: Expected end of text (at char 5), (line:1, col:6)
     """
 
     def __init__(self, expr, default=None):
         Many.__init__(self, expr, stopOn=None, min_match=0, max_match=1)
         self.defaultValue = listwrap(default)
-        self.parser_config.mayReturnEmpty = True
 
     def copy(self):
         output = Many.copy(self)
@@ -376,11 +354,7 @@ class SkipTo(ParseElementEnhance):
         self.includeMatch = include
         self.failOn = engine.CURRENT.normalize(failOn)
         self.ignoreExpr = ignore
-
-        self.parser_config.mayReturnEmpty = True
-
-        # self.engine = expr.engine
-        # self.parser_config.lock_engine = expr.parser_config.lock_engine
+        self.parser_name = str(self)
 
     def copy(self):
         output = ParseElementEnhance.copy(self)
@@ -388,6 +362,9 @@ class SkipTo(ParseElementEnhance):
         output.includeMatch = self.includeMatch
         output.failOn = self.failOn
         return output
+
+    def consume_at_least_one_char(self):
+        return False
 
     def parseImpl(self, string, start, doActions=True):
         instrlen = len(string)
@@ -466,7 +443,7 @@ class Forward(ParserElement):
 
     Converting to use the '<<=' operator instead will avoid this problem.
 
-    See :class:`ParseResults.pprint` for an example of a recursive
+    See `ParseResults.pprint` for an example of a recursive
     parser created using ``Forward``.
     """
 
@@ -474,7 +451,7 @@ class Forward(ParserElement):
         ParserElement.__init__(self)
         self.expr = None
         self.used_by = []
-        self.parser_config.mayReturnEmpty = expr.parser_config.mayReturnEmpty
+
         self.strRepr = None  # avoid recursion
         if expr:
             self << engine.CURRENT.normalize(expr)
@@ -521,6 +498,7 @@ class Forward(ParserElement):
             return self
 
         if self.expr:
+            self.checkRecursion()
             self.expr = self.expr.streamline()
             self.streamlined = True
         return self
@@ -531,11 +509,10 @@ class Forward(ParserElement):
         if self.expr != None:
             self.expr.checkRecursion(seen + (self,))
 
-    def validate(self, seen=empty_list):
-        if self not in seen:
-            if self.expr != None:
-                self.expr.validate(seen + [self])
-        self.checkRecursion()
+    def consume_at_least_one_char(self):
+        if self.expr:
+            return self.expr.consume_at_least_one_char()
+        return False
 
     def parseImpl(self, string, loc, doActions=True):
         try:
@@ -572,28 +549,24 @@ class Forward(ParserElement):
 
 class TokenConverter(ParseElementEnhance):
     """
-    Abstract subclass of :class:`ParseExpression`, for converting parsed results.
+    Abstract subclass of `ParseExpression`, for converting parsed results.
     """
 
     pass
 
 
 class Combine(TokenConverter):
-    """Converter to concatenate all matching tokens to a single string.
-    By default, the matching patterns must also be contiguous in the
-    input string; this can be disabled by specifying
-    ``'adjacent=False'`` in the constructor.
+    """
+    Converter to concatenate all matching tokens to a single string.
     """
 
-    def __init__(self, expr, separator="", adjacent=True):
+    def __init__(self, expr, separator=""):
         super(Combine, self).__init__(expr)
-        self.adjacent = adjacent
         self.separator = separator
         self.parseAction.append(_combine_post_parse)
 
     def copy(self):
         output = TokenConverter.copy(self)
-        output.adjacent = self.adjacent
         output.separator = self.separator
         return output
 
@@ -613,8 +586,7 @@ class Group(TokenConverter):
 
     def __init__(self, expr):
         ParserElement.__init__(self)
-        self.expr = expr = self.engine.normalize(expr)
-        self.parser_config.mayReturnEmpty = expr.parser_config.mayReturnEmpty
+        self.expr = self.engine.normalize(expr)
 
 
 class Dict(Group):
@@ -715,7 +687,6 @@ class PrecededBy(ParseElementEnhance):
     def __init__(self, expr, retreat=None):
         super(PrecededBy, self).__init__(expr)
         self.expr = self.expr.leaveWhitespace()
-        self.parser_config.mayReturnEmpty = True
 
         self.exact = False
         if isinstance(expr, str):
@@ -724,8 +695,11 @@ class PrecededBy(ParseElementEnhance):
         elif isinstance(expr, (Literal, Keyword)):
             retreat = expr.matchLen
             self.exact = True
-        elif isinstance(expr, (Word, CharsNotIn)) and expr.maxLen != _MAX_INT:
-            retreat = expr.maxLen
+        elif (
+            isinstance(expr, (Word, CharsNotIn))
+            and expr.parser_config.max_len != MAX_INT
+        ):
+            retreat = expr.parser_config.max_len
             self.exact = True
         elif isinstance(expr, _PositionToken):
             retreat = 0
