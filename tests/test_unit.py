@@ -22,7 +22,6 @@ from textwrap import dedent
 from unittest import TestCase, skip
 
 from mo_dots import coalesce
-from mo_parsing.utils import Log
 from mo_times import Timer
 
 from examples import fourFn, configParse, idlParse, ebnf
@@ -31,7 +30,6 @@ from examples.simpleSQL import simpleSQL
 from mo_parsing import (
     LineStart,
     ParseResults,
-    ParseException,
     Word,
     alphas,
     nums,
@@ -42,7 +40,7 @@ from mo_parsing import (
     QuotedString,
     alphanums,
     Dict,
-    ParseBaseException,
+    ParseException,
     Forward,
     Regex,
     ParseFatalException,
@@ -119,8 +117,9 @@ from mo_parsing.helpers import (
     htmlComment,
     srange,
     ungroup,
-    dictOf, LEFT_ASSOC, RIGHT_ASSOC, reset_stack
+    dictOf, LEFT_ASSOC, RIGHT_ASSOC
 )
+from mo_parsing.utils import Log
 from mo_parsing.utils import (
     parsing_unicode,
     printables,
@@ -1288,7 +1287,7 @@ class TestParsing(PyparsingExpressionTestCase):
 
         def tryToParse(someText, fail_expected=False):
             if fail_expected:
-                with self.assertRaises(ParseBaseException):
+                with self.assertRaises(ParseException):
                     testExpr.parseString(someText)
             else:
                 testExpr.parseString(someText)
@@ -1393,6 +1392,7 @@ class TestParsing(PyparsingExpressionTestCase):
         test(e, "start end", ["start", "end"], {"_skipped": ""})
         test(e, "start 456 + end", ["start", "456 +", "end"], {"_skipped": "456 +"})
 
+        e = (alpha_word | ...) + (num_word | ...) + "end"
         e = "start" + (alpha_word | ...) + (num_word | ...) + "end"
         test(e, "start red 456 end", ["start", "red", "456", "end"], {})
         test(e, "start red end", ["start", "red", "end"], {"_skipped": ""})
@@ -3311,7 +3311,7 @@ class TestParsing(PyparsingExpressionTestCase):
         # should always detect the "Word" expression.
         def validate(token):
             if token[0] == "def":
-                raise ParseException("signalling invalid token")
+                raise ParseException(token, token.start, "signalling invalid token")
             return token
 
         a = Word("de").set_parser_name("Word")  # .setDebug()
@@ -4228,7 +4228,7 @@ class TestParsing(PyparsingExpressionTestCase):
                     r_tok["mismatches"],
                     exp,
                     "fail CloseMatch between {!r} and {!r}".format(
-                        searchseq.match_string, r_str
+                        searchseq.parser_config.match, r_str
                     ),
                 )
 
@@ -4238,7 +4238,7 @@ class TestParsing(PyparsingExpressionTestCase):
             Keyword("start").parseString("start1000")
 
         try:
-            Keyword("start", identChars=alphas).parseString("start1000")
+            Keyword("start", ident_chars=alphas).parseString("start1000")
         except ParseException:
             self.assertTrue(
                 False, "failed to match keyword using updated keyword chars"
@@ -4257,7 +4257,7 @@ class TestParsing(PyparsingExpressionTestCase):
             CaselessKeyword("START").parseString("start1000")
 
         try:
-            CaselessKeyword("START", identChars=alphas).parseString("start1000")
+            CaselessKeyword("START", ident_chars=alphas).parseString("start1000")
         except ParseException:
             self.assertTrue(
                 False, "failed to match keyword using updated keyword chars"
@@ -4296,7 +4296,7 @@ class TestParsing(PyparsingExpressionTestCase):
             except Exception as e:
 
                 self.assertTrue(
-                    isinstance(e, ParseBaseException),
+                    isinstance(e, ParseException),
                     "class {} raised wrong exception type {}".format(
                         cls.__name__, type(e).__name__
                     ),
@@ -5022,7 +5022,7 @@ class TestParsing(PyparsingExpressionTestCase):
             testGrammar.parseString("AC")
         except ParseException as pe:
 
-            self.assertTrue(False, "error in Optional matching of string %s" % pe.pstr)
+            self.assertTrue(False, "error in Optional matching of string %s" % pe.string)
 
     def testReturnOfFurthestException(self):
         # test return of furthest exception
@@ -5031,26 +5031,17 @@ class TestParsing(PyparsingExpressionTestCase):
             testGrammar.parseString("BC")
             testGrammar.parseString("BD")
         except ParseException as pe:
-
-            self.assertEqual(pe.pstr, "BD", "wrong test string failed to parse")
+            self.assertEqual(pe.string, "BD", "wrong test string failed to parse")
             self.assertEqual(
                 pe.loc, 1, "error in Optional matching, pe.loc=" + str(pe.loc)
             )
 
     def testValidateCorrectlyDetectsInvalidLeftRecursion(self):
-        # test validate
-
-        if IRON_PYTHON_ENV:
-
-            return
-
         def testValidation(grmr, gnam, isValid):
             try:
                 grmr.streamline()
-                grmr.validate()
                 self.assertTrue(isValid, "validate() accepted invalid grammar " + gnam)
-            except RecursiveGrammarException as e:
-
+            except RecursiveGrammarException:
                 self.assertFalse(isValid, "validate() rejected valid grammar " + gnam)
 
         fwd = Forward()

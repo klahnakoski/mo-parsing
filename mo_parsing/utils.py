@@ -10,6 +10,7 @@ from json.encoder import encode_basestring
 from math import isnan
 from types import FunctionType
 
+from mo_dots import is_null
 from mo_future import unichr, text, generator_types, is_text
 
 try:
@@ -30,7 +31,7 @@ except Exception:
             raise Exception(template) from cause
 
 
-_MAX_INT = sys.maxsize
+MAX_INT = sys.maxsize
 empty_list = []
 empty_tuple = tuple()
 many_types = (list, tuple, set) + generator_types
@@ -65,7 +66,7 @@ def quote(value):
     :param value:
     :return:
     """
-    if value == None:
+    if is_null(value):
         output = ""
     elif is_text(value):
         output = encode_basestring(value)
@@ -75,7 +76,7 @@ def quote(value):
 
 
 def is_number(s):
-    if s is True or s is False or s == None:
+    if s is True or s is False or is_null(s):
         return False
 
     try:
@@ -92,7 +93,7 @@ def listwrap(value):
     value -> [value]
     [...] -> [...]  (unchanged list)
     """
-    if value == None:
+    if is_null(value):
         return []
     elif isinstance(value, many_types):
         return value
@@ -194,7 +195,7 @@ def col(loc, string):
 
     Note: the default parsing behavior is to expand tabs in the input string
     before starting the parsing process.  See
-    :class:`ParserElement.parseString` for more
+    `ParserElement.parseString` for more
     information on parsing strings containing ``<TAB>`` s, and suggested
     methods to maintain a consistent view of the parsed string, the parse
     location, and line and column positions within the parsed string.
@@ -208,7 +209,7 @@ def lineno(loc, string):
     The first line is number 1.
 
     Note - the default parsing behavior is to expand tabs in the input string
-    before starting the parsing process.  See :class:`ParserElement.parseString`
+    before starting the parsing process.  See `ParserElement.parseString`
     for more information on parsing strings containing ``<TAB>`` s, and
     suggested methods to maintain a consistent view of the parsed string, the
     parse location, and line and column positions within the parsed string.
@@ -265,16 +266,14 @@ def wrap_parse_action(func):
                 return result
 
             if isinstance(result, (list, tuple)):
-                return ParseResults(token.type, result)
+                return ParseResults(token.type, token.start, token.end, result)
             else:
-                return ParseResults(token.type, [result])
+                return ParseResults(token.type, token.start, token.end, [result])
         except ParseException as pe:
             raise pe
         except Exception as cause:
             Log.warning("parse action should not raise exception", cause=cause)
-            f = ParseException(*args)
-            f.__cause__ = cause
-            raise f
+            raise ParseException(*args, cause=cause)
 
     # copy func name to wrapper for sensible debug output
     try:

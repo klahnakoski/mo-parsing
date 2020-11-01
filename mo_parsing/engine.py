@@ -1,12 +1,11 @@
 # encoding: utf-8
-import sys
 from collections import namedtuple
 
 from mo_dots import Null
 from mo_future import is_text, text
 
 from mo_parsing.exceptions import ParseException
-from mo_parsing.utils import Log, indent, quote
+from mo_parsing.utils import Log, indent, quote as plain_quote, quote
 from mo_parsing.utils import lineno, col, alphanums, stack_depth
 
 ParserElement, Literal, Token = [None] * 3
@@ -60,28 +59,11 @@ class Engine:
         if not isinstance(expr, ParserElement):
             Log.error("expecting string, or ParserElemenet")
 
-        # curr_engine = expr.engine
-        # if curr_engine != self and not expr.parser_config.lock_engine:
-        #     # UPDATE ENGINE IF NOT LOCKED
-        #     expr = expr.copy()
         return expr
 
     def record_exception(self, string, loc, expr, exc):
         es = self.all_exceptions.setdefault(loc, [])
         es.append(exc)
-
-    def set_debug_actions(
-        self, startAction=None, successAction=None, exceptionAction=None
-    ):
-        """
-        Enable display of debugging messages while doing pattern matching.
-        """
-        self.debugActions = DebugActions(
-            startAction or _defaultStartDebugAction,
-            successAction or _defaultSuccessDebugAction,
-            exceptionAction or _defaultExceptionDebugAction,
-        )
-        return self
 
     def set_literal(self, literal):
         self.literal = literal
@@ -99,16 +81,24 @@ class Engine:
         """
         ignore_expr = ignore_expr.suppress()
         self.ignore_list.append(ignore_expr)
+        self.content = None
         return self
 
     def skip(self, string, start):
         if string is self.content:
-            end = self.skips.get(start)
-            if end is not None:
-                return end
+            try:
+                end = self.skips[start]
+                if end != -1:
+                    return end
+            except IndexError:
+                return start
         else:
-            self.skips = {}
+            num = len(string)
+            self.skips = [-1] * num
             self.content = string
+            if start >= num:
+                return start
+
         end = self.skips[start] = start  # TO AVOID RECURSIVE LOOP
         wt = self.white_chars
         instrlen = len(string)
@@ -122,7 +112,7 @@ class Engine:
 
             for i in self.ignore_list:
                 try:
-                    next_end, _ = i.parseImpl(string, end)
+                    next_end = i.parseImpl(string, end).end
                     if next_end > end:
                         more = True
                         end = next_end
@@ -139,38 +129,6 @@ class Engine:
             output.append(indent(quote(k) + ":" + value))
         output.append("}")
         return "\n".join(output)
-
-
-def _defaultStartDebugAction(expr, loc, string):
-    print(
-        "  Attempt "
-        + quote(string[loc : loc + 10] + "...")
-        + " at loc "
-        + text(loc)
-        + "(%d,%d)" % (lineno(loc, string), col(loc, string))
-        + " for "
-        + " " * stack_depth()
-        + text(expr)
-    )
-
-
-def _defaultSuccessDebugAction(expr, start, end, string, tokens):
-    print(
-        "> Matched "
-        + quote(string[start:end])
-        + " at loc "
-        + text(start)
-        + "(%d,%d)" % (lineno(start, string), col(start, string))
-        + " for "
-        + " " * stack_depth()
-        + text(expr)
-        + " -> "
-        + str(tokens)
-    )
-
-
-def _defaultExceptionDebugAction(expr, loc, string, cause):
-    print("  Except  " + quote(text(cause)))
 
 
 def noop(*args):

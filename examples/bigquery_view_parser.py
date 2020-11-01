@@ -29,10 +29,9 @@ from mo_parsing import (
     oneOf,
     delimitedList,
     restOfLine,
-    cStyleComment,
-    engine,
-)
+    cStyleComment, )
 from mo_parsing.engine import Engine
+from mo_parsing.profile import Profiler
 
 
 class BigQueryViewParser:
@@ -1645,20 +1644,20 @@ class BigQueryViewParser:
     ]
 
     def test(self):
-        for test_index, test_case in enumerate(BigQueryViewParser.TEST_CASES):
-            sql_stmt, expected_tables = test_case
+        with Profiler("profile.tab"):
+            for test_index, test_case in enumerate(BigQueryViewParser.TEST_CASES):
+                sql_stmt, expected_tables = test_case
 
-            try:
-                found_tables = self.get_table_names(sql_stmt.strip())
-                expected_tables_set = set(expected_tables)
+                try:
+                    found_tables = self.get_table_names(sql_stmt.strip())
+                    expected_tables_set = set(expected_tables)
 
-                if expected_tables_set != found_tables:
-                    raise Exception(
-                        f"Test {test_index} failed- expected {expected_tables_set} but"
-                        f" got {found_tables}"
-                    )
-            except Exception as cause:
-                raise Exception(f"Test {sql_stmt} failed") from cause
-
+                    if expected_tables_set != found_tables:
+                        raise Exception(
+                            f"Test {test_index} failed- expected {expected_tables_set} but"
+                            f" got {found_tables}"
+                        )
+                except Exception as cause:
+                    raise Exception(f"Test {sql_stmt} failed") from cause
 
 BigQueryViewParser().test()
