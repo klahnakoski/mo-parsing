@@ -27,7 +27,10 @@ class ParseException(Exception):
     @property
     def causes(self):
         if self._causes is None:
-            self._causes = list(sorted(listwrap(self.unsorted_cause), key=lambda e: -e.loc if isinstance(e, ParseException) else 0))
+            self._causes = list(sorted(
+                listwrap(self.unsorted_cause),
+                key=lambda e: -e.loc if isinstance(e, ParseException) else 0,
+            ))
         return self._causes
 
     __cause__ = causes
@@ -49,9 +52,12 @@ class ParseException(Exception):
         if self.loc >= len(self.string):
             found = "end of text"
         else:
-            found = ("%r" % self.string[self.loc: self.loc + 1]).replace(r"\\", "\\")
+            found = ("%r" % self.string[self.loc : self.loc + 1]).replace(r"\\", "\\")
 
-        return f"{expecting}, found {found} (at char {self.loc}, (line:{self.lineno}, col:{self.column})"
+        return (
+            f"{expecting}, found {found} (at char {self.loc}, (line:{self.lineno},"
+            f" col:{self.column})"
+        )
 
     @message.setter
     def msg(self, value):
@@ -76,7 +82,11 @@ class ParseException(Exception):
     def __contains__(self, item):
         if is_text(item) and item in text(self):
             return True
-        if isinstance(item, type) and issubclass(item, Exception) and isinstance(self, item):
+        if (
+            isinstance(item, type)
+            and issubclass(item, Exception)
+            and isinstance(self, item)
+        ):
             return True
         for c in self.causes:
             if item in c:
@@ -106,7 +116,6 @@ class ParseException(Exception):
 
     def __dir__(self):
         return "lineno col line".split() + dir(type(self))
-
 
 
 class ParseFatalException(Exception):

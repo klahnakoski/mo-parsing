@@ -30,7 +30,6 @@ from mo_parsing import (
     delimitedList,
     restOfLine,
     cStyleComment,
-    engine,
 )
 from mo_parsing.engine import Engine
 

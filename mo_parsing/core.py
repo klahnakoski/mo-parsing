@@ -71,7 +71,7 @@ def entrypoint(func):
 
             self = args[0]
             if not args[0].streamlined:
-                Log.warning('Expecting expression to be streamlined before use')
+                Log.warning("Expecting expression to be streamlined before use")
                 self = self.streamline()
             return func(self, *args[1:], **kwargs)
 
@@ -288,7 +288,6 @@ class ParserElement(object):
             end = expr.engine.skip(string, end)
             StringEnd()._parse(string, end)
         return tokens
-
 
     @entrypoint
     def scanString(self, string, maxMatches=MAX_INT, overlap=False):

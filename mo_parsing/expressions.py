@@ -160,11 +160,15 @@ class And(ParseExpression):
                 acc.append(e)
 
         # HANDLE OPTIONAL ParserElement ON THE LEFT
-        optionals = [i for i, e in enumerate(acc[:-1]) if isinstance(e, Many) and e.min_match == 0]
+        optionals = [
+            i
+            for i, e in enumerate(acc[:-1])
+            if isinstance(e, Many) and e.min_match == 0
+        ]
         if len(optionals) > 1:
             # ONLY OPTIMIZE IF THERE ARE MULTIPLE optionals, NOT INCLUDING THE RIGHTMOST
             last = max(optionals)
-            tail = acc[last + 1:] # COMMON tail FOR ALL PERMUTATIONS
+            tail = acc[last + 1 :]  # COMMON tail FOR ALL PERMUTATIONS
             mult = [[acc[last]]]  # DISJUNCTIVE NORMAL FORM (AKA ALL PERMUTATIONS)
             for e in reversed(acc[:last]):
                 new_mult = []
@@ -298,7 +302,9 @@ class Or(ParseExpression):
             if longest != (-1, None):
                 return longest
 
-        raise ParseException(self, start, string, msg="no defined alternatives to match", cause=causes)
+        raise ParseException(
+            self, start, string, msg="no defined alternatives to match", cause=causes
+        )
 
     def checkRecursion(self, seen=empty_tuple):
         seen_more = seen + (self,)
