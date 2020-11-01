@@ -214,23 +214,16 @@ class ParserElement(object):
             return value
 
         try:
-            self.engine.debugActions.TRY(self, start, string)
             try:
                 preloc = self.engine.skip(string, start)
                 tokens = self.parseImpl(string, preloc, doActions)
             except Exception as cause:
-                self.engine.debugActions.FAIL(self, start, string, cause)
                 self.parser_config.failAction(self, start, string, cause)
                 raise
 
             if self.parseAction and (doActions or self.parser_config.callDuringTry):
-                try:
-                    for fn in self.parseAction:
-                        tokens = fn(tokens, start, string)
-                except Exception as cause:
-                    self.engine.debugActions.FAIL(self, start, string, cause)
-                    raise
-            self.engine.debugActions.MATCH(self, start, tokens.end, string, tokens)
+                for fn in self.parseAction:
+                    tokens = fn(tokens, start, string)
         except ParseException as cause:
             packrat_cache.set(lookup, cause)
             raise
@@ -664,9 +657,6 @@ class _PendingSkip(ParserElement):
         Log.error("use of `...` expression without following SkipTo target expression")
 
 
-def is_decorated(parser):
-    # RETURN TRUE IF PARSER HAS IMPORTANT MARKUP
-    return parser.parseAction or parser.token_name
 
 
 # export

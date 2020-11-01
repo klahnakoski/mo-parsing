@@ -5,7 +5,7 @@ from mo_dots import Null
 from mo_future import is_text, text
 
 from mo_parsing.exceptions import ParseException
-from mo_parsing.utils import Log, indent, quote as plain_quote
+from mo_parsing.utils import Log, indent, quote as plain_quote, quote
 from mo_parsing.utils import lineno, col, alphanums, stack_depth
 
 ParserElement, Literal, Token = [None] * 3
@@ -59,28 +59,11 @@ class Engine:
         if not isinstance(expr, ParserElement):
             Log.error("expecting string, or ParserElemenet")
 
-        # curr_engine = expr.engine
-        # if curr_engine != self and not expr.parser_config.lock_engine:
-        #     # UPDATE ENGINE IF NOT LOCKED
-        #     expr = expr.copy()
         return expr
 
     def record_exception(self, string, loc, expr, exc):
         es = self.all_exceptions.setdefault(loc, [])
         es.append(exc)
-
-    def set_debug_actions(
-        self, startAction=None, successAction=None, exceptionAction=None
-    ):
-        """
-        Enable display of debugging messages while doing pattern matching.
-        """
-        self.debugActions = DebugActions(
-            startAction or _defaultStartDebugAction,
-            successAction or _defaultSuccessDebugAction,
-            exceptionAction or _defaultExceptionDebugAction,
-        )
-        return self
 
     def set_literal(self, literal):
         self.literal = literal
@@ -136,10 +119,7 @@ class Engine:
                 except ParseException as e:
                     pass
 
-        try:
-            self.skips[start] = end  # THE REAL VALUE
-        except Exception:
-            print("hi")
+        self.skips[start] = end  # THE REAL VALUE
         return end
 
     def __str__(self):
@@ -151,44 +131,8 @@ class Engine:
         return "\n".join(output)
 
 
-def _defaultStartDebugAction(expr, loc, string):
-    print(
-        "  Attempt "
-        + quote(string, loc)
-        + " at loc "
-        + text(loc)
-        + "(%d,%d)" % (lineno(loc, string), col(loc, string))
-        + " for "
-        + " " * stack_depth()
-        + text(expr)
-    )
-
-
-def _defaultSuccessDebugAction(expr, start, end, string, tokens):
-    print(
-        "> Matched "
-        + quote(string[start:end])
-        + " at loc "
-        + text(start)
-        + "(%d,%d)" % (lineno(start, string), col(start, string))
-        + " for "
-        + " " * stack_depth()
-        + text(expr)
-        + " -> "
-        + str(tokens)
-    )
-
-
-def _defaultExceptionDebugAction(expr, loc, string, cause):
-    print("  Except  " + plain_quote(text(cause)))
-
-
 def noop(*args):
     return
-
-
-def quote(value, start=0, length=12):
-    return (plain_quote(value[start : start + length - 2]) + (" " * length))[:length]
 
 
 DebugActions = namedtuple("DebugActions", ["TRY", "MATCH", "FAIL"])

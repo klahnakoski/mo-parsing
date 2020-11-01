@@ -1,9 +1,9 @@
 # encoding: utf-8
 from operator import itemgetter
 
-from mo_future import Iterable, text, generator_types, first
+from mo_future import Iterable, text, generator_types
 
-from mo_parsing.core import ParserElement, _PendingSkip, is_decorated
+from mo_parsing.core import ParserElement, _PendingSkip
 from mo_parsing.engine import Engine
 from mo_parsing.enhancement import Optional, SkipTo, Many
 from mo_parsing.exceptions import (
@@ -12,7 +12,7 @@ from mo_parsing.exceptions import (
 )
 from mo_parsing.results import ParseResults
 from mo_parsing.tokens import Empty
-from mo_parsing.utils import empty_list, empty_tuple, is_forward, Log
+from mo_parsing.utils import empty_tuple, is_forward
 
 
 class ParseExpression(ParserElement):
@@ -69,7 +69,7 @@ class ParseExpression(ParserElement):
         acc = []
         for e in self.exprs:
             e = e.streamline()
-            if isinstance(e, self.__class__) and not is_decorated(e):
+            if isinstance(e, self.__class__) and not e.is_annotated():
                 acc.extend(e.exprs)
             else:
                 acc.append(e)
@@ -126,7 +126,7 @@ class And(ParseExpression):
             return self
         if not self.exprs:
             return Empty(self.parser_name)
-        if len(self.exprs) == 1 and not is_decorated(self):
+        if len(self.exprs) == 1 and not self.is_annotated():
             return self.exprs[0].streamline()
 
         # collapse any _PendingSkip's
@@ -152,7 +152,7 @@ class And(ParseExpression):
         acc = []
         for e in self.exprs:
             e = e.streamline()
-            if isinstance(e, self.__class__) and not is_decorated(e):
+            if isinstance(e, self.__class__) and not e.is_annotated():
                 acc.extend(e.exprs)
             elif isinstance(e, Empty) and not e.is_annotated():
                 pass

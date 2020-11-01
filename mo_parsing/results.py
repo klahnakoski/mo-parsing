@@ -20,13 +20,14 @@ class ParseResults(object):
         "start",
         "end",
         "tokens",
+        "timing"
     ]
 
     @property
     def name(self):
         return self.type.token_name
 
-    def __init__(self, result_type, start, end, tokens=None):
+    def __init__(self, result_type, start, end, tokens):
         self.type = result_type
         self.start = start
         self.end = end
