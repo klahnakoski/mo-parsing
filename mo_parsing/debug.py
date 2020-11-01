@@ -1,10 +1,10 @@
 # encoding: utf-8
 from mo_future import text
-from mo_parsing.core import ParserElement
 
-from mo_parsing.exceptions import ParseException
 from mo_parsing.cache import packrat_cache
-from mo_parsing.utils import quote, lineno, col, stack_depth, quote as plain_quote
+from mo_parsing.core import ParserElement
+from mo_parsing.exceptions import ParseException
+from mo_parsing.utils import quote, lineno, col, stack_depth, quote as plain_quote, extend
 
 
 def quote(value, start=0, length=12):

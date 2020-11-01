@@ -7,7 +7,7 @@ from datetime import datetime
 
 from mo_dots import listwrap
 from mo_future import text, first
-from mo_parsing.utils import Log
+from mo_parsing.utils import Log, escapeRegexRange
 
 from mo_parsing.core import add_reset_action
 from mo_parsing.engine import Engine
@@ -40,10 +40,9 @@ from mo_parsing.tokens import (
     StringStart,
     Word,
     Literal,
-    _escapeRegexRangeChars,
+    _escapeRegexRangeChars
 )
 from mo_parsing.utils import (
-    _bslash,
     alphanums,
     alphas,
     col,
@@ -205,7 +204,7 @@ def matchPreviousExpr(expr):
     return rep
 
 
-def oneOf(strs, caseless=False, useRegex=True, asKeyword=False):
+def oneOf(strs, caseless=False, asKeyword=False):
     """Helper to quickly define a set of alternative Literals, and makes
     sure to do longest-first testing when there is a conflict,
     regardless of the input order, but returns
@@ -215,27 +214,9 @@ def oneOf(strs, caseless=False, useRegex=True, asKeyword=False):
 
      - strs - a string of space-delimited literals, or a collection of
        string literals
-     - caseless - (default= ``False``) - treat all literals as
-       caseless
-     - useRegex - (default= ``True``) - as an optimization, will
-       generate a Regex object; otherwise, will generate
-       a `MatchFirst` object (if ``caseless=True`` or ``asKeyword=True``, or if
-       creating a `Regex` raises an exception)
+     - caseless - (default= ``False``) - treat all literals as caseless
      - asKeyword - (default=``False``) - enforce Keyword-style matching on the
        generated expressions
-
-    Example::
-
-        comp_oper = oneOf("< = > <= >= !=")
-        var = Word(alphas)
-        number = Word(nums)
-        term = var | number
-        comparison_expr = term + comp_oper + term
-        print(comparison_expr.searchString("B = 12  AA=23 B<=AA AA>12"))
-
-    prints::
-
-        [['B', '=', '12'], ['AA', '=', '23'], ['B', '<=', 'AA'], ['AA', '>', '12']]
     """
     if isinstance(caseless, text):
         warnings.warn(
@@ -284,28 +265,22 @@ def oneOf(strs, caseless=False, useRegex=True, asKeyword=False):
             else:
                 i += 1
 
-    if not (caseless or asKeyword) and useRegex:
+    if caseless or asKeyword:
+        return MatchFirst(
+            parseElementClass(sym) for sym in symbols
+        ).set_parser_name(" | ".join(symbols))
 
-        try:
-            if len(symbols) == len("".join(symbols)):
-                return Regex(
-                    "[%s]" % "".join(_escapeRegexRangeChars(sym) for sym in symbols)
-                ).set_parser_name(" | ".join(symbols))
-            else:
-                return Regex("|".join(
-                    re.escape(sym) for sym in symbols
-                )).set_parser_name(" | ".join(symbols))
-        except Exception:
-            warnings.warn(
-                "Exception creating Regex for oneOf, building MatchFirst",
-                SyntaxWarning,
-                stacklevel=2,
-            )
+    # CONVERT INTO REGEX
+    singles = [s for s in symbols if len(s) == 1]
+    rest = list(sorted([s for s in symbols if len(s) != 1], key=lambda s: -len(s)))
 
-    # last resort, just use MatchFirst
-    return MatchFirst(
-        parseElementClass(sym) for sym in symbols
-    ).set_parser_name(" | ".join(symbols))
+    acc = []
+    acc.extend(re.escape(sym) for sym in rest)
+    if singles:
+        acc.append(escapeRegexRange("".join(singles)))
+    regex = "|".join(acc)
+
+    return Regex(regex).set_parser_name(" | ".join(symbols))
 
 
 def dictOf(key, value):
@@ -512,7 +487,7 @@ stringEnd = StringEnd().set_parser_name("stringEnd")
 
 
 _escapedPunc = Word(
-    _bslash, r"\[]-*.$+^?()~ ", exact=2
+    "\\", r"\[]-*.$+^?()~ ", exact=2
 ).addParseAction(lambda t, l, s: t[0][1])
 _escapedHexChar = Regex(r"\\0?[xX][0-9a-fA-F]+").addParseAction(lambda t: unichr(int(
     t[0].lstrip("\\").lstrip("0").lstrip("xX"), 16
@@ -1069,7 +1044,7 @@ def indentedBlock(blockStatementExpr, indent=True):
 
     A valid block must contain at least one ``blockStatement``.
     """
-    blockStatementExpr.engine.add_ignore(_bslash + LineEnd())
+    blockStatementExpr.engine.add_ignore("\\" + LineEnd())
 
     PEER = Forward()
     DEDENT = Forward()

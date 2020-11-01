@@ -3,12 +3,12 @@
 from jx_python import jx
 from mo_files import File
 from mo_future import text, process_time
-from mo_parsing.exceptions import ParseException
 from mo_times import Date
 from pyLibrary import convert
 
 from mo_parsing.cache import packrat_cache
 from mo_parsing.core import ParserElement
+from mo_parsing.exceptions import ParseException
 
 
 class Profiler(object):

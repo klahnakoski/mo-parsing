@@ -3,6 +3,7 @@ from __future__ import absolute_import, division, unicode_literals
 
 import inspect
 import json
+import re
 import string
 import sys
 import warnings
@@ -11,7 +12,7 @@ from math import isnan
 from types import FunctionType
 
 from mo_dots import is_null
-from mo_future import unichr, text, generator_types, is_text
+from mo_future import unichr, text, generator_types, is_text, get_function_name
 
 try:
     from mo_parsing.utils import Log
@@ -35,6 +36,52 @@ MAX_INT = sys.maxsize
 empty_list = []
 empty_tuple = tuple()
 many_types = (list, tuple, set) + generator_types
+
+def extend(cls):
+    """
+    DECORATOR TO ADD METHODS TO CLASSES
+    :param cls: THE CLASS TO ADD THE METHOD TO
+    :return:
+    """
+
+    def extender(func):
+        setattr(cls, get_function_name(func), func)
+        return func
+
+    return extender
+
+
+def escapeRegexRange(s):
+    # ~  escape these chars: ^-]
+    def esc(s):
+        if s in r"\^-]\n\t":
+            return "\\" + s
+        return s
+
+    if len(s) == 1:
+        return re.escape(s)
+
+    start = None
+    prev = None
+    acc = ["["]
+    for c in list(sorted(set(s))) + ["\a"]:
+        if prev and ord(prev) == ord(c) - 1:
+            if not start:
+                start = prev
+        elif start:
+            if start == prev:
+                acc.append(esc(prev))
+            else:
+                acc.append(esc(start))
+                acc.append("-")
+                acc.append(esc(prev))
+            start = None
+        elif prev:
+            acc.append(esc(prev))
+        prev = c
+    acc.append("]")
+
+    return "".join(acc)
 
 
 def indent(value, prefix="\t", indent=None):
