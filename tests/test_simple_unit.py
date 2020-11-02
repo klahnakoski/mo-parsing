@@ -432,7 +432,7 @@ class TestGroups(PyparsingExpressionTestCase):
             expected_dict={"lat": 46.91, "long": -138.52, "range": 5280},
         )
 
-    def test_Define_multiple_value_types(self):
+    def test_define_multiple_value_types(self):
         self.runTest(
             desc="Define multiple value types",
             expr=Dict(Group(

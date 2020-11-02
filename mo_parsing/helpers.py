@@ -40,7 +40,6 @@ from mo_parsing.tokens import (
     StringStart,
     Word,
     Literal,
-    _escapeRegexRangeChars
 )
 from mo_parsing.utils import (
     alphanums,
