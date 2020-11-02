@@ -212,8 +212,6 @@ class And(ParseExpression):
                 exprtokens = expr._parse(string, end, doActions)
                 end = exprtokens.end
                 acc.append(exprtokens)
-            except ParseSyntaxException as cause:
-                raise cause
             except ParseException as pe:
                 if encountered_error_stop:
                     raise ParseSyntaxException(pe.expr, pe.loc, pe.string)

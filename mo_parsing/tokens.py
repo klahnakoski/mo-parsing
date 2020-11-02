@@ -4,7 +4,7 @@ import sre_constants
 import warnings
 
 from mo_future import text
-from mo_parsing.utils import Log
+from mo_parsing.utils import Log, escapeRegexRange
 
 from mo_parsing.engine import Engine, PLAIN_ENGINE
 from mo_parsing.exceptions import ParseException
@@ -14,14 +14,13 @@ from mo_parsing.utils import (
     MAX_INT,
     col,
     printables,
-    _bslash,
 )
 
 
 def _escapeRegexRangeChars(s):
     # ~  escape these chars: ^-]
     for c in r"\^-]":
-        s = s.replace(c, _bslash + c)
+        s = s.replace(c, "\\" + c)
     s = s.replace("\n", r"\n")
     s = s.replace("\t", r"\t")
     return text(s)
@@ -108,11 +107,6 @@ class Keyword(Token):
        "$"
      - ``caseless`` allows case-insensitive matching, default is ``False``.
 
-    Example::
-
-        Keyword("start").parseString("start")  # -> ['start']
-        Keyword("start").parseString("starting")  # -> Exception
-
     For case-insensitive matching, use `CaselessKeyword`.
     """
 
@@ -146,16 +140,6 @@ class Keyword(Token):
 
 
 class CaselessKeyword(Keyword):
-    """
-    Caseless version of `Keyword`.
-
-    Example::
-
-        OneOrMore(CaselessKeyword("CMD")).parseString("cmd CMD Cmd10") # -> ['CMD', 'CMD']
-
-    (Contrast with example for `CaselessLiteral`.)
-    """
-
     def __init__(self, matchString, ident_chars=None, caseless=True):
         Keyword.__init__(
             self,
@@ -322,7 +306,6 @@ class Word(Token):
             body_chars = set(body_chars) - set(excludeChars)
         init_chars = self.parser_config.init_chars = "".join(sorted(set(init_chars)))
         body_chars = self.parser_config.body_chars = "".join(sorted(set(body_chars)))
-        self.parser_config.max_specified = max > 0
 
         if min < 1:
             raise ValueError(
@@ -332,12 +315,10 @@ class Word(Token):
 
         self.parser_config.min_len = min
         self.parser_config.max_len = max if max > 0 else MAX_INT
+        self.parser_config.max_specified = max > 0
         if exact > 0:
-            self.parser_config.max_len = exact
             self.parser_config.min_len = exact
-
-        self.parser_name = text(self)
-
+            self.parser_config.max_len = max = exact
         self.parser_config.as_keyword = asKeyword
 
         if " " not in init_chars + body_chars and (
@@ -407,13 +388,7 @@ class Word(Token):
     def __str__(self):
         if self.parser_name:
             return self.parser_name
-        if self.parser_config.init_chars != self.parser_config.body_chars:
-            return "W:(%s, %s)" % (
-                self.parser_config.init_chars,
-                self.parser_config.body_chars,
-            )
-        else:
-            return "W:(%s)" % self.parser_config.init_chars
+        return "W:(%s)" % str(self.parser_config.pattern)
 
 
 class _WordRegex(Word):
@@ -435,12 +410,10 @@ class Char(_WordRegex):
         super(Char, self).__init__(
             charset, exact=1, asKeyword=asKeyword, excludeChars=excludeChars
         )
-        self.regex = (
-            "[%s]" % _escapeRegexRangeChars("".join(self.parser_config.init_chars))
-        )
+        regex = escapeRegexRange("".join(self.parser_config.init_chars))
         if asKeyword:
-            self.regex = r"\b%s\b" % self.regex
-        self.parser_config.pattern = re.compile(self.regex)
+            regex = r"\b%s\b" % self
+        self.parser_config.pattern = re.compile(regex)
 
 
 class Regex(Token):
@@ -449,13 +422,6 @@ class Regex(Token):
     a form recognized by the stdlib Python  `re module <https://docs.python.org/3/library/re.html>`_.
     If the given regex contains named groups (defined using ``(?P<name>...)``),
     these will be preserved as named parse results.
-
-    Example::
-
-        realnum = Regex(r"[+-]?\d+\.\d*")
-        date = Regex(r'(?P<year>\d{4})-(?P<month>\d\d?)-(?P<day>\d\d?)')
-        # ref: https://stackoverflow.com/questions/267399/how-do-you-match-only-valid-roman-numerals-with-a-regular-expression
-        roman = Regex(r"M{0,4}(CM|CD|D?{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})")
     """
     compiledREtype = type(re.compile("[A-Z]"))
 

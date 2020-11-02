@@ -232,7 +232,6 @@ alphas = string.ascii_uppercase + string.ascii_lowercase
 nums = "0123456789"
 hexnums = nums + "ABCDEFabcdef"
 alphanums = alphas + nums
-_bslash = chr(92)
 printables = "".join(c for c in string.printable if c not in string.whitespace)
 
 
