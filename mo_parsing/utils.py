@@ -305,8 +305,8 @@ def wrap_parse_action(func):
         num_args = len(spec.args)
 
     def wrapper(*args):
+        token, index, string = args
         try:
-            token, index, string = args
             result = func(*args[:num_args])
             if result is None:
                 return token
@@ -321,7 +321,7 @@ def wrap_parse_action(func):
             raise pe
         except Exception as cause:
             Log.warning("parse action should not raise exception", cause=cause)
-            raise ParseException(*args, cause=cause)
+            raise ParseException(token.type, token.start, string, cause=cause)
 
     # copy func name to wrapper for sensible debug output
     try:

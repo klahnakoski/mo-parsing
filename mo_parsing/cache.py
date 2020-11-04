@@ -48,7 +48,7 @@ class UnboundedCache(object):
         self.cache[key] = value
 
     def clear(self):
-        if self.hit or self.miss:
+        if self.hit + self.miss > 100:
             Log.note(
                 "Hit Rate: {{rate|round(places=2)|percent}} (hits={{hits}},"
                 " misses={{misses}})",
@@ -56,6 +56,8 @@ class UnboundedCache(object):
                 hits=self.hit,
                 misses=self.miss,
             )
+        self.hit = 0
+        self.miss = 0
         self.cache.clear()
 
     def __len__(self):

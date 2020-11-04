@@ -35,8 +35,8 @@ class ParseException(Exception):
 
     @property
     def __cause__(self):
-        if self._causes:
-            return self.causes[0]
+        if self.causes:
+            return self._causes[0]
         else:
             return None
 
