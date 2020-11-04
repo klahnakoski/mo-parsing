@@ -7,15 +7,17 @@ import re
 import string
 import sys
 import warnings
-from json.encoder import encode_basestring
 from math import isnan
 from types import FunctionType
 
-from mo_dots import is_null
-from mo_future import unichr, text, generator_types, is_text, get_function_name
+from mo_dots import is_null, Null
+from mo_future import unichr, text, generator_types, get_function_name
+from mo_imports import delay_import
+
+ParseException = delay_import("mo_parsing.exceptions.ParseException")
 
 try:
-    from mo_parsing.utils import Log
+    from mo_logs import Log
 except Exception:
 
     class Log(object):
@@ -29,7 +31,7 @@ except Exception:
 
         @classmethod
         def error(cls, template, cause=None, **params):
-            raise Exception(template) from cause
+            raise ParseException(Null, -1, -1, msg=template, cause=cause)
 
 
 MAX_INT = sys.maxsize
@@ -97,15 +99,15 @@ def indent(value, prefix="\t", indent=None):
     if indent != None:
         prefix = prefix * indent
 
-    value = toString(value)
+    value = text(value)
     try:
         content = value.rstrip()
         suffix = value[len(content) :]
         lines = content.splitlines()
-        return prefix + (CR + prefix).join(lines) + suffix
+        return prefix + ("\n" + prefix).join(lines) + suffix
     except Exception as e:
         raise Exception(
-            "Problem with indent of value (" + e.message + ")\n" + text(toString(value))
+            "Problem with indent of value (" + e.message + ")\n" + text(value)
         )
 
 
@@ -117,8 +119,6 @@ def quote(value):
     """
     if is_null(value):
         output = ""
-    elif is_text(value):
-        output = encode_basestring(value)
     else:
         output = json.dumps(value)
     return output

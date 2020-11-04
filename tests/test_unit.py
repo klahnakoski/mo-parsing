@@ -4307,7 +4307,7 @@ class TestParsing(PyparsingExpressionTestCase):
         number = Word(nums)
 
         def number_action():
-            raise IndexError  # this is the important line!
+            raise IndexError()  # this is the important line!
 
         number = number.addParseAction(number_action)
         symbol = Word("abcd", max=1)
