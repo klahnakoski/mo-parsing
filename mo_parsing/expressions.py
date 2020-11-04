@@ -335,8 +335,8 @@ class MatchFirst(ParseExpression):
             try:
                 ret = e._parse(string, loc, doActions)
                 return ParseResults(self, ret.start, ret.end, [ret])
-            except ParseException as err:
-                causes.append(err)
+            except ParseException as cause:
+                causes.append(cause)
 
         raise ParseException(self, start, string, cause=causes)
 

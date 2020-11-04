@@ -116,21 +116,6 @@ class NotAny(ParseElementEnhance):
     does *not* match at the current position.  Also, ``NotAny`` does
     *not* skip over leading whitespace. ``NotAny`` always returns
     a null token list.  May be constructed using the '~' operator.
-
-    Example::
-
-        AND, OR, NOT = map(CaselessKeyword, "AND OR NOT".split())
-
-        # take care not to mistake keywords for identifiers
-        ident = ~(AND | OR | NOT) + Word(alphas)
-        boolean_term = Optional(NOT) + ident
-
-        # very crude boolean expression - to support parenthesis groups and
-        # operation hierarchy, use infixNotation
-        boolean_expr = boolean_term + ZeroOrMore((AND | OR) + boolean_term)
-
-        # integers that are followed by "." are actually floats
-        integer = Word(nums) + ~Char(".")
     """
 
     def __init__(self, expr):

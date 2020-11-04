@@ -54,10 +54,12 @@ def extend(cls):
 def escapeRegexRange(s):
     # ~  escape these chars: ^-]
     def esc(s):
-        if s in r"\^-]\n\t":
+        if s in "\\^-]\n\t":
             return "\\" + s
         return s
 
+    if not s:
+        return ""
     if len(s) == 1:
         return re.escape(s)
 

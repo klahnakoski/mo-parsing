@@ -33,7 +33,12 @@ class ParseException(Exception):
             ))
         return self._causes
 
-    __cause__ = causes
+    @property
+    def __cause__(self):
+        if self._causes:
+            return self.causes[0]
+        else:
+            return None
 
     @property
     def loc(self):

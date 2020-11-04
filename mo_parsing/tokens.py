@@ -325,16 +325,16 @@ class Word(Token):
             min == 1 and max == 0 and exact == 0
         ):
             if body_chars == init_chars:
-                regexp = "[%s]+" % _escapeRegexRangeChars(init_chars)
+                regexp = "%s+" % escapeRegexRange(init_chars)
             elif len(init_chars) == 1:
-                regexp = "%s[%s]*" % (
+                regexp = "%s%s*" % (
                     re.escape(init_chars),
-                    _escapeRegexRangeChars(body_chars),
+                    escapeRegexRange(body_chars),
                 )
             else:
-                regexp = "[%s][%s]*" % (
-                    _escapeRegexRangeChars(init_chars),
-                    _escapeRegexRangeChars(body_chars),
+                regexp = "%s%s*" % (
+                    escapeRegexRange(init_chars),
+                    escapeRegexRange(body_chars),
                 )
             if self.parser_config.as_keyword:
                 regexp = r"\b" + regexp + r"\b"
@@ -612,40 +612,43 @@ class QuotedString(Token):
         self.escQuote = escQuote
         self.unquoteResults = unquoteResults
         self.convertWhitespaceEscapes = convertWhitespaceEscapes
-
-        if multiline:
-            self.parser_config.flags = re.MULTILINE | re.DOTALL
-            self.pattern = r"%s(?:[^%s%s]" % (
-                re.escape(self.quoteChar),
-                _escapeRegexRangeChars(self.endQuoteChar[0]),
-                (escChar is not None and _escapeRegexRangeChars(escChar) or ""),
-            )
-        else:
-            self.parser_config.flags = 0
-            self.pattern = r"%s(?:[^%s\n\r%s]" % (
-                re.escape(self.quoteChar),
-                _escapeRegexRangeChars(self.endQuoteChar[0]),
-                (escChar is not None and _escapeRegexRangeChars(escChar) or ""),
-            )
-        if len(self.endQuoteChar) > 1:
-            self.pattern += (
-                "|(?:"
-                + ")|(?:".join(
-                    "%s[^%s]"
-                    % (
-                        re.escape(self.endQuoteChar[:i]),
-                        _escapeRegexRangeChars(self.endQuoteChar[i]),
-                    )
-                    for i in range(len(self.endQuoteChar) - 1, 0, -1)
+        # TODO: FIX THIS MESS. WE SHOULD BE ABLE TO CONSTRUCT REGEX FROM ParserElements
+        if escChar:
+            if multiline:
+                self.parser_config.flags = re.MULTILINE | re.DOTALL
+                self.pattern = r"%s(?:(?:(?!(%s|%s)).)" % (
+                    re.escape(self.quoteChar),
+                    re.escape(self.endQuoteChar),
+                    escapeRegexRange(escChar),
                 )
-                + ")"
-            )
+            else:
+                self.parser_config.flags = 0
+                # re.compile(':((::)|(\\\\.)|(?:(?!(:|\\\\)).))*:').match(":\\\\:: : :")
+                self.pattern = r"%s(?:(?:(?!(%s|[\n\r]|%s)).)" % (
+                    re.escape(self.quoteChar),
+                    re.escape(self.endQuoteChar),
+                    escapeRegexRange(escChar),
+                )
+
+            self.pattern += r"|(?:%s.)" % re.escape(escChar)
+            self.escCharReplacePattern = re.escape(self.escChar) + "(.)"
+        else:
+            if multiline:
+                self.parser_config.flags = re.MULTILINE | re.DOTALL
+                self.pattern = r"%s(?:(?:(?!%s).)" % (
+                    re.escape(self.quoteChar),
+                    re.escape(self.endQuoteChar),
+                )
+            else:
+                self.parser_config.flags = 0
+                # re.compile(':((::)|(\\\\.)|(?:(?!(:|\\\\)).))*:').match(":\\\\:: : :")
+                self.pattern = r"%s(?:(?:(?!(%s|[\n\r])).)" % (
+                    re.escape(self.quoteChar),
+                    re.escape(self.endQuoteChar),
+                )
 
         if escQuote:
             self.pattern += r"|(?:%s)" % re.escape(escQuote)
-        if escChar:
-            self.pattern += r"|(?:%s.)" % re.escape(escChar)
-            self.escCharReplacePattern = re.escape(self.escChar) + "(.)"
         self.pattern += r")*%s" % re.escape(self.endQuoteChar)
 
         try:
@@ -653,13 +656,12 @@ class QuotedString(Token):
                 self.pattern, self.parser_config.flags
             )
             self.reString = self.pattern
-        except sre_constants.error:
-            warnings.warn(
-                "invalid pattern (%s) passed to Regex" % self.pattern,
-                SyntaxWarning,
-                stacklevel=2,
+        except Exception as cause:
+            Log.error(
+                "invalid pattern {{pattern}} passed to Regex",
+                pattern=self.pattern,
+                cause=cause
             )
-            raise
 
         self.parser_name = text(self)
 
