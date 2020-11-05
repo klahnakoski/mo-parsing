@@ -4,26 +4,17 @@ import sre_constants
 import warnings
 
 from mo_future import text
-from mo_parsing.utils import Log, escapeRegexRange
 
+from mo_parsing.core import ParserElement
 from mo_parsing.engine import Engine, PLAIN_ENGINE
 from mo_parsing.exceptions import ParseException
-from mo_parsing.core import ParserElement
 from mo_parsing.results import ParseResults
+from mo_parsing.utils import Log, escapeRegexRange
 from mo_parsing.utils import (
     MAX_INT,
     col,
     printables,
 )
-
-
-def _escapeRegexRangeChars(s):
-    # ~  escape these chars: ^-]
-    for c in r"\^-]":
-        s = s.replace(c, "\\" + c)
-    s = s.replace("\n", r"\n")
-    s = s.replace("\t", r"\t")
-    return text(s)
 
 
 class Token(ParserElement):
@@ -55,6 +46,23 @@ class NoMatch(Token):
         return False
 
 
+class AnyChar(Token):
+    def __init__(self):
+        """
+        Match any single character
+        """
+        super(NoMatch, self).__init__()
+        self.parser_name = "NoMatch"
+
+    def parseImpl(self, string, loc, doActions=True):
+        if loc >= len(string):
+            raise ParseException(self, loc, string)
+        return ParseResults(self, loc, loc+1, [string[loc]])
+
+    def consume_at_least_one_char(self):
+        return True
+
+
 class Literal(Token):
     """Token to exactly match a specified string."""
 
@@ -73,6 +81,9 @@ class Literal(Token):
             end = start + len(match)
             return ParseResults(self, start, end, [match])
         raise ParseException(self, start, string)
+
+    def __regex__(self):
+        return re.escape(self.parser_config.match)
 
     def __str__(self):
         return self.parser_config.match
@@ -900,24 +911,6 @@ class GoToColumn(_PositionToken):
 class LineStart(_PositionToken):
     r"""Matches if current position is at the beginning of a line within
     the parse string
-
-    Example::
-
-        test = '''\
-        AAA this line
-        AAA and this line
-          AAA but not this one
-        B AAA and definitely not this one
-        '''
-
-        for t in (LineStart() + 'AAA' + restOfLine).searchString(test):
-            print(t)
-
-    prints::
-
-        ['AAA', ' this line']
-        ['AAA', ' and this line']
-
     """
 
     def __init__(self):
@@ -927,6 +920,9 @@ class LineStart(_PositionToken):
         if col(start, string) == 1:
             return ParseResults(self, start, start, [])
         raise ParseException(self, start, string)
+
+    def __regeex__(self):
+        return "^"
 
 
 class LineEnd(_PositionToken):
@@ -949,6 +945,9 @@ class LineEnd(_PositionToken):
             return ParseResults(self, start, start, [])
         else:
             raise ParseException(self, start, string)
+
+    def __regeex__(self):
+        return "$"
 
 
 class StringStart(_PositionToken):
