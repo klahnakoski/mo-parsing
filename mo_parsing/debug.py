@@ -4,43 +4,25 @@ from mo_future import text
 from mo_parsing.cache import packrat_cache
 from mo_parsing.core import ParserElement
 from mo_parsing.exceptions import ParseException
-from mo_parsing.utils import quote, lineno, col, stack_depth, quote as plain_quote, extend
+from mo_parsing.utils import (
+    quote,
+    lineno,
+    col,
+    stack_depth,
+    quote as plain_quote,
+)
 
 
-def quote(value, start=0, length=12):
-    return (plain_quote(value[start : start + length - 2]) + (" " * length))[:length]
+class Debugger(object):
+    def __init__(self):
+        self.previous_parse = None
 
+    def __enter__(self):
+        self.previous_parse = ParserElement._parse
+        ParserElement._parse = _debug_parse
 
-def start(expr, loc, string):
-    print(
-        "  Attempt "
-        + quote(string, loc)
-        + " at loc "
-        + text(loc)
-        + "(%d,%d)" % (lineno(loc, string), col(loc, string))
-        + " for "
-        + " " * stack_depth()
-        + text(expr)
-    )
-
-
-def match(expr, start, end, string, tokens):
-    print(
-        "> Matched "
-        + quote(string[start:end])
-        + " at loc "
-        + text(start)
-        + "(%d,%d)" % (lineno(start, string), col(start, string))
-        + " for "
-        + " " * stack_depth()
-        + text(expr)
-        + " -> "
-        + str(tokens)
-    )
-
-
-def fail(expr, loc, string, cause):
-    print("  Except  " + plain_quote(text(cause)))
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        ParserElement._parse = self.previous_parse
 
 
 def _debug_parse(self, string, start, doActions=True):
@@ -52,7 +34,7 @@ def _debug_parse(self, string, start, doActions=True):
         return value
 
     try:
-        start(self, start, string)
+        _try(self, start, string)
         try:
             preloc = self.engine.skip(string, start)
             tokens = self.parseImpl(string, preloc, doActions)
@@ -77,13 +59,37 @@ def _debug_parse(self, string, start, doActions=True):
     return tokens
 
 
-class Debugger(object):
-    def __init__(self):
-        self.previous_parse = None
+def _try(expr, start, string):
+    print(
+        "  Attempt "
+        + quote(string, start)
+        + " at loc "
+        + text(start)
+        + "(%d,%d)" % (lineno(start, string), col(start, string))
+        + " for "
+        + " " * stack_depth()
+        + text(expr)
+    )
 
-    def __enter__(self):
-        self.previous_parse = ParserElement._parse
-        ParserElement.parse = _debug_parse
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        ParserElement._parse = self.previous_parse
+def match(expr, start, end, string, tokens):
+    print(
+        "> Matched "
+        + quote(string[start:end])
+        + " at loc "
+        + text(start)
+        + "(%d,%d)" % (lineno(start, string), col(start, string))
+        + " for "
+        + " " * stack_depth()
+        + text(expr)
+        + " -> "
+        + str(tokens)
+    )
+
+
+def fail(expr, start, string, cause):
+    print("  Except  " + plain_quote(text(cause)))
+
+
+def quote(value, start=0, length=12):
+    return (plain_quote(value[start : start + length - 2]) + (" " * length))[:length]

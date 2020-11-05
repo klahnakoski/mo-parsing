@@ -69,6 +69,7 @@ from mo_parsing import (
     CloseMatch,
     FollowedBy,
     ParseSyntaxException, )
+from mo_parsing.debug import Debugger
 from mo_parsing.engine import Engine
 from mo_parsing.enhancement import OpenDict
 from mo_parsing.helpers import (
@@ -695,26 +696,27 @@ class TestParsing(PyparsingExpressionTestCase):
         )
 
     def testParseIDL(self):
-        def test(strng, numToks, errloc=0):
+        Debugger().__enter__()
+        def test(string, numToks, errloc=0):
 
             try:
                 bnf = idlParse.CORBA_IDL_BNF()
-                tokens = bnf.parseString(strng)
+                tokens = bnf.parseString(string)
 
                 tokens = flatten(tokens)
 
                 self.assertEqual(
                     len(tokens),
                     numToks,
-                    "error matching IDL string, {} -> {}".format(strng, str(tokens)),
+                    "error matching IDL string, {} -> {}".format(string, str(tokens)),
                 )
             except ParseException as err:
 
                 self.assertEqual(
                     numToks,
                     0,
-                    "unexpected ParseException while parsing {}, {}".format(
-                        strng, str(err)
+                    "unexpected ParseException while parsing {}\n{}".format(
+                        string, str(err)
                     ),
                 )
                 self.assertEqual(

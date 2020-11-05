@@ -57,7 +57,7 @@ class ParseException(Exception):
         if self.loc >= len(self.string):
             found = "end of text"
         else:
-            found = ("%r" % self.string[self.loc : self.loc + 1]).replace(r"\\", "\\")
+            found = (self.string[self.loc : self.loc + 10]).replace(r"\\", "\\")
 
         return (
             f"{expecting}, found {found} (at char {self.loc}, (line:{self.lineno},"
