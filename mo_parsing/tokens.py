@@ -121,14 +121,6 @@ class Keyword(Token):
     For case-insensitive matching, use `CaselessKeyword`.
     """
 
-    def __new__(cls, matchString, ident_chars=None, caseless=None):
-        if len(matchString) == 0:
-            Log.error("Expecting more than one character in keyword")
-        if caseless:
-            return object.__new__(CaselessKeyword)
-        else:
-            return object.__new__(cls)
-
     def __init__(self, matchString, ident_chars=None, caseless=None):
         Token.__init__(self)
         if ident_chars is None:
@@ -136,36 +128,24 @@ class Keyword(Token):
         else:
             self.parser_config.ident_chars = "".join(sorted(set(ident_chars)))
         self.parser_config.match = matchString
+        non_word = "($|(?!" + escapeRegexRange(self.parser_config.ident_chars) + "))"
+        self.parser_config.pattern = re.compile(re.escape(matchString) + non_word, re.IGNORECASE if caseless else 0)
+
         self.parser_name = matchString
+        if caseless:
+            self.__class__ = CaselessKeyword
 
     def parseImpl(self, string, start, doActions=True):
-        match = self.parser_config.match
-        ident_chars = self.parser_config.ident_chars
-
-        if string.startswith(match, start):
-            end = start + len(match)
-            if end == len(string) or string[end] not in ident_chars:
-                return ParseResults(self, start, end, [match])
-
+        found = self.parser_config.pattern.match(string, start)
+        if found:
+            return ParseResults(self, start, found.end(), [self.parser_config.match])
         raise ParseException(self, start, string)
+
 
 
 class CaselessKeyword(Keyword):
-    def __init__(self, matchString, ident_chars=None, caseless=True):
-        Keyword.__init__(
-            self,
-            matchString,
-            ident_chars or engine.CURRENT.keyword_chars,
-            caseless=True,
-        )
-        self.parser_config.re = re.compile(re.escape(matchString), re.IGNORECASE)
-
-    def parseImpl(self, string, start, doActions=True):
-        if self.parser_config.re.match(string, start):
-            end = start + len(self.parser_config.match)
-            if end == len(string) or string[end] not in self.parser_config.ident_chars:
-                return ParseResults(self, start, end, [self.parser_config.match])
-        raise ParseException(self, start, string)
+    def __init__(self, matchString, ident_chars=None):
+        Keyword.__init__(self, matchString, ident_chars, caseless=True)
 
 
 class CaselessLiteral(Literal):
