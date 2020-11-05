@@ -52,6 +52,12 @@ def extend(cls):
 
     return extender
 
+def regex_iso(expr):
+    """
+    RETURN NON-CAPTURING GROUP (TO ENSURE ORDER OF OPERATIONS)
+    """
+    return f"(?:{expr})"
+
 
 def escapeRegexRange(s):
     # ~  escape these chars: ^-]

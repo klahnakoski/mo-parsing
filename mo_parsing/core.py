@@ -215,8 +215,8 @@ class ParserElement(object):
 
         try:
             try:
-                preloc = self.engine.skip(string, start)
-                tokens = self.parseImpl(string, preloc, doActions)
+                index = self.engine.skip(string, start)
+                tokens = self.parseImpl(string, index, doActions)
             except Exception as cause:
                 self.parser_config.failAction(self, start, string, cause)
                 raise

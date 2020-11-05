@@ -127,6 +127,12 @@ class NotAny(ParseElementEnhance):
             raise ParseException(self, start, string)
         return ParseResults(self, start, start, [])
 
+    def consume_at_least_one_char(self):
+        return False
+
+    def __regex__(self):
+        return f"(?!({self.expr.__regex__()}))"
+
     def __str__(self):
         if self.parser_name:
             return self.parser_name
@@ -174,10 +180,10 @@ class Many(ParseElementEnhance):
         try:
             while end < len(string):
                 try_not_ender(string, end)
-                tmptokens = self.expr._parse(string, end, doActions)
-                end = tmptokens.end
-                if tmptokens:
-                    acc.append(tmptokens)
+                tokens = self.expr._parse(string, end, doActions)
+                end = tokens.end
+                if tokens:
+                    acc.append(tokens)
         except ParseException as e:
             if self.min_match <= len(acc) <= self.max_match:
                 pass

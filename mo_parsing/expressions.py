@@ -12,7 +12,7 @@ from mo_parsing.exceptions import (
 )
 from mo_parsing.results import ParseResults
 from mo_parsing.tokens import Empty
-from mo_parsing.utils import empty_tuple, is_forward
+from mo_parsing.utils import empty_tuple, is_forward, regex_iso
 
 
 class ParseExpression(ParserElement):
@@ -233,6 +233,9 @@ class And(ParseExpression):
             if e.consume_at_least_one_char():
                 return
 
+    def __regex__(self):
+        return regex_iso("".join(regex_iso(e.__regex__()) for e in self.exprs))
+
     def __str__(self):
         if self.parser_name:
             return self.parser_name
@@ -369,6 +372,9 @@ class MatchFirst(ParseExpression):
 
     def __ror__(self, other):
         return engine.CURRENT.normalize(other) | self
+
+    def __regex__(self):
+        return regex_iso("|".join(e.__regex__()for e in self.exprs))
 
     def __str__(self):
         if self.parser_name:
