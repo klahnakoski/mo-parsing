@@ -3,9 +3,8 @@ from functools import wraps
 
 from mo_dots import coalesce
 from mo_future import text, is_text
-from mo_logs import strings
 
-from mo_parsing.utils import Log, listwrap
+from mo_parsing.utils import Log, listwrap, quote, indent
 from mo_parsing.utils import wrap_parse_action, col, line, lineno
 
 
@@ -60,7 +59,7 @@ class ParseException(Exception):
             found = (self.string[self.loc : self.loc + 10]).replace(r"\\", "\\")
 
         return (
-            f"{expecting}, found {found} (at char {self.loc}, (line:{self.lineno},"
+            f"{expecting}, found {quote(found)} (at char {self.loc}, (line:{self.lineno},"
             f" col:{self.column})"
         )
 
@@ -99,7 +98,7 @@ class ParseException(Exception):
         return False
 
     def __str__(self):
-        causes = strings.indent("".join("\n" + str(c) for c in self.causes))
+        causes = indent("".join("\n" + str(c) for c in self.causes))
         return f"{self.message}{causes}"
 
     def __repr__(self):
