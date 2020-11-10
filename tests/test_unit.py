@@ -1541,7 +1541,6 @@ class TestParsing(PyparsingExpressionTestCase):
         dblEqQuotes = QuotedString("==", "\\")
 
         def test(quoteExpr, expected):
-
             self.assertEqual(
                 quoteExpr.searchString(testString)[0][0],
                 expected,
@@ -2198,7 +2197,6 @@ class TestParsing(PyparsingExpressionTestCase):
             (very_boring_num, [404], {}),
             (finicky_num, [2939], {}),
         ]:
-            # print(expr.searchString(s))
             result = sum(expr.searchString(s))
 
             self.assertParseResultsEquals(result, expected_list, expected_dict)

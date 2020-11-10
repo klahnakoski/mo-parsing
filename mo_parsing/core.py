@@ -196,9 +196,6 @@ class ParserElement(object):
         self.parser_config.failAction = fn
         return self
 
-    def consume_at_least_one_char(self):
-        return True
-
     def is_annotated(self):
         return self.parseAction or self.parser_name or self.token_name
 

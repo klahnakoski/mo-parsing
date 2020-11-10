@@ -485,26 +485,28 @@ stringStart = StringStart().set_parser_name("stringStart")
 stringEnd = StringEnd().set_parser_name("stringEnd")
 
 
-_escapedPunc = Word(
-    "\\", r"\[]-*.$+^?()~ ", exact=2
-).addParseAction(lambda t, l, s: t[0][1])
-_escapedHexChar = Regex(r"\\0?[xX][0-9a-fA-F]+").addParseAction(lambda t: unichr(int(
-    t[0].lstrip("\\").lstrip("0").lstrip("xX"), 16
-)))
-_escapedOctChar = Regex(r"\\0[0-7]+").addParseAction(lambda t, l, s: unichr(int(
-    t[0][1:], 8
-)))
-_singleChar = (
-    _escapedPunc | _escapedHexChar | _escapedOctChar | CharsNotIn(r"\]", exact=1)
-)
-_charRange = Group(_singleChar + Suppress("-") + _singleChar)
-_reBracketExpr = (
-    Literal("[")
-    + Optional("^").set_token_name("negate")
-    + Group(OneOrMore(_charRange | _singleChar)).set_token_name("body")
-    + "]"
-)
+with Engine(""):
+    _escapedPunc = Word(
+        "\\", r"\[]-*.$+^?()~ ", exact=2
+    ).addParseAction(lambda t, l, s: t[0][1])
+    _escapedHexChar = Regex(r"\\0?[xX][0-9a-fA-F]+").addParseAction(lambda t: unichr(int(
+        t[0].lstrip("\\").lstrip("0").lstrip("xX"), 16
+    )))
+    _escapedOctChar = Regex(r"\\0[0-7]+").addParseAction(lambda t, l, s: unichr(int(
+        t[0][1:], 8
+    )))
+    _singleChar = (
+        _escapedPunc | _escapedHexChar | _escapedOctChar | CharsNotIn(r"\]", exact=1)
+    )
+    _charRange = Group(_singleChar + Suppress("-") + _singleChar)
+    _reBracketExpr = (
+        Literal("[")
+        + Optional("^").set_token_name("negate")
+        + Group(OneOrMore(_charRange | _singleChar)).set_token_name("body")
+        + "]"
+    )
 
+_reBracketExpr.parseString('[\\ -\\~]')
 
 def srange(s):
     r"""Helper to easily define string ranges for use in Word

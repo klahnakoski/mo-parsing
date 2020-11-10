@@ -12,7 +12,7 @@ from mo_parsing.exceptions import (
 )
 from mo_parsing.results import ParseResults
 from mo_parsing.tokens import Empty
-from mo_parsing.utils import empty_tuple, is_forward, regex_iso
+from mo_parsing.utils import empty_tuple, is_forward, regex_iso, Log
 
 
 class ParseExpression(ParserElement):
@@ -69,8 +69,12 @@ class ParseExpression(ParserElement):
         acc = []
         for e in self.exprs:
             e = e.streamline()
-            if isinstance(e, self.__class__) and not e.is_annotated():
+            if e.is_annotated():
+                acc.append(e)
+            elif isinstance(e, self.__class__):
                 acc.extend(e.exprs)
+            elif isinstance(e, Empty):
+                pass
             else:
                 acc.append(e)
 
@@ -192,11 +196,8 @@ class And(ParseExpression):
         output.streamlined = True
         return output
 
-    def consume_at_least_one_char(self):
-        for e in self.exprs:
-            if e.consume_at_least_one_char():
-                return True
-        return False
+    def min_length(self):
+        return sum(e.min_length() for e in self.exprs)
 
     def parseImpl(self, string, start, doActions=True):
         # pass False as last arg to _parse for first element, since we already
@@ -230,11 +231,11 @@ class And(ParseExpression):
         subRecCheckList = seen + (self,)
         for e in self.exprs:
             e.checkRecursion(subRecCheckList)
-            if e.consume_at_least_one_char():
+            if e.min_length():
                 return
 
     def __regex__(self):
-        return regex_iso("".join(regex_iso(e.__regex__()) for e in self.exprs))
+        return "+", "".join(regex_iso(*e.__regex__(), "+") for e in self.exprs)
 
     def __str__(self):
         if self.parser_name:
@@ -253,8 +254,8 @@ class Or(ParseExpression):
     def __init__(self, exprs):
         super(Or, self).__init__(exprs)
 
-    def consume_at_least_one_char(self):
-        return all(e.consume_at_least_one_char() for e in self.exprs)
+    def min_length(self):
+        return min(e.min_length() for e in self.exprs)
 
     def parseImpl(self, string, start, doActions=True):
         causes = []
@@ -328,8 +329,12 @@ class MatchFirst(ParseExpression):
     def __init__(self, exprs):
         super(MatchFirst, self).__init__(exprs)
 
-    def consume_at_least_one_char(self):
-        return all(e.consume_at_least_one_char() for e in self.exprs)
+    def min_length(self):
+        if self.exprs:
+            return min(e.min_length() for e in self.exprs)
+        else:
+            Log.warning("expecting streamline")
+            return 0
 
     def parseImpl(self, string, start, doActions=True):
         causes = []
@@ -374,7 +379,14 @@ class MatchFirst(ParseExpression):
         return engine.CURRENT.normalize(other) | self
 
     def __regex__(self):
-        return regex_iso("|".join(e.__regex__()for e in self.exprs))
+        return (
+            "|",
+            "|".join(
+                regex_iso(*e.__regex__(), "|")
+                for e in self.exprs
+                if not isinstance(e, Empty)
+            ),
+        )
 
     def __str__(self):
         if self.parser_name:
@@ -410,9 +422,9 @@ class Each(ParseExpression):
             return self
         return super(Each, self).streamline()
 
-    def consume_at_least_one_char(self):
+    def min_length(self):
         # TODO: MAY BE TOO CONSERVATIVE, WE MAY BE ABLE TO PROVE self CAN CONSUME A CHARACTER
-        return all(e.consume_at_least_one_char() for e in self.exprs)
+        return min(e.min_length() for e in self.exprs)
 
     def parseImpl(self, string, start, doActions=True):
         end = start

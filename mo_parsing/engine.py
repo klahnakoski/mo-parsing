@@ -84,6 +84,9 @@ class Engine:
         self.content = None
         return self
 
+    def backup(self):
+        return Backup(self)
+
     def skip(self, string, start):
         if string is self.content:
             try:
@@ -129,6 +132,20 @@ class Engine:
             output.append(indent(quote(k) + ":" + value))
         output.append("}")
         return "\n".join(output)
+
+
+class Backup(object):
+    def __init__(self, engine):
+        self.engine = engine
+        self.content = engine.content
+        self.skips = engine.skips
+
+    def __enter__(self):
+        pass
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.engine.content = self.content
+        self.engine.skips = self.skips
 
 
 def noop(*args):

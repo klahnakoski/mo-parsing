@@ -52,19 +52,34 @@ def extend(cls):
 
     return extender
 
-def regex_iso(expr):
+
+_prec = {"|":0, "+":1, "*":2}
+
+def regex_iso(curr_prec, expr, new_prec):
     """
     RETURN NON-CAPTURING GROUP (TO ENSURE ORDER OF OPERATIONS)
     """
-    return f"(?:{expr})"
+    if _prec[curr_prec] < _prec[new_prec]:
+        return f"(?:{expr})"
+    else:
+        return expr
+
+
+_escapes = {
+    "\\": "\\\\",
+    "^": "\\^",
+    "-": "\\-",
+    "]": "\\]",
+    "\n": "\\n",
+    "\r": "\\r",
+    "\t": "\\t"
+}
 
 
 def escapeRegexRange(s):
     # ~  escape these chars: ^-]
     def esc(s):
-        if s in "\\^-]\n\t":
-            return "\\" + s
-        return s
+        return _escapes.get(s, s)
 
     if not s:
         return ""

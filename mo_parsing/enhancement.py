@@ -1,4 +1,5 @@
 # encoding: utf-8
+import re
 
 from mo_dots import Null, is_null
 from mo_future import text, is_text
@@ -10,11 +11,11 @@ from mo_parsing.exceptions import (
     RecursiveGrammarException,
 )
 from mo_parsing.results import ParseResults, Annotation
-from mo_parsing.utils import Log, listwrap, empty_tuple
+from mo_parsing.utils import Log, listwrap, empty_tuple, regex_iso
 from mo_parsing.utils import MAX_INT, is_forward
 
 # import later
-Token, Literal, Keyword, Word, CharsNotIn, _PositionToken, StringEnd, Empty = [None] * 8
+Token, Literal, Keyword, Word, CharsNotIn, _PositionToken, StringEnd, Empty, Char = [None] * 9
 
 _get = object.__getattribute__
 
@@ -38,8 +39,8 @@ class ParseElementEnhance(ParserElement):
             output.expr = self.expr.copy()
         return output
 
-    def consume_at_least_one_char(self):
-        return self.expr.consume_at_least_one_char()
+    def min_length(self):
+        return self.expr.min_length()
 
     def parseImpl(self, string, start, doActions=True):
         output = self.expr._parse(string, start, doActions)
@@ -127,11 +128,12 @@ class NotAny(ParseElementEnhance):
             raise ParseException(self, start, string)
         return ParseResults(self, start, start, [])
 
-    def consume_at_least_one_char(self):
-        return False
+    def min_length(self):
+        return 0
 
     def __regex__(self):
-        return f"(?!({self.expr.__regex__()}))"
+        prec, regex = self.expr.__regex__()
+        return "*", f"(?!({regex}))"
 
     def __str__(self):
         if self.parser_name:
@@ -164,10 +166,10 @@ class Many(ParseElementEnhance):
         self.not_ender = ~self.engine.normalize(ender) if ender else None
         return self
 
-    def consume_at_least_one_char(self):
+    def min_length(self):
         if self.min_match == 0:
-            return False
-        return self.expr.consume_at_least_one_char()
+            return 0
+        return self.expr.min_length()
 
     def parseImpl(self, string, start, doActions=True):
         if self.not_ender is None:
@@ -221,6 +223,21 @@ class Many(ParseElementEnhance):
 
         self.streamlined = True
         return self
+
+    def __regex__(self):
+        if self.not_ender:
+            raise NotImplementedError()
+
+        prec, regex = self.expr.__regex__()
+        if self.max_match == MAX_INT:
+            if self.min_match == 0:
+                return "*", regex_iso(prec, regex, "*") + "*"
+            elif self.min_match == 1:
+                return "*", regex_iso(prec, regex, "*") + "+"
+            else:
+                return "*", regex_iso(prec, regex, "*") + "{" + text(self.min_match) + ",}"
+
+        return "*", regex_iso(prec, regex, "*") + "{" + text(self.min_match) + "," + text(self.max_match) + "}"
 
     def __call__(self, name):
         if not name:
@@ -354,8 +371,8 @@ class SkipTo(ParseElementEnhance):
         output.failOn = self.failOn
         return output
 
-    def consume_at_least_one_char(self):
-        return False
+    def min_length(self):
+        return 0
 
     def parseImpl(self, string, start, doActions=True):
         instrlen = len(string)
@@ -444,6 +461,7 @@ class Forward(ParserElement):
         self.used_by = []
 
         self.strRepr = None  # avoid recursion
+        self._min_length = None  # avoid recursion
         if expr:
             self << engine.CURRENT.normalize(expr)
 
@@ -451,6 +469,8 @@ class Forward(ParserElement):
         output = ParserElement.copy(self)
         output.expr = self
         output.strRepr = None
+        output._min_length = None
+
         output.used_by = []
         return output
 
@@ -500,10 +520,14 @@ class Forward(ParserElement):
         if self.expr != None:
             self.expr.checkRecursion(seen + (self,))
 
-    def consume_at_least_one_char(self):
-        if self.expr:
-            return self.expr.consume_at_least_one_char()
-        return False
+    def min_length(self):
+        if self._min_length is None and self.expr:
+            self._min_length = 0  # BREAK CYCLE
+            try:
+                return self.expr.min_length()
+            finally:
+                self._min_length = None
+        return 0
 
     def parseImpl(self, string, loc, doActions=True):
         try:
@@ -677,25 +701,20 @@ class PrecededBy(ParseElementEnhance):
 
     def __init__(self, expr, retreat=None):
         super(PrecededBy, self).__init__(expr)
-        self.expr = self.expr.leaveWhitespace()
+        expr = self.expr = self.expr.leaveWhitespace()
 
-        self.exact = False
-        if isinstance(expr, str):
-            retreat = len(expr)
+        if isinstance(expr, (Literal, Keyword, Char)):
+            self.retreat = expr.min_length()
             self.exact = True
-        elif isinstance(expr, (Literal, Keyword)):
-            retreat = expr.matchLen
-            self.exact = True
-        elif (
-            isinstance(expr, (Word, CharsNotIn))
-            and expr.parser_config.max_len != MAX_INT
-        ):
-            retreat = expr.parser_config.max_len
-            self.exact = True
+        elif (isinstance(expr, (Word, CharsNotIn))):
+            self.retreat = expr.min_length()
+            self.exact = False
         elif isinstance(expr, _PositionToken):
-            retreat = 0
+            self.retreat = 0
             self.exact = True
-        self.retreat = retreat
+        else:
+            self.retreat = expr.min_length()
+            self.exact = False
 
     def copy(self):
         output = ParseElementEnhance.copy(self)
@@ -706,29 +725,29 @@ class PrecededBy(ParseElementEnhance):
 
     def parseImpl(self, string, start=0, doActions=True):
         if self.exact:
-            if start < self.retreat:
+            loc = start-self.retreat
+            if loc < 0:
                 raise ParseException(self, start, string)
-            start = start - self.retreat
-            ret = self.expr._parse(string, start)
+            ret = self.expr._parse(string, loc)
         else:
             # retreat specified a maximum lookbehind window, iterate
             test_expr = self.expr + StringEnd()
             instring_slice = string[:start]
-            last_expr = ParseException(self, start, string)
-            for offset in range(1, min(start, self.retreat + 1)):
-                try:
-                    ret = test_expr._parse(instring_slice, start - offset)
-                except ParseException as pbe:
-                    last_expr = pbe
+            last_cause = ParseException(self, start, string)
+
+            with self.engine.backup():
+                for offset in range(self.retreat, start+1):
+                    try:
+                        ret = test_expr._parse(instring_slice, start - offset)
+                        break
+                    except ParseException as cause:
+                        last_cause = cause
                 else:
-                    break
-            else:
-                raise last_expr
+                    raise last_cause
         # return empty list of tokens, but preserve any defined results names
 
         ret.__class__ = Annotation
-        return ParseResults(self, start, ret.end, [ret])
-
+        return ParseResults(self, start, start, [ret])
 
 # export
 from mo_parsing import core, engine, results
