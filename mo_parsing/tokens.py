@@ -693,7 +693,7 @@ class CharsNotIn(Token):
     """
 
     def __init__(self, notChars, min=1, max=0, exact=0):
-        super(CharsNotIn, self).__init__()
+        Token.__init__(self)
         self.parser_config.not_chars = "".join(sorted(set(notChars)))
 
         if min < 1:
@@ -702,42 +702,47 @@ class CharsNotIn(Token):
                 "Optional(CharsNotIn()) if zero-length char group is permitted"
             )
 
-        self.parser_config.min_len = min
-        self.parser_config.max_len = max if max > 0 else MAX_INT
-        if exact > 0:
-            self.parser_config.max_len = exact
-            self.parser_config.min_len = exact
+        min = self.parser_config.min_len = min
+        max = self.parser_config.max_len = max if max > 0 else MAX_INT
+        if exact:
+            min = self.parser_config.min_len = exact
+            max = self.parser_config.max_len = exact
+
+        if len(notChars) == 1:
+            regex = "[^" + escapeRegexRange(notChars) + "]"
+        else:
+            regex = "[^" + escapeRegexRange(notChars)[1:]
+
+        if not max or max == MAX_INT:
+            if min == 0:
+                suffix = "*"
+            elif min == 1:
+                suffix = "+"
+            else:
+                suffix = "{" + str(min) + ":}"
+        elif min == 1 and max == 1:
+            suffix = ""
+        else:
+            suffix = "{" + str(min) + ":" + str(max) + "}"
+
+        self.parser_config.regex = re.compile(regex + suffix)
         self.parser_name = text(self)
 
     def parseImpl(self, string, start, doActions=True):
-        if string[start] in self.parser_config.not_chars:
-            raise ParseException(self, start, string)
+        found = self.parser_config.regex.match(string, start)
+        if found:
+            return ParseResults(self, start, found.end(), [found.group()])
 
-        end = start
-        end += 1
-        notchars = self.parser_config.not_chars
-        maxlen = min(start + self.parser_config.max_len, len(string))
-        while end < maxlen and string[end] not in notchars:
-            end += 1
-
-        if end - start < self.parser_config.min_len:
-            raise ParseException(self, end, string)
-
-        return ParseResults(self, start, end, [string[start:end]])
+        raise ParseException(self, start, string)
 
     def min_length(self):
-        return 0
+        return self.parser_config.min_len
+
+    def __regex__(self):
+        return "*", self.parser_config.regex.pattern
 
     def __str__(self):
-        try:
-            return super(CharsNotIn, self).__str__()
-        except Exception:
-            pass
-
-        if len(self.parser_config.not_chars) > 4:
-            return "!W:(%s...)" % self.parser_config.not_chars[:4]
-        else:
-            return "!W:(%s)" % self.parser_config.not_chars
+        return self.parser_config.regex.pattern
 
 
 class White(Token):

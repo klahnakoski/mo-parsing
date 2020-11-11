@@ -581,7 +581,7 @@ class TestParseCondition(PyparsingExpressionTestCase):
                 "Define a condition to only match numeric values that are multiples"
                 " of 7"
             ),
-            expr=Word(nums).addCondition(lambda t: int(t[0]) % 7 == 0)[...],
+            expr=Word(nums).addCondition(lambda t: int(t[0]) % 7 == 0, message="expecting divisible by 7")[...],
             text="14 35 77 12 28",
             expected_list=["14", "35", "77"],
         )

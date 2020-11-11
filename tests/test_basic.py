@@ -15,8 +15,8 @@ from mo_parsing.helpers import number, hex_integer, fnumber, uuid as helper_uuid
 from tests import runTests
 
 
-class TestBasic(TestCase):
-    def test(self):
+class TestSimpleSQL(TestCase):
+    def test_simple_sql(self):
         selectToken = CaselessLiteral("select")
         fromToken = CaselessLiteral("from")
 

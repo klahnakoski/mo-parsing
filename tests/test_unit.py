@@ -3094,17 +3094,17 @@ class TestParsing(PyparsingExpressionTestCase):
             Optional(with_stmt("with_stmt")) & Optional(using_stmt("using_stmt"))
         )
 
-        # result = modifiers.parseString(
-        #     "with foo=bar bing=baz using id-deadbeef", parseAll=True
-        # )
-        # expecting = {
-        #     "with_stmt": {"overrides": [
-        #         {"key": "foo", "value": "bar"},
-        #         {"key": "bing", "value": "baz"},
-        #     ]},
-        #     "using_stmt": {"id": "id-deadbeef"},
-        # }
-        # self.assertEqual(result, expecting)
+        result = modifiers.parseString(
+            "with foo=bar bing=baz using id-deadbeef", parseAll=True
+        )
+        expecting = {
+            "with_stmt": {"overrides": [
+                {"key": "foo", "value": "bar"},
+                {"key": "bing", "value": "baz"},
+            ]},
+            "using_stmt": {"id": "id-deadbeef"},
+        }
+        self.assertEqual(result, expecting)
 
         with self.assertRaisesParseException():
             result = modifiers.parseString(
