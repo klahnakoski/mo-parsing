@@ -15,7 +15,8 @@ from mo_parsing import (
     Optional,
     printables,
     restOfLine,
-    empty, engine,
+    engine,
+    Empty,
 )
 
 inibnf = None
@@ -44,7 +45,7 @@ def inifile_BNF():
         def stripKey(tokens):
             return [t.strip() for t in tokens]
 
-        keyDef = ~lbrack + Word(nonequals).addParseAction(stripKey) + equals + empty + restOfLine
+        keyDef = ~lbrack + Word(nonequals).addParseAction(stripKey) + equals + Empty + restOfLine
 
         # using Dict will allow retrieval of named data fields as attributes of the parsed results
         inibnf = Dict(ZeroOrMore(Group(sectionDef + Dict(ZeroOrMore(Group(keyDef))))))

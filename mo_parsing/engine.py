@@ -56,6 +56,8 @@ class Engine:
                 return self.literal(expr)
             else:
                 return self.literal(Literal(expr))
+        if isinstance(expr, type) and issubclass(expr, ParserElement):
+            return expr()  # ALLOW Empty WHEN Empty() WAS INTENDED
         if not isinstance(expr, ParserElement):
             Log.error("expecting string, or ParserElemenet")
 

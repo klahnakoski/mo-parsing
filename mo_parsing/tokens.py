@@ -48,6 +48,9 @@ class NoMatch(Token):
     def min_length(self):
         return 0
 
+    def __regex__(self):
+        return "+", "a^"
+
 
 class AnyChar(Token):
     def __init__(self):
@@ -162,6 +165,9 @@ class Keyword(Token):
     def min_length(self):
         return len(self.parser_config.match)
 
+    def __regex__(self):
+        return "+" , self.parser_config.regex.pattern
+
 
 class CaselessKeyword(Keyword):
     def __init__(self, matchString, ident_chars=None):
@@ -181,7 +187,7 @@ class CaselessLiteral(Literal):
         self.parser_config.regex = re.compile(
             re.escape(match), re.I | re.MULTILINE | re.DOTALL
         )
-        self.parser_name = repr(self.parser_config.regex)
+        self.parser_name = repr(self.parser_config.regex.pattern)
 
     def parseImpl(self, string, start, doActions=True):
         found = self.parser_config.regex.match(string, start)
@@ -357,7 +363,7 @@ class Word(Token):
     def __str__(self):
         if self.parser_name:
             return self.parser_name
-        return "W:(%s)" % str(self.parser_config.regex)
+        return f"W:({self.parser_config.regex.pattern})"
 
 
 class Char(Token):
@@ -459,7 +465,7 @@ class Regex(Token):
         return 0
 
     def __str__(self):
-        return repr(self.parser_config.regex)
+        return self.parser_config.regex.pattern
 
     def sub(self, repl):
         r"""
@@ -1015,6 +1021,7 @@ enhancement.CharsNotIn = CharsNotIn
 enhancement._PositionToken = _PositionToken
 enhancement.StringEnd = StringEnd
 enhancement.Empty = Empty
+enhancement.NoMatch = NoMatch
 enhancement.Char = Char
 
 results.Token = Token

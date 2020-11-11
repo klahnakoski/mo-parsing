@@ -79,7 +79,6 @@ _escapes = {
 
 
 def escapeRegexRange(s):
-    # ~  escape these chars: ^-]
     def esc(s):
         return _escapes.get(s, s)
 

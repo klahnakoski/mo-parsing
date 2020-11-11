@@ -70,7 +70,6 @@ from mo_parsing import (
     FollowedBy,
     ParseSyntaxException,
 )
-from mo_parsing.debug import Debugger
 from mo_parsing.engine import Engine
 from mo_parsing.enhancement import OpenDict
 from mo_parsing.helpers import (
@@ -90,11 +89,8 @@ from mo_parsing.helpers import (
     cStyleComment,
     infixNotation,
     countedArray,
-    lineEnd,
-    stringEnd,
     originalTextFor,
     makeHTMLTags,
-    empty,
     withAttribute,
     nestedExpr,
     restOfLine,
@@ -134,7 +130,6 @@ from mo_parsing.utils import (
     line,
 )
 from tests.json_parser_tests import test1, test2, test3, test4, test5
-
 # see which Python implementation we are running
 from tests.test_simple_unit import PyparsingExpressionTestCase
 
@@ -2356,10 +2351,10 @@ class TestParsing(PyparsingExpressionTestCase):
 
     def testLineAndStringEnd(self):
         with Engine(""):
-            NLs = OneOrMore(lineEnd)
+            NLs = OneOrMore(LineEnd)
             bnf1 = delimitedList(Word(alphanums), NLs)
-            bnf2 = Word(alphanums) + stringEnd
-            bnf3 = Word(alphanums) + SkipTo(stringEnd)
+            bnf2 = Word(alphanums) + StringEnd
+            bnf3 = Word(alphanums) + SkipTo(StringEnd)
         # TODO: Is bnf2 match last word?  Does bnf3.skipTo(stringEnd) include the \n?
         tests = [
             ("testA\ntestB\ntestC\n", ["testA", "testB", "testC"]),
@@ -2663,7 +2658,7 @@ class TestParsing(PyparsingExpressionTestCase):
             Optional(varType | "void")
             + id
             + "("
-            + (delimitedList(varType + id) | "void" | empty)
+            + (delimitedList(varType + id) | "void" | Empty)
             + ")"
             + codeBlock
         )

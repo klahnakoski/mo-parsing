@@ -115,7 +115,7 @@ def countedArray(expr, intExpr=None):
 
     def countFieldParseAction(t, l, s):
         n = t[0]
-        arrayExpr << (n and Group(And([expr] * n)) or Group(empty))
+        arrayExpr << (n and Group(And([expr] * n)) or Group(Empty))
         return []
 
     intExpr = (
@@ -449,7 +449,7 @@ def nestedExpr(opener="(", closer=")", content=None, ignoreExpr=quotedString):
                         + CharsNotIn(opener + closer + "".join(ignore_chars), exact=1,)
                     )).addParseAction(scrub)
                 else:
-                    content = empty.copy() + CharsNotIn(
+                    content = Empty + CharsNotIn(
                         opener + closer + "".join(ignore_chars)
                     ).addParseAction(scrub)
             else:
@@ -477,14 +477,6 @@ def nestedExpr(opener="(", closer=")", content=None, ignoreExpr=quotedString):
     return ret
 
 
-# convenience constants for positional expressions
-empty = Empty().set_parser_name("empty")
-lineStart = LineStart().set_parser_name("lineStart")
-lineEnd = LineEnd().set_parser_name("lineEnd")
-stringStart = StringStart().set_parser_name("stringStart")
-stringEnd = StringEnd().set_parser_name("stringEnd")
-
-
 with Engine(""):
     _escapedPunc = Word(
         "\\", r"\[]-*.$+^?()~ ", exact=2
@@ -505,8 +497,6 @@ with Engine(""):
         + Group(OneOrMore(_charRange | _singleChar)).set_token_name("body")
         + "]"
     )
-
-_reBracketExpr.parseString("[\\ -\\~]")
 
 
 def srange(s):
@@ -535,11 +525,13 @@ def srange(s):
      - any combination of the above (``'aeiouy'``,
        ``'a-zA-Z0-9_$'``, etc.)
     """
-    _expanded = (
-        lambda p: p
-        if not isinstance(p, ParseResults)
-        else "".join(unichr(c) for c in range(ord(p[0]), ord(p[1]) + 1))
-    )
+
+    def _expanded(p):
+        if not isinstance(p, ParseResults):
+            return p
+        else:
+            return "".join(unichr(c) for c in range(ord(p[0]), ord(p[1]) + 1))
+
     try:
         return "".join(
             _expanded(part) for part in _reBracketExpr.parseString(s)["body"]

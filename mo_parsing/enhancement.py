@@ -17,6 +17,7 @@ from mo_parsing.utils import MAX_INT, is_forward
 # import later
 (
     Token,
+    NoMatch,
     Literal,
     Keyword,
     Word,
@@ -25,7 +26,7 @@ from mo_parsing.utils import MAX_INT, is_forward
     StringEnd,
     Empty,
     Char,
-) = [None] * 9
+) = [None] * 10
 
 _get = object.__getattribute__
 
@@ -138,6 +139,14 @@ class NotAny(ParseElementEnhance):
             raise ParseException(self, start, string)
         return ParseResults(self, start, start, [])
 
+    def streamline(self):
+        output = ParseElementEnhance.streamline(self)
+        if isinstance(output.expr, NoMatch):
+            return Empty()
+        if isinstance(output.expr, Empty):
+            return NoMatch()
+        return output
+
     def min_length(self):
         return 0
 
@@ -148,7 +157,7 @@ class NotAny(ParseElementEnhance):
     def __str__(self):
         if self.parser_name:
             return self.parser_name
-        return "~{{self.expr}}"
+        return "~{" + str(self.expr) + "}"
 
 
 class Many(ParseElementEnhance):
@@ -287,19 +296,13 @@ class OneOrMore(Many):
 
     def __init__(self, expr, stopOn=None):
         Many.__init__(self, expr, stopOn, min_match=1, max_match=MAX_INT)
-        self.parser_config.lock_engine = expr.parser_config.lock_engine
-        self.parser_config.engine = expr.parser_config.engine
+        self.parser_config.lock_engine = self.expr.parser_config.lock_engine
+        self.parser_config.engine = self.expr.parser_config.engine
 
     def __str__(self):
         if self.parser_name:
             return self.parser_name
         return "{" + text(self.expr) + "}..."
-
-    def copy(self):
-        output = Many.copy(self)
-        output.not_ender = self.not_ender
-        return output
-
 
 class ZeroOrMore(Many):
     """Optional repetition of zero or more of the given expression.

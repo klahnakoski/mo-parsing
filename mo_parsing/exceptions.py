@@ -51,7 +51,10 @@ class ParseException(Exception):
 
     @property
     def message(self):
-        expecting = "Expecting " + str(self.expr)
+        if self._msg:
+            expecting = f"{self._msg} ({self.expr})"
+        else:
+            expecting = f"Expecting {self.expr}"
 
         if self.loc >= len(self.string):
             found = "end of text"
@@ -192,7 +195,7 @@ def conditionAsParseAction(fn, message=None, fatal=False):
     @wraps(fn)
     def pa(t, l, s):
         if not bool(fn(t, l, s)[0]):
-            raise exc_type(t.type, l, s, msg)
+            raise exc_type(t.type, l, s, msg=msg)
         return t
 
     return pa

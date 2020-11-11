@@ -211,8 +211,8 @@ class ParserElement(object):
             return value
 
         try:
+            index = self.engine.skip(string, start)
             try:
-                index = self.engine.skip(string, start)
                 tokens = self.parseImpl(string, index, doActions)
             except Exception as cause:
                 self.parser_config.failAction(self, start, string, cause)
@@ -220,7 +220,7 @@ class ParserElement(object):
 
             if self.parseAction and (doActions or self.parser_config.callDuringTry):
                 for fn in self.parseAction:
-                    tokens = fn(tokens, start, string)
+                    tokens = fn(tokens, index, string)
         except ParseException as cause:
             packrat_cache.set(lookup, cause)
             raise
