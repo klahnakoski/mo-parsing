@@ -506,7 +506,8 @@ with Engine(""):
         + "]"
     )
 
-_reBracketExpr.parseString('[\\ -\\~]')
+_reBracketExpr.parseString("[\\ -\\~]")
+
 
 def srange(s):
     r"""Helper to easily define string ranges for use in Word

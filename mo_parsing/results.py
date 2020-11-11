@@ -15,13 +15,7 @@ Suppress, ParserElement, NO_PARSER, NO_RESULTS, Group, Dict, Token, Empty = [Non
 
 
 class ParseResults(object):
-    __slots__ = [
-        "type",
-        "start",
-        "end",
-        "tokens",
-        "timing"
-    ]
+    __slots__ = ["type", "start", "end", "tokens", "timing"]
 
     @property
     def name(self):

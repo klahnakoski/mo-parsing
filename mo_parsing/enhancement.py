@@ -15,7 +15,17 @@ from mo_parsing.utils import Log, listwrap, empty_tuple, regex_iso
 from mo_parsing.utils import MAX_INT, is_forward
 
 # import later
-Token, Literal, Keyword, Word, CharsNotIn, _PositionToken, StringEnd, Empty, Char = [None] * 9
+(
+    Token,
+    Literal,
+    Keyword,
+    Word,
+    CharsNotIn,
+    _PositionToken,
+    StringEnd,
+    Empty,
+    Char,
+) = [None] * 9
 
 _get = object.__getattribute__
 
@@ -235,9 +245,20 @@ class Many(ParseElementEnhance):
             elif self.min_match == 1:
                 return "*", regex_iso(prec, regex, "*") + "+"
             else:
-                return "*", regex_iso(prec, regex, "*") + "{" + text(self.min_match) + ",}"
+                return (
+                    "*",
+                    regex_iso(prec, regex, "*") + "{" + text(self.min_match) + ",}",
+                )
 
-        return "*", regex_iso(prec, regex, "*") + "{" + text(self.min_match) + "," + text(self.max_match) + "}"
+        return (
+            "*",
+            regex_iso(prec, regex, "*")
+            + "{"
+            + text(self.min_match)
+            + ","
+            + text(self.max_match)
+            + "}",
+        )
 
     def __call__(self, name):
         if not name:
@@ -706,7 +727,7 @@ class PrecededBy(ParseElementEnhance):
         if isinstance(expr, (Literal, Keyword, Char)):
             self.retreat = expr.min_length()
             self.exact = True
-        elif (isinstance(expr, (Word, CharsNotIn))):
+        elif isinstance(expr, (Word, CharsNotIn)):
             self.retreat = expr.min_length()
             self.exact = False
         elif isinstance(expr, _PositionToken):
@@ -725,7 +746,7 @@ class PrecededBy(ParseElementEnhance):
 
     def parseImpl(self, string, start=0, doActions=True):
         if self.exact:
-            loc = start-self.retreat
+            loc = start - self.retreat
             if loc < 0:
                 raise ParseException(self, start, string)
             ret = self.expr._parse(string, loc)
@@ -736,7 +757,7 @@ class PrecededBy(ParseElementEnhance):
             last_cause = ParseException(self, start, string)
 
             with self.engine.backup():
-                for offset in range(self.retreat, start+1):
+                for offset in range(self.retreat, start + 1):
                     try:
                         ret = test_expr._parse(instring_slice, start - offset)
                         break
@@ -748,6 +769,7 @@ class PrecededBy(ParseElementEnhance):
 
         ret.__class__ = Annotation
         return ParseResults(self, start, start, [ret])
+
 
 # export
 from mo_parsing import core, engine, results

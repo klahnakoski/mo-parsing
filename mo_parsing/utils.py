@@ -39,6 +39,7 @@ empty_list = []
 empty_tuple = tuple()
 many_types = (list, tuple, set) + generator_types
 
+
 def extend(cls):
     """
     DECORATOR TO ADD METHODS TO CLASSES
@@ -53,7 +54,8 @@ def extend(cls):
     return extender
 
 
-_prec = {"|":0, "+":1, "*":2}
+_prec = {"|": 0, "+": 1, "*": 2}
+
 
 def regex_iso(curr_prec, expr, new_prec):
     """
@@ -72,7 +74,7 @@ _escapes = {
     "]": "\\]",
     "\n": "\\n",
     "\r": "\\r",
-    "\t": "\\t"
+    "\t": "\\t",
 }
 
 

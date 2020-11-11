@@ -49,9 +49,6 @@ class Profiler(object):
         ).write(convert.list2tab(profile))
 
 
-
-
-
 timing = {}
 
 
@@ -95,5 +92,3 @@ def _profile_parse(self, string, start, doActions=True):
         timing_entry[match] += 1  # cache
         timing_entry[3] += parse_end - parse_start  # parse time
         timing_entry[4] += process_time() - all_start  # all time
-
-

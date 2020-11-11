@@ -654,8 +654,6 @@ class _PendingSkip(ParserElement):
         Log.error("use of `...` expression without following SkipTo target expression")
 
 
-
-
 # export
 from mo_parsing import cache, engine, results
 

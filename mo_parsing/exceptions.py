@@ -59,8 +59,8 @@ class ParseException(Exception):
             found = (self.string[self.loc : self.loc + 10]).replace(r"\\", "\\")
 
         return (
-            f"{expecting}, found {quote(found)} (at char {self.loc}, (line:{self.lineno},"
-            f" col:{self.column})"
+            f"{expecting}, found {quote(found)} (at char {self.loc},"
+            f" (line:{self.lineno}, col:{self.column})"
         )
 
     @message.setter
