@@ -178,11 +178,18 @@ class Many(ParseElementEnhance):
         output = ParseElementEnhance.copy(self)
         output.min_match = self.min_match
         output.max_match = self.max_match
-        output.not_ender = self.not_ender
+        output.end = self.end
+        output.not_end = self.not_end
         return output
 
     def stopOn(self, ender):
-        self.not_ender = ~self.engine.normalize(ender) if ender else None
+        if ender:
+            end = self.engine.normalize(ender)
+            self.end = re.compile(end.__regex__()[1])
+            self.not_end = ~end
+        else:
+            self.end = None
+            self.not_end = Empty()
         return self
 
     def min_length(self):
@@ -191,16 +198,17 @@ class Many(ParseElementEnhance):
         return self.expr.min_length()
 
     def parseImpl(self, string, start, doActions=True):
-        if self.not_ender is None:
-            try_not_ender = noop
-        else:
-            try_not_ender = self.not_ender.tryParse
-
         acc = []
         end = start
         try:
             while end < len(string):
-                try_not_ender(string, end)
+                if self.end:
+                    end = self.engine.skip(string, end)
+                    if self.end.match(string, end):
+                        if self.min_match <= len(acc) <= self.max_match:
+                            break
+                        else:
+                            raise ParseException(self, end, string, msg="Not expecting end")
                 tokens = self.expr._parse(string, end, doActions)
                 end = tokens.end
                 if tokens:
@@ -209,7 +217,7 @@ class Many(ParseElementEnhance):
             if self.min_match <= len(acc) <= self.max_match:
                 pass
             else:
-                raise e
+                ParseException(self, start, string, msg="Not correct amount of matches")
         num = len(acc)
         if num:
             if num < self.min_match or self.max_match < num:
@@ -244,30 +252,26 @@ class Many(ParseElementEnhance):
         return self
 
     def __regex__(self):
-        if self.not_ender:
-            raise NotImplementedError()
-
+        end = self.end.pattern if self.end else None
         prec, regex = self.expr.__regex__()
+        regex = regex_iso(prec, regex, "*")
+
         if self.max_match == MAX_INT:
             if self.min_match == 0:
-                return "*", regex_iso(prec, regex, "*") + "*"
+                suffix = "*"
             elif self.min_match == 1:
-                return "*", regex_iso(prec, regex, "*") + "+"
+                suffix = "+"
             else:
-                return (
-                    "*",
-                    regex_iso(prec, regex, "*") + "{" + text(self.min_match) + ",}",
-                )
+                suffix = "{" + text(self.min_match) + ",}"
+        elif self.min_match == 1 and self.max_match == 1:
+            suffix = ""
+        else:
+            suffix = "{" + text(self.min_match) + "," + text(self.max_match) + "}"
 
-        return (
-            "*",
-            regex_iso(prec, regex, "*")
-            + "{"
-            + text(self.min_match)
-            + ","
-            + text(self.max_match)
-            + "}",
-        )
+        if end:
+            return "+", regex + suffix + end
+        else:
+            return "*", regex + suffix
 
     def __call__(self, name):
         if not name:
