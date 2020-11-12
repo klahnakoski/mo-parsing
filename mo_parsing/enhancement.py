@@ -94,19 +94,6 @@ class FollowedBy(ParseElementEnhance):
     always returns a null token list. If any results names are defined
     in the lookahead expression, those *will* be returned for access by
     name.
-
-    Example::
-
-        # use FollowedBy to match a label only if it is followed by a ':'
-        data_word = Word(alphas)
-        label = data_word + FollowedBy(':')
-        attr_expr = Group(label + Suppress(':') + OneOrMore(data_word, stopOn=label).addParseAction(' '.join))
-
-        OneOrMore(attr_expr).parseString("shape: SQUARE color: BLACK posn: upper left")
-
-    prints::
-
-        [['shape', 'SQUARE'], ['color', 'BLACK'], ['posn', 'upper left']]
     """
 
     def __init__(self, expr):
@@ -118,7 +105,10 @@ class FollowedBy(ParseElementEnhance):
         result = self.expr._parse(string, start, doActions=doActions)
         result.__class__ = Annotation
 
-        return ParseResults(self, start, result.end, [result])
+        return ParseResults(self, start, start, [result])
+
+    def __regex__(self):
+        return "*", f"(?={self.expr.__regex__()[1]})"
 
 
 class NotAny(ParseElementEnhance):
@@ -179,17 +169,14 @@ class Many(ParseElementEnhance):
         output.min_match = self.min_match
         output.max_match = self.max_match
         output.end = self.end
-        output.not_end = self.not_end
         return output
 
     def stopOn(self, ender):
         if ender:
             end = self.engine.normalize(ender)
             self.end = re.compile(end.__regex__()[1])
-            self.not_end = ~end
         else:
             self.end = None
-            self.not_end = Empty()
         return self
 
     def min_length(self):
@@ -224,9 +211,10 @@ class Many(ParseElementEnhance):
                 raise ParseException(
                     self,
                     acc[0].start,
+                    string,
                     msg=(
                         f"Expecting between {self.min_match} and {self.max_match} of"
-                        f" {self}"
+                        f" {self.expr}"
                     ),
                 )
             else:

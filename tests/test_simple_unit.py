@@ -581,7 +581,9 @@ class TestParseCondition(PyparsingExpressionTestCase):
                 "Define a condition to only match numeric values that are multiples"
                 " of 7"
             ),
-            expr=Word(nums).addCondition(lambda t: int(t[0]) % 7 == 0, message="expecting divisible by 7")[...],
+            expr=Word(nums).addCondition(
+                lambda t: int(t[0]) % 7 == 0, message="expecting divisible by 7"
+            )[...],
             text="14 35 77 12 28",
             expected_list=["14", "35", "77"],
         )
@@ -697,7 +699,9 @@ class TestCommonHelperExpressions(PyparsingExpressionTestCase):
     def test_parsing_nested_braces(self):
         self.runTest(
             desc="parsing nested braces",
-            expr=Keyword("if") + nestedExpr()("condition") + nestedExpr("{", "}")("body"),
+            expr=Keyword("if")
+            + nestedExpr()("condition")
+            + nestedExpr("{", "}")("body"),
             text='if ((x == y) || !z) {printf("{}");}',
             expected_list=[
                 "if",

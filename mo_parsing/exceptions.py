@@ -132,6 +132,25 @@ class ParseFatalException(Exception):
     def __init__(self, expr, start, string, msg=""):
         self.internal = ParseException(expr, start, string, msg)
 
+    @property
+    def line(self):
+        return self.internal.line
+
+    @property
+    def lineno(self):
+        return self.internal.lineno
+
+    @property
+    def col(self):
+        return self.internal.col
+
+    @property
+    def column(self):
+        return self.internal.column
+
+    @property
+    def loc(self):
+        return self.internal.loc
 
 class ParseSyntaxException(ParseFatalException):
     """just like `ParseFatalException`, but thrown internally
@@ -195,7 +214,7 @@ def conditionAsParseAction(fn, message=None, fatal=False):
     @wraps(fn)
     def pa(t, l, s):
         if not bool(fn(t, l, s)[0]):
-            raise exc_type(t.type, l, s, msg=msg)
+            raise exc_type(t.type, l, s, msg)
         return t
 
     return pa

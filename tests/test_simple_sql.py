@@ -11,7 +11,13 @@ from mo_parsing import (
     delimitedList,
     upcaseTokens,
 )
-from mo_parsing.helpers import number, hex_integer, fnumber, uuid as helper_uuid, tokenMap
+from mo_parsing.helpers import (
+    number,
+    hex_integer,
+    fnumber,
+    uuid as helper_uuid,
+    tokenMap,
+)
 from tests import runTests
 
 
@@ -22,9 +28,9 @@ class TestSimpleSQL(TestCase):
 
         ident = Word(alphas, alphanums + "_$")
 
-        columnName = delimitedList(ident, ".", combine=True).addParseAction(
-            upcaseTokens
-        )
+        columnName = delimitedList(
+            ident, ".", combine=True
+        ).addParseAction(upcaseTokens)
         columnNameList = Group(delimitedList(columnName)).set_parser_name("columns")
         columnSpec = "*" | columnNameList
 

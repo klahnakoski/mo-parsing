@@ -57,7 +57,7 @@ skip_list = [
     "verilogParse_test",
     "withAttribute",
     "wordsToNum",
-    "LAparser_test"
+    "LAparser_test",
 ]
 
 modules = [f.name for f in File("examples").children]

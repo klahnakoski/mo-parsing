@@ -121,7 +121,12 @@ def runTests(
     allResults = []
     NL = Literal(r"\n").addParseAction(replaceWith("\n"))
     BOM = u"\ufeff"
-    for i, (t, failureTest) in enumerate(zip(tests, [failureTests]*len(tests) if not isinstance(failureTests, list) else failureTests)):
+    for i, (t, failureTest) in enumerate(zip(
+        tests,
+        [failureTests] * len(tests)
+        if not isinstance(failureTests, list)
+        else failureTests,
+    )):
         if comment is not None and comment.matches(t, False):
             Log.note(t)
             continue
@@ -155,7 +160,11 @@ def runTests(
                     else:
                         Log.note("{{result}}", result=result)
                 except Exception as cause:
-                    Log.warning("postParse {{name}} failed", name=postParse.__name__, cause=cause)
+                    Log.warning(
+                        "postParse {{name}} failed",
+                        name=postParse.__name__,
+                        cause=cause,
+                    )
             else:
                 Log.note("{{result}}", result=result)
 

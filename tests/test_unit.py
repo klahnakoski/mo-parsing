@@ -130,6 +130,7 @@ from mo_parsing.utils import (
     line,
 )
 from tests.json_parser_tests import test1, test2, test3, test4, test5
+
 # see which Python implementation we are running
 from tests.test_simple_unit import PyparsingExpressionTestCase
 
@@ -4421,6 +4422,24 @@ class TestParsing(PyparsingExpressionTestCase):
             {"item": "balloon", "qty": 99},
             "invalid results name structure from FollowedBy",
         )
+
+        data_word = Word(alphas)
+        label = data_word + FollowedBy(":")
+        attr_expr = Group(
+            label
+            + Suppress(":")
+            + OneOrMore(data_word, stopOn=label).addParseAction(" ".join)
+        )
+
+        result = OneOrMore(attr_expr).parseString(
+            "shape: SQUARE ball color: BLACK posn: upper left"
+        )
+        expected = [
+            ["shape", "SQUARE ball"],
+            ["color", "BLACK"],
+            ["posn", "upper left"],
+        ]
+        self.assertEqual(result, expected)
 
     def testUnicodeTests(self):
 
