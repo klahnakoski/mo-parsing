@@ -575,15 +575,15 @@ class QuotedString(Token):
                 )
                 raise SyntaxError()
 
-        self.quoteChar = quoteChar
-        self.endQuoteChar = endQuoteChar
-        self.escChar = escChar
-        self.escQuote = escQuote
-        self.unquoteResults = unquoteResults
-        self.convertWhitespaceEscapes = convertWhitespaceEscapes
+        self.parser_config.quote_char = quoteChar
+        self.parser_config.end_quote_char = endQuoteChar
+        self.parser_config.esc_char = escChar
+        self.parser_config.esc_quote = escQuote
+        self.parser_config.unquoteResults = unquoteResults
+        self.parser_config.convertWhitespaceEscapes = convertWhitespaceEscapes
         # TODO: FIX THIS MESS. WE SHOULD BE ABLE TO CONSTRUCT REGEX FROM ParserElements
         included = Empty()
-        excluded = Literal(self.endQuoteChar)
+        excluded = Literal(self.parser_config.end_quote_char)
 
         if multiline:
             self.parser_config.flags = re.MULTILINE | re.DOTALL
@@ -593,25 +593,25 @@ class QuotedString(Token):
         if escQuote:
             included |= Literal(escQuote)
         if escChar:
-            excluded |= Literal(self.escChar)
+            excluded |= Literal(self.parser_config.esc_char)
             included = included | escChar + Char(printables)
-            self.escCharReplacePattern = re.escape(self.escChar) + "(.)"
+            self.escCharReplacePattern = re.escape(self.parser_config.esc_char) + "(.)"
 
-        prec, self.pattern = (
+        prec, self.parser_config.pattern = (
             Literal(quoteChar)
             + ((~excluded + AnyChar()) | included)[0:]
-            + Literal(self.endQuoteChar)
+            + Literal(self.parser_config.end_quote_char)
         ).__regex__()
 
         try:
             self.parser_config.regex = re.compile(
-                self.pattern, self.parser_config.flags
+                self.parser_config.pattern, self.parser_config.flags
             )
-            self.reString = self.pattern
+            self.parser_config.pattern = self.parser_config.pattern
         except Exception as cause:
             Log.error(
                 "invalid pattern {{pattern}} passed to Regex",
-                pattern=self.pattern,
+                pattern=self.parser_config.pattern,
                 cause=cause,
             )
 
@@ -625,14 +625,14 @@ class QuotedString(Token):
         end = result.end()
         ret = result.group()
 
-        if self.unquoteResults:
+        if self.parser_config.unquoteResults:
 
             # strip off quotes
-            ret = ret[len(self.quoteChar) : -len(self.endQuoteChar)]
+            ret = ret[len(self.parser_config.quote_char) : -len(self.parser_config.end_quote_char)]
 
             if isinstance(ret, text):
                 # replace escaped whitespace
-                if "\\" in ret and self.convertWhitespaceEscapes:
+                if "\\" in ret and self.parser_config.convertWhitespaceEscapes:
                     ws_map = {
                         r"\t": "\t",
                         r"\n": "\n",
@@ -643,28 +643,14 @@ class QuotedString(Token):
                         ret = ret.replace(wslit, wschar)
 
                 # replace escaped characters
-                if self.escChar:
+                if self.parser_config.esc_char:
                     ret = re.sub(self.escCharReplacePattern, r"\g<1>", ret)
 
                 # replace escaped quotes
-                if self.escQuote:
-                    ret = ret.replace(self.escQuote, self.endQuoteChar)
+                if self.parser_config.esc_quote:
+                    ret = ret.replace(self.parser_config.esc_quote, self.parser_config.end_quote_char)
 
         return ParseResults(self, start, end, [ret])
-
-    def copy(self):
-        output = Token.copy(self)
-
-        output.quoteChar = self.quoteChar
-        output.endQuoteChar = self.endQuoteChar
-        output.escChar = self.escChar
-        output.escQuote = self.escQuote
-        output.unquoteResults = self.unquoteResults
-        output.convertWhitespaceEscapes = self.convertWhitespaceEscapes
-        output.flags = self.parser_config.flags
-        output.pattern = self.pattern
-        output.regex = self.reString
-        return output
 
     def min_length(self):
         return 2
@@ -676,8 +662,8 @@ class QuotedString(Token):
             pass
 
         return "quoted string, starting with %s ending with %s" % (
-            self.quoteChar,
-            self.endQuoteChar,
+            self.parser_config.quote_char,
+            self.parser_config.end_quote_char,
         )
 
 

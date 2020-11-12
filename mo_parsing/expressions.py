@@ -63,7 +63,7 @@ class ParseExpression(ParserElement):
         # collapse nested And's of the form And(And(And(a, b), c), d) to And(a, b, c, d)
         # but only if there are no parse actions or resultsNames on the nested And's
         # (likewise for Or's and MatchFirst's)
-        if not self.exprs:
+        if not self.is_annotated() and not self.exprs:
             return Empty(self.parser_name)
 
         acc = []
@@ -167,7 +167,7 @@ class And(ParseExpression):
         optionals = [
             i
             for i, e in enumerate(acc[:-1])
-            if isinstance(e, Many) and e.min_match == 0
+            if isinstance(e, Many) and e.parser_config.min_match == 0
         ]
         if len(optionals) > 1:
             # ONLY OPTIMIZE IF THERE ARE MULTIPLE optionals, NOT INCLUDING THE RIGHTMOST
@@ -176,10 +176,10 @@ class And(ParseExpression):
             mult = [[acc[last]]]  # DISJUNCTIVE NORMAL FORM (AKA ALL PERMUTATIONS)
             for e in reversed(acc[:last]):
                 new_mult = []
-                if isinstance(e, Many) and e.min_match == 0:
+                if isinstance(e, Many) and e.parser_config.min_match == 0:
                     at_least_one = e.copy()
                     at_least_one.__class__ = Many
-                    at_least_one.min_match = 1
+                    at_least_one.parser_config.min_match = 1
                     # WITH, AND WITHOUT
                     new_mult.extend([at_least_one] + m for m in mult)
                     new_mult.extend(mult)
@@ -187,6 +187,9 @@ class And(ParseExpression):
                 else:
                     mult = [[e] + m for m in mult]
 
+            if len(mult) == 1:
+                acc[2].streamline()
+                Log.error("Logic error")
             output = And([MatchFirst([And(m) for m in mult]), And(tail)]).streamline()
             output.streamlined = True
             return output
@@ -354,6 +357,8 @@ class MatchFirst(ParseExpression):
 
         output = ParseExpression.streamline(self)
 
+        if isinstance(output, Empty):
+            return output
         if not output.is_annotated():
             if len(output.exprs) == 0:
                 output = Empty()
@@ -410,10 +415,10 @@ class Each(ParseExpression):
         """
         super(Each, self).__init__(exprs)
         self.parser_config.min_match = [
-            e.min_match if isinstance(e, Many) else 1 for e in exprs
+            e.parser_config.min_match if isinstance(e, Many) else 1 for e in exprs
         ]
         self.parser_config.max_match = [
-            e.max_match if isinstance(e, Many) else 1 for e in exprs
+            e.parser_config.max_match if isinstance(e, Many) else 1 for e in exprs
         ]
         self.initExprGroups = True
 
