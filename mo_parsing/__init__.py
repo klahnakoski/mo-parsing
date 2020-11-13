@@ -112,7 +112,6 @@ from mo_parsing.enhancement import (
     ZeroOrMore,
 )
 from mo_parsing.exceptions import (
-    OnlyOnce,
     ParseException,
     ParseException,
     ParseFatalException,
@@ -231,7 +230,6 @@ __all__ = [
     "NoMatch",
     "NotAny",
     "OneOrMore",
-    "OnlyOnce",
     "Optional",
     "Or",
     "ParseException",

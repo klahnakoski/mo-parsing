@@ -7,6 +7,7 @@ import re
 import string
 import sys
 import warnings
+from collections import namedtuple
 from math import isnan
 from types import FunctionType
 
@@ -15,6 +16,12 @@ from mo_future import unichr, text, generator_types, get_function_name
 from mo_imports import delay_import
 
 ParseException = delay_import("mo_parsing.exceptions.ParseException")
+
+
+def append_config(base, *slots):
+    fields =  base.Config._fields + slots
+    return namedtuple("Config", fields)
+
 
 try:
     from mo_logs import Log
@@ -56,6 +63,7 @@ def extend(cls):
 
 _prec = {"|": 0, "+": 1, "*": 2}
 
+regex_type = type(re.compile("[A-Z]", re.MULTILINE | re.DOTALL))
 
 def regex_iso(curr_prec, expr, new_prec):
     """

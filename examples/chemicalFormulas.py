@@ -62,7 +62,7 @@ integer = Word(digits).addParseAction(lambda t: int(t[0]))
 elementRef = Group(element("symbol") + Optional(integer, default=1)("qty"))
 formula = elementRef[...]
 
-fn = lambda elemList: sum(atomicWeight[elem.symbol] * elem.qty for elem in elemList)
+fn = lambda elemList: sum(atomicWeight[elem['symbol']] * elem.qty for elem in elemList)
 formula.runTests(
     """\
     H2O

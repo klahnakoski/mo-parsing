@@ -267,7 +267,7 @@ def oneOf(strs, caseless=False, asKeyword=False):
     if caseless or asKeyword:
         return MatchFirst(
             parseElementClass(sym) for sym in symbols
-        ).set_parser_name(" | ".join(symbols))
+        ).set_parser_name(" | ".join(symbols)).streamline()
 
     # CONVERT INTO REGEX
     singles = [s for s in symbols if len(s) == 1]
@@ -279,7 +279,7 @@ def oneOf(strs, caseless=False, asKeyword=False):
         acc.append(escapeRegexRange("".join(singles)))
     regex = "|".join(acc)
 
-    return Regex(regex).set_parser_name(" | ".join(symbols))
+    return Regex(regex).set_parser_name(" | ".join(symbols)).streamline()
 
 
 def dictOf(key, value):
@@ -492,7 +492,7 @@ with Engine(""):
     )
     _charRange = Group(_singleChar + Suppress("-") + _singleChar)
     _reBracketExpr = (
-        Literal("[")
+        "["
         + Optional("^").set_token_name("negate")
         + Group(OneOrMore(_charRange | _singleChar)).set_token_name("body")
         + "]"
@@ -649,9 +649,9 @@ def makeHTMLTags(tagStr, suppress_LT=Suppress("<"), suppress_GT=Suppress(">")):
         .set_parser_name("</%s>" % resname)
     )
 
-    openTag.tag = resname
-    closeTag.tag = resname
-    openTag.tag_body = SkipTo(closeTag)
+    # openTag.tag = resname
+    # closeTag.tag = resname
+    # openTag.tag_body = SkipTo(closeTag)
 
     return openTag, closeTag
 
@@ -1005,9 +1005,9 @@ def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
     iso = lpar.suppress() + flat + rpar.suppress()
     atom = (baseExpr | iso).addParseAction(record_op(baseExpr))
     modified = ZeroOrMore(prefix_ops) + atom + ZeroOrMore(suffix_ops)
-    flat << (modified + ZeroOrMore(ops + modified)).addParseAction(make_tree)
+    flat << (modified + ZeroOrMore(ops + modified)).addParseAction(make_tree).streamline()
 
-    return flat
+    return flat.streamline()
 
 
 _indent_stack = [(1, None, None)]

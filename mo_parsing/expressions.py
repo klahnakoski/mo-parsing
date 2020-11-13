@@ -12,13 +12,14 @@ from mo_parsing.exceptions import (
 )
 from mo_parsing.results import ParseResults
 from mo_parsing.tokens import Empty
-from mo_parsing.utils import empty_tuple, is_forward, regex_iso, Log
+from mo_parsing.utils import empty_tuple, is_forward, regex_iso, Log, append_config
 
 
 class ParseExpression(ParserElement):
     """Abstract subclass of ParserElement, for combining and
     post-processing parsed tokens.
     """
+    __slots__ = ["exprs"]
 
     def __init__(self, exprs):
         super(ParseExpression, self).__init__()
@@ -100,6 +101,7 @@ class And(ParseExpression):
     suppress backtracking.
 
     """
+    __slots__ = []
 
     class _ErrorStop(Empty):
         def __init__(self, *args, **kwargs):
@@ -179,7 +181,7 @@ class And(ParseExpression):
                 if isinstance(e, Many) and e.parser_config.min_match == 0:
                     at_least_one = e.copy()
                     at_least_one.__class__ = Many
-                    at_least_one.parser_config.min_match = 1
+                    at_least_one.set_config(min_match=1)
                     # WITH, AND WITHOUT
                     new_mult.extend([at_least_one] + m for m in mult)
                     new_mult.extend(mult)
@@ -199,7 +201,7 @@ class And(ParseExpression):
         output.streamlined = True
         return output
 
-    def min_length(self):
+    def _min_length(self):
         return sum(e.min_length() for e in self.exprs)
 
     def parseImpl(self, string, start, doActions=True):
@@ -253,11 +255,12 @@ class Or(ParseExpression):
     string will be used. May be constructed using the ``'^'``
     operator.
     """
+    __slots__ = []
 
     def __init__(self, exprs):
         super(Or, self).__init__(exprs)
 
-    def min_length(self):
+    def _min_length(self):
         return min(e.min_length() for e in self.exprs)
 
     def parseImpl(self, string, start, doActions=True):
@@ -328,11 +331,12 @@ class MatchFirst(ParseExpression):
     two expressions match, the first one listed is the one that will
     match. May be constructed using the ``'|'`` operator.
     """
+    __slots__ = []
 
     def __init__(self, exprs):
         super(MatchFirst, self).__init__(exprs)
 
-    def min_length(self):
+    def _min_length(self):
         if self.exprs:
             return min(e.min_length() for e in self.exprs)
         else:
@@ -407,6 +411,8 @@ class Each(ParseExpression):
 
     May be constructed using the ``'&'`` operator.
     """
+    __slots__ = []
+    Config = append_config(ParseExpression, "min_match", "max_match")
 
     def __init__(self, exprs):
         """
@@ -414,20 +420,17 @@ class Each(ParseExpression):
         :param mins: list of integers indincating any minimums
         """
         super(Each, self).__init__(exprs)
-        self.parser_config.min_match = [
-            e.parser_config.min_match if isinstance(e, Many) else 1 for e in exprs
-        ]
-        self.parser_config.max_match = [
-            e.parser_config.max_match if isinstance(e, Many) else 1 for e in exprs
-        ]
-        self.initExprGroups = True
+        self.set_config(
+            min_match=[e.parser_config.min_match if isinstance(e, Many) else 1 for e in exprs],
+            max_match=[e.parser_config.max_match if isinstance(e, Many) else 1 for e in exprs]
+        )
 
     def streamline(self):
         if self.streamlined:
             return self
         return super(Each, self).streamline()
 
-    def min_length(self):
+    def _min_length(self):
         # TODO: MAY BE TOO CONSERVATIVE, WE MAY BE ABLE TO PROVE self CAN CONSUME A CHARACTER
         return min(e.min_length() for e in self.exprs)
 
@@ -468,7 +471,7 @@ class Each(ParseExpression):
         found = set(id(m) for m in matchOrder)
         missing = [
             e
-            for e, mi in zip(self.exprs, self.parser_config.min_matches)
+            for e, mi in zip(self.exprs, self.parser_config.min_match)
             if id(e) not in found and mi > 0
         ]
         if missing:

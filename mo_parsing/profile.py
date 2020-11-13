@@ -73,7 +73,7 @@ def _profile_parse(self, string, start, doActions=True):
             except Exception as cause:
                 parse_end = process_time()
                 match = 2
-                self.parser_config.failAction(self, start, string, cause)
+                self.parser_config.failAction and self.parser_config.failAction(self, start, string, cause)
                 raise
 
             if self.parseAction and (doActions or self.parser_config.callDuringTry):

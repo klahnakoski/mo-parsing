@@ -5,3 +5,4 @@
 /*.tab
 /*.tab#
 /mo_parsing/__pycache__
+/examples/*.tab

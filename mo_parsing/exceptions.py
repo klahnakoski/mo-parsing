@@ -13,6 +13,8 @@ class ParseException(Exception):
 
     # Performance tuning: we construct a *lot* of these, so keep this
     # constructor as small and fast as possible
+    __slots__ = []
+
     def __init__(self, expr, start, string, msg="", cause=None):
         if not isinstance(string, str):
             Log.error("expecting string")
@@ -128,6 +130,7 @@ class ParseException(Exception):
 class ParseFatalException(Exception):
     """user-throwable exception thrown when inconsistent parse content
     is found; stops all parsing immediately"""
+    __slots__ = []
 
     def __init__(self, expr, start, string, msg=""):
         self.internal = ParseException(expr, start, string, msg)
@@ -158,8 +161,7 @@ class ParseSyntaxException(ParseFatalException):
     that parsing is to stop immediately because an unbacktrackable
     syntax error has been found.
     """
-
-    pass
+    __slots__ = []
 
 
 # ~ class ReparseException(ParseException):
@@ -180,30 +182,13 @@ class RecursiveGrammarException(Exception):
     """exception thrown by `ParserElement.validate` if the
     grammar could be improperly recursive
     """
+    __slots__ = []
 
     def __init__(self, parseElementList):
         self.parseElementTrace = parseElementList
 
     def __str__(self):
         return "RecursiveGrammarException: %s" % self.parseElementTrace
-
-
-class OnlyOnce(object):
-    """Wrapper for parse actions, to ensure they are only called once."""
-
-    def __init__(self, methodCall):
-        self.callable = wrap_parse_action(methodCall)
-        self.called = False
-
-    def __call__(self, t, l, s):
-        if not self.called:
-            results = self.callable(t, l, s)
-            self.called = True
-            return results
-        raise ParseException("", l, s)
-
-    def reset(self):
-        self.called = False
 
 
 def conditionAsParseAction(fn, message=None, fatal=False):

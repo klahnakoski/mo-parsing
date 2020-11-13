@@ -9,7 +9,7 @@ from mo_parsing.core import ParserElement
 from mo_parsing.engine import Engine, PLAIN_ENGINE
 from mo_parsing.exceptions import ParseException
 from mo_parsing.results import ParseResults
-from mo_parsing.utils import Log, escapeRegexRange
+from mo_parsing.utils import Log, escapeRegexRange, append_config, regex_type
 from mo_parsing.utils import (
     MAX_INT,
     col,
@@ -18,17 +18,23 @@ from mo_parsing.utils import (
 
 
 class Token(ParserElement):
-    pass
+    __slots__ = []
+    Config = append_config(ParserElement, "match", "regex")
+
+    def __init__(self):
+        ParserElement.__init__(self)
+        self.streamlined = True
 
 
 class Empty(Token):
     """An empty token, will always match."""
+    __slots__ = []
 
     def __init__(self, name="Empty"):
         Token.__init__(self)
         self.parser_name = name
 
-    def min_length(self):
+    def _min_length(self):
         return 0
 
     def __regex__(self):
@@ -37,6 +43,7 @@ class Empty(Token):
 
 class NoMatch(Token):
     """A token that will never match."""
+    __slots__ = []
 
     def __init__(self):
         super(NoMatch, self).__init__()
@@ -45,7 +52,7 @@ class NoMatch(Token):
     def parseImpl(self, string, loc, doActions=True):
         raise ParseException(self, loc, string)
 
-    def min_length(self):
+    def _min_length(self):
         return 0
 
     def __regex__(self):
@@ -53,6 +60,8 @@ class NoMatch(Token):
 
 
 class AnyChar(Token):
+    __slots__ = []
+
     def __init__(self):
         """
         Match any single character
@@ -65,7 +74,7 @@ class AnyChar(Token):
             raise ParseException(self, loc, string)
         return ParseResults(self, loc, loc + 1, [string[loc]])
 
-    def min_length(self):
+    def _min_length(self):
         return 1
 
     def __regex__(self):
@@ -74,10 +83,11 @@ class AnyChar(Token):
 
 class Literal(Token):
     """Token to exactly match a specified string."""
+    __slots__ = []
 
     def __init__(self, matchString):
         Token.__init__(self)
-        self.parser_config.match = matchString
+        self.set_config(match=matchString)
 
         if len(matchString) == 0:
             Log.error("Literal must be at least one character")
@@ -91,7 +101,7 @@ class Literal(Token):
             return ParseResults(self, start, end, [match])
         raise ParseException(self, start, string)
 
-    def min_length(self):
+    def _min_length(self):
         return len(self.parser_config.match)
 
     def __regex__(self):
@@ -102,6 +112,8 @@ class Literal(Token):
 
 
 class SingleCharLiteral(Literal):
+    __slots__ = []
+
     def parseImpl(self, string, start, doActions=True):
         try:
             if string[start] == self.parser_config.match:
@@ -111,7 +123,7 @@ class SingleCharLiteral(Literal):
 
         raise ParseException(self, start, string)
 
-    def min_length(self):
+    def _min_length(self):
         return 1
 
     def __regex__(self):
@@ -138,18 +150,24 @@ class Keyword(Token):
 
     For case-insensitive matching, use `CaselessKeyword`.
     """
+    __slots__ = []
+    Config = append_config(Token, "ident_chars")
 
     def __init__(self, matchString, ident_chars=None, caseless=None):
         Token.__init__(self)
         if ident_chars is None:
-            self.parser_config.ident_chars = self.engine.keyword_chars
+            ident_chars = self.engine.keyword_chars
         else:
-            self.parser_config.ident_chars = "".join(sorted(set(ident_chars)))
-        self.parser_config.match = matchString
-        non_word = "($|(?!" + escapeRegexRange(self.parser_config.ident_chars) + "))"
-        self.parser_config.regex = re.compile(
-            re.escape(matchString) + non_word,
-            (re.IGNORECASE if caseless else 0) | re.MULTILINE | re.DOTALL,
+            ident_chars = "".join(sorted(set(ident_chars)))
+        non_word = "($|(?!" + escapeRegexRange(ident_chars) + "))"
+
+        self.set_config(
+            ident_chars=ident_chars,
+            match=matchString,
+            regex=re.compile(
+                re.escape(matchString) + non_word,
+                (re.IGNORECASE if caseless else 0) | re.MULTILINE | re.DOTALL,
+            ),
         )
 
         self.parser_name = matchString
@@ -162,14 +180,16 @@ class Keyword(Token):
             return ParseResults(self, start, found.end(), [self.parser_config.match])
         raise ParseException(self, start, string)
 
-    def min_length(self):
+    def _min_length(self):
         return len(self.parser_config.match)
 
     def __regex__(self):
-        return "+" , self.parser_config.regex.pattern
+        return "+", self.parser_config.regex.pattern
 
 
 class CaselessKeyword(Keyword):
+    __slots__ = []
+
     def __init__(self, matchString, ident_chars=None):
         Keyword.__init__(self, matchString, ident_chars, caseless=True)
 
@@ -179,13 +199,14 @@ class CaselessLiteral(Literal):
     Note: the matched results will always be in the case of the given
     match string, NOT the case of the input text.
     """
+    __slots__ = []
 
     def __init__(self, match):
         Literal.__init__(self, match.upper())
         # Preserve the defining literal.
-        self.parser_config.match = match
-        self.parser_config.regex = re.compile(
-            re.escape(match), re.I | re.MULTILINE | re.DOTALL
+        self.set_config(
+            match=match,
+            regex=re.compile(re.escape(match), re.I | re.MULTILINE | re.DOTALL),
         )
         self.parser_name = repr(self.parser_config.regex.pattern)
 
@@ -229,12 +250,13 @@ class CloseMatch(Token):
         patt = CloseMatch("ATCATCGAATGGA", maxMismatches=2)
         patt.parseString("ATCAXCGAAXGGA") # -> (['ATCAXCGAAXGGA'], {'mismatches': [[4, 9]], 'original': ['ATCATCGAATGGA']})
     """
+    __slots__ = []
+    Config = append_config(Token, "maxMismatches")
 
     def __init__(self, match_string, maxMismatches=1):
         super(CloseMatch, self).__init__()
         self.parser_name = match_string
-        self.parser_config.match = match_string
-        self.parser_config.maxMismatches = maxMismatches
+        self.set_config(match=match_string, maxMismatches=maxMismatches)
 
     def parseImpl(self, string, start, doActions=True):
         end = start
@@ -301,6 +323,8 @@ class Word(Token):
      - `printables` (any non-whitespace character)
 
     """
+    __slots__ = []
+    Config = append_config(Token, "min")
 
     def __init__(
         self,
@@ -312,7 +336,8 @@ class Word(Token):
         asKeyword=False,
         excludeChars=None,
     ):
-        super(Word, self).__init__()
+        Token.__init__(self)
+
         if body_chars is None:
             body_chars = init_chars
         if exact:
@@ -323,9 +348,6 @@ class Word(Token):
                 "cannot specify a minimum length < 1; use Optional(Word()) if"
                 " zero-length word is permitted"
             )
-
-        self.parser_config.min = min
-        self.parser_config.as_keyword = asKeyword
 
         if body_chars == init_chars:
             prec, regexp = Char(
@@ -342,10 +364,10 @@ class Word(Token):
                 + Char(body_chars, excludeChars=excludeChars)[min - 1 : max - 1]
             ).__regex__()
 
-        if self.parser_config.as_keyword:
+        if asKeyword:
             regexp = r"\b" + regexp + r"\b"
 
-        self.parser_config.regex = re.compile(regexp, re.MULTILINE | re.DOTALL)
+        self.set_config(regex=re.compile(regexp, re.MULTILINE | re.DOTALL), min=min)
 
     def parseImpl(self, string, start, doActions=True):
         found = self.parser_config.regex.match(string, start)
@@ -354,7 +376,7 @@ class Word(Token):
 
         raise ParseException(self, start, string)
 
-    def min_length(self):
+    def _min_length(self):
         return self.parser_config.min
 
     def __regex__(self):
@@ -367,6 +389,9 @@ class Word(Token):
 
 
 class Char(Token):
+    __slots__ = []
+    Config = append_config(Token, "charset")
+
     def __init__(self, charset, asKeyword=False, excludeChars=None):
         """
         Represent one character in a given charset
@@ -374,12 +399,13 @@ class Char(Token):
         Token.__init__(self)
         if excludeChars:
             charset = set(charset) - set(excludeChars)
-        self.parser_config.charset = "".join(sorted(set(charset)))
-        self.parser_config.as_keyword = asKeyword
         regex = escapeRegexRange(charset)
         if asKeyword:
             regex = r"\b%s\b" % self
-        self.parser_config.regex = re.compile(regex, re.MULTILINE | re.DOTALL)
+        self.set_config(
+            regex=re.compile(regex, re.MULTILINE | re.DOTALL),
+            charset="".join(sorted(set(charset))),
+        )
 
     def parseImpl(self, string, start, doActions=True):
         found = self.parser_config.regex.match(string, start)
@@ -388,7 +414,7 @@ class Char(Token):
 
         raise ParseException(self, start, string)
 
-    def min_length(self):
+    def _min_length(self):
         return 1
 
     def __regex__(self):
@@ -405,7 +431,8 @@ class Regex(Token):
     If the given regex contains named groups (defined using ``(?P<name>...)``),
     these will be preserved as named parse results.
     """
-    compiledREtype = type(re.compile("[A-Z]", re.MULTILINE | re.DOTALL))
+    __slots__ = []
+    Config = append_config(Token, "flags")
 
     def __new__(cls, pattern, flags=0, asGroupList=False, asMatch=False):
         if asGroupList:
@@ -421,8 +448,7 @@ class Regex(Token):
         `re module <https://docs.python.org/3/library/re.html>`_ module for an
         explanation of the acceptable patterns and flags.
         """
-        super(Regex, self).__init__()
-        self.parser_config.flags = flags
+        Token.__init__(self)
 
         if isinstance(pattern, text):
             if not pattern:
@@ -433,15 +459,15 @@ class Regex(Token):
                 )
 
             try:
-                self.parser_config.regex = re.compile(pattern, self.parser_config.flags)
+                self.set_config(flags=flags, regex=re.compile(pattern, flags))
             except sre_constants.error as cause:
                 Log.error(
                     "invalid pattern {{pattern}} passed to Regex",
                     pattern=pattern,
                     cause=cause,
                 )
-        elif isinstance(pattern, Regex.compiledREtype):
-            self.parser_config.regex = pattern
+        elif isinstance(pattern, regex_type):
+            self.set_config(flags=flags, regex=pattern)
         else:
             Log.error(
                 "Regex may only be constructed with a string or a compiled RE object"
@@ -461,7 +487,7 @@ class Regex(Token):
 
         raise ParseException(self, start, string)
 
-    def min_length(self):
+    def _min_length(self):
         return 0
 
     def __str__(self):
@@ -486,6 +512,8 @@ class Regex(Token):
 
 
 class _RegExAsGroup(Regex):
+    __slots__ = []
+
     def parseImpl(self, string, start, doActions=True):
         result = self.parser_config.regex.match(string, start)
         if not result:
@@ -498,6 +526,8 @@ class _RegExAsGroup(Regex):
 
 
 class _RegExAsMatch(Regex):
+    __slots__ = []
+
     def parseImpl(self, string, start, doActions=True):
         result = self.parser_config.regex.match(string, start)
         if not result:
@@ -542,6 +572,18 @@ class QuotedString(Token):
           (default= ``True``)
 
     """
+    __slots__ = []
+    Config = append_config(
+        Token,
+        "quote_char",
+        "end_quote_char",
+        "esc_char",
+        "esc_quote",
+        "unquoteResults",
+        "convertWhitespaceEscapes",
+        "flags",
+        "escCharReplacePattern",
+    )
 
     def __init__(
         self,
@@ -575,45 +617,39 @@ class QuotedString(Token):
                 )
                 raise SyntaxError()
 
-        self.parser_config.quote_char = quoteChar
-        self.parser_config.end_quote_char = endQuoteChar
-        self.parser_config.esc_char = escChar
-        self.parser_config.esc_quote = escQuote
-        self.parser_config.unquoteResults = unquoteResults
-        self.parser_config.convertWhitespaceEscapes = convertWhitespaceEscapes
+        self.set_config(
+            quote_char=quoteChar,
+            end_quote_char=endQuoteChar,
+            esc_char=escChar,
+            esc_quote=escQuote,
+            unquoteResults=unquoteResults,
+            convertWhitespaceEscapes=convertWhitespaceEscapes,
+        )
         # TODO: FIX THIS MESS. WE SHOULD BE ABLE TO CONSTRUCT REGEX FROM ParserElements
         included = Empty()
         excluded = Literal(self.parser_config.end_quote_char)
 
         if multiline:
-            self.parser_config.flags = re.MULTILINE | re.DOTALL
+            flags = re.MULTILINE | re.DOTALL
         else:
             excluded |= Char("\r\n")
-            self.parser_config.flags = 0
+            flags = 0
         if escQuote:
             included |= Literal(escQuote)
         if escChar:
             excluded |= Literal(self.parser_config.esc_char)
             included = included | escChar + Char(printables)
-            self.escCharReplacePattern = re.escape(self.parser_config.esc_char) + "(.)"
+            self.set_config(
+                escCharReplacePattern=re.escape(self.parser_config.esc_char) + "(.)"
+            )
 
-        prec, self.parser_config.pattern = (
+        prec, pattern = (
             Literal(quoteChar)
             + ((~excluded + AnyChar()) | included)[0:]
             + Literal(self.parser_config.end_quote_char)
         ).__regex__()
 
-        try:
-            self.parser_config.regex = re.compile(
-                self.parser_config.pattern, self.parser_config.flags
-            )
-            self.parser_config.pattern = self.parser_config.pattern
-        except Exception as cause:
-            Log.error(
-                "invalid pattern {{pattern}} passed to Regex",
-                pattern=self.parser_config.pattern,
-                cause=cause,
-            )
+        self.set_config(flags=flags, regex=re.compile(pattern, flags))
 
         self.parser_name = text(self)
 
@@ -628,7 +664,9 @@ class QuotedString(Token):
         if self.parser_config.unquoteResults:
 
             # strip off quotes
-            ret = ret[len(self.parser_config.quote_char) : -len(self.parser_config.end_quote_char)]
+            ret = ret[
+                len(self.parser_config.quote_char) : -len(self.parser_config.end_quote_char)
+            ]
 
             if isinstance(ret, text):
                 # replace escaped whitespace
@@ -644,15 +682,17 @@ class QuotedString(Token):
 
                 # replace escaped characters
                 if self.parser_config.esc_char:
-                    ret = re.sub(self.escCharReplacePattern, r"\g<1>", ret)
+                    ret = re.sub(self.parser_config.escCharReplacePattern, r"\g<1>", ret)
 
                 # replace escaped quotes
                 if self.parser_config.esc_quote:
-                    ret = ret.replace(self.parser_config.esc_quote, self.parser_config.end_quote_char)
+                    ret = ret.replace(
+                        self.parser_config.esc_quote, self.parser_config.end_quote_char
+                    )
 
         return ParseResults(self, start, end, [ret])
 
-    def min_length(self):
+    def _min_length(self):
         return 2
 
     def __str__(self):
@@ -677,10 +717,12 @@ class CharsNotIn(Token):
     ``max`` and ``exact`` are 0, meaning no maximum or exact
     length restriction.
     """
+    __slots__ = []
+    Config = append_config(Token, "min_len", "max_len", "not_chars")
 
     def __init__(self, notChars, min=1, max=0, exact=0):
         Token.__init__(self)
-        self.parser_config.not_chars = "".join(sorted(set(notChars)))
+        not_chars = "".join(sorted(set(notChars)))
 
         if min < 1:
             raise ValueError(
@@ -688,11 +730,10 @@ class CharsNotIn(Token):
                 "Optional(CharsNotIn()) if zero-length char group is permitted"
             )
 
-        min = self.parser_config.min_len = min
-        max = self.parser_config.max_len = max if max > 0 else MAX_INT
+        max = max if max > 0 else MAX_INT
         if exact:
-            min = self.parser_config.min_len = exact
-            max = self.parser_config.max_len = exact
+            min = exact
+            max = exact
 
         if len(notChars) == 1:
             regex = "[^" + escapeRegexRange(notChars) + "]"
@@ -711,7 +752,12 @@ class CharsNotIn(Token):
         else:
             suffix = "{" + str(min) + ":" + str(max) + "}"
 
-        self.parser_config.regex = re.compile(regex + suffix)
+        self.set_config(
+            regex=re.compile(regex + suffix),
+            min_len=min,
+            max_len=max,
+            not_chars=not_chars,
+        )
         self.parser_name = text(self)
 
     def parseImpl(self, string, start, doActions=True):
@@ -721,7 +767,7 @@ class CharsNotIn(Token):
 
         raise ParseException(self, start, string)
 
-    def min_length(self):
+    def _min_length(self):
         return self.parser_config.min_len
 
     def __regex__(self):
@@ -767,22 +813,23 @@ class White(Token):
         "u\3000": "<IDEOGRAPHIC_SPACE>",
     }
 
+    __slots__ = []
+    Config = append_config(Token, "min_len", "max_len", "white_chars")
+
     def __init__(self, ws=" \t\r\n", min=1, max=0, exact=0):
         with Engine(white="".join(
             c for c in self.engine.white_chars if c not in ws
         )) as e:
             super(White, self).__init__()
-            self.parser_config.lock_engine = e
-        self.parser_config.white_chars = "".join(sorted(set(ws)))
-        self.parser_name = "|".join(
-            White.whiteStrs[c] for c in self.parser_config.white_chars
-        )
+            self.set_config(lock_engine=e)
+        white_chars = "".join(sorted(set(ws)))
+        self.parser_name = "|".join(White.whiteStrs[c] for c in white_chars)
 
-        self.parser_config.min_len = min
-        self.parser_config.max_len = max if max > 0 else MAX_INT
+        max = max if max > 0 else MAX_INT
         if exact > 0:
-            self.parser_config.max_len = exact
-            self.parser_config.min_len = exact
+            max = exact
+            min = exact
+        self.set_config(min_len=min, max_len=max, white_chars=white_chars)
 
     def parseImpl(self, string, start, doActions=True):
         if string[start] not in self.parser_config.white_chars:
@@ -801,11 +848,13 @@ class White(Token):
 
 
 class _PositionToken(Token):
+    __slots__ = []
+
     def __init__(self):
         super(_PositionToken, self).__init__()
         self.parser_name = self.__class__.__name__
 
-    def min_length(self):
+    def _min_length(self):
         return 0
 
 
@@ -813,6 +862,7 @@ class GoToColumn(_PositionToken):
     """Token to advance to a specific column of input text; useful for
     tabular report scraping.
     """
+    __slots__ = []
 
     def __init__(self, colno):
         super(GoToColumn, self).__init__()
@@ -843,6 +893,7 @@ class LineStart(_PositionToken):
     r"""Matches if current position is at the beginning of a line within
     the parse string
     """
+    __slots__ = []
 
     def __init__(self):
         super(LineStart, self).__init__()
@@ -860,11 +911,12 @@ class LineEnd(_PositionToken):
     """Matches if current position is at the end of a line within the
     parse string
     """
+    __slots__ = []
 
     def __init__(self):
         with Engine(" \t") as e:
             super(LineEnd, self).__init__()
-            self.parser_config.lock_engine = e
+            self.set_config(lock_engine=e)
 
     def parseImpl(self, string, start, doActions=True):
         if start < len(string):
@@ -885,6 +937,7 @@ class StringStart(_PositionToken):
     """Matches if current position is at the beginning of the parse
     string
     """
+    __slots__ = []
 
     def __init__(self):
         super(StringStart, self).__init__()
@@ -901,11 +954,12 @@ class StringEnd(_PositionToken):
     """
     Matches if current position is at the end of the parse string
     """
+    __slots__ = []
 
     def __init__(self):
         with Engine() as e:
             super(StringEnd, self).__init__()
-            self.parser_config.lock_engine = e
+            self.set_config(lock_engine=e)
 
     def parseImpl(self, string, start, doActions=True):
         end = len(string)
@@ -924,17 +978,21 @@ class WordStart(_PositionToken):
     the beginning of the string being parsed, or at the beginning of
     a line.
     """
+    __slots__ = []
+    Config = append_config(_PositionToken, "word_chars")
 
     def __init__(self, wordChars=printables):
         super(WordStart, self).__init__()
-        self.parser_config.regex = re.compile(
-            "(?:^|(?<="
-            + (~Char(wordChars)).__regex__()[1]
-            + "))"
-            + Char(wordChars).__regex__()[1],
-            re.MULTILINE | re.DOTALL,
+        self.set_config(
+            regex=re.compile(
+                "(?:^|(?<="
+                + (~Char(wordChars)).__regex__()[1]
+                + "))"
+                + Char(wordChars).__regex__()[1],
+                re.MULTILINE | re.DOTALL,
+            ),
+            word_chars="".join(sorted(set(wordChars))),
         )
-        self.parser_config.word_chars = "".join(sorted(set(wordChars)))
 
     def parseImpl(self, string, start, doActions=True):
         if start:
@@ -947,7 +1005,7 @@ class WordStart(_PositionToken):
                 raise ParseException(self, start, string)
         return ParseResults(self, start, start, [])
 
-    def min_length(self):
+    def _min_length(self):
         return 0
 
     def __regex__(self):
@@ -962,17 +1020,21 @@ class WordEnd(_PositionToken):
     will also match at the end of the string being parsed, or at the end
     of a line.
     """
+    __slots__ = []
+    Config = append_config(_PositionToken, "word_chars")
 
     def __init__(self, wordChars=printables):
         super(WordEnd, self).__init__()
         self.engine = PLAIN_ENGINE
-        self.parser_config.word_chars = "".join(sorted(set(wordChars)))
-        self.parser_config.regex = re.compile(
-            "(?:$|(?<="
-            + Char(wordChars).__regex__()[1]
-            + "))"
-            + (~Char(wordChars)).__regex__()[1],
-            re.MULTILINE | re.DOTALL,
+        self.set_config(
+            word_chars="".join(sorted(set(wordChars))),
+            regex=re.compile(
+                "(?:$|(?<="
+                + Char(wordChars).__regex__()[1]
+                + "))"
+                + (~Char(wordChars)).__regex__()[1],
+                re.MULTILINE | re.DOTALL,
+            ),
         )
 
     def copy(self):
@@ -980,7 +1042,7 @@ class WordEnd(_PositionToken):
         output.engine = PLAIN_ENGINE
         return output
 
-    def min_length(self):
+    def _min_length(self):
         return 0
 
     def parseImpl(self, string, start, doActions=True):

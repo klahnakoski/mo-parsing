@@ -1,7 +1,7 @@
 # encoding: utf-8
+from collections import namedtuple
 from threading import RLock
 
-from mo_dots import Data, is_null
 from mo_future import text
 
 from mo_parsing.cache import packrat_cache
@@ -16,7 +16,7 @@ from mo_parsing.utils import (
     Log,
     MAX_INT,
     wrap_parse_action,
-    empty_tuple,
+    empty_tuple
 )
 
 # import later
@@ -80,6 +80,8 @@ def entrypoint(func):
 
 class ParserElement(object):
     """Abstract base level parser element class."""
+    __slots__ = ["parseAction", "parser_name", "token_name", "engine", "streamlined", "min_cache", "parser_config"]
+    Config = namedtuple("Config", ["callDuringTry", "failAction", "lock_engine"])
 
     def __init__(self):
         self.parseAction = list()
@@ -87,20 +89,29 @@ class ParserElement(object):
         self.token_name = None
         self.engine = engine.CURRENT
         self.streamlined = False
+        self.min_cache = -1
 
-        self.parser_config = Data()
-        self.parser_config.callDuringTry = False
-        self.parser_config.failAction = None
+        self.parser_config = self.Config(*([None]*len(self.Config._fields)))
+        self.set_config(
+            callDuringTry=False,
+            failAction=None,
+            lock_engine=None
+        )
+
+    def set_config(self, **map):
+        data = {**dict(zip(self.parser_config.__class__._fields, self.parser_config)), **map}
+        self.parser_config = self.Config(*(data[f] for f in self.Config._fields))
 
     def copy(self):
         output = object.__new__(self.__class__)
         le = self.parser_config.lock_engine
         output.engine = le or engine.CURRENT
-        output.streamlined = False
         output.parseAction = self.parseAction[:]
         output.parser_name = self.parser_name
         output.token_name = self.token_name
-        output.parser_config = self.parser_config.copy()
+        output.parser_config = self.parser_config
+        output.streamlined = self.streamlined
+        output.min_cache = -1
         return output
 
     def set_parser_name(self, name):
@@ -155,9 +166,7 @@ class ParserElement(object):
         """
         output = self.copy()
         output.parseAction += list(map(wrap_parse_action, fns))
-        output.parser_config.callDuringTry = (
-            self.parser_config.callDuringTry or callDuringTry
-        )
+        output.set_config(callDuringTry=self.parser_config.callDuringTry or callDuringTry)
         return output
 
     def addCondition(
@@ -178,9 +187,7 @@ class ParserElement(object):
                 fn, message=message, fatal=fatal
             ))
 
-        output.parser_config.callDuringTry = (
-            self.parser_config.callDuringTry or callDuringTry
-        )
+        output.set_config(callDuringTry=self.parser_config.callDuringTry or callDuringTry)
         return output
 
     def setFailAction(self, fn):
@@ -193,11 +200,24 @@ class ParserElement(object):
         - err = the exception thrown
         The function returns no value.  It may throw `ParseFatalException`
         if it is desired to stop parsing immediately."""
-        self.parser_config.failAction = fn
+        self.set_config(failAction=fn)
         return self
 
     def is_annotated(self):
         return self.parseAction or self.parser_name or self.token_name
+
+    def min_length(self):
+        if not hasattr(self, "min_cache"):
+            Log.error("should not happen")
+        if self.min_cache >= 0:
+            return self.min_cache
+        min_ = self._min_length()
+        if self.streamlined:
+            self.min_cache = min_
+        return min_
+
+    def _min_length(self):
+        return 0
 
     def parseImpl(self, string, start, doActions=True):
         return ParseResults(self, start, start, [])
@@ -215,7 +235,7 @@ class ParserElement(object):
             try:
                 tokens = self.parseImpl(string, index, doActions)
             except Exception as cause:
-                self.parser_config.failAction(self, start, string, cause)
+                self.parser_config.failAction and self.parser_config.failAction(self, start, string, cause)
                 raise
 
             if self.parseAction and (doActions or self.parser_config.callDuringTry):
@@ -457,7 +477,7 @@ class ParserElement(object):
         else:
             minElements, maxElements = other, other
 
-        if minElements == Ellipsis or is_null(minElements):
+        if minElements == Ellipsis or not minElements:
             minElements = 0
         elif not isinstance(minElements, int):
             raise TypeError(
@@ -468,7 +488,7 @@ class ParserElement(object):
         elif minElements < 0:
             raise ValueError("cannot multiply ParserElement by negative value")
 
-        if maxElements == Ellipsis or is_null(maxElements):
+        if maxElements == Ellipsis or not maxElements:
             maxElements = MAX_INT
         elif (
             not isinstance(maxElements, int)
@@ -652,6 +672,10 @@ class _PendingSkip(ParserElement):
 
     def parseImpl(self, *args):
         Log.error("use of `...` expression without following SkipTo target expression")
+
+
+
+
 
 
 # export
