@@ -1,14 +1,18 @@
 # encoding: utf-8
 
-from jx_python import jx
-from mo_files import File
-from mo_future import text, process_time
-from mo_times import Date
-from pyLibrary import convert
-
+from mo_parsing.utils import Log
 from mo_parsing.cache import packrat_cache
 from mo_parsing.core import ParserElement
 from mo_parsing.exceptions import ParseException
+
+try:
+    from jx_python import jx
+    from mo_files import File
+    from mo_future import text, process_time
+    from mo_times import Date
+    from pyLibrary import convert
+except Exception as casue:
+    Log.note("please pip install jx-python and pyLibrary")
 
 
 class Profiler(object):
@@ -73,7 +77,9 @@ def _profile_parse(self, string, start, doActions=True):
             except Exception as cause:
                 parse_end = process_time()
                 match = 2
-                self.parser_config.failAction and self.parser_config.failAction(self, start, string, cause)
+                self.parser_config.failAction and self.parser_config.failAction(
+                    self, start, string, cause
+                )
                 raise
 
             if self.parseAction and (doActions or self.parser_config.callDuringTry):

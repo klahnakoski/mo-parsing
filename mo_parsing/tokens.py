@@ -11,7 +11,7 @@ from mo_parsing.exceptions import ParseException
 from mo_parsing.results import ParseResults
 from mo_parsing.utils import (
     Log,
-    escapeRegexRange,
+    regex_range,
     append_config,
     regex_type,
     regex_caseless,
@@ -37,6 +37,7 @@ class Empty(Token):
     An empty token, will always match.
     Often used to consume-and-suppress trailing whitespace
     """
+
     __slots__ = []
 
     def __init__(self, name=None):
@@ -187,7 +188,7 @@ class Keyword(Token):
         else:
             pattern = re.escape(match)
 
-        non_word = "($|(?!" + escapeRegexRange(ident_chars) + "))"
+        non_word = "($|(?!" + regex_range(ident_chars) + "))"
         self.set_config(
             ident_chars=ident_chars, match=match, regex=re.compile(pattern + non_word)
         )
@@ -411,7 +412,7 @@ class Char(Token):
         Token.__init__(self)
         if excludeChars:
             charset = set(charset) - set(excludeChars)
-        regex = escapeRegexRange(charset)
+        regex = regex_range(charset)
         if asKeyword:
             regex = r"\b%s\b" % self
         self.set_config(
@@ -754,9 +755,9 @@ class CharsNotIn(Token):
             max = exact
 
         if len(notChars) == 1:
-            regex = "[^" + escapeRegexRange(notChars) + "]"
+            regex = "[^" + regex_range(notChars) + "]"
         else:
-            regex = "[^" + escapeRegexRange(notChars)[1:]
+            regex = "[^" + regex_range(notChars)[1:]
 
         if not max or max == MAX_INT:
             if min == 0:

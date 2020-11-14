@@ -19,7 +19,8 @@ from mo_parsing.enhancement import (
     Suppress,
     TokenConverter,
     ZeroOrMore,
-    OpenDict, Many,
+    OpenDict,
+    Many,
 )
 from mo_parsing.exceptions import ParseException
 from mo_parsing.results import ParseResults, Annotation, NO_PARSER
@@ -45,7 +46,7 @@ from mo_parsing.utils import (
     unichr,
     wrap_parse_action,
 )
-from mo_parsing.utils import escapeRegexRange
+from mo_parsing.utils import regex_range
 
 # import later
 And, Or, MatchFirst = [None] * 3
@@ -260,9 +261,11 @@ def oneOf(strs, caseless=False, asKeyword=False):
                 i += 1
 
     if caseless or asKeyword:
-        return MatchFirst(
-            parseElementClass(sym) for sym in symbols
-        ).set_parser_name(" | ".join(symbols)).streamline()
+        return (
+            MatchFirst(parseElementClass(sym) for sym in symbols)
+            .set_parser_name(" | ".join(symbols))
+            .streamline()
+        )
 
     # CONVERT INTO REGEX
     singles = [s for s in symbols if len(s) == 1]
@@ -271,7 +274,7 @@ def oneOf(strs, caseless=False, asKeyword=False):
     acc = []
     acc.extend(re.escape(sym) for sym in rest)
     if singles:
-        acc.append(escapeRegexRange("".join(singles)))
+        acc.append(regex_range("".join(singles)))
     regex = "|".join(acc)
 
     return Regex(regex).set_parser_name(" | ".join(symbols)).streamline()
@@ -1000,7 +1003,9 @@ def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
     iso = lpar.suppress() + flat + rpar.suppress()
     atom = (baseExpr | iso).addParseAction(record_op(baseExpr))
     modified = ZeroOrMore(prefix_ops) + atom + ZeroOrMore(suffix_ops)
-    flat << (modified + ZeroOrMore(ops + modified)).addParseAction(make_tree).streamline()
+    flat << (
+        modified + ZeroOrMore(ops + modified)
+    ).addParseAction(make_tree).streamline()
 
     return flat.streamline()
 

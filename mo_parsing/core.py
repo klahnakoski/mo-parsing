@@ -12,12 +12,7 @@ from mo_parsing.exceptions import (
     conditionAsParseAction,
 )
 from mo_parsing.results import ParseResults
-from mo_parsing.utils import (
-    Log,
-    MAX_INT,
-    wrap_parse_action,
-    empty_tuple, is_forward
-)
+from mo_parsing.utils import Log, MAX_INT, wrap_parse_action, empty_tuple, is_forward
 
 # import later
 (
@@ -70,7 +65,9 @@ def entrypoint(func):
                     Log.error("reset action failed", cause=e)
 
             self = args[0]
-            if not self.streamlined and (not is_forward(self) or not self.expr.streamlined):
+            if not self.streamlined and (
+                not is_forward(self) or not self.expr.streamlined
+            ):
                 Log.warning("Expecting expression to be streamlined before use")
                 self = self.streamline()
             return func(self, *args[1:], **kwargs)
@@ -80,7 +77,16 @@ def entrypoint(func):
 
 class ParserElement(object):
     """Abstract base level parser element class."""
-    __slots__ = ["parseAction", "parser_name", "token_name", "engine", "streamlined", "min_cache", "parser_config"]
+
+    __slots__ = [
+        "parseAction",
+        "parser_name",
+        "token_name",
+        "engine",
+        "streamlined",
+        "min_cache",
+        "parser_config",
+    ]
     Config = namedtuple("Config", ["callDuringTry", "failAction", "lock_engine"])
 
     def __init__(self):
@@ -91,15 +97,14 @@ class ParserElement(object):
         self.streamlined = False
         self.min_cache = -1
 
-        self.parser_config = self.Config(*([None]*len(self.Config._fields)))
-        self.set_config(
-            callDuringTry=False,
-            failAction=None,
-            lock_engine=None
-        )
+        self.parser_config = self.Config(*([None] * len(self.Config._fields)))
+        self.set_config(callDuringTry=False, failAction=None, lock_engine=None)
 
     def set_config(self, **map):
-        data = {**dict(zip(self.parser_config.__class__._fields, self.parser_config)), **map}
+        data = {
+            **dict(zip(self.parser_config.__class__._fields, self.parser_config)),
+            **map,
+        }
         self.parser_config = self.Config(*(data[f] for f in self.Config._fields))
 
     def copy(self):
@@ -166,7 +171,9 @@ class ParserElement(object):
         """
         output = self.copy()
         output.parseAction += list(map(wrap_parse_action, fns))
-        output.set_config(callDuringTry=self.parser_config.callDuringTry or callDuringTry)
+        output.set_config(
+            callDuringTry=self.parser_config.callDuringTry or callDuringTry
+        )
         return output
 
     def addCondition(
@@ -187,7 +194,9 @@ class ParserElement(object):
                 fn, message=message, fatal=fatal
             ))
 
-        output.set_config(callDuringTry=self.parser_config.callDuringTry or callDuringTry)
+        output.set_config(
+            callDuringTry=self.parser_config.callDuringTry or callDuringTry
+        )
         return output
 
     def setFailAction(self, fn):
@@ -235,7 +244,9 @@ class ParserElement(object):
             try:
                 tokens = self.parseImpl(string, index, doActions)
             except Exception as cause:
-                self.parser_config.failAction and self.parser_config.failAction(self, start, string, cause)
+                self.parser_config.failAction and self.parser_config.failAction(
+                    self, start, string, cause
+                )
                 raise
 
             if self.parseAction and (doActions or self.parser_config.callDuringTry):
@@ -672,10 +683,6 @@ class _PendingSkip(ParserElement):
 
     def parseImpl(self, *args):
         Log.error("use of `...` expression without following SkipTo target expression")
-
-
-
-
 
 
 # export

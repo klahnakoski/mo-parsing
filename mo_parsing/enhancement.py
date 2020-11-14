@@ -36,6 +36,7 @@ class ParseElementEnhance(ParserElement):
     """Abstract subclass of `ParserElement`, for combining and
     post-processing parsed tokens.
     """
+
     __slots__ = ["expr"]
 
     def __init__(self, expr):
@@ -103,6 +104,7 @@ class FollowedBy(ParseElementEnhance):
     in the lookahead expression, those *will* be returned for access by
     name.
     """
+
     __slots__ = []
 
     def __init__(self, expr):
@@ -128,6 +130,7 @@ class NotAny(ParseElementEnhance):
     *not* skip over leading whitespace. ``NotAny`` always returns
     a null token list.  May be constructed using the '~' operator.
     """
+
     __slots__ = ["regex"]
 
     def __init__(self, expr):
@@ -188,10 +191,7 @@ class Many(ParseElementEnhance):
             min_match = exact
             max_match = exact
 
-        self.set_config(
-            min_match=min_match,
-            max_match=max_match
-        )
+        self.set_config(min_match=min_match, max_match=max_match)
         self.stopOn(stopOn)
 
     def stopOn(self, ender):
@@ -233,7 +233,10 @@ class Many(ParseElementEnhance):
             else:
                 ParseException(self, start, string, msg="Not correct amount of matches")
         if count:
-            if count < self.parser_config.min_match or self.parser_config.max_match < count:
+            if (
+                count < self.parser_config.min_match
+                or self.parser_config.max_match < count
+            ):
                 raise ParseException(
                     self,
                     acc[0].start,
@@ -260,7 +263,10 @@ class Many(ParseElementEnhance):
         if self.streamlined:
             return self
         expr = self.expr.streamline()
-        if self.parser_config.min_match == self.parser_config.max_match and not self.is_annotated():
+        if (
+            self.parser_config.min_match == self.parser_config.max_match
+            and not self.is_annotated()
+        ):
             if self.parser_config.min_match == 0:
                 return Empty()
             elif self.parser_config.min_match == 1:
@@ -335,13 +341,12 @@ class OneOrMore(Many):
           (only required if the sentinel would ordinarily match the repetition
           expression)
     """
+
     __slots__ = []
 
     def __init__(self, expr, stopOn=None):
         Many.__init__(self, expr, stopOn, min_match=1, max_match=MAX_INT)
-        self.set_config(
-            lock_engine=self.expr.parser_config.lock_engine,
-        )
+        self.set_config(lock_engine=self.expr.parser_config.lock_engine,)
         self.engine = self.expr.engine
 
     def __str__(self):
@@ -361,6 +366,7 @@ class ZeroOrMore(Many):
 
     Example: similar to `OneOrMore`
     """
+
     __slots__ = []
 
     def __init__(self, expr, stopOn=None):
@@ -390,6 +396,7 @@ class Optional(Many):
      - expr - expression that must match zero or more times
      - default (optional) - value to be returned if the optional expression is not found.
     """
+
     __slots__ = []
     Config = append_config(Many, "defaultValue")
 
@@ -413,6 +420,7 @@ class Optional(Many):
 
 class SkipTo(ParseElementEnhance):
     """Token for skipping over all undefined text until the matched expression is found."""
+
     __slots__ = []
     Config = append_config(ParseElementEnhance, "include", "fail", "ignore")
 
@@ -429,9 +437,7 @@ class SkipTo(ParseElementEnhance):
         """
         ParseElementEnhance.__init__(self, expr)
         self.set_config(
-            include=include,
-            fail=engine.CURRENT.normalize(failOn),
-            ignore=ignore
+            include=include, fail=engine.CURRENT.normalize(failOn), ignore=ignore
         )
         self.parser_name = str(self)
 
@@ -518,6 +524,7 @@ class Forward(ParserElement):
     See `ParseResults.pprint` for an example of a recursive
     parser created using ``Forward``.
     """
+
     __slots__ = ["expr", "used_by", "_str"]
 
     def __init__(self, expr=Null):
@@ -626,6 +633,7 @@ class TokenConverter(ParseElementEnhance):
     """
     Abstract subclass of `ParseExpression`, for converting parsed results.
     """
+
     __slots__ = []
 
     def __regex__(self):
@@ -636,6 +644,7 @@ class Combine(TokenConverter):
     """
     Converter to concatenate all matching tokens to a single string.
     """
+
     __slots__ = []
     Config = append_config(TokenConverter, "separator")
 
@@ -648,7 +657,10 @@ class Combine(TokenConverter):
 
 def _combine(tokens, start, string):
     output = ParseResults(
-        tokens.type, tokens.start, tokens.end, [tokens.asString(sep=tokens.type.parser_config.separator)]
+        tokens.type,
+        tokens.start,
+        tokens.end,
+        [tokens.asString(sep=tokens.type.parser_config.separator)],
     )
     return output
 
@@ -657,6 +669,7 @@ class Group(TokenConverter):
     """
     MARK A CLOSED PARSE RESULT
     """
+
     __slots__ = []
 
     def __init__(self, expr):
@@ -677,6 +690,7 @@ class Dict(Group):
     Effectively defining new named ParserElements (called Annotations)
     at parse time
     """
+
     __slots__ = []
 
     def __init__(self, expr):
@@ -688,6 +702,7 @@ class OpenDict(TokenConverter):
     """
     Same as Dict, but not grouped: Open to previous (or subsequent) name: value pairs
     """
+
     __slots__ = []
 
     def __init__(self, expr):
@@ -717,6 +732,7 @@ class Suppress(TokenConverter):
     """
     Converter for ignoring the results of a parsed expression.
     """
+
     __slots__ = []
 
     def __init__(self, expr):
@@ -760,6 +776,7 @@ class PrecededBy(ParseElementEnhance):
     specified to give a maximum number of characters to look back from
     the current parse position for a lookbehind match.
     """
+
     __slots__ = []
     Config = append_config(ParseElementEnhance, "retreat", "exact")
 
@@ -768,25 +785,13 @@ class PrecededBy(ParseElementEnhance):
         expr = self.expr = self.expr.leaveWhitespace()
 
         if isinstance(expr, (Literal, Keyword, Char)):
-            self.set_config(
-                retreat=expr.min_length(),
-                exact=True
-            )
+            self.set_config(retreat=expr.min_length(), exact=True)
         elif isinstance(expr, (Word, CharsNotIn)):
-            self.set_config(
-                retreat=expr.min_length(),
-                exact=False
-            )
+            self.set_config(retreat=expr.min_length(), exact=False)
         elif isinstance(expr, _PositionToken):
-            self.set_config(
-                retreat=0,
-                exact=True
-            )
+            self.set_config(retreat=0, exact=True)
         else:
-            self.set_config(
-                retreat=expr.min_length(),
-                exact=False
-            )
+            self.set_config(retreat=expr.min_length(), exact=False)
 
     def parseImpl(self, string, start=0, doActions=True):
         if self.parser_config.exact:
@@ -818,6 +823,7 @@ class PrecededBy(ParseElementEnhance):
         if self.parser_config.exact:
             return "*", f"(?<={self.expr.__regex__()[1]})"
         raise NotImplemented()
+
 
 # export
 from mo_parsing import core, engine, results

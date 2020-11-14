@@ -1,12 +1,10 @@
 # encoding: utf-8
 from collections import namedtuple
 
-from mo_dots import Null
-from mo_future import is_text, text
+from mo_future import is_text
 
 from mo_parsing.exceptions import ParseException
-from mo_parsing.utils import Log, indent, quote as plain_quote, quote
-from mo_parsing.utils import lineno, col, alphanums, stack_depth
+from mo_parsing.utils import Log, indent, quote, regex_range, alphanums, regex_iso
 
 ParserElement, Literal, Token = [None] * 3
 
@@ -50,7 +48,7 @@ class Engine:
 
     def normalize(self, expr):
         if expr == None:
-            return Null
+            return None
         if is_text(expr):
             if issubclass(self.literal, Token):
                 return self.literal(expr)
@@ -126,6 +124,14 @@ class Engine:
 
         self.skips[start] = end  # THE REAL VALUE
         return end
+
+    def __regex__(self):
+        white = regex_range(self.white_chars)
+        if not self.ignore_list:
+            return "*", white
+
+        ignored = "|".join(regex_iso(*i.__regex__(), "|") for i in self.ignore_list)
+        return "+", f"(?:{ignored})" + white
 
     def __str__(self):
         output = ["{"]

@@ -441,9 +441,7 @@ class TestGroups(PyparsingExpressionTestCase):
 
     def test_define_multiple_value_types(self):
         expr = Dict(Group(
-            Word(alphas)
-            + self.EQ
-            + (number | oneOf("True False") | QuotedString("'"))
+            Word(alphas) + self.EQ + (number | oneOf("True False") | QuotedString("'"))
         )[...])
         text = "long=-122.47 lat=37.82 public=True name='Golden Gate Bridge'"
         expr.parseString(text)

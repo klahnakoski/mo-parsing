@@ -131,6 +131,7 @@ class ParseException(Exception):
 class ParseFatalException(Exception):
     """user-throwable exception thrown when inconsistent parse content
     is found; stops all parsing immediately"""
+
     __slots__ = []
 
     def __init__(self, expr, start, string, msg=""):
@@ -156,12 +157,14 @@ class ParseFatalException(Exception):
     def loc(self):
         return self.internal.loc
 
+
 class ParseSyntaxException(ParseFatalException):
     """just like `ParseFatalException`, but thrown internally
     when an `ErrorStop<And._ErrorStop>` ('-' operator) indicates
     that parsing is to stop immediately because an unbacktrackable
     syntax error has been found.
     """
+
     __slots__ = []
 
 
@@ -183,13 +186,16 @@ class RecursiveGrammarException(Exception):
     """exception thrown by `ParserElement.validate` if the
     grammar could be improperly recursive
     """
+
     __slots__ = []
 
     def __init__(self, cycle):
         self.parseElementTrace = cycle
 
     def __str__(self):
-        return "RecursiveGrammarException: " + json.dumps([str(e) for e in self.parseElementTrace])
+        return "RecursiveGrammarException: " + json.dumps([
+            str(e) for e in self.parseElementTrace
+        ])
 
 
 def conditionAsParseAction(fn, message=None, fatal=False):

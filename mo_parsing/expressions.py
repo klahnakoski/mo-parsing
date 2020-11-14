@@ -12,13 +12,21 @@ from mo_parsing.exceptions import (
 )
 from mo_parsing.results import ParseResults
 from mo_parsing.tokens import Empty
-from mo_parsing.utils import empty_tuple, is_forward, regex_iso, Log, append_config, stack_depth
+from mo_parsing.utils import (
+    empty_tuple,
+    is_forward,
+    regex_iso,
+    Log,
+    append_config,
+    stack_depth,
+)
 
 
 class ParseExpression(ParserElement):
     """Abstract subclass of ParserElement, for combining and
     post-processing parsed tokens.
     """
+
     __slots__ = ["exprs"]
 
     def __init__(self, exprs):
@@ -107,6 +115,7 @@ class And(ParseExpression):
     suppress backtracking.
 
     """
+
     __slots__ = []
 
     class _ErrorStop(Empty):
@@ -240,6 +249,7 @@ class Or(ParseExpression):
     string will be used. May be constructed using the ``'^'``
     operator.
     """
+
     __slots__ = []
 
     def __init__(self, exprs):
@@ -326,6 +336,7 @@ class MatchFirst(ParseExpression):
     two expressions match, the first one listed is the one that will
     match. May be constructed using the ``'|'`` operator.
     """
+
     __slots__ = []
 
     def __init__(self, exprs):
@@ -406,6 +417,7 @@ class Each(ParseExpression):
 
     May be constructed using the ``'&'`` operator.
     """
+
     __slots__ = []
     Config = append_config(ParseExpression, "min_match", "max_match")
 
@@ -416,8 +428,12 @@ class Each(ParseExpression):
         """
         super(Each, self).__init__(exprs)
         self.set_config(
-            min_match=[e.parser_config.min_match if isinstance(e, Many) else 1 for e in exprs],
-            max_match=[e.parser_config.max_match if isinstance(e, Many) else 1 for e in exprs]
+            min_match=[
+                e.parser_config.min_match if isinstance(e, Many) else 1 for e in exprs
+            ],
+            max_match=[
+                e.parser_config.max_match if isinstance(e, Many) else 1 for e in exprs
+            ],
         )
 
     def streamline(self):

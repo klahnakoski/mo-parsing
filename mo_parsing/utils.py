@@ -82,7 +82,10 @@ def regex_caseless(literal):
     """
     lower = literal.lower()
     upper = literal.upper()
-    return "".join(f"[{re.escape(l)}{re.escape(u)}]" if l != u else re.escape(u) for l, u in zip(lower, upper))
+    return "".join(
+        f"[{re.escape(l)}{re.escape(u)}]" if l != u else re.escape(u)
+        for l, u in zip(lower, upper)
+    )
 
 
 _escapes = {
@@ -96,7 +99,7 @@ _escapes = {
 }
 
 
-def escapeRegexRange(s):
+def regex_range(s):
     def esc(s):
         return _escapes.get(s, s)
 
