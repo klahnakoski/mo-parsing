@@ -276,10 +276,5 @@ import sys
 sys.setrecursionlimit(2000)
 
 for test in tests:
-    try:
-        results = code.parseString(test)
-    except ParseException as pe:
-        ParseException.explain(pe)
-    else:
-
+    results = code.parseString(test)
 

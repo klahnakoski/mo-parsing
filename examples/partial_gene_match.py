@@ -60,7 +60,7 @@ for g in genedata:
                 "      ",
                 "".join(
                     "*" if i in mismatches else " "
-                    for i, c in enumerate(searchseq.match_string)
+                    for i, c in enumerate(searchseq.match)
                 ),
             )
         else:

@@ -24,7 +24,7 @@ testdata = """
   """
 
 ident = Word(alphas, alphanums + "_")
-vartype = Combine(oneOf("float double int char") + Optional(Word("*")), adjacent=False)
+vartype = Combine(oneOf("float double int char") + Optional(Word("*")))
 arglist = delimitedList(Group(vartype("type") + ident("name")))
 
 functionCall = Keyword("int") + ident("name") + "(" + arglist("args") + ")" + ";"

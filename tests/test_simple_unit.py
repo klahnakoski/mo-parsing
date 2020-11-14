@@ -16,6 +16,7 @@ from unittest import TestCase
 
 from mo_parsing import *
 from mo_parsing import engine
+from mo_parsing.core import Many
 from mo_parsing.engine import Engine
 from mo_parsing.helpers import (
     number,
@@ -344,6 +345,12 @@ class TestRepetition(PyparsingExpressionTestCase):
             ],
         )
 
+    def test_many_with_stopper(self):
+        expr = Many("x", stopOn="y").streamline()
+        result = expr.parseString("xxxxy")
+        expecting = "xxxx"
+        self.assertEqual(result, expecting)
+
     def test_Match_words_and_numbers___show_use_of_results_names_to_collect_types_of_tokens(
         self,
     ):
@@ -432,15 +439,17 @@ class TestGroups(PyparsingExpressionTestCase):
             expected_dict={"lat": 46.91, "long": -138.52, "range": 5280},
         )
 
-    def test_Define_multiple_value_types(self):
+    def test_define_multiple_value_types(self):
+        expr = Dict(Group(
+            Word(alphas) + self.EQ + (number | oneOf("True False") | QuotedString("'"))
+        )[...])
+        text = "long=-122.47 lat=37.82 public=True name='Golden Gate Bridge'"
+        expr.parseString(text)
+
         self.runTest(
             desc="Define multiple value types",
-            expr=Dict(Group(
-                Word(alphas)
-                + self.EQ
-                + (number | oneOf("True False") | QuotedString("'"))
-            )[...]),
-            text="long=-122.47 lat=37.82 public=True name='Golden Gate Bridge'",
+            expr=expr,
+            text=text,
             expected_list=[
                 ["long", -122.47],
                 ["lat", 37.82],
@@ -581,7 +590,9 @@ class TestParseCondition(PyparsingExpressionTestCase):
                 "Define a condition to only match numeric values that are multiples"
                 " of 7"
             ),
-            expr=Word(nums).addCondition(lambda t: int(t[0]) % 7 == 0)[...],
+            expr=Word(nums).addCondition(
+                lambda t: int(t[0]) % 7 == 0, message="expecting divisible by 7"
+            )[...],
             text="14 35 77 12 28",
             expected_list=["14", "35", "77"],
         )
@@ -697,7 +708,9 @@ class TestCommonHelperExpressions(PyparsingExpressionTestCase):
     def test_parsing_nested_braces(self):
         self.runTest(
             desc="parsing nested braces",
-            expr=Keyword("if") + nestedExpr()("condition") + nestedExpr("{", "}")("body"),
+            expr=Keyword("if")
+            + nestedExpr()("condition")
+            + nestedExpr("{", "}")("body"),
             text='if ((x == y) || !z) {printf("{}");}',
             expected_list=[
                 "if",

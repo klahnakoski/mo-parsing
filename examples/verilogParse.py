@@ -149,7 +149,6 @@ def Verilog_BNF():
         basedNumber = Combine(
             Optional(Word(nums + "_")) + base + Word(hexnums + "xXzZ"),
             separator=" ",
-            adjacent=False,
         ).set_parser_name("basedNumber")
         # ~ number = ( basedNumber | Combine( Word( "+-"+spacedNums, spacedNums ) +
         # ~ Optional( DOT + Optional( Word( spacedNums ) ) ) +
