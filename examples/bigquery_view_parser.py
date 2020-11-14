@@ -29,10 +29,10 @@ from mo_parsing import (
     oneOf,
     delimitedList,
     restOfLine,
-    cStyleComment,
-    engine,
-)
+    cStyleComment, )
 from mo_parsing.engine import Engine
+from mo_parsing.profile import Profiler
+from mo_parsing.utils import Log
 
 
 class BigQueryViewParser:
@@ -1658,7 +1658,7 @@ class BigQueryViewParser:
                         f" got {found_tables}"
                     )
             except Exception as cause:
-                raise Exception(f"Test {sql_stmt} failed") from cause
+                Log.error("Test {{sql_stmt}} failed", sql_stmt=sql_stmt, casue=cause)
 
 
 BigQueryViewParser().test()

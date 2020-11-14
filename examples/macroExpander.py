@@ -17,7 +17,7 @@ from mo_parsing import *
 # define the structure of a macro definition (the empty term is used
 # to advance to the next non-whitespace character)
 identifier = Word(alphas + "_", alphanums + "_")
-macroDef = "#def" + identifier("macro") + empty + restOfLine("value")
+macroDef = "#def" + identifier("macro") + Empty + restOfLine("value")
 
 # define a placeholder for defined macros - initially nothing
 macroExpr = Forward()

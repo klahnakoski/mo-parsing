@@ -3,7 +3,7 @@ from mo_future import text
 from mo_parsing.utils import Log
 
 from mo_parsing.core import replaceWith, ParserElement
-from mo_parsing.exceptions import ParseBaseException
+from mo_parsing.exceptions import ParseException
 from mo_parsing.results import ParseResults
 from mo_parsing.tokens import Literal
 
@@ -26,7 +26,7 @@ def runTests(
 
     Parameters:
      - tests - a list of separate test strings, or a multiline string of test strings
-     - parseAll - (default= ``True``) - flag to pass to :class:`parseString` when running tests
+     - parseAll - (default= ``True``) - flag to pass to `parseString` when running tests
      - comment - (default= ``'#'``) - expression for indicating embedded comments in the test
           string; pass None to disable comment filtering
      - fullDump - (default= ``True``) - dump results as list followed by results names in nested outline;
@@ -121,7 +121,12 @@ def runTests(
     allResults = []
     NL = Literal(r"\n").addParseAction(replaceWith("\n"))
     BOM = u"\ufeff"
-    for i, (t, failureTest) in enumerate(zip(tests, [failureTests]*len(tests) if not isinstance(failureTests, list) else failureTests)):
+    for i, (t, failureTest) in enumerate(zip(
+        tests,
+        [failureTests] * len(tests)
+        if not isinstance(failureTests, list)
+        else failureTests,
+    )):
         if comment is not None and comment.matches(t, False):
             Log.note(t)
             continue
@@ -129,9 +134,9 @@ def runTests(
             continue
         try:
             # convert newline marks to actual newlines, and strip leading BOM if present
-            t = NL.transformString(t.lstrip(BOM))
+            t = NL.streamline().transformString(t.lstrip(BOM))
             result = self.parseString(t, parseAll=parseAll)
-        except ParseBaseException as pe:
+        except ParseException as pe:
             if not failureTest:
                 error("FAIL", cause=pe)
 
@@ -155,7 +160,11 @@ def runTests(
                     else:
                         Log.note("{{result}}", result=result)
                 except Exception as cause:
-                    Log.warning("postParse {{name}} failed", name=postParse.__name__, cause=cause)
+                    Log.warning(
+                        "postParse {{name}} failed",
+                        name=postParse.__name__,
+                        cause=cause,
+                    )
             else:
                 Log.note("{{result}}", result=result)
 

@@ -4,3 +4,6 @@
 /examples/htmlStripper.out.txt
 /*.tab
 /*.tab#
+/mo_parsing/__pycache__
+/examples/*.tab
+/tests/__pycache__/*.pyc

@@ -73,8 +73,7 @@ number_value = float_value | int_value
 
 # Base16 constants are left in string form, including the surrounding braces.
 base16_value = Combine(
-    Literal("{") + OneOrMore(Word("0123456789ABCDEFabcdef")) + Literal("}"),
-    adjacent=False,
+    Literal("{") + OneOrMore(Word("0123456789ABCDEFabcdef")) + Literal("}")
 )
 
 # This is the first part of a hack to convert the various delphi partial sglQuotedStrings
@@ -99,7 +98,7 @@ pound_char = Combine(
 #     partial strings into a single one.  Then, the parse action puts
 #     a single matched pair of quotes around it.
 delphi_string = Combine(
-    OneOrMore(CONCAT | pound_char | unquoted_sglQuotedString), adjacent=False
+    OneOrMore(CONCAT | pound_char | unquoted_sglQuotedString)
 ).addParseAction(lambda t, l, s: "'%s'" % t[0])
 
 string_value = delphi_string | base16_value

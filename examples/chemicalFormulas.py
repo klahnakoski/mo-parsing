@@ -4,7 +4,6 @@
 # Copyright (c) 2003,2019 Paul McGuire
 #
 
-from mo_parsing import *
 from mo_parsing import Word, alphas, Group, Optional
 
 atomicWeight = {
@@ -28,6 +27,7 @@ elementRef = Group(element + Optional(Word(digits), default="1"))
 formula = elementRef[...]
 
 fn = lambda elemList: sum(atomicWeight[elem] * int(qty) for elem, qty in elemList)
+import tests
 formula.runTests(
     """\
     H2O
@@ -40,11 +40,13 @@ formula.runTests(
 
 
 # Version 2 - access parsed items by results name
-elementRef = Group(element("symbol") + Optional(Word(digits), default="1")("qty"))
+elementRef = Group(
+    element("symbol") + Optional(Word(digits), default="1")("qty")
+)
 formula = elementRef[...]
 
 fn = lambda elemList: sum(
-    atomicWeight[elem.symbol] * int(elem.qty) for elem in elemList
+    atomicWeight[elem['symbol']] * int(elem['qty']) for elem in elemList
 )
 formula.runTests(
     """\
@@ -62,7 +64,7 @@ integer = Word(digits).addParseAction(lambda t: int(t[0]))
 elementRef = Group(element("symbol") + Optional(integer, default=1)("qty"))
 formula = elementRef[...]
 
-fn = lambda elemList: sum(atomicWeight[elem.symbol] * elem.qty for elem in elemList)
+fn = lambda elemList: sum(atomicWeight[elem['symbol']] * elem['qty'] for elem in elemList)
 formula.runTests(
     """\
     H2O
