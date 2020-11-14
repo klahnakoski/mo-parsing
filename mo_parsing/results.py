@@ -38,8 +38,12 @@ class ParseResults(object):
                     elif is_forward(tok.type) and isinstance(tok.tokens[0].type, Group):
                         yield tok
                     else:
-                        for t in tok.tokens:
-                            yield t
+                        if any(isinstance(t, ParseResults) and t.name for t in tok.tokens):
+                            for t in tok.tokens:
+                                yield t
+                        else:
+                            for t in tok:
+                                yield t
                     continue
                 elif isinstance(tok.type, Group):
                     continue

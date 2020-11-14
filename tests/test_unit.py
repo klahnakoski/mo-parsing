@@ -1462,7 +1462,7 @@ class TestParsing(PyparsingExpressionTestCase):
             """
         )
         expected = [
-            (["a", 1], {"label": "a", "values": [1]}),
+            (["a", 1], {"label": "a", "values": 1}),
             (["b", 1, 2, 3], {"label": "b", "values": [1, 2, 3]}),
             (["c"], {"label": "c", "values": []}),
         ]
@@ -1481,7 +1481,7 @@ class TestParsing(PyparsingExpressionTestCase):
             """
         )
         expected = [
-            (["a", 1], {"label": "a", "values": [1]}),
+            (["a", 1], {"label": "a", "values": 1}),
             (["b", 1, 2, 3], {"label": "b", "values": [1, 2, 3]}),
             (["c"], {"label": "c", "values": []}),
         ]

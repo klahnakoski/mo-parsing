@@ -37,6 +37,10 @@ except Exception:
             pass
 
         @classmethod
+        def alert(cls, template, cause=None, **params):
+            print
+
+        @classmethod
         def error(cls, template, cause=None, **params):
             raise ParseException(Null, -1, -1, msg=template, cause=cause)
 

@@ -68,7 +68,7 @@ def entrypoint(func):
             if not self.streamlined and (
                 not is_forward(self) or not self.expr.streamlined
             ):
-                Log.warning("Expecting expression to be streamlined before use")
+                Log.alert("Expecting expression to be streamlined before use")
                 self = self.streamline()
             return func(self, *args[1:], **kwargs)
 
