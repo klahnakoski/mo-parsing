@@ -146,7 +146,7 @@ join_op = COMMA | Group(
 
 join_source = Forward()
 single_source = (
-    Group(database_name("database") + DOT + table_name("table*") | table_name("table*"))
+    Group(database_name("database") + DOT + table_name("table*") | table_name("table"))
     + Optional(Optional(AS) + table_alias("table_alias*"))
     + Optional(INDEXED + BY + index_name("name") | NOT + INDEXED)("index")
     | (LPAR + select_stmt + RPAR + Optional(Optional(AS) + table_alias))
@@ -233,6 +233,6 @@ tests = """\
     SELECT * FROM abcd WHERE ff not like 'bob%'
 """
 
-success, _ = select_stmt.runTests(tests)
+success, _ = select_stmt.streamline().runTests(tests)
 if not success:
     raise Exception("FAIL")

@@ -1,13 +1,11 @@
 # encoding: utf-8
-import ast
 import re
 import warnings
 from collections import Iterable
 from datetime import datetime
 
 from mo_dots import listwrap
-from mo_future import text, first
-from mo_parsing.utils import Log, escapeRegexRange
+from mo_future import text
 
 from mo_parsing.core import add_reset_action
 from mo_parsing.engine import Engine
@@ -18,11 +16,10 @@ from mo_parsing.enhancement import (
     Group,
     OneOrMore,
     Optional,
-    SkipTo,
     Suppress,
     TokenConverter,
     ZeroOrMore,
-    OpenDict,
+    OpenDict, Many,
 )
 from mo_parsing.exceptions import ParseException
 from mo_parsing.results import ParseResults, Annotation, NO_PARSER
@@ -33,11 +30,8 @@ from mo_parsing.tokens import (
     Empty,
     Keyword,
     LineEnd,
-    LineStart,
     NoMatch,
     Regex,
-    StringEnd,
-    StringStart,
     Word,
     Literal,
 )
@@ -51,6 +45,7 @@ from mo_parsing.utils import (
     unichr,
     wrap_parse_action,
 )
+from mo_parsing.utils import escapeRegexRange
 
 # import later
 And, Or, MatchFirst = [None] * 3
@@ -115,7 +110,7 @@ def countedArray(expr, intExpr=None):
 
     def countFieldParseAction(t, l, s):
         n = t[0]
-        arrayExpr << (n and Group(And([expr] * n)) or Group(Empty))
+        arrayExpr << Group(Many(expr, exact=n))
         return []
 
     intExpr = (

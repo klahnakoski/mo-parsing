@@ -1,4 +1,5 @@
 # encoding: utf-8
+import json
 from functools import wraps
 
 from mo_dots import coalesce
@@ -184,11 +185,11 @@ class RecursiveGrammarException(Exception):
     """
     __slots__ = []
 
-    def __init__(self, parseElementList):
-        self.parseElementTrace = parseElementList
+    def __init__(self, cycle):
+        self.parseElementTrace = cycle
 
     def __str__(self):
-        return "RecursiveGrammarException: %s" % self.parseElementTrace
+        return "RecursiveGrammarException: " + json.dumps([str(e) for e in self.parseElementTrace])
 
 
 def conditionAsParseAction(fn, message=None, fatal=False):

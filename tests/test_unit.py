@@ -1391,7 +1391,6 @@ class TestParsing(PyparsingExpressionTestCase):
         test(e, "start end", ["start", "end"], {"_skipped": ""})
         test(e, "start 456 + end", ["start", "456 +", "end"], {"_skipped": "456 +"})
 
-        e = (alpha_word | ...) + (num_word | ...) + "end"
         e = "start" + (alpha_word | ...) + (num_word | ...) + "end"
         test(e, "start red 456 end", ["start", "red", "456", "end"], {})
         test(e, "start red end", ["start", "red", "end"], {"_skipped": ""})
@@ -2654,7 +2653,6 @@ class TestParsing(PyparsingExpressionTestCase):
         varDec = varType + delimitedList(id + Optional("=" + integer)) + ";"
 
         codeBlock = Literal("{}")
-
         funcDef = (
             Optional(varType | "void")
             + id
@@ -2992,10 +2990,10 @@ class TestParsing(PyparsingExpressionTestCase):
         vowel = oneOf(list("AEIOUY"))
         consonant = oneOf(list("BCDFGHJKLMNPQRSTVWXZ"))
 
-        leadingVowel = ws + vowel
-        trailingVowel = vowel + we
         leadingConsonant = ws + consonant
+        leadingVowel = ws + vowel
         trailingConsonant = consonant + we
+        trailingVowel = vowel + we
         internalVowel = ~ws + vowel + ~we
 
         bnf = leadingVowel | trailingVowel
@@ -5056,26 +5054,19 @@ class TestParsing(PyparsingExpressionTestCase):
             )
 
     def testValidateCorrectlyDetectsInvalidLeftRecursion(self):
-        def testValidation(grmr, gnam, isValid):
-            try:
-                grmr.streamline()
-                self.assertTrue(isValid, "validate() accepted invalid grammar " + gnam)
-            except RecursiveGrammarException:
-                self.assertFalse(isValid, "validate() rejected valid grammar " + gnam)
-
+        # OK
         fwd = Forward()
         g1 = OneOrMore((Literal("A") + "B" + "C") | fwd)
         g2 = ("C" + g1)[...]
         fwd << Group(g2)
-        testValidation(fwd, "fwd", isValid=True)
 
-        fwd2 = Forward()
-        fwd2 << Group("A" | fwd2)
-        testValidation(fwd2, "fwd2", isValid=False)
+        with self.assertRaises(RecursiveGrammarException):
+            fwd2 = Forward()
+            fwd2 << Group("A" | fwd2)
 
-        fwd3 = Forward()
-        fwd3 << Optional("A") + fwd3
-        testValidation(fwd3, "fwd3", isValid=False)
+        with self.assertRaises(RecursiveGrammarException):
+            fwd3 = Forward()
+            fwd3 << Optional("A") + fwd3
 
     def testGetNameBehavior(self):
         # test getName

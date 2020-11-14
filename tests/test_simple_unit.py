@@ -16,6 +16,7 @@ from unittest import TestCase
 
 from mo_parsing import *
 from mo_parsing import engine
+from mo_parsing.core import Many
 from mo_parsing.engine import Engine
 from mo_parsing.helpers import (
     number,
@@ -344,6 +345,12 @@ class TestRepetition(PyparsingExpressionTestCase):
             ],
         )
 
+    def test_many_with_stopper(self):
+        expr = Many("x", stopOn="y").streamline()
+        result = expr.parseString("xxxxy")
+        expecting = "xxxx"
+        self.assertEqual(result, expecting)
+
     def test_Match_words_and_numbers___show_use_of_results_names_to_collect_types_of_tokens(
         self,
     ):
@@ -433,14 +440,18 @@ class TestGroups(PyparsingExpressionTestCase):
         )
 
     def test_define_multiple_value_types(self):
+        expr = Dict(Group(
+            Word(alphas)
+            + self.EQ
+            + (number | oneOf("True False") | QuotedString("'"))
+        )[...])
+        text = "long=-122.47 lat=37.82 public=True name='Golden Gate Bridge'"
+        expr.parseString(text)
+
         self.runTest(
             desc="Define multiple value types",
-            expr=Dict(Group(
-                Word(alphas)
-                + self.EQ
-                + (number | oneOf("True False") | QuotedString("'"))
-            )[...]),
-            text="long=-122.47 lat=37.82 public=True name='Golden Gate Bridge'",
+            expr=expr,
+            text=text,
             expected_list=[
                 ["long", -122.47],
                 ["lat", 37.82],

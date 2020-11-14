@@ -19,7 +19,7 @@ ParseException = delay_import("mo_parsing.exceptions.ParseException")
 
 
 def append_config(base, *slots):
-    fields =  base.Config._fields + slots
+    fields = base.Config._fields + slots
     return namedtuple("Config", fields)
 
 
@@ -65,6 +65,7 @@ _prec = {"|": 0, "+": 1, "*": 2}
 
 regex_type = type(re.compile("[A-Z]", re.MULTILINE | re.DOTALL))
 
+
 def regex_iso(curr_prec, expr, new_prec):
     """
     RETURN NON-CAPTURING GROUP (TO ENSURE ORDER OF OPERATIONS)
@@ -73,6 +74,15 @@ def regex_iso(curr_prec, expr, new_prec):
         return f"(?:{expr})"
     else:
         return expr
+
+
+def regex_caseless(literal):
+    """
+    RETURN REGEX FOR CASELESS VERSION OF GIVEN LITERAL (SO WE DO NOT NEED CASELESS MODE)
+    """
+    lower = literal.lower()
+    upper = literal.upper()
+    return "".join(f"[{re.escape(l)}{re.escape(u)}]" if l != u else re.escape(u) for l, u in zip(lower, upper))
 
 
 _escapes = {

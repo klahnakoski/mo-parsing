@@ -12,7 +12,7 @@ from mo_parsing.exceptions import (
 )
 from mo_parsing.results import ParseResults
 from mo_parsing.tokens import Empty
-from mo_parsing.utils import empty_tuple, is_forward, regex_iso, Log, append_config
+from mo_parsing.utils import empty_tuple, is_forward, regex_iso, Log, append_config, stack_depth
 
 
 class ParseExpression(ParserElement):
@@ -68,19 +68,25 @@ class ParseExpression(ParserElement):
             return Empty(self.parser_name)
 
         acc = []
+        same = True
         for e in self.exprs:
-            e = e.streamline()
-            if e.is_annotated():
-                acc.append(e)
-            elif isinstance(e, self.__class__):
-                acc.extend(e.exprs)
-            elif isinstance(e, Empty):
-                pass
+            f = e.streamline()
+            same = same and f is e
+            if f.is_annotated():
+                acc.append(f)
+            elif isinstance(f, self.__class__):
+                same = False
+                acc.extend(f.exprs)
             else:
-                acc.append(e)
+                acc.append(f)
 
-        self.exprs = acc
-        return self
+        if same:
+            return self
+
+        output = self.copy()
+        output.exprs = acc
+        output.streamlined = True
+        return output
 
     def __call__(self, name):
         if not name:
@@ -136,65 +142,44 @@ class And(ParseExpression):
             return self.exprs[0].streamline()
 
         # collapse any _PendingSkip's
+        same = True
+        exprs = self.exprs
         if any(
             isinstance(e, ParseExpression)
             and e.exprs
             and isinstance(e.exprs[-1], _PendingSkip)
-            for e in self.exprs[:-1]
+            for e in exprs[:-1]
         ):
-            for i, e in enumerate(self.exprs[:-1]):
+            same = False
+            for i, e in enumerate(exprs[:-1]):
                 if (
                     isinstance(e, ParseExpression)
                     and e.exprs
                     and isinstance(e.exprs[-1], _PendingSkip)
                 ):
-                    ee = e.exprs[-1] + self.exprs[i + 1]
+                    ee = e.exprs[-1] + exprs[i + 1]
                     e.exprs[-1] = ee
                     e.streamlined = False
-                    self.exprs[i + 1] = None
-            self.exprs = [e for e in self.exprs if e is not None]
+                    exprs[i + 1] = None
 
         # streamline INDIVIDUAL EXPRESSIONS
         acc = []
-        for e in self.exprs:
-            e = e.streamline()
-            if isinstance(e, self.__class__) and not e.is_annotated():
-                acc.extend(e.exprs)
-            elif isinstance(e, Empty) and not e.is_annotated():
-                pass
+        for e in exprs:
+            if e is None:
+                continue
+            f = e.streamline()
+            same = same and f is e
+            if f.is_annotated():
+                acc.append(f)
+            elif isinstance(f, self.__class__):
+                same = False
+                acc.extend(f.exprs)
             else:
-                acc.append(e)
+                acc.append(f)
 
-        # HANDLE OPTIONAL ParserElement ON THE LEFT
-        optionals = [
-            i
-            for i, e in enumerate(acc[:-1])
-            if isinstance(e, Many) and e.parser_config.min_match == 0
-        ]
-        if len(optionals) > 1:
-            # ONLY OPTIMIZE IF THERE ARE MULTIPLE optionals, NOT INCLUDING THE RIGHTMOST
-            last = max(optionals)
-            tail = acc[last + 1 :]  # COMMON tail FOR ALL PERMUTATIONS
-            mult = [[acc[last]]]  # DISJUNCTIVE NORMAL FORM (AKA ALL PERMUTATIONS)
-            for e in reversed(acc[:last]):
-                new_mult = []
-                if isinstance(e, Many) and e.parser_config.min_match == 0:
-                    at_least_one = e.copy()
-                    at_least_one.__class__ = Many
-                    at_least_one.set_config(min_match=1)
-                    # WITH, AND WITHOUT
-                    new_mult.extend([at_least_one] + m for m in mult)
-                    new_mult.extend(mult)
-                    mult = new_mult
-                else:
-                    mult = [[e] + m for m in mult]
-
-            if len(mult) == 1:
-                acc[2].streamline()
-                Log.error("Logic error")
-            output = And([MatchFirst([And(m) for m in mult]), And(tail)]).streamline()
-            output.streamlined = True
-            return output
+        if same:
+            self.streamlined = True
+            return self
 
         output = self.copy()
         output.exprs = acc
@@ -319,6 +304,16 @@ class Or(ParseExpression):
         for e in self.exprs:
             e.checkRecursion(seen_more)
 
+    def __regex__(self):
+        return (
+            "|",
+            "|".join(
+                regex_iso(*e.__regex__(), "|")
+                for e in self.exprs
+                if not isinstance(e, Empty)
+            ),
+        )
+
     def __str__(self):
         if self.parser_name:
             return self.parser_name
@@ -345,10 +340,10 @@ class MatchFirst(ParseExpression):
 
     def parseImpl(self, string, start, doActions=True):
         causes = []
-        loc = start
+
         for e in self.exprs:
             try:
-                ret = e._parse(string, loc, doActions)
+                ret = e._parse(string, start, doActions)
                 return ParseResults(self, ret.start, ret.end, [ret])
             except ParseException as cause:
                 causes.append(cause)

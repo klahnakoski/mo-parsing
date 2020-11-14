@@ -16,7 +16,7 @@ from mo_parsing.utils import (
     Log,
     MAX_INT,
     wrap_parse_action,
-    empty_tuple
+    empty_tuple, is_forward
 )
 
 # import later
@@ -70,7 +70,7 @@ def entrypoint(func):
                     Log.error("reset action failed", cause=e)
 
             self = args[0]
-            if not args[0].streamlined:
+            if not self.streamlined and (not is_forward(self) or not self.expr.streamlined):
                 Log.warning("Expecting expression to be streamlined before use")
                 self = self.streamline()
             return func(self, *args[1:], **kwargs)
@@ -204,7 +204,7 @@ class ParserElement(object):
         return self
 
     def is_annotated(self):
-        return self.parseAction or self.parser_name or self.token_name
+        return self.parseAction or self.token_name or self.parser_name
 
     def min_length(self):
         if not hasattr(self, "min_cache"):

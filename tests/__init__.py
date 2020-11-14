@@ -134,7 +134,7 @@ def runTests(
             continue
         try:
             # convert newline marks to actual newlines, and strip leading BOM if present
-            t = NL.transformString(t.lstrip(BOM))
+            t = NL.streamline().transformString(t.lstrip(BOM))
             result = self.parseString(t, parseAll=parseAll)
         except ParseException as pe:
             if not failureTest:

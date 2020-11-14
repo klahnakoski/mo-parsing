@@ -9,7 +9,13 @@ from mo_parsing.core import ParserElement
 from mo_parsing.engine import Engine, PLAIN_ENGINE
 from mo_parsing.exceptions import ParseException
 from mo_parsing.results import ParseResults
-from mo_parsing.utils import Log, escapeRegexRange, append_config, regex_type
+from mo_parsing.utils import (
+    Log,
+    escapeRegexRange,
+    append_config,
+    regex_type,
+    regex_caseless,
+)
 from mo_parsing.utils import (
     MAX_INT,
     col,
@@ -27,22 +33,36 @@ class Token(ParserElement):
 
 
 class Empty(Token):
-    """An empty token, will always match."""
+    """
+    An empty token, will always match.
+    Often used to consume-and-suppress trailing whitespace
+    """
     __slots__ = []
 
-    def __init__(self, name="Empty"):
+    def __init__(self, name=None):
         Token.__init__(self)
         self.parser_name = name
 
-    def _min_length(self):
+    def is_annotated(self):
+        return self.parseAction or self.token_name
+
+    def min_length(self):
         return 0
 
+    def parseImpl(self, string, start, doActions=True):
+        end = self.engine.skip(string, start)
+        return ParseResults(self, start, end, [])
+
     def __regex__(self):
-        return "*", ""
+        return self.engine.__regex__()
+
+    def __str__(self):
+        return self.parser_name or "Empty"
 
 
 class NoMatch(Token):
     """A token that will never match."""
+
     __slots__ = []
 
     def __init__(self):
@@ -52,7 +72,7 @@ class NoMatch(Token):
     def parseImpl(self, string, loc, doActions=True):
         raise ParseException(self, loc, string)
 
-    def _min_length(self):
+    def min_length(self):
         return 0
 
     def __regex__(self):
@@ -74,7 +94,7 @@ class AnyChar(Token):
             raise ParseException(self, loc, string)
         return ParseResults(self, loc, loc + 1, [string[loc]])
 
-    def _min_length(self):
+    def min_length(self):
         return 1
 
     def __regex__(self):
@@ -83,15 +103,16 @@ class AnyChar(Token):
 
 class Literal(Token):
     """Token to exactly match a specified string."""
+
     __slots__ = []
 
-    def __init__(self, matchString):
+    def __init__(self, match):
         Token.__init__(self)
-        self.set_config(match=matchString)
+        self.set_config(match=match)
 
-        if len(matchString) == 0:
+        if len(match) == 0:
             Log.error("Literal must be at least one character")
-        elif len(matchString) == 1:
+        elif len(match) == 1:
             self.__class__ = SingleCharLiteral
 
     def parseImpl(self, string, start, doActions=True):
@@ -123,7 +144,7 @@ class SingleCharLiteral(Literal):
 
         raise ParseException(self, start, string)
 
-    def _min_length(self):
+    def min_length(self):
         return 1
 
     def __regex__(self):
@@ -150,27 +171,28 @@ class Keyword(Token):
 
     For case-insensitive matching, use `CaselessKeyword`.
     """
+
     __slots__ = []
     Config = append_config(Token, "ident_chars")
 
-    def __init__(self, matchString, ident_chars=None, caseless=None):
+    def __init__(self, match, ident_chars=None, caseless=None):
         Token.__init__(self)
         if ident_chars is None:
             ident_chars = self.engine.keyword_chars
         else:
             ident_chars = "".join(sorted(set(ident_chars)))
-        non_word = "($|(?!" + escapeRegexRange(ident_chars) + "))"
 
+        if caseless:
+            pattern = regex_caseless(match)
+        else:
+            pattern = re.escape(match)
+
+        non_word = "($|(?!" + escapeRegexRange(ident_chars) + "))"
         self.set_config(
-            ident_chars=ident_chars,
-            match=matchString,
-            regex=re.compile(
-                re.escape(matchString) + non_word,
-                (re.IGNORECASE if caseless else 0) | re.MULTILINE | re.DOTALL,
-            ),
+            ident_chars=ident_chars, match=match, regex=re.compile(pattern + non_word)
         )
 
-        self.parser_name = matchString
+        self.parser_name = match
         if caseless:
             self.__class__ = CaselessKeyword
 
@@ -199,14 +221,14 @@ class CaselessLiteral(Literal):
     Note: the matched results will always be in the case of the given
     match string, NOT the case of the input text.
     """
+
     __slots__ = []
 
     def __init__(self, match):
         Literal.__init__(self, match.upper())
-        # Preserve the defining literal.
         self.set_config(
             match=match,
-            regex=re.compile(re.escape(match), re.I | re.MULTILINE | re.DOTALL),
+            regex=re.compile(regex_caseless(match), re.MULTILINE | re.DOTALL),
         )
         self.parser_name = repr(self.parser_config.regex.pattern)
 
@@ -218,7 +240,8 @@ class CaselessLiteral(Literal):
 
 
 class CloseMatch(Token):
-    """A variation on `Literal` which matches "close" matches,
+    """
+    A variation on `Literal` which matches "close" matches,
     that is, strings with at most 'n' mismatching characters.
     `CloseMatch` takes parameters:
 
@@ -236,20 +259,8 @@ class CloseMatch(Token):
 
     If ``mismatches`` is an empty list, then the match was an exact
     match.
-
-    Example::
-
-        patt = CloseMatch("ATCATCGAATGGA")
-        patt.parseString("ATCATCGAAXGGA") # -> (['ATCATCGAAXGGA'], {'mismatches': [[9]], 'original': ['ATCATCGAATGGA']})
-        patt.parseString("ATCAXCGAAXGGA") # -> Exception: Expected 'ATCATCGAATGGA' (with up to 1 mismatches) (at char 0), (line:1, col:1)
-
-        # exact match
-        patt.parseString("ATCATCGAATGGA") # -> (['ATCATCGAATGGA'], {'mismatches': [[]], 'original': ['ATCATCGAATGGA']})
-
-        # close match allowing up to 2 mismatches
-        patt = CloseMatch("ATCATCGAATGGA", maxMismatches=2)
-        patt.parseString("ATCAXCGAAXGGA") # -> (['ATCAXCGAAXGGA'], {'mismatches': [[4, 9]], 'original': ['ATCATCGAATGGA']})
     """
+
     __slots__ = []
     Config = append_config(Token, "maxMismatches")
 
@@ -323,6 +334,7 @@ class Word(Token):
      - `printables` (any non-whitespace character)
 
     """
+
     __slots__ = []
     Config = append_config(Token, "min")
 
@@ -376,7 +388,7 @@ class Word(Token):
 
         raise ParseException(self, start, string)
 
-    def _min_length(self):
+    def min_length(self):
         return self.parser_config.min
 
     def __regex__(self):
@@ -414,7 +426,7 @@ class Char(Token):
 
         raise ParseException(self, start, string)
 
-    def _min_length(self):
+    def min_length(self):
         return 1
 
     def __regex__(self):
@@ -487,8 +499,11 @@ class Regex(Token):
 
         raise ParseException(self, start, string)
 
-    def _min_length(self):
+    def min_length(self):
         return 0
+
+    def __regex__(self):
+        return "|", self.parser_config.regex.pattern
 
     def __str__(self):
         return self.parser_config.regex.pattern
@@ -654,12 +669,12 @@ class QuotedString(Token):
         self.parser_name = text(self)
 
     def parseImpl(self, string, start, doActions=True):
-        result = self.parser_config.regex.match(string, start)
-        if not result:
+        found = self.parser_config.regex.match(string, start)
+        if not found:
             raise ParseException(self, start, string)
 
-        end = result.end()
-        ret = result.group()
+        end = found.end()
+        ret = found.group()
 
         if self.parser_config.unquoteResults:
 
@@ -682,7 +697,9 @@ class QuotedString(Token):
 
                 # replace escaped characters
                 if self.parser_config.esc_char:
-                    ret = re.sub(self.parser_config.escCharReplacePattern, r"\g<1>", ret)
+                    ret = re.sub(
+                        self.parser_config.escCharReplacePattern, r"\g<1>", ret
+                    )
 
                 # replace escaped quotes
                 if self.parser_config.esc_quote:
@@ -692,7 +709,7 @@ class QuotedString(Token):
 
         return ParseResults(self, start, end, [ret])
 
-    def _min_length(self):
+    def min_length(self):
         return 2
 
     def __str__(self):
@@ -717,6 +734,7 @@ class CharsNotIn(Token):
     ``max`` and ``exact`` are 0, meaning no maximum or exact
     length restriction.
     """
+
     __slots__ = []
     Config = append_config(Token, "min_len", "max_len", "not_chars")
 
@@ -767,7 +785,7 @@ class CharsNotIn(Token):
 
         raise ParseException(self, start, string)
 
-    def _min_length(self):
+    def min_length(self):
         return self.parser_config.min_len
 
     def __regex__(self):
@@ -854,7 +872,7 @@ class _PositionToken(Token):
         super(_PositionToken, self).__init__()
         self.parser_name = self.__class__.__name__
 
-    def _min_length(self):
+    def min_length(self):
         return 0
 
 
@@ -862,6 +880,7 @@ class GoToColumn(_PositionToken):
     """Token to advance to a specific column of input text; useful for
     tabular report scraping.
     """
+
     __slots__ = []
 
     def __init__(self, colno):
@@ -911,32 +930,34 @@ class LineEnd(_PositionToken):
     """Matches if current position is at the end of a line within the
     parse string
     """
+
     __slots__ = []
 
     def __init__(self):
         with Engine(" \t") as e:
             super(LineEnd, self).__init__()
-            self.set_config(lock_engine=e)
+            self.set_config(
+                lock_engine=e, regex=re.compile("\\r?(\\n|$)", re.MULTILINE | re.DOTALL)
+            )
 
     def parseImpl(self, string, start, doActions=True):
-        if start < len(string):
-            if string[start] == "\n":
-                return ParseResults(self, start, start + 1, ["\n"])
-            else:
-                raise ParseException(self, start, string)
-        elif start == len(string):
-            return ParseResults(self, start, start, [])
-        else:
-            raise ParseException(self, start, string)
+        found = self.parser_config.regex.match(string, start)
+        if found:
+            return ParseResults(self, start, found.end(), ["\n"])
+        raise ParseException(self, start, string)
 
-    def __regeex__(self):
-        return "$"
+    def min_length(self):
+        return 0
+
+    def __regex__(self):
+        return "|", self.parser_config.regex.pattern
 
 
 class StringStart(_PositionToken):
     """Matches if current position is at the beginning of the parse
     string
     """
+
     __slots__ = []
 
     def __init__(self):
@@ -954,6 +975,7 @@ class StringEnd(_PositionToken):
     """
     Matches if current position is at the end of the parse string
     """
+
     __slots__ = []
 
     def __init__(self):
@@ -978,6 +1000,7 @@ class WordStart(_PositionToken):
     the beginning of the string being parsed, or at the beginning of
     a line.
     """
+
     __slots__ = []
     Config = append_config(_PositionToken, "word_chars")
 
@@ -985,27 +1008,20 @@ class WordStart(_PositionToken):
         super(WordStart, self).__init__()
         self.set_config(
             regex=re.compile(
-                "(?:^|(?<="
-                + (~Char(wordChars)).__regex__()[1]
-                + "))"
-                + Char(wordChars).__regex__()[1],
+                f"(?:(?<={(CharsNotIn(wordChars, exact=1)).__regex__()[1]})|^)(?={Char(wordChars).__regex__()[1]})",
                 re.MULTILINE | re.DOTALL,
             ),
             word_chars="".join(sorted(set(wordChars))),
         )
+        self.streamlined = True
 
     def parseImpl(self, string, start, doActions=True):
-        if start:
-            if start >= len(string):
-                raise ParseException(self, start, string)
-            if (
-                string[start - 1] in self.parser_config.word_chars
-                or string[start] not in self.parser_config.word_chars
-            ):
-                raise ParseException(self, start, string)
-        return ParseResults(self, start, start, [])
+        found = self.parser_config.regex.match(string, start)
+        if found:
+            return ParseResults(self, start, start, [])
+        raise ParseException(self, start, string)
 
-    def _min_length(self):
+    def min_length(self):
         return 0
 
     def __regex__(self):
@@ -1020,6 +1036,7 @@ class WordEnd(_PositionToken):
     will also match at the end of the string being parsed, or at the end
     of a line.
     """
+
     __slots__ = []
     Config = append_config(_PositionToken, "word_chars")
 
@@ -1029,10 +1046,7 @@ class WordEnd(_PositionToken):
         self.set_config(
             word_chars="".join(sorted(set(wordChars))),
             regex=re.compile(
-                "(?:$|(?<="
-                + Char(wordChars).__regex__()[1]
-                + "))"
-                + (~Char(wordChars)).__regex__()[1],
+                f"(?<={Char(wordChars).__regex__()[1]})({(~Char(wordChars)).__regex__()[1]}|$)",
                 re.MULTILINE | re.DOTALL,
             ),
         )
@@ -1042,7 +1056,7 @@ class WordEnd(_PositionToken):
         output.engine = PLAIN_ENGINE
         return output
 
-    def _min_length(self):
+    def min_length(self):
         return 0
 
     def parseImpl(self, string, start, doActions=True):
@@ -1052,6 +1066,9 @@ class WordEnd(_PositionToken):
             if string[start] in word_chars or string[start - 1] not in word_chars:
                 raise ParseException(self, start, string)
         return ParseResults(self, start, start, [])
+
+    def __regex__(self):
+        return "+", self.parser_config.regex.pattern
 
 
 # export
