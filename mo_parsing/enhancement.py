@@ -12,7 +12,7 @@ from mo_parsing.exceptions import (
     RecursiveGrammarException,
 )
 from mo_parsing.results import ParseResults, Annotation
-from mo_parsing.utils import Log, listwrap, empty_tuple, regex_iso, append_config
+from mo_parsing.utils import Log, listwrap, empty_tuple, regex_iso, append_config, regex_compile
 from mo_parsing.utils import MAX_INT, is_forward
 
 # import later
@@ -57,8 +57,8 @@ class ParseElementEnhance(ParserElement):
         return self.expr.min_length()
 
     def parseImpl(self, string, start, doActions=True):
-        output = self.expr._parse(string, start, doActions)
-        return ParseResults(self, output.start, output.end, [output])
+        result = self.expr._parse(string, start, doActions)
+        return ParseResults(self, result.start, result.end, [result])
 
     def leaveWhitespace(self):
         with Engine(""):
@@ -137,7 +137,7 @@ class NotAny(ParseElementEnhance):
         super(NotAny, self).__init__(expr)
         prec, pattern = self.expr.__regex__()
         try:
-            self.regex = re.compile(f"(?!{pattern})")
+            self.regex = regex_compile(f"(?!{pattern})")
         except Exception:
             pass
 
@@ -197,7 +197,7 @@ class Many(ParseElementEnhance):
     def stopOn(self, ender):
         if ender:
             end = self.engine.normalize(ender)
-            self.set_config(end=re.compile(end.__regex__()[1]))
+            self.set_config(end=regex_compile(end.__regex__()[1]))
         return self
 
     def _min_length(self):
@@ -222,10 +222,10 @@ class Many(ParseElementEnhance):
                             raise ParseException(
                                 self, end, string, msg="found stopper too soon"
                             )
-                tokens = self.expr._parse(string, end, doActions)
-                end = tokens.end
-                if tokens:
-                    acc.append(tokens)
+                result = self.expr._parse(string, end, doActions)
+                end = result.end
+                if result:
+                    acc.append(result)
                     count += 1
         except ParseException:
             if self.parser_config.min_match <= count <= max:
