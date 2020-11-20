@@ -1141,21 +1141,17 @@ htmlComment = Regex(r"<!--[\s\S]*?-->").set_parser_name("HTML comment")
 
 with Engine() as engine:
     engine.set_whitespace("")
-    restOfLine = Regex(r".*").leaveWhitespace().set_parser_name("rest of line")
+    restOfLine = Regex(r"[^\n]*").leaveWhitespace().set_parser_name("rest of line")
 
-dblSlashComment = Regex(r"//(?:\\\n|[^\n])*").set_parser_name("// comment")
-"Comment of the form ``// ... (to end of line)``"
+    dblSlashComment = Regex(r"//(?:\\\n|[^\n])*").set_parser_name("// comment")
 
-cppStyleComment = Combine(
-    Regex(r"/\*(?:[^*]|\*(?!/))*") + "*/" | dblSlashComment
-).set_parser_name("C++ style comment")
-"Comment of either form `cStyleComment` or `dblSlashComment`"
+    cppStyleComment = Combine(
+        Regex(r"/\*(?:[^*]|\*(?!/))*") + "*/" | dblSlashComment
+    ).set_parser_name("C++ style comment")
 
-javaStyleComment = cppStyleComment
-"Same as `cppStyleComment`"
+    javaStyleComment = cppStyleComment
 
-pythonStyleComment = Regex(r"#.*").set_parser_name("Python style comment")
-"Comment of the form ``# ... (to end of line)``"
+    pythonStyleComment = Regex(r"#[^\n]*").set_parser_name("Python style comment")
 
 _commasepitem = (
     Combine(OneOrMore(
