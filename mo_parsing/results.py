@@ -4,7 +4,7 @@ from collections import MutableMapping
 
 from mo_dots import is_many, is_null
 from mo_future import is_text, text, PY3, NEXT, zip_longest
-from mo_parsing.utils import Log
+from mo_parsing.utils import Log, listwrap
 
 from mo_parsing import engine
 from mo_parsing.utils import is_forward, forward_type
@@ -82,7 +82,7 @@ class ParseResults(object):
         if v is None:
             v = NO_RESULTS
 
-        if is_forward(self):
+        if is_forward(self.type):
             self.tokens[0][k] = v
             return
 
@@ -228,7 +228,7 @@ class ParseResults(object):
             except Exception:
                 return getattr(v1, item)
         except Exception:
-            raise Log.error("No attribute {{item}}", item=item)
+            raise AttributeError(f"No attribute {item}")
 
     def __gt__(self, other):
         return self.__getattr__("__gt__")(other)
