@@ -144,7 +144,7 @@ class ParseResults(object):
 
     def __bool__(self):
         try:
-            NEXT(self.iteritems())()
+            NEXT(self.items())()
             return True
         except Exception:
             pass
@@ -215,17 +215,38 @@ class ParseResults(object):
     def __reversed__(self):
         return reversed(self.tokens)
 
-    def iterkeys(self):
-        for k, _ in self.iteritems():
+    def __getattr__(self, item):
+        """
+        IF THERE IS ONLY ONE VALUE, THEN DEFER TO IT
+        """
+        iter = self.__iter__()
+        try:
+            v1 = iter.__next__()
+            try:
+                iter.__next__()
+                raise Log.error("No attribute {{item}} for mutiple tokens", item=item)
+            except Exception:
+                return getattr(v1, item)
+        except Exception:
+            raise Log.error("No attribute {{item}}", item=item)
+
+    def __gt__(self, other):
+        return self.__getattr__("__gt__")(other)
+
+
+    def keys(self):
+        for k, _ in self.items():
             yield k
 
-    def itervalues(self):
-        for _, v in self.iteritems():
+    def values(self):
+        for _, v in self.items():
             yield v
 
-    def iteritems(self):
+    def items(self):
         if is_forward(self.type):
-            return self.tokens[0].iteritems()
+            for k, v in self.tokens[0].items():
+                yield k, v
+            return
 
         output = {}
         for tok in self.tokens:
@@ -237,25 +258,10 @@ class ParseResults(object):
                     continue
                 if is_forward(tok.type) and isinstance(tok.tokens[0].type, Group):
                     continue
-                for k, v in tok.iteritems():
+                for k, v in tok.items():
                     add(output, k, v)
         for k, v in output.items():
             yield k, v
-
-    if PY3:
-        keys = iterkeys
-        values = itervalues
-        items = iteritems
-    else:
-
-        def keys(self):
-            return list(self.iterkeys())
-
-        def values(self):
-            return list(self.itervalues())
-
-        def items(self):
-            return list(self.iteritems())
 
     def haskeys(self):
         """Since keys() returns an iterator, this method is helpful in bypassing

@@ -128,10 +128,13 @@ class Engine:
     def __regex__(self):
         white = regex_range(self.white_chars)
         if not self.ignore_list:
-            return "*", white
+            if not white:
+                return "*", ""
+            else:
+                return "*", white + "*"
 
         ignored = "|".join(regex_iso(*i.__regex__(), "|") for i in self.ignore_list)
-        return "+", f"(?:{ignored})" + white
+        return "+", f"(?:{white}*(?:{ignored}))*{white}*"
 
     def __str__(self):
         output = ["{"]
