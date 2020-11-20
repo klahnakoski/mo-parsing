@@ -22,6 +22,8 @@ class ParseResults(object):
         return self.type.token_name
 
     def __init__(self, result_type, start, end, tokens):
+        if end==-1:
+            Log.error("not allowed")
         self.type = result_type
         self.start = start
         self.end = end
@@ -73,7 +75,7 @@ class ParseResults(object):
             if len(values) == 1:
                 return values[0]
             # ENCAPSULATE IN A ParseResults FOR FURTHER NAVIGATION
-            return ParseResults(NO_PARSER, -1, -1, values)
+            return ParseResults(NO_PARSER, -1, 0, values)
 
     def __setitem__(self, k, v):
         if isinstance(k, (slice, int)):
@@ -101,7 +103,7 @@ class ParseResults(object):
                 tok.__setitem__(k, NO_RESULTS)  # ERASE ALL CHILDREN
 
         if v is not NO_RESULTS:
-            self.tokens.append(Annotation(k, -1, -1, [v]))
+            self.tokens.append(Annotation(k, -1, 0, [v]))
 
     if USE_ATTRIBUTE_ACCESS:
 
