@@ -1,9 +1,9 @@
 # encoding: utf-8
+import re
 from collections import namedtuple
 
 from mo_future import is_text
 
-from mo_parsing.exceptions import ParseException
 from mo_parsing.utils import Log, indent, quote, regex_range, alphanums, regex_iso
 
 ParserElement, Literal, Token = [None] * 3
@@ -20,6 +20,7 @@ class Engine:
         self.all_exceptions = {}
         self.content = None
         self.skips = {}
+        self.regex = None
         self.set_whitespace(white)
         self.previous = None  # WE MAINTAIN A STACK OF ENGINES
 
@@ -73,6 +74,8 @@ class Engine:
 
     def set_whitespace(self, chars):
         self.white_chars = "".join(sorted(set(chars)))
+        self.content = None
+        self.regex = re.compile(self.__regex__()[1])
 
     def add_ignore(self, ignore_expr):
         """
@@ -82,6 +85,7 @@ class Engine:
         ignore_expr = ignore_expr.suppress()
         self.ignore_list.append(ignore_expr)
         self.content = None
+        self.regex = re.compile(self.__regex__()[1])
         return self
 
     def backup(self):
@@ -102,26 +106,10 @@ class Engine:
             if start >= num:
                 return start
 
-        end = self.skips[start] = start  # TO AVOID RECURSIVE LOOP
-        wt = self.white_chars
-        instrlen = len(string)
-
-        more = True  # ENSURE ALTERNATING WHITESPACE AND IGNORABLES ARE SKIPPED
-        while more:
-            more = False
-            while end < instrlen and string[end] in wt:
-                more = True
-                end += 1
-
-            for i in self.ignore_list:
-                try:
-                    next_end = i.parseImpl(string, end).end
-                    if next_end > end:
-                        more = True
-                        end = next_end
-                except ParseException as e:
-                    pass
-
+        end = start  # TO AVOID RECURSIVE LOOP
+        found = self.regex.match(string, start)
+        if found:
+            end = found.end()
         self.skips[start] = end  # THE REAL VALUE
         return end
 
