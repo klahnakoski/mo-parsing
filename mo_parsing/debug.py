@@ -35,12 +35,13 @@ def _debug_parse(self, string, start, doActions=True):
 
     try:
         _try(self, start, string)
+        loc = self.engine.skip(string, start)
         try:
-            preloc = self.engine.skip(string, start)
-            tokens = self.parseImpl(string, preloc, doActions)
+            tokens = self.parseImpl(string, loc, doActions)
         except Exception as cause:
+            loc = self.engine.skip(string, start)
+            self.parser_config.failAction and self.parser_config.failAction(self, start, string, cause)
             fail(self, start, string, cause)
-            self.parser_config.failAction(self, start, string, cause)
             raise
 
         if self.parseAction and (doActions or self.parser_config.callDuringTry):
@@ -50,7 +51,7 @@ def _debug_parse(self, string, start, doActions=True):
             except Exception as cause:
                 fail(self, start, string, cause)
                 raise
-        match(self, start, tokens.end, string, tokens)
+        match(self, loc, tokens.end, string, tokens)
     except ParseException as cause:
         packrat_cache.set(lookup, cause)
         raise

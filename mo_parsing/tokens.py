@@ -14,7 +14,7 @@ from mo_parsing.utils import (
     regex_range,
     append_config,
     regex_type,
-    regex_caseless,
+    regex_caseless, regex_compile,
 )
 from mo_parsing.utils import (
     MAX_INT,
@@ -190,7 +190,7 @@ class Keyword(Token):
 
         non_word = "($|(?!" + regex_range(ident_chars) + "))"
         self.set_config(
-            ident_chars=ident_chars, match=match, regex=re.compile(pattern + non_word)
+            ident_chars=ident_chars, match=match, regex=regex_compile(pattern + non_word)
         )
 
         self.parser_name = match
@@ -229,7 +229,7 @@ class CaselessLiteral(Literal):
         Literal.__init__(self, match.upper())
         self.set_config(
             match=match,
-            regex=re.compile(regex_caseless(match), re.MULTILINE | re.DOTALL),
+            regex=regex_compile(regex_caseless(match)),
         )
         self.parser_name = repr(self.parser_config.regex.pattern)
 
@@ -380,7 +380,7 @@ class Word(Token):
         if asKeyword:
             regexp = r"\b" + regexp + r"\b"
 
-        self.set_config(regex=re.compile(regexp, re.MULTILINE | re.DOTALL), min=min)
+        self.set_config(regex=regex_compile(regexp), min=min)
 
     def parseImpl(self, string, start, doActions=True):
         found = self.parser_config.regex.match(string, start)
@@ -416,7 +416,7 @@ class Char(Token):
         if asKeyword:
             regex = r"\b%s\b" % self
         self.set_config(
-            regex=re.compile(regex, re.MULTILINE | re.DOTALL),
+            regex=regex_compile(regex),
             charset="".join(sorted(set(charset))),
         )
 
@@ -457,7 +457,7 @@ class Regex(Token):
 
     def __init__(self, pattern, flags=0, asGroupList=False, asMatch=False):
         """The parameters ``pattern`` and ``flags`` are passed
-        to the ``re.compile()`` function as-is. See the Python
+        to the ``regex_compile()`` function as-is. See the Python
         `re module <https://docs.python.org/3/library/re.html>`_ module for an
         explanation of the acceptable patterns and flags.
         """
@@ -595,9 +595,9 @@ class QuotedString(Token):
         "end_quote_char",
         "esc_char",
         "esc_quote",
+        "multiline",
         "unquoteResults",
         "convertWhitespaceEscapes",
-        "flags",
         "escCharReplacePattern",
     )
 
@@ -645,11 +645,8 @@ class QuotedString(Token):
         included = Empty()
         excluded = Literal(self.parser_config.end_quote_char)
 
-        if multiline:
-            flags = re.MULTILINE | re.DOTALL
-        else:
+        if not multiline:
             excluded |= Char("\r\n")
-            flags = 0
         if escQuote:
             included |= Literal(escQuote)
         if escChar:
@@ -665,7 +662,7 @@ class QuotedString(Token):
             + Literal(self.parser_config.end_quote_char)
         ).__regex__()
 
-        self.set_config(flags=flags, regex=re.compile(pattern, flags))
+        self.set_config(multiline=multiline, regex=regex_compile(pattern))
 
         self.parser_name = text(self)
 
@@ -772,7 +769,7 @@ class CharsNotIn(Token):
             suffix = "{" + str(min) + ":" + str(max) + "}"
 
         self.set_config(
-            regex=re.compile(regex + suffix),
+            regex=regex_compile(regex + suffix),
             min_len=min,
             max_len=max,
             not_chars=not_chars,
@@ -938,7 +935,7 @@ class LineEnd(_PositionToken):
         with Engine(" \t") as e:
             super(LineEnd, self).__init__()
             self.set_config(
-                lock_engine=e, regex=re.compile("\\r?(\\n|$)", re.MULTILINE | re.DOTALL)
+                lock_engine=e, regex=regex_compile("\\r?(\\n|$)")
             )
 
     def parseImpl(self, string, start, doActions=True):
@@ -1008,9 +1005,8 @@ class WordStart(_PositionToken):
     def __init__(self, wordChars=printables):
         super(WordStart, self).__init__()
         self.set_config(
-            regex=re.compile(
-                f"(?:(?<={(CharsNotIn(wordChars, exact=1)).__regex__()[1]})|^)(?={Char(wordChars).__regex__()[1]})",
-                re.MULTILINE | re.DOTALL,
+            regex=regex_compile(
+                f"(?:(?<={(CharsNotIn(wordChars, exact=1)).__regex__()[1]})|^)(?={Char(wordChars).__regex__()[1]})"
             ),
             word_chars="".join(sorted(set(wordChars))),
         )
@@ -1046,9 +1042,8 @@ class WordEnd(_PositionToken):
         self.engine = PLAIN_ENGINE
         self.set_config(
             word_chars="".join(sorted(set(wordChars))),
-            regex=re.compile(
-                f"(?<={Char(wordChars).__regex__()[1]})({(~Char(wordChars)).__regex__()[1]}|$)",
-                re.MULTILINE | re.DOTALL,
+            regex=regex_compile(
+                f"(?<={Char(wordChars).__regex__()[1]})({(~Char(wordChars)).__regex__()[1]}|$)"
             ),
         )
 

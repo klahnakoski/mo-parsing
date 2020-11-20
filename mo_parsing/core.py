@@ -92,7 +92,7 @@ class ParserElement(object):
     def __init__(self):
         self.parseAction = list()
         self.parser_name = ""
-        self.token_name = None
+        self.token_name = ""
         self.engine = engine.CURRENT
         self.streamlined = False
         self.min_cache = -1
@@ -242,7 +242,7 @@ class ParserElement(object):
         try:
             index = self.engine.skip(string, start)
             try:
-                tokens = self.parseImpl(string, index, doActions)
+                result = self.parseImpl(string, index, doActions)
             except Exception as cause:
                 self.parser_config.failAction and self.parser_config.failAction(
                     self, start, string, cause
@@ -251,13 +251,13 @@ class ParserElement(object):
 
             if self.parseAction and (doActions or self.parser_config.callDuringTry):
                 for fn in self.parseAction:
-                    tokens = fn(tokens, index, string)
+                    result = fn(result, index, string)
         except ParseException as cause:
             packrat_cache.set(lookup, cause)
             raise
 
-        packrat_cache.set(lookup, tokens)
-        return tokens
+        packrat_cache.set(lookup, result)
+        return result
 
     def tryParse(self, string, start):
         try:
@@ -694,7 +694,7 @@ results.ParserElement = ParserElement
 NO_PARSER = (
     ParserElement().set_parser_name("<nothing>")
 )  # USE THIS WHEN YOU DO NOT CARE ABOUT THE PARSER TYPE
-NO_RESULTS = ParseResults(NO_PARSER, -1, -1, [])
+NO_RESULTS = ParseResults(NO_PARSER, -1, 0, [])
 
 results.NO_PARSER = NO_PARSER
 results.NO_RESULTS = NO_RESULTS

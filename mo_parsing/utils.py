@@ -67,7 +67,13 @@ def extend(cls):
 
 _prec = {"|": 0, "+": 1, "*": 2}
 
-regex_type = type(re.compile("[A-Z]", re.MULTILINE | re.DOTALL))
+
+def regex_compile(pattern):
+    """REGEX COMPILE WITHOUT THE ON-A-SINGLE-LINE ASSUMPTION"""
+    return re.compile(pattern, re.MULTILINE | re.DOTALL)
+
+
+regex_type = type(regex_compile("[A-Z]"))
 
 
 def regex_iso(curr_prec, expr, new_prec):
