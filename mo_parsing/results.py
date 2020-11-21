@@ -40,12 +40,15 @@ class ParseResults(object):
                     elif is_forward(tok.type) and isinstance(tok.tokens[0].type, Group):
                         yield tok
                     else:
-                        if any(isinstance(t, ParseResults) and t.name for t in tok.tokens):
-                            for t in tok.tokens:
-                                yield t
-                        else:
-                            for t in tok:
-                                yield t
+                        # STRIP NAME OFF
+                        typ = tok.type
+                        while is_forward(typ):
+                            typ = typ.expr
+                        if typ.token_name:
+                            typ = typ.copy()
+                            typ.token_name = None
+                        yield ParseResults(typ, tok.start, tok.end, tok.tokens)
+
                     continue
                 elif isinstance(tok.type, Group):
                     continue
@@ -71,7 +74,7 @@ class ParseResults(object):
         else:
             values = list(self._get_item_by_name(item))
             if len(values) == 0:
-                return NO_RESULTS
+                return None
             if len(values) == 1:
                 return values[0]
             # ENCAPSULATE IN A ParseResults FOR FURTHER NAVIGATION
@@ -103,7 +106,13 @@ class ParseResults(object):
                 tok.__setitem__(k, NO_RESULTS)  # ERASE ALL CHILDREN
 
         if v is not NO_RESULTS:
-            self.tokens.append(Annotation(k, -1, 0, [v]))
+            tokens = self.tokens
+            if is_forward(self.type):
+                tokens = tokens[0].tokens
+            if isinstance(v, ParseResults):
+                tokens.append(Annotation(k, v.start, v.end, v.tokens))
+            else:
+                tokens.append(Annotation(k, -1, 0, listwrap(v)))
 
     if USE_ATTRIBUTE_ACCESS:
 
@@ -231,10 +240,6 @@ class ParseResults(object):
                 return getattr(v1, item)
         except Exception:
             raise AttributeError(f"No attribute {item}")
-
-    def __gt__(self, other):
-        return self.__getattr__("__gt__")(other)
-
 
     def keys(self):
         for k, _ in self.items():

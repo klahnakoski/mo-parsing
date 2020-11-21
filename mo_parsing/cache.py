@@ -51,7 +51,6 @@ class UnboundedCache(object):
     def clear(self):
         if DEBUG and self.hit + self.miss > 100:
             Log.note(
-                ""
                 "Hit Rate: {{rate|round(places=2)|percent}} (hits={{hits}},"
                 " misses={{misses}})",
                 rate=self.hit / (self.hit + self.miss),
