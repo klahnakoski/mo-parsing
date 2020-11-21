@@ -1058,7 +1058,7 @@ def indentedBlock(blockStatementExpr, indent=True):
             if curCol != expectedCol:
                 if curCol > expectedCol:
                     raise ParseException(t.type, s, l, "illegal nesting")
-                raise ParseException(t.type, s, l, "not a peer entry")
+                raise ParseException(t.type, l, s, "not a peer entry")
 
         return output
 
