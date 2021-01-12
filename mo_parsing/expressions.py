@@ -457,9 +457,9 @@ class MatchFirst(ParseExpression):
             return output
         if not output.is_annotated():
             if len(output.exprs) == 0:
-                output = Empty()
+                return Empty()
             if len(output.exprs) == 1:
-                output = output.exprs[0]
+                return output.exprs[0]
 
         output.fast = faster(output.exprs)
 
