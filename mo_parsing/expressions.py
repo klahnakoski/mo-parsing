@@ -296,7 +296,7 @@ class Or(ParseExpression):
 
     def copy(self):
         output = ParseExpression.copy(self)
-        output.fast = output.fast
+        output.fast = self.fast
         return output
 
     def _min_length(self):
