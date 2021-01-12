@@ -5,6 +5,7 @@ from mo_parsing.utils import Log
 
 DEBUG = False
 
+
 class FiFoCache(object):
     def __init__(self, size):
         cache = OrderedDict()
