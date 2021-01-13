@@ -34,20 +34,7 @@ class ParseResults(object):
         for tok in self.tokens:
             if isinstance(tok, ParseResults):
                 if tok.name == name:
-                    if isinstance(tok.type, Group):
-                        yield tok
-                    elif is_forward(tok.type) and isinstance(tok.tokens[0].type, Group):
-                        yield tok
-                    else:
-                        # STRIP NAME OFF
-                        typ = tok.type
-                        while is_forward(typ):
-                            typ = typ.expr
-                        if typ.token_name:
-                            typ = typ.copy()
-                            typ.token_name = None
-                        yield ParseResults(typ, tok.start, tok.end, tok.tokens)
-
+                    yield tok
                     continue
                 elif isinstance(tok.type, Group):
                     continue
@@ -239,6 +226,18 @@ class ParseResults(object):
                 return getattr(v1, item)
         except Exception:
             raise AttributeError(f"No attribute {item}")
+
+    def value(self):
+        """
+        RETURN WHATEVER PRIMITIVE VALUES ARE LEFT
+        """
+        value = [v.value() if isinstance(v, ParseResults) else v for v in self]
+        if not value:
+            return None
+        elif len(value) == 1:
+            return value[0]
+        else:
+            return value
 
     def keys(self):
         for k, _ in self.items():

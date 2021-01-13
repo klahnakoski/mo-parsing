@@ -3259,7 +3259,7 @@ class TestParsing(PyparsingExpressionTestCase):
         res = id_ref.searchString(samplestr1)[0]
 
         self.assertEqual(
-            samplestr1[res["locn_start"] : res["locn_end"]].strip(),  # CURRENTLY CAN NOT GET END, ONLY GET BEGINNING OF NEXT TOKEN
+            samplestr1[res["locn_start"].value() : res["locn_end"].value()].strip(),  # CURRENTLY CAN NOT GET END, ONLY GET BEGINNING OF NEXT TOKEN
             "ID PARI12345678",
             "incorrect location calculation",
         )
@@ -3286,7 +3286,7 @@ class TestParsing(PyparsingExpressionTestCase):
         )
 
         rangeParser = rangeParser.addCondition(
-            lambda t: t["to"] > t["from_"], message="from must be <= to", fatal=False
+            lambda t: t["to"].value() > t["from_"].value(), message="from must be <= to", fatal=False
         )
         result = rangeParser.searchString("1-4 2-4 4-3 5 6 7 8 9 10")
 
@@ -3296,7 +3296,7 @@ class TestParsing(PyparsingExpressionTestCase):
 
         rangeParser = numParser("from_") + Suppress("-") + numParser("to")
         rangeParser = rangeParser.addCondition(
-            lambda t: t["to"] > t["from_"], message="from must be <= to", fatal=True
+            lambda t: t["to"].value() > t["from_"].value(), message="from must be <= to", fatal=True
         )
         with TestCase.assertRaises(self, Exception):
             rangeParser.searchString("1-4 2-4 4-3 5 6 7 8 9 10")
@@ -3582,7 +3582,7 @@ class TestParsing(PyparsingExpressionTestCase):
         intrange = integer("start") + "-" + integer("end")
 
         intrange = intrange.addCondition(
-            lambda t: t["end"] > t["start"],
+            lambda t: t["end"].value() > t["start"].value(),
             message="invalid range, start must be <= end",
             fatal=True,
         )
