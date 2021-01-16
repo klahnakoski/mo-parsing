@@ -34,7 +34,7 @@ class ParseResults(object):
         for tok in self.tokens:
             if isinstance(tok, ParseResults):
                 if tok.name == name:
-                    yield tok
+                    yield ParseResults(NO_PARSER, -1, 0, tok.tokens)
                     continue
                 elif isinstance(tok.type, Group):
                     continue

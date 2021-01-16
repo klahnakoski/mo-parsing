@@ -2174,7 +2174,7 @@ class TestParsing(PyparsingExpressionTestCase):
 
     def testPrecededBy(self):
 
-        num = Word(nums).addParseAction(lambda t: int(t[0]))
+        num = Word(nums).addParseAction(lambda t: int(t.value()))
         interesting_num = PrecededBy(Char("abc")("prefix")) + num
         semi_interesting_num = PrecededBy("_") + num
         crazy_num = PrecededBy(Word("^", "$%^")("prefix"), 10) + num
