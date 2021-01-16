@@ -37,8 +37,9 @@ class ParseResults(object):
                     if isinstance(tok.type, Group):
                         yield tok
                     else:
-                        for t in tok:
-                            yield t
+                        for t in tok.tokens:
+                            for tt in _flatten(t):
+                                yield tt
                     continue
                 elif tok.name:
                     continue
@@ -452,6 +453,22 @@ class ParseResults(object):
         return dir(type(self))
 
 
+def _flatten(token):
+    """
+    FLATTEN SOME, LEAVING ANY IMPORTANT FEATURES (names or groups)
+    """
+    if not isinstance(token, ParseResults):
+        yield token
+    elif isinstance(token.type, Group):
+        yield token
+    elif token.name:
+        yield token
+    else:
+        for t in token.tokens:
+            for tt in _flatten(t):
+                yield tt
+
+
 def simpler(v):
     # convert an open list to object it represents
     if isinstance(v, list):
@@ -495,3 +512,5 @@ class Annotation(ParseResults):
 
 
 MutableMapping.register(ParseResults)
+
+
