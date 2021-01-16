@@ -19,6 +19,10 @@ ParseException = delay_import("mo_parsing.exceptions.ParseException")
 
 
 def append_config(base, *slots):
+    dups = set(slots) & set(base.Config._fields)
+    if dups:
+        Log.error("Duplicate config fields: {{dups}}", dups=dups)
+
     fields = base.Config._fields + slots
     return namedtuple("Config", fields)
 
@@ -67,7 +71,13 @@ def extend(cls):
 
 _prec = {"|": 0, "+": 1, "*": 2}
 
-regex_type = type(re.compile("[A-Z]", re.MULTILINE | re.DOTALL))
+
+def regex_compile(pattern):
+    """REGEX COMPILE WITHOUT THE ON-A-SINGLE-LINE ASSUMPTION"""
+    return re.compile(pattern, re.MULTILINE | re.DOTALL)
+
+
+regex_type = type(regex_compile("[A-Z]"))
 
 
 def regex_iso(curr_prec, expr, new_prec):
@@ -358,6 +368,8 @@ def wrap_parse_action(func):
             if result is None:
                 return token
             elif isinstance(result, ParseResults):
+                if (result.start < token.start) or (token.end < result.end):
+                    Log.error("Tokens must be ordered")
                 return result
 
             if isinstance(result, (list, tuple)):

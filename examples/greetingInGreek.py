@@ -5,7 +5,8 @@
 #
 # Copyright 2004-2016, by Paul McGuire
 #
-from mo_parsing import Word, parsing_unicode as ppu, parsing_unicode
+from mo_parsing.helpers import *
+from mo_parsing.utils import parsing_unicode
 
 # define grammar
 alphas = parsing_unicode.Greek.alphas

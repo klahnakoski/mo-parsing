@@ -7,12 +7,8 @@
 #
 #
 import ast
-import datetime
-import json
 import math
 import operator
-import re
-import sys
 import textwrap
 import traceback
 import unittest
@@ -20,6 +16,8 @@ from io import StringIO
 from itertools import product
 from textwrap import dedent
 from unittest import TestCase, skip
+from datetime import date as datetime_date
+from datetime import datetime as datetime_datetime
 
 from mo_dots import coalesce
 from mo_times import Timer
@@ -27,113 +25,14 @@ from mo_times import Timer
 from examples import fourFn, configParse, idlParse, ebnf
 from examples.jsonParser import jsonObject
 from examples.simpleSQL import simpleSQL
-from mo_parsing import (
-    LineStart,
-    ParseResults,
-    Word,
-    alphas,
-    nums,
-    Combine,
-    CharsNotIn,
-    Keyword,
-    Literal,
-    QuotedString,
-    alphanums,
-    Dict,
-    ParseException,
-    Forward,
-    Regex,
-    ParseFatalException,
-    WordStart,
-    CaselessKeyword,
-    WordEnd,
-    helpers,
-    CaselessLiteral,
-    RecursiveGrammarException,
-    engine,
-    PrecededBy,
-    quotedString,
-    Suppress,
-    StringEnd,
-    Group,
-    OneOrMore,
-    Optional,
-    SkipTo,
-    And,
-    replaceWith,
-    ZeroOrMore,
-    Empty,
-    MatchFirst,
-    Char,
-    LineEnd,
-    CloseMatch,
-    FollowedBy,
-    ParseSyntaxException,
-)
-from mo_parsing.engine import Engine
-from mo_parsing.enhancement import OpenDict
-from mo_parsing.helpers import (
-    real,
-    sci_real,
-    number,
-    integer,
-    identifier,
-    comma_separated_list,
-    upcaseTokens,
-    downcaseTokens,
-    sglQuotedString,
-    dblQuotedString,
-    oneOf,
-    delimitedList,
-    removeQuotes,
-    cStyleComment,
-    infixNotation,
-    countedArray,
-    originalTextFor,
-    makeHTMLTags,
-    withAttribute,
-    nestedExpr,
-    restOfLine,
-    cppStyleComment,
-    withClass,
-    iso8601_date,
-    locatedExpr,
-    mac_address,
-    ipv4_address,
-    fnumber,
-    convertToDate,
-    iso8601_datetime,
-    uuid,
-    fraction,
-    mixed_integer,
-    tokenMap,
-    pythonStyleComment,
-    ipv6_address,
-    convertToDatetime,
-    stripHTMLTags,
-    indentedBlock,
-    htmlComment,
-    srange,
-    ungroup,
-    dictOf,
-    LEFT_ASSOC,
-    RIGHT_ASSOC,
-)
-from mo_parsing.utils import Log
-from mo_parsing.utils import (
-    parsing_unicode,
-    printables,
-    traceParseAction,
-    hexnums,
-    col,
-    lineno,
-    line,
-)
+from mo_parsing import *
+from mo_parsing import helpers
+from mo_parsing.helpers import *
+from mo_parsing.utils import *
 from tests.json_parser_tests import test1, test2, test3, test4, test5
-
-# see which Python implementation we are running
 from tests.test_simple_unit import PyparsingExpressionTestCase
 
+# see which Python implementation we are running
 CPYTHON_ENV = sys.platform == "win32"
 IRON_PYTHON_ENV = sys.platform == "cli"
 JYTHON_ENV = sys.platform.startswith("java")
@@ -1189,16 +1088,15 @@ class TestParsing(PyparsingExpressionTestCase):
         list_of_num = delimitedList(hexnum | num | name, ",")
 
         tokens = list_of_num.parseString("1, 0x2, 3, 0x4, aaa")
-        # print(tokens)
-        # self.assertParseResultsEquals(
-        #     tokens,
-        #     expected_list=["1", "0x2", "3", "0x4", "aaa"],
-        #     expected_dict={
-        #         "base10": ["1", "3"],
-        #         "hex": ["0x2", "0x4"],
-        #         "word": ["aaa"],
-        #     },
-        # )
+        self.assertParseResultsEquals(
+            tokens,
+            expected_list=["1", "0x2", "3", "0x4", "aaa"],
+            expected_dict={
+                "base10": ["1", "3"],
+                "hex": ["0x2", "0x4"],
+                "word": "aaa",
+            },
+        )
 
         lbrack = Literal("(").suppress()
         rbrack = Literal(")").suppress()
@@ -1867,7 +1765,7 @@ class TestParsing(PyparsingExpressionTestCase):
 
     def testParseResultsWithNamedTuple(self):
 
-        expr = Literal("A")("Achar").addParseAction(replaceWith(("A", "Z")))
+        expr = Literal("A")("Achar").addParseAction(lambda: [("A", "Z")])
 
         res = expr.parseString("A")
 
@@ -1897,11 +1795,11 @@ class TestParsing(PyparsingExpressionTestCase):
 
         bodyStart, bodyEnd = makeHTMLTags("BODY")
         results = list((bodyStart | bodyEnd).scanString(test))
-        for (t, s, e), (expectedType, expectedEmpty, expectedBG, expectedFG) in zip(
+        for (u, s, e), (expectedType, expectedEmpty, expectedBG, expectedFG) in zip(
             results, expected
         ):
-            if "startBody" in t:
-                t = t["startBody"]
+            if "startBody" in u:
+                t = u["startBody"]
                 self.assertEqual(
                     bool(t["empty"]),
                     expectedEmpty,
@@ -1924,7 +1822,7 @@ class TestParsing(PyparsingExpressionTestCase):
                         expectedFG, t["bgcolor"]
                     ),
                 )
-            elif "endBody" in t:
+            elif "endBody" in u:
 
                 pass
             else:
@@ -2174,7 +2072,7 @@ class TestParsing(PyparsingExpressionTestCase):
 
     def testPrecededBy(self):
 
-        num = Word(nums).addParseAction(lambda t: int(t[0]))
+        num = Word(nums).addParseAction(lambda t: int(t.value()))
         interesting_num = PrecededBy(Char("abc")("prefix")) + num
         semi_interesting_num = PrecededBy("_") + num
         crazy_num = PrecededBy(Word("^", "$%^")("prefix"), 10) + num
@@ -3779,7 +3677,7 @@ class TestParsing(PyparsingExpressionTestCase):
         self.assertTrue(
             success, "error in parsing valid iso8601_date with parse action"
         )
-        self.assertTrue(results[0][1][0] == datetime.date(1997, 7, 16))
+        self.assertTrue(results[0][1][0] == datetime_date(1997, 7, 16))
 
         success, results = iso8601_datetime.runTests(
             """
@@ -3799,9 +3697,7 @@ class TestParsing(PyparsingExpressionTestCase):
             """)
         )
         self.assertTrue(success, "error in parsing valid iso8601_datetime")
-        self.assertTrue(results[0][1][0] == datetime.datetime(
-            1997, 7, 16, 19, 20, 30, 450000
-        ))
+        self.assertTrue(results[0][1][0] == datetime_datetime(1997, 7, 16, 19, 20, 30, 450000))
 
         success = uuid.runTests(
             """
@@ -4217,7 +4113,7 @@ class TestParsing(PyparsingExpressionTestCase):
             """,
             failureTests=[False, False, False, False, True, True],
         )
-        expected = ([], [0, 12], [9], [4, 5], None, None)
+        expected = ([], [0, 12], 9, [4, 5], None, None)
 
         for (r_str, r_tok), exp in zip(results, expected):
             if exp is not None:

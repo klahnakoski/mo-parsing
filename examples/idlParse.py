@@ -12,18 +12,14 @@ from mo_parsing import (
     OneOrMore,
     ZeroOrMore,
     Forward,
-    delimitedList,
     Group,
     Optional,
-    alphas,
-    restOfLine,
-    cStyleComment,
-    alphanums,
-    quotedString,
     Keyword,
     Regex,
 )
 from mo_parsing.engine import Engine
+from mo_parsing.helpers import restOfLine, cStyleComment, delimitedList, quotedString
+from mo_parsing.utils import alphas, alphanums
 
 bnf = None
 

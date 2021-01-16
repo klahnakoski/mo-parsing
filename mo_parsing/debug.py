@@ -1,7 +1,6 @@
 # encoding: utf-8
 from mo_future import text
 
-from mo_parsing.cache import packrat_cache
 from mo_parsing.core import ParserElement
 from mo_parsing.exceptions import ParseException
 from mo_parsing.utils import (
@@ -26,36 +25,24 @@ class Debugger(object):
 
 
 def _debug_parse(self, string, start, doActions=True):
-    lookup = (self, string, start, doActions)
-    value = packrat_cache.get(lookup)
-    if value is not None:
-        if isinstance(value, Exception):
-            raise value
-        return value
-
+    _try(self, start, string)
+    loc = self.engine.skip(string, start)
     try:
-        _try(self, start, string)
-        try:
-            preloc = self.engine.skip(string, start)
-            tokens = self.parseImpl(string, preloc, doActions)
-        except Exception as cause:
-            fail(self, start, string, cause)
-            self.parser_config.failAction(self, start, string, cause)
-            raise
-
-        if self.parseAction and (doActions or self.parser_config.callDuringTry):
-            try:
-                for fn in self.parseAction:
-                    tokens = fn(tokens, start, string)
-            except Exception as cause:
-                fail(self, start, string, cause)
-                raise
-        match(self, start, tokens.end, string, tokens)
-    except ParseException as cause:
-        packrat_cache.set(lookup, cause)
+        tokens = self.parseImpl(string, loc, doActions)
+    except Exception as cause:
+        self.parser_config.failAction and self.parser_config.failAction(self, start, string, cause)
+        fail(self, start, string, cause)
         raise
 
-    packrat_cache.set(lookup, tokens)
+    if self.parseAction and (doActions or self.parser_config.callDuringTry):
+        try:
+            for fn in self.parseAction:
+                tokens = fn(tokens, start, string)
+        except Exception as cause:
+            fail(self, start, string, cause)
+            raise
+    match(self, loc, tokens.end, string, tokens)
+
     return tokens
 
 
@@ -76,10 +63,8 @@ def match(expr, start, end, string, tokens):
     print(
         "> Matched "
         + quote(string[start:end])
-        + " at loc "
-        + text(start)
-        + "(%d,%d)" % (lineno(start, string), col(start, string))
-        + " for "
+        + "between "
+        + f"[{start}, {end}] for"
         + " " * stack_depth()
         + text(expr)
         + " -> "
@@ -88,7 +73,8 @@ def match(expr, start, end, string, tokens):
 
 
 def fail(expr, start, string, cause):
-    print("  Except  " + plain_quote(text(cause)))
+    quoted = plain_quote(text(cause))
+    print("  Except  " + quoted)
 
 
 def quote(value, start=0, length=12):

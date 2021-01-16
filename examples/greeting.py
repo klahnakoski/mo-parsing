@@ -5,9 +5,9 @@
 #
 # Copyright 2003, 2019 by Paul McGuire
 #
-from mo_parsing import *
+from mo_parsing.helpers import *
+from mo_parsing.utils import *
 
-# define grammar
 greet = Word(alphas) + "," + Word(alphas) + oneOf("! ? .")
 
 # input string

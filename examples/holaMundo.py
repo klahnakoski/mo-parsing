@@ -4,6 +4,9 @@
 from mo_parsing import *
 
 # usamos las letras en latin1, que incluye las como 'ñ', 'á', 'é', etc.
+from mo_parsing.helpers import oneOf
+from mo_parsing.utils import parsing_unicode, nums
+
 alphas = parsing_unicode.Latin1.alphas
 
 # Aqui decimos que la gramatica "saludo" DEBE contener

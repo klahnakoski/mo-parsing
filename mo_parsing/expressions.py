@@ -1,4 +1,6 @@
 # encoding: utf-8
+import json
+from collections import OrderedDict
 from operator import itemgetter
 
 from mo_future import Iterable, text, generator_types
@@ -18,8 +20,11 @@ from mo_parsing.utils import (
     regex_iso,
     Log,
     append_config,
-    stack_depth,
+    regex_caseless,
+    regex_compile,
 )
+
+LOOKUP_COST = 5
 
 
 class ParseExpression(ParserElement):
@@ -43,6 +48,20 @@ class ParseExpression(ParserElement):
         for e in self.exprs:
             if is_forward(e):
                 e.track(self)
+
+    def expecting(self):
+        output = OrderedDict()
+        if not self.is_annotated():
+            for e in self.exprs:
+                expect = e.expecting()
+                for k, ee in expect.items():
+                    output.setdefault(k, []).extend(ee)
+        else:
+            for e in self.exprs:
+                expect = e.expecting()
+                for k, _ in expect.items():
+                    output[k] = [self]
+        return output
 
     def copy(self):
         output = ParserElement.copy(self)
@@ -77,12 +96,18 @@ class ParseExpression(ParserElement):
 
         acc = []
         same = True
+        clazz = self.__class__
+        if clazz == Or:
+            clazz = (
+                Or,
+                MatchFirst,
+            )  # TODO: not correct, but allows merging of the two to a single longer list
         for e in self.exprs:
             f = e.streamline()
             same = same and f is e
             if f.is_annotated():
                 acc.append(f)
-            elif isinstance(f, self.__class__):
+            elif isinstance(f, clazz):
                 same = False
                 acc.extend(f.exprs)
             else:
@@ -173,6 +198,7 @@ class And(ParseExpression):
 
         # streamline INDIVIDUAL EXPRESSIONS
         acc = []
+        clazz = self.__class__
         for e in exprs:
             if e is None:
                 continue
@@ -180,7 +206,7 @@ class And(ParseExpression):
             same = same and f is e
             if f.is_annotated():
                 acc.append(f)
-            elif isinstance(f, self.__class__):
+            elif isinstance(f, clazz):
                 same = False
                 acc.extend(f.exprs)
             else:
@@ -194,6 +220,17 @@ class And(ParseExpression):
         output.exprs = acc
         output.streamlined = True
         return output
+
+    def expecting(self):
+        if not self.exprs:
+            return {}
+
+        acc = OrderedDict()
+        for e in self.exprs:
+            for k in e.expecting().keys():
+                acc[k] = [self]
+            break
+        return acc
 
     def _min_length(self):
         return sum(e.min_length() for e in self.exprs)
@@ -209,9 +246,9 @@ class And(ParseExpression):
                 encountered_error_stop = True
                 continue
             try:
-                exprtokens = expr._parse(string, end, doActions)
-                end = exprtokens.end
-                acc.append(exprtokens)
+                result = expr._parse(string, end, doActions)
+                end = result.end
+                acc.append(result)
             except ParseException as pe:
                 if encountered_error_stop:
                     raise ParseSyntaxException(pe.expr, pe.loc, pe.string)
@@ -244,29 +281,78 @@ class And(ParseExpression):
 
 
 class Or(ParseExpression):
-    """Requires that at least one `ParseExpression` is found. If
+    """
+    Requires that at least one `ParseExpression` is found. If
     two expressions match, the expression that matches the longest
     string will be used. May be constructed using the ``'^'``
     operator.
     """
 
-    __slots__ = []
+    __slots__ = ["fast"]
 
     def __init__(self, exprs):
-        super(Or, self).__init__(exprs)
+        ParseExpression.__init__(self, exprs)
+        self.fast = self.exprs
+
+    def copy(self):
+        output = ParseExpression.copy(self)
+        output.fast = self.fast
+        return output
 
     def _min_length(self):
         return min(e.min_length() for e in self.exprs)
 
+    def streamline(self):
+        if self.streamlined:
+            return self
+
+        output = ParseExpression.streamline(self)
+
+        if isinstance(output, Empty):
+            return output
+        if not output.is_annotated():
+            if len(output.exprs) == 0:
+                output = Empty()
+            if len(output.exprs) == 1:
+                output = output.exprs[0]
+
+        output.fast = faster(output.exprs)
+
+        output.streamlined = True
+        output.checkRecursion()
+        return output
+
     def parseImpl(self, string, start, doActions=True):
         causes = []
         matches = []
-        for e in self.exprs:
-            try:
-                end = e.tryParse(string, start)
-                matches.append((end, e))
-            except ParseException as err:
-                causes.append(err)
+
+        for e in self.fast:
+            if isinstance(e, MatchFast):
+                for ee in e.get_short_list(string, start):
+                    try:
+                        end = ee.tryParse(string, start)
+                        matches.append((end, ee))
+                    except ParseException as err:
+                        causes.append(err)
+            else:
+                try:
+                    end = e.tryParse(string, start)
+                    matches.append((end, e))
+                except ParseException as err:
+                    causes.append(err)
+
+        if not matches:
+            raise ParseException(
+                self,
+                start,
+                string,
+                msg="no defined alternatives to match",
+                cause=causes,
+            )
+        if len(matches) == 1:
+            _, expr = matches[0]
+            result = expr._parse(string, start, doActions)
+            return ParseResults(self, result.start, result.end, [result])
 
         if matches:
             # re-evaluate all matches in descending order of length of match, in case attached actions
@@ -276,38 +362,32 @@ class Or(ParseExpression):
             if not doActions:
                 # no further conditions or parse actions to change the selection of
                 # alternative, so the first match will be the best match
-                _, best_expr = matches[0]
-                best_results = best_expr._parse(string, start, doActions)
-                return ParseResults(
-                    self, best_results.start, best_results.end, [best_results]
-                )
+                _, expr = matches[0]
+                result = expr._parse(string, start, doActions)
+                return ParseResults(self, result.start, result.end, [result])
 
             longest = -1, None
-            for loc, expr1 in matches:
+            for loc, expr in matches:
                 if loc <= longest[0]:
                     # already have a longer match than this one will deliver, we are done
                     return longest
 
                 try:
-                    toks = expr1._parse(string, start, doActions)
+                    result = expr._parse(string, start, doActions)
                 except ParseException as err:
                     causes.append(err)
                 else:
-                    if toks.end >= loc:
-                        return ParseResults(self, toks.start, toks.end, [toks])
+                    if result.end >= loc:
+                        return ParseResults(self, result.start, result.end, [result])
                     # didn't match as much as before
-                    elif toks.end > longest[0]:
+                    elif result.end > longest[0]:
                         longest = (
-                            toks.end,
-                            ParseResults(self, toks.start, toks.end, [toks]),
+                            result.end,
+                            ParseResults(self, result.start, result.end, [result]),
                         )
 
             if longest != (-1, None):
                 return longest
-
-        raise ParseException(
-            self, start, string, msg="no defined alternatives to match", cause=causes
-        )
 
     def checkRecursion(self, seen=empty_tuple):
         seen_more = seen + (self,)
@@ -337,10 +417,16 @@ class MatchFirst(ParseExpression):
     match. May be constructed using the ``'|'`` operator.
     """
 
-    __slots__ = []
+    __slots__ = ["fast"]
 
     def __init__(self, exprs):
-        super(MatchFirst, self).__init__(exprs)
+        ParseExpression.__init__(self, exprs)
+        self.fast = self.exprs
+
+    def copy(self):
+        output = ParseExpression.copy(self)
+        output.fast = self.fast
+        return output
 
     def _min_length(self):
         if self.exprs:
@@ -352,10 +438,10 @@ class MatchFirst(ParseExpression):
     def parseImpl(self, string, start, doActions=True):
         causes = []
 
-        for e in self.exprs:
+        for e in self.fast:
             try:
-                ret = e._parse(string, start, doActions)
-                return ParseResults(self, ret.start, ret.end, [ret])
+                result = e._parse(string, start, doActions)
+                return ParseResults(self, result.start, result.end, [result])
             except ParseException as cause:
                 causes.append(cause)
 
@@ -371,9 +457,11 @@ class MatchFirst(ParseExpression):
             return output
         if not output.is_annotated():
             if len(output.exprs) == 0:
-                output = Empty()
+                return Empty()
             if len(output.exprs) == 1:
-                output = output.exprs[0]
+                return output.exprs[0]
+
+        output.fast = faster(output.exprs)
 
         output.streamlined = True
         output.checkRecursion()
@@ -408,6 +496,144 @@ class MatchFirst(ParseExpression):
             return self.parser_name
 
         return " | ".join("{" + text(e) + "}" for e in self.exprs)
+
+
+def faster(exprs):
+    """
+    BUILD A LOOKUP ARRAY TO MATCH ANY OF THE GIVEN exprs
+    PERFORMS A REGEX, AND USES THE lower() CHARACTERS TO JUMP TO A SHORTLIST OF exprs THAT CAN MATCH
+    :param exprs:
+    :return: LESS EXPRESSIONS
+    """
+
+    if len(exprs) < LOOKUP_COST:
+        return exprs
+
+    alternating = []
+    # SOME NUMBER OF CONSTANT PATTERNS
+    acc = []
+    out = []
+    has_expecting = True
+    for o in exprs:
+        p = o.expecting()
+        if has_expecting:
+            if p:
+                acc.append(p)
+                out.append(o)
+            else:
+                try:
+                    e = MatchFast(acc)
+                    alternating.append(e)
+                except Exception as c:
+                    alternating.extend(out)
+                acc = []
+                out = []
+                alternating.append(o)
+                has_expecting = False
+        elif p:
+            acc = [p]
+            out = [o]
+            has_expecting = True
+        else:
+            alternating.append(o)
+
+    if has_expecting:
+        try:
+            e = MatchFast(acc)
+            alternating.append(e)
+        except Exception as cause:
+            alternating.extend(out)
+    return alternating
+
+
+def _distinct(a, b):
+    """
+    ASSUME a != b
+    RETURN MINIMUM length SO THAT a[:length] != b[:length]
+    """
+    ii = 1
+    for aa, bb in zip(a, b):
+        if aa != bb:
+            return ii
+        ii += 1
+    return ii
+
+
+class MatchFast(ParserElement):
+    __slots__ = ["lookup", "regex", "all_keys"]
+
+    def __init__(self, maps):
+        ParserElement.__init__(self)
+
+        all_keys = set()
+        lookup = OrderedDict()
+        for m in maps:
+            for k, ee in m.items():
+                all_keys.add(k)
+                lookup.setdefault(k, []).extend(ee)
+
+        # patterns must be mutually exclusive to work
+        items = list(lookup.items())
+        if len(maps) - max(len(v) for k, v in items) < LOOKUP_COST:
+            Log.error("not useful")
+
+        compact = []
+        for k, e in items:
+            min_k = k
+            # FIND SHORTEST PREFIX
+            for kk, ee in items:
+                if ee and min_k.startswith(kk):
+                    min_k = kk
+            # COLLECT
+            acc = []
+            for kk, ee in items:
+                if kk.startswith(min_k):
+                    acc.extend(ee)
+                    ee.clear()
+            if acc:
+                compact.append((min_k, acc))
+        if len(maps) - max(len(v) for k, v in compact) < LOOKUP_COST:
+            Log.error("not useful")
+
+        # patterns can be shortened so far as they remain exclusive
+        shorter = [
+            (k[:min_length], e)
+            for k, e in sorted(compact, key=lambda p: p[0])
+            for min_length in [max(_distinct(k, kk) for kk, _ in compact if kk != k)]
+        ]
+
+        self.lookup = {k: e for k, e in shorter}
+        self.regex = regex_compile("|".join(regex_caseless(k) for k, _ in shorter))
+        self.all_keys = list(sorted(all_keys))
+
+    def get_short_list(self, string, start):
+        """
+        USE THE LOOKUP FEATURE TO FIND THE FEW ParserElements THAT CAN MATCH
+        """
+        found = self.regex.match(string, start)
+        if found:
+            index = found.group(0).lower()
+            return self.lookup[index]
+        return []
+
+    def parseImpl(self, string, start, doActions=True):
+        found = self.regex.match(string, start)
+        if found:
+            index = found.group(0).lower()
+            exprs = self.lookup[index]
+
+            causes = []
+            for e in exprs:
+                try:
+                    return e._parse(string, start, doActions)
+                except ParseException as cause:
+                    causes.append(cause)
+
+            raise ParseException(self, start, string, cause=causes)
+        else:
+            raise ParseException(
+                self, start, string, "expecting one of " + json.dumps(self.all_keys)
+            )
 
 
 class Each(ParseExpression):

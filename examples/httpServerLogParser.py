@@ -23,18 +23,11 @@ Referer
 Client Software
 """
 
-from mo_parsing import (
-    alphas,
-    nums,
-    dblQuotedString,
-    Combine,
-    Word,
-    Group,
-    delimitedList,
-    Suppress,
-    removeQuotes,
-)
+from mo_parsing import *
 import string
+
+from mo_parsing.helpers import delimitedList, dblQuotedString, removeQuotes
+from mo_parsing.utils import nums, alphas
 
 
 def getCmdFields(t, l, s):

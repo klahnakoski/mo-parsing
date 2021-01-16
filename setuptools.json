@@ -9,7 +9,7 @@
         "Topic :: Software Development :: Libraries :: Python Modules"
     ],
     "description": "Another PEG Parsing Tool",
-    "install_requires": ["mo-dots==3.135.20303", "mo-future==3.136.20306"],
+    "install_requires": ["mo-dots==4.2.20340", "mo-future==3.147.20327"],
     "license": "MIT",
     "long_description": {
         "$concat": [
@@ -102,5 +102,5 @@
     "name": "mo-parsing",
     "packages": ["mo_parsing"],
     "url": "https://github.com/klahnakoski/mo-parsing",
-    "version": "3.138.20319"
+    "version": "4.12.21016"
 }

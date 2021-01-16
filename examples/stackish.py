@@ -27,21 +27,9 @@ SPACE White space is basically ignored. This is interesting because since
     Stackish is serialized consistently this means you can use \n as the
     separation character and perform reasonable diffs on two structures.
 """
-from mo_parsing import (
-    Suppress,
-    Word,
-    nums,
-    alphas,
-    alphanums,
-    Combine,
-    oneOf,
-    Optional,
-    QuotedString,
-    Forward,
-    Group,
-    ZeroOrMore,
-    srange,
-)
+
+from mo_parsing import *
+from mo_parsing.helpers import *
 from mo_testing.fuzzytestcase import assertAlmostEqual
 
 MARK, UNMARK, AT, COLON, QUOTE = map(Suppress, "[]@:'")

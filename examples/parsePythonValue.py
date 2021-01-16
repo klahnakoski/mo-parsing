@@ -24,7 +24,7 @@ dictStr = Forward()
 unicodeString.addParseAction(lambda t: t[0][2:-1])
 quotedString.addParseAction(lambda t: t[0][1:-1])
 boolLiteral = oneOf("True False").addParseAction(cvtBool)
-noneLiteral = Literal("None").addParseAction(replaceWith(None))
+noneLiteral = Literal("None").addParseAction(lambda: [None])
 
 listItem = (
     real

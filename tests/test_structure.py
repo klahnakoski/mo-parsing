@@ -1,4 +1,5 @@
-from mo_parsing import alphas, Word, Group, Forward
+from mo_parsing import Word, Group, Forward
+from mo_parsing.utils import alphas
 from tests.test_simple_unit import PyparsingExpressionTestCase
 
 w = Word(alphas)

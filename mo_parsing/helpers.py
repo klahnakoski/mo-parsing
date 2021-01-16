@@ -550,18 +550,6 @@ def matchOnlyAtCol(n):
     return verifyCol
 
 
-def replaceWith(value):
-    """Helper method for common parse actions that simply return
-    a literal value.  Especially useful when used with
-    `transformString<ParserElement.transformString>` ().
-    """
-
-    def replacer():
-        return [value]
-
-    return replacer
-
-
 def removeQuotes(t, l, s):
     """Helper parse action for removing quotation marks from parsed
     quoted strings.
@@ -899,9 +887,12 @@ def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
     ])
     ops = Or([
         opPart.addParseAction(record_op(opPart))
-        for expr, op, is_suppressed, arity, assoc, pa in opList
-        if arity > 1
-        for opPart in (op if isinstance(op, tuple) else [op])
+        for opPart in set(
+            opPart
+            for expr, op, is_suppressed, arity, assoc, pa in opList
+            if arity > 1
+            for opPart in (op if isinstance(op, tuple) else [op])
+        )
     ])
 
     def make_tree(tokens, loc, string):
@@ -997,7 +988,9 @@ def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
             flat_tokens[i : i + offset] = [(result, (expr,))]
             op_index = 0
 
-        return flat_tokens[0][0]
+        result = flat_tokens[0][0]
+        result.end = tokens.end
+        return result
 
     flat = Forward()
     iso = lpar.suppress() + flat + rpar.suppress()
@@ -1056,7 +1049,7 @@ def indentedBlock(blockStatementExpr, indent=True):
             if curCol != expectedCol:
                 if curCol > expectedCol:
                     raise ParseException(t.type, s, l, "illegal nesting")
-                raise ParseException(t.type, s, l, "not a peer entry")
+                raise ParseException(t.type, l, s, "not a peer entry")
 
         return output
 
@@ -1141,21 +1134,17 @@ htmlComment = Regex(r"<!--[\s\S]*?-->").set_parser_name("HTML comment")
 
 with Engine() as engine:
     engine.set_whitespace("")
-    restOfLine = Regex(r".*").leaveWhitespace().set_parser_name("rest of line")
+    restOfLine = Regex(r"[^\n]*").leaveWhitespace().set_parser_name("rest of line")
 
-dblSlashComment = Regex(r"//(?:\\\n|[^\n])*").set_parser_name("// comment")
-"Comment of the form ``// ... (to end of line)``"
+    dblSlashComment = Regex(r"//(?:\\\n|[^\n])*").set_parser_name("// comment")
 
-cppStyleComment = Combine(
-    Regex(r"/\*(?:[^*]|\*(?!/))*") + "*/" | dblSlashComment
-).set_parser_name("C++ style comment")
-"Comment of either form `cStyleComment` or `dblSlashComment`"
+    cppStyleComment = Combine(
+        Regex(r"/\*(?:[^*]|\*(?!/))*") + "*/" | dblSlashComment
+    ).set_parser_name("C++ style comment")
 
-javaStyleComment = cppStyleComment
-"Same as `cppStyleComment`"
+    javaStyleComment = cppStyleComment
 
-pythonStyleComment = Regex(r"#.*").set_parser_name("Python style comment")
-"Comment of the form ``# ... (to end of line)``"
+    pythonStyleComment = Regex(r"#[^\n]*").set_parser_name("Python style comment")
 
 _commasepitem = (
     Combine(OneOrMore(
@@ -1169,161 +1158,15 @@ commaSeparatedList = delimitedList(Optional(
     quotedString | _commasepitem, default=""
 )).set_parser_name("commaSeparatedList")
 
-"""Here are some common low-level expressions that may be useful in
-jump-starting parser development:
-
- - numeric forms (`integers<integer>`, `reals<real>`,
-   `scientific notation<sci_real>`)
- - common `programming identifiers<identifier>`
- - network addresses (`MAC<mac_address>`,
-   `IPv4<ipv4_address>`, `IPv6<ipv6_address>`)
- - ISO8601 `dates<iso8601_date>` and
-   `datetime<iso8601_datetime>`
- - `UUID<uuid>`
- - `comma-separated list<comma_separated_list>`
-
-Parse actions:
-
- - `convertToInteger`
- - `convertToFloat`
- - `convertToDate`
- - `convertToDatetime`
- - `stripHTMLTags`
- - `upcaseTokens`
- - `downcaseTokens`
-
-Example::
-
-    test.runTests(number, '''
-        # any int or real number, returned as the appropriate type
-        100
-        -100
-        +100
-        3.14159
-        6.02e23
-        1e-12
-        ''')
-
-    test.runTests(fnumber, '''
-        # any int or real number, returned as float
-        100
-        -100
-        +100
-        3.14159
-        6.02e23
-        1e-12
-        ''')
-
-    test.runTests(hex_integer, '''
-        # hex numbers
-        100
-        FF
-        ''')
-
-    test.runTests(fraction, '''
-        # fractions
-        1/2
-        -3/4
-        ''')
-
-    test.runTests(mixed_integer, '''
-        # mixed fractions
-        1
-        1/2
-        -3/4
-        1-3/4
-        ''')
-
-    import uuid
-    uuid.addParseAction(tokenMap(uuid.UUID))
-    test.runTests(uuid, '''
-        # uuid
-        12345678-1234-5678-1234-567812345678
-        ''')
-
-prints::
-
-    # any int or real number, returned as the appropriate type
-    100
-    [100]
-
-    -100
-    [-100]
-
-    +100
-    [100]
-
-    3.14159
-    [3.14159]
-
-    6.02e23
-    [6.02e+23]
-
-    1e-12
-    [1e-12]
-
-    # any int or real number, returned as float
-    100
-    [100.0]
-
-    -100
-    [-100.0]
-
-    +100
-    [100.0]
-
-    3.14159
-    [3.14159]
-
-    6.02e23
-    [6.02e+23]
-
-    1e-12
-    [1e-12]
-
-    # hex numbers
-    100
-    [256]
-
-    FF
-    [255]
-
-    # fractions
-    1/2
-    [0.5]
-
-    -3/4
-    [-0.75]
-
-    # mixed fractions
-    1
-    [1]
-
-    1/2
-    [0.5]
-
-    -3/4
-    [-0.75]
-
-    1-3/4
-    [1.75]
-
-    # uuid
-    12345678-1234-5678-1234-567812345678
-    [UUID('12345678-1234-5678-1234-567812345678')]
-"""
 
 convertToInteger = tokenMap(int)
-
 convertToFloat = tokenMap(float)
 
 integer = Word(nums).set_parser_name("integer").addParseAction(convertToInteger)
-"""expression that parses an unsigned integer, returns an int"""
 
 hex_integer = (
     Word(hexnums).set_parser_name("hex integer").addParseAction(tokenMap(int, 16))
 )
-"""expression that parses a hexadecimal integer, returns an int"""
 
 signed_integer = (
     Regex(r"[+-]?\d+")
@@ -1514,5 +1357,4 @@ comma_separated_list = delimitedList(Optional(
 from mo_parsing import core, engine
 
 core._flatten = _flatten
-core.replaceWith = replaceWith
 core.quotedString = quotedString

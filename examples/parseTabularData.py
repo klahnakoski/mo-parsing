@@ -7,7 +7,7 @@
 #
 # Copyright 2015, Paul McGuire
 #
-from mo_parsing import col, Word, Optional, alphas, nums
+from mo_parsing.helpers import *
 
 table = """\
          1         2

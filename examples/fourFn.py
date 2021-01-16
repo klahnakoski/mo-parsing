@@ -14,6 +14,8 @@ import math
 import operator
 
 from mo_parsing import *
+from mo_parsing.helpers import delimitedList
+from mo_parsing.utils import alphas, alphanums
 
 exprStack = []
 

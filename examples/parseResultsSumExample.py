@@ -4,12 +4,13 @@
 # Sample script showing the value in merging ParseResults retrieved by searchString,
 # using Python's builtin sum() method
 #
+
+from mo_parsing.helpers import *
+
 samplestr1 = "garbage;DOB 10-10-2010;more garbage\nID PARI12345678;more garbage"
 samplestr2 = "garbage;ID PARI12345678;more garbage\nDOB 10-10-2010;more garbage"
 samplestr3 = "garbage;DOB 10-10-2010"
 samplestr4 = "garbage;ID PARI12345678;more garbage- I am cool"
-
-from mo_parsing import *
 
 dob_ref = "DOB" + Regex(r"\d{2}-\d{2}-\d{4}")("dob")
 id_ref = "ID" + Word(alphanums, exact=12)("id")

@@ -12,7 +12,7 @@
 #
 # Copyright 2007 by Paul McGuire
 #
-from mo_parsing import *
+from mo_parsing.helpers import *
 
 # define the structure of a macro definition (the empty term is used
 # to advance to the next non-whitespace character)

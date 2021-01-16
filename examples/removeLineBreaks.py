@@ -28,10 +28,10 @@ lineBody = SkipTo(line_end).addCondition(
 )
 
 # now define a line with a trailing lineEnd, to be replaced with a space character
-textLine = lineBody + line_end().addParseAction(replaceWith(" "))
+textLine = lineBody + line_end().addParseAction(lambda: " ")
 
 # define a paragraph, with a separating lineEnd, to be replaced with a double newline
-para = OneOrMore(textLine) + line_end().addParseAction(replaceWith("\n\n"))
+para = OneOrMore(textLine) + line_end().addParseAction(lambda: "\n\n")
 
 # run a test
 test = """

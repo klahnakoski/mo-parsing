@@ -11,7 +11,7 @@
 # Updated 9 Aug 2016 - use more current mo_parsing constructs/idioms
 #
 from mo_parsing.engine import Engine
-from mo_parsing.helpers import number
+from mo_parsing.helpers import number, dblQuotedString, removeQuotes, delimitedList, cppStyleComment
 
 json_bnf = """
 object
@@ -40,7 +40,7 @@ from mo_parsing import *
 
 
 def make_keyword(kwd_str, kwd_value):
-    return Keyword(kwd_str).addParseAction(replaceWith(kwd_value))
+    return Keyword(kwd_str).addParseAction(lambda: kwd_value)
 
 
 with Engine() as engine:

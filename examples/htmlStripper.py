@@ -7,20 +7,12 @@
 # Copyright (c) 2006, 2016, Paul McGuire
 #
 from mo_logs import Log
-from mo_threads import stop_main_thread, MAIN_THREAD
+from mo_testing.fuzzytestcase import assertAlmostEqual
+from mo_threads import MAIN_THREAD
 from mo_times import Timer
 
-from mo_parsing import (
-    makeHTMLTags,
-    commonHTMLEntity,
-    replaceHTMLEntity,
-    htmlComment,
-    anyOpenTag,
-    anyCloseTag,
-    LineEnd,
-    replaceWith,
-)
-from mo_testing.fuzzytestcase import assertAlmostEqual
+from mo_parsing import LineEnd
+from mo_parsing.helpers import makeHTMLTags, replaceHTMLEntity, commonHTMLEntity, htmlComment, anyOpenTag, anyCloseTag
 
 scriptOpen, scriptClose = makeHTMLTags("script")
 scriptBody = scriptOpen + scriptOpen.tag_body + scriptClose
@@ -42,7 +34,7 @@ with Timer("remove html"):
 
 # first pass leaves many blank lines, collapse these down
 with Timer("remove extra blank lines"):
-    repeatedNewlines = LineEnd()[2:...].addParseAction(replaceWith("\n"))
+    repeatedNewlines = LineEnd()[2:...].addParseAction(lambda: "\n")
     secondPass = repeatedNewlines.transformString(firstPass)
 
 with open("examples/htmlStripper.out.txt", "wb") as f:

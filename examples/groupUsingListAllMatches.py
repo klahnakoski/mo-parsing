@@ -7,7 +7,8 @@
 #
 # Copyright 2004-2016, by Paul McGuire
 #
-from mo_parsing import Word, ZeroOrMore, nums
+from mo_parsing import Word, ZeroOrMore
+from mo_parsing.utils import nums
 
 aExpr = Word("A", nums)
 bExpr = Word("B", nums)

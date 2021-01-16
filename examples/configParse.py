@@ -13,11 +13,11 @@ from mo_parsing import (
     Group,
     Dict,
     Optional,
-    printables,
-    restOfLine,
     engine,
     Empty,
 )
+from mo_parsing.helpers import restOfLine
+from mo_parsing.utils import printables
 
 inibnf = None
 

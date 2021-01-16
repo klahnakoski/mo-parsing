@@ -6,7 +6,7 @@ from importlib import import_module
 
 from mo_files import File
 
-from mo_parsing.engine import Engine
+from mo_parsing.helpers import *
 
 skip_list = [
     "TAP",
