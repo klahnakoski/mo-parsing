@@ -3588,7 +3588,7 @@ class TestParsing(PyparsingExpressionTestCase):
         )
 
         def _range(t, l, s):
-            return list(range(t["start"], t["end"] + 1))
+            return list(range(t["start"].value(), t["end"].value() + 1))
 
         intrange = intrange.addParseAction(_range)
 

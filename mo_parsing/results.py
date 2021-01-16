@@ -34,13 +34,14 @@ class ParseResults(object):
         for tok in self.tokens:
             if isinstance(tok, ParseResults):
                 if tok.name == name:
-                    yield ParseResults(NO_PARSER, -1, 0, tok.tokens)
+                    for t in tok:
+                        yield t
+                    continue
+                elif tok.name:
                     continue
                 elif isinstance(tok.type, Group):
                     continue
                 elif is_forward(tok.type) and isinstance(tok.tokens[0].type, Group):
-                    continue
-                elif tok.name:
                     continue
                 for f in tok._get_item_by_name(name):
                     yield f
@@ -49,7 +50,15 @@ class ParseResults(object):
         if is_forward(self.type):
             return self.tokens[0][item]
 
-        if isinstance(item, int):
+        if is_text(item):
+            values = list(self._get_item_by_name(item))
+            if len(values) == 0:
+                return None
+            if len(values) == 1:
+                return values[0]
+            # ENCAPSULATE IN A ParseResults FOR FURTHER NAVIGATION
+            return ParseResults(NO_PARSER, -1, 0, values)
+        elif isinstance(item, int):
             if item < 0:
                 item = len(self) + item
             for ii, v in enumerate(self):
@@ -58,13 +67,7 @@ class ParseResults(object):
         elif isinstance(item, slice):
             return list(iter(self))[item]
         else:
-            values = list(self._get_item_by_name(item))
-            if len(values) == 0:
-                return None
-            if len(values) == 1:
-                return values[0]
-            # ENCAPSULATE IN A ParseResults FOR FURTHER NAVIGATION
-            return ParseResults(NO_PARSER, -1, 0, values)
+            Log.error("not expected")
 
     def __setitem__(self, k, v):
         if isinstance(k, (slice, int)):
@@ -304,6 +307,9 @@ class ParseResults(object):
         return bool(self[item])
 
     def __add__(self, other):
+        # if not isinstance(other, ParseResults):
+        #     return self.value() + other
+        #
         return ParseResults(
             Group(self.type + other.type),
             self.start,
