@@ -308,13 +308,15 @@ class Or(ParseExpression):
 
         output = ParseExpression.streamline(self)
 
-        if isinstance(output, Empty):
+        if not isinstance(output, ParseExpression):
             return output
         if not output.is_annotated():
             if len(output.exprs) == 0:
                 output = Empty()
             if len(output.exprs) == 1:
                 output = output.exprs[0]
+                if not isinstance(output, ParseExpression):
+                    return output
 
         output.fast = faster(output.exprs)
 

@@ -23,7 +23,6 @@ skip_list = [
     "dictExample2",
     "ebnftest",
     "eval_arith",
-    "excelExpr",
     "gen_ctypes",
     "getNTPserversNew",
     "htmlTableParser",
