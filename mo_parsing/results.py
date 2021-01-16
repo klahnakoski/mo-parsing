@@ -57,7 +57,7 @@ class ParseResults(object):
         if is_text(item):
             values = list(self._get_item_by_name(item))
             if len(values) == 0:
-                return None
+                return NO_RESULTS
             if len(values) == 1:
                 return values[0]
             # ENCAPSULATE IN A ParseResults FOR FURTHER NAVIGATION
@@ -440,7 +440,7 @@ class ParseResults(object):
         elif len(self.tokens) == 1:
             return self.tokens[0].name
         else:
-            return None
+            return ""
 
     def __getnewargs__(self):
         old_parser = self.type
@@ -467,16 +467,6 @@ def _flatten(token):
         for t in token.tokens:
             for tt in _flatten(t):
                 yield tt
-
-
-def simpler(v):
-    # convert an open list to object it represents
-    if isinstance(v, list):
-        if len(v) == 0:
-            return None
-        elif len(v) == 1:
-            return v[0]
-    return v
 
 
 def add(obj, key, value):
