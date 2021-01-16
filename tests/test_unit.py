@@ -1259,7 +1259,7 @@ class TestParsing(PyparsingExpressionTestCase):
         test(
             e, "start 123 456 end", ["start", "123", "456", "end"], {"_skipped": "456"},
         )
-        test(e, "start end", ["start", "end"], {"_skipped": None})
+        test(e, "start end", ["start", "end"], {"_skipped": ""})
 
         e = "start" + (alpha_word[...] & num_word[...] | ...) + "end"
         test(e, "start 456 red end", ["start", "456", "red", "end"], {})
@@ -1286,13 +1286,13 @@ class TestParsing(PyparsingExpressionTestCase):
         )
         test(e, "start red end", ["start", "red", "end"], {"_skipped": "red"})
         test(e, "start 456 end", ["start", "456", "end"], {"_skipped": "456"})
-        test(e, "start end", ["start", "end"], {"_skipped": None})
+        test(e, "start end", ["start", "end"], {"_skipped": ""})
         test(e, "start 456 + end", ["start", "456 +", "end"], {"_skipped": "456 +"})
 
         e = "start" + (alpha_word | ...) + (num_word | ...) + "end"
         test(e, "start red 456 end", ["start", "red", "456", "end"], {})
-        test(e, "start red end", ["start", "red", "end"], {"_skipped": None})
-        test(e, "start end", ["start", "end"], {"_skipped": None})
+        test(e, "start red end", ["start", "red", "end"], {"_skipped": ""})
+        test(e, "start end", ["start", "end"], {"_skipped": ""})
 
         e = Literal("start") + ... + "+" + ... + "end"
         test(
@@ -1785,12 +1785,12 @@ class TestParsing(PyparsingExpressionTestCase):
             </BODY>
         """
         expected = [
-            ("startBody", False, None, None),
-            ("startBody", False, "#00FFCC", None),
-            ("startBody", True, "#00FFAA", None),
+            ("startBody", False, "", ""),
+            ("startBody", False, "#00FFCC", ""),
+            ("startBody", True, "#00FFAA", ""),
             ("startBody", False, "#00FFBB", "black"),
-            ("startBody", True, None, None),
-            ("endBody", False, None, None),
+            ("startBody", True, "", ""),
+            ("endBody", False, "", ""),
         ]
 
         bodyStart, bodyEnd = makeHTMLTags("BODY")
