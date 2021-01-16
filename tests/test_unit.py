@@ -1189,16 +1189,15 @@ class TestParsing(PyparsingExpressionTestCase):
         list_of_num = delimitedList(hexnum | num | name, ",")
 
         tokens = list_of_num.parseString("1, 0x2, 3, 0x4, aaa")
-        # print(tokens)
-        # self.assertParseResultsEquals(
-        #     tokens,
-        #     expected_list=["1", "0x2", "3", "0x4", "aaa"],
-        #     expected_dict={
-        #         "base10": ["1", "3"],
-        #         "hex": ["0x2", "0x4"],
-        #         "word": ["aaa"],
-        #     },
-        # )
+        self.assertParseResultsEquals(
+            tokens,
+            expected_list=["1", "0x2", "3", "0x4", "aaa"],
+            expected_dict={
+                "base10": ["1", "3"],
+                "hex": ["0x2", "0x4"],
+                "word": "aaa",
+            },
+        )
 
         lbrack = Literal("(").suppress()
         rbrack = Literal(")").suppress()
@@ -3259,7 +3258,7 @@ class TestParsing(PyparsingExpressionTestCase):
         res = id_ref.searchString(samplestr1)[0]
 
         self.assertEqual(
-            samplestr1[res["locn_start"].value() : res["locn_end"].value()].strip(),  # CURRENTLY CAN NOT GET END, ONLY GET BEGINNING OF NEXT TOKEN
+            samplestr1[res["locn_start"] : res["locn_end"]].strip(),  # CURRENTLY CAN NOT GET END, ONLY GET BEGINNING OF NEXT TOKEN
             "ID PARI12345678",
             "incorrect location calculation",
         )
@@ -3286,7 +3285,7 @@ class TestParsing(PyparsingExpressionTestCase):
         )
 
         rangeParser = rangeParser.addCondition(
-            lambda t: t["to"].value() > t["from_"].value(), message="from must be <= to", fatal=False
+            lambda t: t["to"] > t["from_"], message="from must be <= to", fatal=False
         )
         result = rangeParser.searchString("1-4 2-4 4-3 5 6 7 8 9 10")
 
@@ -3296,7 +3295,7 @@ class TestParsing(PyparsingExpressionTestCase):
 
         rangeParser = numParser("from_") + Suppress("-") + numParser("to")
         rangeParser = rangeParser.addCondition(
-            lambda t: t["to"].value() > t["from_"].value(), message="from must be <= to", fatal=True
+            lambda t: t["to"] > t["from_"], message="from must be <= to", fatal=True
         )
         with TestCase.assertRaises(self, Exception):
             rangeParser.searchString("1-4 2-4 4-3 5 6 7 8 9 10")
@@ -3582,13 +3581,13 @@ class TestParsing(PyparsingExpressionTestCase):
         intrange = integer("start") + "-" + integer("end")
 
         intrange = intrange.addCondition(
-            lambda t: t["end"].value() > t["start"].value(),
+            lambda t: t["end"] > t["start"],
             message="invalid range, start must be <= end",
             fatal=True,
         )
 
         def _range(t, l, s):
-            return list(range(t["start"].value(), t["end"].value() + 1))
+            return list(range(t["start"], t["end"] + 1))
 
         intrange = intrange.addParseAction(_range)
 
@@ -4217,7 +4216,7 @@ class TestParsing(PyparsingExpressionTestCase):
             """,
             failureTests=[False, False, False, False, True, True],
         )
-        expected = ([], [0, 12], [9], [4, 5], None, None)
+        expected = ([], [0, 12], 9, [4, 5], None, None)
 
         for (r_str, r_tok), exp in zip(results, expected):
             if exp is not None:

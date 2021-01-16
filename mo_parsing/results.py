@@ -34,8 +34,11 @@ class ParseResults(object):
         for tok in self.tokens:
             if isinstance(tok, ParseResults):
                 if tok.name == name:
-                    for t in tok:
-                        yield t
+                    if isinstance(tok.type, Group):
+                        yield tok
+                    else:
+                        for t in tok:
+                            yield t
                     continue
                 elif tok.name:
                     continue
@@ -304,6 +307,8 @@ class ParseResults(object):
             return defaultValue
 
     def __contains__(self, item):
+        if item is Ellipsis:
+            return False
         return bool(self[item])
 
     def __add__(self, other):
