@@ -9,24 +9,14 @@
 #
 from __future__ import division
 
-from collections import namedtuple
 from contextlib import contextmanager
-from datetime import datetime
 from unittest import TestCase
 
-from mo_parsing import *
-from mo_parsing import engine
-from mo_parsing.core import Many
-from mo_parsing.engine import Engine
-from mo_parsing.helpers import (
-    number,
-    identifier,
-    ipv4_address,
-    integer,
-    fnumber,
-    tokenMap,
-)
 from mo_testing.fuzzytestcase import FuzzyTestCase
+
+from mo_parsing import *
+from mo_parsing.helpers import *
+from mo_parsing.utils import *
 
 TestSpecification = namedtuple(
     "PpTestSpec",

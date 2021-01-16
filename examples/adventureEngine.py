@@ -375,10 +375,10 @@ class Parser:
         helpVerb = oneOf("H HELP ?", caseless=True)
 
         itemRef = OneOrMore(Word(alphas)).addParseAction(self.validateItemName)
-        nDir = oneOf("N NORTH", caseless=True).addParseAction(replaceWith("N"))
-        sDir = oneOf("S SOUTH", caseless=True).addParseAction(replaceWith("S"))
-        eDir = oneOf("E EAST", caseless=True).addParseAction(replaceWith("E"))
-        wDir = oneOf("W WEST", caseless=True).addParseAction(replaceWith("W"))
+        nDir = oneOf("N NORTH", caseless=True).addParseAction(lambda: "N")
+        sDir = oneOf("S SOUTH", caseless=True).addParseAction(lambda: "S")
+        eDir = oneOf("E EAST", caseless=True).addParseAction(lambda: "E")
+        wDir = oneOf("W WEST", caseless=True).addParseAction(lambda: "W")
         moveDirection = nDir | sDir | eDir | wDir
 
         invCommand = invVerb

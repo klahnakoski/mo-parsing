@@ -6,7 +6,7 @@
 #  paired delimiters for grouping lists and sublists
 #
 
-from mo_parsing import *
+from mo_parsing.helpers import nestedExpr
 
 data = """
 {

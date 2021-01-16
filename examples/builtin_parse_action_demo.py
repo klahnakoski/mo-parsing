@@ -6,6 +6,7 @@
 #
 
 from mo_parsing import *
+from mo_parsing.utils import nums
 
 integer = Word(nums).addParseAction(lambda t: int(t[0]))
 

@@ -83,5 +83,5 @@ from mo_parsing import dblQuotedString, LineStart
 
 # remove all string macro definitions (after extracting to a string resource table?)
 stringMacroDef = Literal("#define") + ident + "=" + dblQuotedString + LineStart()
-stringMacroDef.addParseAction(replaceWith(""))
+stringMacroDef.addParseAction(lambda: "")
 

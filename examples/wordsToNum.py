@@ -10,7 +10,7 @@ from functools import reduce
 
 def makeLit(s, val):
     ret = CaselessLiteral(s)
-    return ret.addParseAction(replaceWith(val))
+    return ret.addParseAction(lambda: [val])
 
 
 unitDefinitions = [

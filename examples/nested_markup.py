@@ -6,6 +6,7 @@
 # Copyright 2019, Paul McGuire
 #
 from mo_parsing import *
+from mo_parsing.helpers import originalTextFor, nestedExpr
 
 wiki_markup = Forward()
 

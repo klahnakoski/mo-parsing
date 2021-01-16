@@ -7,23 +7,16 @@
 #
 from mo_parsing import (
     Word,
-    delimitedList,
     Optional,
     Group,
-    alphas,
-    alphanums,
     Forward,
-    oneOf,
-    quotedString,
     infixNotation,
-    restOfLine,
     CaselessKeyword,
-    upcaseTokens,
 )
-
-# define SQL tokens
 from mo_parsing.engine import Engine
-from mo_parsing.helpers import real, signed_integer, RIGHT_ASSOC, LEFT_ASSOC
+from mo_parsing.helpers import delimitedList, restOfLine, upcaseTokens, oneOf, real, signed_integer, quotedString, \
+    RIGHT_ASSOC, LEFT_ASSOC
+from mo_parsing.utils import alphas, alphanums
 
 engine = Engine().use()
 

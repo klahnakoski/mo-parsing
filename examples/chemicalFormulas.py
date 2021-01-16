@@ -4,7 +4,8 @@
 # Copyright (c) 2003,2019 Paul McGuire
 #
 
-from mo_parsing import Word, alphas, Group, Optional
+from mo_parsing import Word, Group, Optional
+from mo_parsing.utils import alphas
 
 atomicWeight = {
     "O": 15.9994,

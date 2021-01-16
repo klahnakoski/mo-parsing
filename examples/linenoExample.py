@@ -7,7 +7,7 @@
 #
 # Copyright (c) 2006, Paul McGuire
 #
-from mo_parsing import *
+from mo_parsing.helpers import *
 
 data = """Now is the time
 for all good men

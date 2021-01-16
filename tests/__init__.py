@@ -119,7 +119,7 @@ def runTests(
         comment = Literal(comment)
 
     allResults = []
-    NL = Literal(r"\n").addParseAction(replaceWith("\n"))
+    NL = Literal(r"\n").addParseAction(lambda: "\n")
     BOM = u"\ufeff"
     for i, (t, failureTest) in enumerate(zip(
         tests,

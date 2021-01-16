@@ -7,8 +7,8 @@
 #
 
 from mo_parsing import *
+from mo_parsing.utils import alphas, alphanums
 
-# define punctuation and simple tokens for locating API calls
 LBRACK, RBRACK, LBRACE, RBRACE = map(Suppress, "[]{}")
 ident = Word(alphas, alphanums + "_") | QuotedString("{", endQuoteChar="}")
 arg = "$" + ident

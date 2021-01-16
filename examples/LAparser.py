@@ -60,20 +60,19 @@ Usage: To process LA equations embedded in source files, import this module and
 import re, sys
 from mo_parsing import (
     Word,
-    alphas,
     ParseException,
     Literal,
     CaselessLiteral,
     Combine,
     Optional,
-    nums,
     Forward,
     ZeroOrMore,
     StringEnd,
-    alphanums,
 )
 
 # Debugging flag can be set to either "debug_flag=True" or "debug_flag=False"
+from mo_parsing.utils import nums, alphas, alphanums
+
 debug_flag = False
 
 # ----------------------------------------------------------------------------

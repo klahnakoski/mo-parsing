@@ -1,23 +1,20 @@
 # encoding: utf-8
-from unittest import TestCase
 import uuid
+from unittest import TestCase
 
 from mo_parsing import (
     CaselessLiteral,
     Group,
     Word,
-    alphanums,
-    alphas,
-    delimitedList,
-    upcaseTokens,
 )
 from mo_parsing.helpers import (
     number,
     hex_integer,
     fnumber,
     uuid as helper_uuid,
-    tokenMap,
+    tokenMap, delimitedList, upcaseTokens,
 )
+from mo_parsing.utils import alphas, alphanums
 from tests import runTests
 
 

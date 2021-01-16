@@ -12,7 +12,7 @@
 # Copyright 2006, by Paul McGuire
 # Updated 2013-Sep-14 - improved Python 2/3 cross-compatibility
 #
-from mo_parsing import infixNotation, Keyword, Word, alphas, RIGHT_ASSOC, LEFT_ASSOC
+from mo_parsing.helpers import *
 
 
 # define classes to be built at parse time, as each matching

@@ -550,18 +550,6 @@ def matchOnlyAtCol(n):
     return verifyCol
 
 
-def replaceWith(value):
-    """Helper method for common parse actions that simply return
-    a literal value.  Especially useful when used with
-    `transformString<ParserElement.transformString>` ().
-    """
-
-    def replacer():
-        return [value]
-
-    return replacer
-
-
 def removeQuotes(t, l, s):
     """Helper parse action for removing quotation marks from parsed
     quoted strings.
@@ -1369,5 +1357,4 @@ comma_separated_list = delimitedList(Optional(
 from mo_parsing import core, engine
 
 core._flatten = _flatten
-core.replaceWith = replaceWith
 core.quotedString = quotedString

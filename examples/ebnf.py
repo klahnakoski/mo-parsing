@@ -12,11 +12,7 @@ from mo_parsing import (
     Suppress,
     Forward,
     CharsNotIn,
-    nums,
-    alphas,
-    alphanums,
     Optional,
-    delimitedList,
     ZeroOrMore,
     Literal,
     OneOrMore,
@@ -26,6 +22,8 @@ from mo_parsing import (
     Group,
 )
 from mo_parsing.engine import Engine
+from mo_parsing.helpers import delimitedList
+from mo_parsing.utils import alphas, alphanums, nums
 
 engine = Engine().use()
 ebnfComment = (

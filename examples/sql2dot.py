@@ -7,6 +7,9 @@
 #
 #  Adapted from a post at https://energyblog.blogspot.com/2006/04/blog-post_20.html.
 #
+
+from mo_parsing.helpers import *
+
 sampleSQL = """
 create table student
 (
@@ -46,18 +49,6 @@ alter table only student_registrations
     foreign key
     (class_id) references classes(class_id);
 """.upper()
-
-from mo_parsing import (
-    Literal,
-    Word,
-    delimitedList,
-    alphas,
-    alphanums,
-    OneOrMore,
-    ZeroOrMore,
-    CharsNotIn,
-    replaceWith,
-)
 
 skobki = "(" + ZeroOrMore(CharsNotIn(")")) + ")"
 field_def = OneOrMore(Word(alphas, alphanums + "_\"':-") | skobki)
@@ -127,9 +118,9 @@ def add_fkey_act(toks):
 add_fkey_def.addParseAction(add_fkey_act)
 
 other_statement_def = OneOrMore(CharsNotIn(";")) + ";"
-other_statement_def.addParseAction(replaceWith(""))
+other_statement_def.addParseAction(lambda: "")
 comment_def = "--" + ZeroOrMore(CharsNotIn("\n"))
-comment_def.addParseAction(replaceWith(""))
+comment_def.addParseAction(lambda: "")
 
 statement_def = comment_def | create_table_def | add_fkey_def | other_statement_def
 defs = OneOrMore(statement_def)

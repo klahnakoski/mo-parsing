@@ -9,8 +9,6 @@
 
 from mo_parsing import (
     MatchFirst,
-    alphas,
-    alphanums,
     Combine,
     Word,
     QuotedString,
@@ -25,14 +23,10 @@ from mo_parsing import (
     LEFT_ASSOC,
     infixNotation,
     Regex,
-    nums,
-    oneOf,
-    delimitedList,
-    restOfLine,
-    cStyleComment, )
+)
 from mo_parsing.engine import Engine
-from mo_parsing.profile import Profiler
-from mo_parsing.utils import Log
+from mo_parsing.helpers import oneOf, restOfLine, cStyleComment, delimitedList
+from mo_parsing.utils import Log, alphas, alphanums, nums
 
 
 class BigQueryViewParser:

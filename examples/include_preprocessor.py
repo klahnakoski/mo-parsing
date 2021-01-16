@@ -9,6 +9,9 @@ from mo_parsing import *
 from pathlib import Path
 
 # parser elements to be used to assemble into #include parser
+from mo_parsing.helpers import quotedString, removeQuotes
+from mo_parsing.utils import printables, line, col
+
 SEMI = Suppress(";")
 INCLUDE = Keyword("#include")
 quoted_string = quotedString.addParseAction(removeQuotes)

@@ -38,7 +38,7 @@ __all__ = ["time_expression"]
 
 # basic grammar definitions
 def make_integer_word_expr(int_name, int_value):
-    return CaselessKeyword(int_name).addParseAction(replaceWith(int_value))
+    return CaselessKeyword(int_name).addParseAction(lambda: int_value)
 
 
 integer_word = MatchFirst(
@@ -60,7 +60,7 @@ today, tomorrow, yesterday, noon, midnight, now = map(
 
 
 def plural(s):
-    return CK(s) | CK(s + "s").addParseAction(replaceWith(s))
+    return CK(s) | CK(s + "s").addParseAction(lambda: s)
 
 
 week, day, hour, minute, second = map(plural, "week day hour minute second".split())
@@ -68,23 +68,23 @@ am = CL("am")
 pm = CL("pm")
 COLON = Suppress(":")
 
-in_ = CK("in").addParseAction(replaceWith(1))
-from_ = CK("from").addParseAction(replaceWith(1))
-before = CK("before").addParseAction(replaceWith(-1))
-after = CK("after").addParseAction(replaceWith(1))
-ago = CK("ago").addParseAction(replaceWith(-1))
-next_ = CK("next").addParseAction(replaceWith(1))
-last_ = CK("last").addParseAction(replaceWith(-1))
+in_ = CK("in").addParseAction(lambda: 1)
+from_ = CK("from").addParseAction(lambda: 1)
+before = CK("before").addParseAction(lambda: -1)
+after = CK("after").addParseAction(lambda: 1)
+ago = CK("ago").addParseAction(lambda: -1)
+next_ = CK("next").addParseAction(lambda: 1)
+last_ = CK("last").addParseAction(lambda: -1)
 at_ = CK("at")
 on_ = CK("on")
 
 couple = (Optional(CK("a")) + CK("couple") + Optional(CK("of"))).addParseAction(
-    replaceWith(2)
+    lambda: 2
 )
-a_qty = (CK("a") | CK("an")).addParseAction(replaceWith(1))
-the_qty = CK("the").addParseAction(replaceWith(1))
+a_qty = (CK("a") | CK("an")).addParseAction(lambda: 1)
+the_qty = CK("the").addParseAction(lambda: 1)
 qty = ungroup(integer | couple | a_qty | the_qty)
-time_ref_present = Empty().addParseAction(replaceWith(True))("time_ref_present")
+time_ref_present = Empty().addParseAction(lambda: True)("time_ref_present")
 
 
 def fill_24hr_time_fields(t):

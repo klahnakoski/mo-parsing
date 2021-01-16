@@ -3,9 +3,10 @@
 # Copyright, 2006, by Paul McGuire
 #
 
-from mo_parsing import *
+from mo_parsing.helpers import *
 
 # first pass
+
 lbrack = Literal("[")
 rbrack = Literal("]")
 integer = Word(nums).set_parser_name("integer")

@@ -5,8 +5,7 @@
 # definition at https://www.sqlite.org/lang_select.html
 #
 from mo_parsing import *
-from mo_parsing.engine import Engine
-from mo_parsing.helpers import number
+from mo_parsing.helpers import *
 
 comment = "--" + restOfLine
 

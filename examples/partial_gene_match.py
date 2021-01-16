@@ -2,9 +2,10 @@
 #
 #  Example showing how to use the CloseMatch class, to find strings in a gene with up to 'n' mismatches
 #
-from mo_parsing import *
-
 from urllib.request import urlopen
+
+from mo_parsing import *
+from mo_parsing.helpers import *
 
 # read in a bunch of genomic data
 data_url = "http://toxodb.org/common/downloads/release-6.0/Tgondii/TgondiiApicoplastORFsNAs_ToxoDB-6.0.fasta"
@@ -64,6 +65,7 @@ for g in genedata:
                 ),
             )
         else:
+            pass
 
 
 
