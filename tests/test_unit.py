@@ -1360,7 +1360,7 @@ class TestParsing(PyparsingExpressionTestCase):
         test(
             e, "start 123 456 end", ["start", "123", "456", "end"], {"_skipped": "456"},
         )
-        test(e, "start end", ["start", "end"], {"_skipped": ""})
+        test(e, "start end", ["start", "end"], {"_skipped": None})
 
         e = "start" + (alpha_word[...] & num_word[...] | ...) + "end"
         test(e, "start 456 red end", ["start", "456", "red", "end"], {})
@@ -1387,13 +1387,13 @@ class TestParsing(PyparsingExpressionTestCase):
         )
         test(e, "start red end", ["start", "red", "end"], {"_skipped": "red"})
         test(e, "start 456 end", ["start", "456", "end"], {"_skipped": "456"})
-        test(e, "start end", ["start", "end"], {"_skipped": ""})
+        test(e, "start end", ["start", "end"], {"_skipped": None})
         test(e, "start 456 + end", ["start", "456 +", "end"], {"_skipped": "456 +"})
 
         e = "start" + (alpha_word | ...) + (num_word | ...) + "end"
         test(e, "start red 456 end", ["start", "red", "456", "end"], {})
-        test(e, "start red end", ["start", "red", "end"], {"_skipped": ""})
-        test(e, "start end", ["start", "end"], {"_skipped": ""})
+        test(e, "start red end", ["start", "red", "end"], {"_skipped": None})
+        test(e, "start end", ["start", "end"], {"_skipped": None})
 
         e = Literal("start") + ... + "+" + ... + "end"
         test(
@@ -1886,21 +1886,21 @@ class TestParsing(PyparsingExpressionTestCase):
             </BODY>
         """
         expected = [
-            ("startBody", False, "", ""),
-            ("startBody", False, "#00FFCC", ""),
-            ("startBody", True, "#00FFAA", ""),
+            ("startBody", False, None, None),
+            ("startBody", False, "#00FFCC", None),
+            ("startBody", True, "#00FFAA", None),
             ("startBody", False, "#00FFBB", "black"),
-            ("startBody", True, "", ""),
-            ("endBody", False, "", ""),
+            ("startBody", True, None, None),
+            ("endBody", False, None, None),
         ]
 
         bodyStart, bodyEnd = makeHTMLTags("BODY")
         results = list((bodyStart | bodyEnd).scanString(test))
-        for (t, s, e), (expectedType, expectedEmpty, expectedBG, expectedFG) in zip(
+        for (u, s, e), (expectedType, expectedEmpty, expectedBG, expectedFG) in zip(
             results, expected
         ):
-            if "startBody" in t:
-                t = t["startBody"]
+            if "startBody" in u:
+                t = u["startBody"]
                 self.assertEqual(
                     bool(t["empty"]),
                     expectedEmpty,
@@ -1923,7 +1923,7 @@ class TestParsing(PyparsingExpressionTestCase):
                         expectedFG, t["bgcolor"]
                     ),
                 )
-            elif "endBody" in t:
+            elif "endBody" in u:
 
                 pass
             else:
