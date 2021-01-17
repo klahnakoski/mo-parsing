@@ -10,7 +10,7 @@ from mo_parsing import *
 from mo_parsing.utils import alphas, alphanums
 
 LBRACK, RBRACK, LBRACE, RBRACE = map(Suppress, "[]{}")
-ident = Word(alphas, alphanums + "_") | QuotedString("{", endQuoteChar="}")
+ident = Word(alphas, alphanums + "_") | QuotedString("{", end_quote_char="}")
 arg = "$" + ident
 
 # define an API call with a specific number of arguments - using '-'

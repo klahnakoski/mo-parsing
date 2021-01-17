@@ -8,7 +8,6 @@ from string import whitespace
 from mo_future import unichr
 
 from mo_parsing.core import add_reset_action
-from mo_parsing.debug import Debugger
 from mo_parsing.engine import Engine
 from mo_parsing.enhancement import (
     Char,
@@ -24,21 +23,33 @@ from mo_parsing.enhancement import (
 )
 from mo_parsing.expressions import MatchFirst, And
 from mo_parsing.infix import delimitedList
-from mo_parsing.tokens import Literal, AnyChar, Keyword, LineStart, LineEnd, Word
-from mo_parsing.utils import printables, alphanums, nums, hexnums, Log
+from mo_parsing.tokens import Literal, AnyChar, Keyword, LineStart, LineEnd, Word, SingleCharLiteral
+from mo_parsing.utils import printables, alphanums, nums, hexnums, Log, listwrap
+
+
+def hex_to_char(t):
+    return Literal(unichr(int(t.value().lower().split("x")[1], 16)))
 
 
 def to_range(tokens):
     min_ = tokens["min"].parser_config.match
     max_ = tokens["max"].parser_config.match
-    return Char([unichr(i) for i in range(ord(min_), ord(max_) + 1)])
+    return Char("".join(unichr(i) for i in range(ord(min_), ord(max_) + 1)))
 
 
 def to_bracket(tokens):
-    output = MatchFirst(tokens["body"].value())
+    acc = []
+    for e in listwrap(tokens["body"].value()):
+        if isinstance(e, SingleCharLiteral):
+            acc.append(e.parser_config.match)
+        elif isinstance(e, Char):
+            acc.extend(e.parser_config.include)
+        else:
+            Log.error("programmer error")
     if tokens["negate"]:
-        output = NotAny(output)+AnyChar()
-    return output
+        return Char(exclude=acc)
+    else:
+        return Char(acc)
 
 
 num_captures = 0
@@ -67,7 +78,7 @@ def repeat(tokens):
     if tokens.length() == 1:
         return tokens.value()
 
-    operand, operator = tokens.value()
+    operand, operator = tokens
     mode = operator["mode"]
     if mode == "*":
         return ZeroOrMore(operand)
@@ -76,30 +87,27 @@ def repeat(tokens):
     elif mode == "?":
         return Optional(operand)
     elif operator["exact"]:
-        return Many(operand, exact=operator["exact"])
+        return Many(operand, exact=int(operator["exact"]))
     else:
-        return Many(operand, min_match=operator["min"], max_match=operator["max"])
-
-
-def cleanup(tokens):
-    return tokens.value()
+        return Many(operand, min_match=int(operator["min"]), max_match=int(operator["max"]))
 
 
 engine = Engine("")
 engine.use()
 
-# DEFINE PATTERN IN SQUARE BRACKETS
+#########################################################################################
+# SQUARE BRACKETS
 
 any_whitechar = Literal("\\s").addParseAction(lambda: Char(whitespace))
-not_whitechar = Literal("\\S").addParseAction(lambda: ~Char(whitespace) + AnyChar())
+not_whitechar = Literal("\\S").addParseAction(lambda: Char(exclude=whitespace))
 any_wordchar = Literal("\\w").addParseAction(lambda: Char(alphanums + "_"))
-not_wordchar = Literal("\\W").addParseAction(lambda: ~Char(alphanums + "_") + AnyChar())
+not_wordchar = Literal("\\W").addParseAction(lambda: Char(exclude=alphanums + "_"))
 any_digitchar = Literal("\\d").addParseAction(lambda: Char(nums))
-not_digitchar = Literal("\\D").addParseAction(lambda: ~Char(nums) + AnyChar())
-bs_char = Literal("\\\\").addParseAction(lambda: "\\")
-tab_char = Literal("\\t").addParseAction(lambda: "\t")
-CR = Literal("\\n").addParseAction(lambda: "\n")
-LF = Literal("\\r").addParseAction(lambda: "\r")
+not_digitchar = Literal("\\D").addParseAction(lambda: Char(exclude=nums))
+bs_char = Literal("\\\\").addParseAction(lambda: Literal("\\"))
+tab_char = Literal("\\t").addParseAction(lambda: Literal("\t"))
+CR = Literal("\\n").addParseAction(lambda: Literal("\n"))
+LF = Literal("\\r").addParseAction(lambda: Literal("\r"))
 any_char = Literal(".").addParseAction(lambda: AnyChar())
 
 macro = (
@@ -115,38 +123,30 @@ macro = (
     | bs_char
     | tab_char
 )
-escapedChar = (
-    ~macro + Combine("\\" + Char(printables))
-).addParseAction(lambda t: Literal(t.value()[1]))
-plainChar = Char(
-    "".join(c for c in printables if c not in r"-\]") + " "
-).addParseAction(lambda t: Literal(t.value()))
+escapedChar = (~macro + Combine("\\" + AnyChar())).addParseAction(lambda t: Literal(t.value()[1]))
+plainChar = Char(exclude=r"\]").addParseAction(lambda t: Literal(t.value()))
 
-escapedHexChar = (
-    Literal("\\")
-    + Optional(Literal("0"))
-    + Keyword("x", caseless=True)
+escapedHexChar = Combine(
+    (Literal("\\0x") | Literal("\\x") | Literal("\\X"))  # lookup literals is faster
     + OneOrMore(Char(hexnums))
-).addParseAction(lambda t: Literal(unichr(int(t.value(), 16))))
+).addParseAction(hex_to_char)
 
-escapedOctChar = (
-    Literal("\\")
-    + Optional(Literal("0"))
-    + Keyword("x", caseless=True)
-    + OneOrMore(Char("01234567"))
-).addParseAction(lambda t: Literal(unichr(int(t, 16))))
+escapedOctChar = Combine(
+    Literal("\\0") + OneOrMore(Char("01234567"))
+).addParseAction(lambda t: Literal(unichr(int(t.value()[2:], 8))))
 
-singleChar = macro | escapedHexChar | escapedOctChar | escapedChar | plainChar
+singleChar = escapedHexChar | escapedOctChar | escapedChar | plainChar
 
 charRange = Group(singleChar("min") + "-" + singleChar("max")).addParseAction(to_range)
 
 brackets = (
     "["
     + Optional("^")("negate")
-    + Group(OneOrMore(charRange | singleChar))("body")
+    + OneOrMore(Group(charRange | singleChar | macro )("body"))
     + "]"
 ).addParseAction(to_bracket)
 
+#########################################################################################
 # REGEX
 regex = Forward()
 
@@ -170,20 +170,21 @@ with Engine():
         | "," + Word(nums)("max") + "}"
     )
 
-repetition = Group("{" + repetition | Char("*+?")("mode"))
+repetition = Group("{" + repetition | (Literal("*?") | Literal("+?") | Char("*+?"))("mode"))
 
-ahead = ("(?=" + regex + ")").addParseAction(lambda t: FollowedBy(t))
-not_ahead = ("(?!" + regex + ")").addParseAction(lambda t: NotAny(t))
+ahead = ("(?=" + regex + ")").addParseAction(lambda t: FollowedBy(t["value"]))
+not_ahead = ("(?!" + regex + ")").addParseAction(lambda t: NotAny(t["value"]))
 behind = ("(?<=" + regex + ")").addParseAction(lambda t: Log.error("not supported"))
 not_behind = ("(?<!" + regex + ")").addParseAction(lambda t: Log.error("not supported"))
-non_capture = "(?:" + regex + ")"
+non_capture = ("(?:" + regex + ")").addParseAction(lambda t: t["value"])
 named = (
-    "(?P<" + Word(alphanums + "_")("name") + ">" + regex("value") + ")"
+    "(?P<" + Word(alphanums + "_")("name") + ">" + regex + ")"
 ).addParseAction(name_token)
-group = ("(" + regex("value") + ")").addParseAction(name_token)
+group = ("(" + regex + ")").addParseAction(name_token)
 
 term = (
     macro
+    | simple_char
     | brackets
     | ahead
     | not_ahead
@@ -192,31 +193,40 @@ term = (
     | non_capture
     | named
     | group
-    | simple_char
 )
 
 more = (term + Optional(repetition)).addParseAction(repeat)
 sequence = OneOrMore(more).addParseAction(lambda t: And(t))
-regex << delimitedList(sequence).addParseAction(lambda t: MatchFirst(t))
+regex << (
+    delimitedList(sequence, separator="|")
+    .set_token_name("value")
+    .addParseAction(lambda t: MatchFirst(t).streamline())
+    .streamline()
+)
 
 
 def srange(expr):
-    pattern = brackets.parseString(expr)
-
+    pattern = brackets.parseString(expr).value()
     chars = set()
-    for e in pattern.exprs:
+
+    def drill(e):
         if isinstance(e, Literal):
             chars.add(e.parser_config.match)
         elif isinstance(e, Char):
-            chars.update(c for c in e.parser_config.charset)
+            chars.update(c for c in e.parser_config.include)
+        elif isinstance(e, MatchFirst):
+            for ee in e.exprs:
+                drill(ee)
+        elif isinstance(e, And):
+            drill(e.exprs[0].expr)
         else:
             Log.error("logic error")
+    drill(pattern)
     return "".join(sorted(chars))
 
 
 def Regex(pattern):
-    with Debugger():
-        return regex.parseString(pattern)
+    return Combine(regex.parseString(pattern).value()).streamline()
 
 
 engine.release()

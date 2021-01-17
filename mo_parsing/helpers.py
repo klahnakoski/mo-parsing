@@ -4,6 +4,7 @@ from datetime import datetime
 from mo_future import text
 
 from mo_parsing.core import add_reset_action
+from mo_parsing.debug import Debugger
 from mo_parsing.engine import Engine
 from mo_parsing.enhancement import (
     Combine,
@@ -440,7 +441,7 @@ def makeHTMLTags(tagStr, suppress_LT=Suppress("<"), suppress_GT=Suppress(">")):
 
     tagAttrName = Word(alphas, alphanums + "_-:")
     tagAttrValue = quotedString.addParseAction(removeQuotes) | Word(
-        printables, excludeChars=">"
+        printables, exclude=">"
     )
     simpler_name = "".join(resname.replace(":", " ").title().split())
 
@@ -715,10 +716,8 @@ def replaceHTMLEntity(t):
 cStyleComment = Combine(
     Regex(r"/\*(?:[^*]|\*(?!/))*") + "*/"
 ).set_parser_name("C style comment")
-"Comment of the form ``/* ... */``"
 
 htmlComment = Regex(r"<!--[\s\S]*?-->").set_parser_name("HTML comment")
-"Comment of the form ``<!-- ... -->``"
 
 with Engine("") as engine:
     restOfLine = Regex(r"[^\n]*").set_parser_name("rest of line")
@@ -735,7 +734,7 @@ with Engine("") as engine:
 
 _commasepitem = (
     Combine(OneOrMore(
-        Word(printables, excludeChars=",")
+        Word(printables, exclude=",")
         + Optional(Word(" \t") + ~Literal(",") + ~LineEnd())
     ))
     .addParseAction(lambda t: text(t).strip())
@@ -930,7 +929,7 @@ def _strip(tok):
 
 
 _commasepitem = (
-    Word(printables + " \t", excludeChars=",")
+    Word(printables + " \t", exclude=",")
     .set_parser_name("commaItem")
     .addParseAction(_strip)
 )

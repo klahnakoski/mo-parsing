@@ -25,11 +25,8 @@ from mo_parsing import (
     infixNotation,
     ParseFatalException,
     Word,
-    nums,
-    opAssoc,
     Suppress,
     ParseResults,
-    srange,
 )
 
 

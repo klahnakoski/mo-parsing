@@ -28,7 +28,7 @@ from mo_parsing.utils import Log, MAX_INT, wrap_parse_action, empty_tuple, is_fo
     And,
     MatchFirst,
     Or,
-    Each,
+    FindAll,
     Empty,
     StringEnd,
     Literal,
@@ -219,7 +219,7 @@ class ParserElement(object):
         RETURN EXPECTED CHARACTER SEQUENCE, IF ANY
         :return:
         """
-        return {c: [self] for c in self.parser_config.charset}
+        return {}
 
     def min_length(self):
         if self.min_length_cache >= 0:
@@ -541,7 +541,7 @@ class ParserElement(object):
         """
         Implementation of & operator - returns `Each`
         """
-        return Each([self, engine.CURRENT.normalize(other)])
+        return FindAll([self, engine.CURRENT.normalize(other)])
 
     def __rand__(self, other):
         """

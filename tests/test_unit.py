@@ -911,9 +911,6 @@ class TestParsing(PyparsingExpressionTestCase):
             % ([str(s[0]) for s in allStrings]),
         )
 
-        print(
-            "testing catastrophic RE backtracking in implementation of dblQuotedString"
-        )
         for expr, test_string in [
             (dblQuotedString, '"' + "\\xff" * 500),
             (sglQuotedString, "'" + "\\xff" * 500),
@@ -924,7 +921,8 @@ class TestParsing(PyparsingExpressionTestCase):
         ]:
             expr.parseString(test_string + test_string[0])
             try:
-                expr.parseString(test_string)
+                with Timer("testing catastrophic RE backtracking"):
+                    expr.parseString(test_string)
             except Exception:
                 continue
 
@@ -1172,10 +1170,12 @@ class TestParsing(PyparsingExpressionTestCase):
         )
         for test in zip(testCases, expectedResults):
             t, exp = test
+            # if t==r"[а-яА-ЯёЁA-Z$_\041α-ω]":
+            #     Debugger().__enter__()
             res = srange(t)
             self.assertEqual(
                 res,
-                exp,
+                "".join(sorted(exp)),
                 "srange error, srange({!r})->'{!r}', expected '{!r}'".format(
                     t, res, exp
                 ),
@@ -1450,7 +1450,7 @@ class TestParsing(PyparsingExpressionTestCase):
         test(hatQuotes1, r"sdf:jls^--djf")
         test(dblEqQuotes, r"sdf:j=ls::--djf: sl")
         test(QuotedString(":::"), "jls::--djf: sl")
-        test(QuotedString("==", endQuoteChar="--"), r"sdf\:j=lz::")
+        test(QuotedString("==", end_quote_char="--"), r"sdf\:j=lz::")
         test(
             QuotedString("^^^", multiline=True),
             r"""==sdf\:j=lz::--djf: sl=^^=kfsjf
@@ -2753,7 +2753,7 @@ class TestParsing(PyparsingExpressionTestCase):
         )
 
     def testWordExclude(self):
-        allButPunc = Word(printables, excludeChars=".,:;-_!?")
+        allButPunc = Word(printables, exclude=".,:;-_!?")
         test = "Hello, Mr. Ed, it's Wilbur!"
         result = allButPunc.searchString(test)
 
@@ -2854,7 +2854,7 @@ class TestParsing(PyparsingExpressionTestCase):
             QuotedString('"', escQuote='""'),
             QuotedString("'", escQuote="''"),
             QuotedString("^"),
-            QuotedString("<", endQuoteChar=">"),
+            QuotedString("<", end_quote_char=">"),
         )
         for expr in testExprs:
             strs = delimitedList(expr).searchString(src)

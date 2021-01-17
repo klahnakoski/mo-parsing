@@ -16,7 +16,8 @@ from mo_future import unichr, text, generator_types, get_function_name
 from mo_imports import expect
 
 ParseException = expect("ParseException")
-
+Many = expect("Many"
+              )
 
 def append_config(base, *slots):
     dups = set(slots) & set(base.Config._fields)
@@ -28,7 +29,7 @@ def append_config(base, *slots):
 
 
 try:
-    from mo_logs import Log
+    from mo_logs import Log, Except
 except Exception:
 
     class Log(object):
@@ -74,7 +75,10 @@ _prec = {"|": 0, "+": 1, "*": 2}
 
 def regex_compile(pattern):
     """REGEX COMPILE WITHOUT THE ON-A-SINGLE-LINE ASSUMPTION"""
-    return re.compile(pattern, re.MULTILINE | re.DOTALL)
+    try:
+        return re.compile(pattern, re.MULTILINE | re.DOTALL)
+    except Exception as cause:
+        Log.error("could not compile {{pattern}}", pattern=pattern, cause=cause)
 
 
 regex_type = type(regex_compile("[A-Z]"))
@@ -237,6 +241,11 @@ builtin_lookup = {"".join.__name__: ("iterable",)}
 def is_forward(expr):
     return expr.__class__.__name__ == "Forward"
 
+def is_backtracking(expr):
+    """
+    RETURN true IF THIS CAN BE EXPENSIVE BACKTRACKER
+    """
+    return isinstance(expr, Many) and expr.parser_config.max_match - expr.parser_config.min_match > 3
 
 def forward_type(expr):
     """

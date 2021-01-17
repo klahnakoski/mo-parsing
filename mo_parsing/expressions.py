@@ -4,6 +4,7 @@ from collections import OrderedDict
 from operator import itemgetter
 
 from mo_future import Iterable, text, generator_types
+from mo_imports import export
 
 from mo_parsing.core import ParserElement, _PendingSkip
 from mo_parsing.engine import Engine
@@ -21,7 +22,7 @@ from mo_parsing.utils import (
     Log,
     append_config,
     regex_caseless,
-    regex_compile,
+    regex_compile, is_backtracking,
 )
 
 LOOKUP_COST = 5
@@ -141,12 +142,11 @@ class And(ParseExpression):
 
     """
 
-    __slots__ = []
+    __slots__ = ["regex"]
 
     class _ErrorStop(Empty):
         def __init__(self, *args, **kwargs):
-            with Engine() as engine:
-                engine.set_whitespace("")
+            with Engine(""):
                 super(And._ErrorStop, self).__init__(*args, **kwargs)
                 self.parser_name = "-"
 
@@ -166,6 +166,12 @@ class And(ParseExpression):
                     tmp.append(expr)
             exprs[:] = tmp
         super(And, self).__init__(exprs)
+        self.regex = None
+
+    def copy(self):
+        output = ParseExpression.copy(self)
+        output.regex = self.regex
+        return output
 
     def streamline(self):
         if self.streamlined:
@@ -198,27 +204,48 @@ class And(ParseExpression):
 
         # streamline INDIVIDUAL EXPRESSIONS
         acc = []
-        clazz = self.__class__
+        curr = []
         for e in exprs:
             if e is None:
                 continue
             f = e.streamline()
             same = same and f is e
+
             if f.is_annotated():
-                acc.append(f)
-            elif isinstance(f, clazz):
+                curr.append(f)
+            elif isinstance(f, And):
+                # MERGE WITH CHILD, BUT ONLY IF NOT AT RISK OF BACKTRACKING
                 same = False
-                acc.extend(f.exprs)
+                curr.extend(f.exprs)
+                f = f.exprs[-1]  # LAST IN curr
             else:
-                acc.append(f)
+                curr.append(f)
+
+            if is_backtracking(f):
+                acc.append(curr)
+                curr = []
+
+        if not acc:
+            acc = curr
+        elif curr:
+            same = False
+            acc.append(curr)
+            acc = [And(c) for c in acc]
+        elif len(acc) == 1:
+            acc = acc[0]
+        else:
+            same = False
+            acc = [And(c) for c in acc]
 
         if same:
             self.streamlined = True
+            self.regex = regex_compile(self.__regex__()[1])
             return self
 
         output = self.copy()
         output.exprs = acc
         output.streamlined = True
+        output.regex = regex_compile(output.__regex__()[1])
         return output
 
     def expecting(self):
@@ -238,6 +265,14 @@ class And(ParseExpression):
     def parseImpl(self, string, start, doActions=True):
         # pass False as last arg to _parse for first element, since we already
         # pre-parsed the string as part of our And pre-parsing
+        regex = self.regex
+        if regex:
+            found = regex.match(string, start)
+            if found:
+                return ParseResults(self, start, found.end(), [found[0]])
+            else:
+                raise ParseException(self, start, string)
+
         encountered_error_stop = False
         end = start
         acc = []
@@ -271,6 +306,9 @@ class And(ParseExpression):
                 return
 
     def __regex__(self):
+        for e in self.exprs[:-1]:
+            if is_backtracking(e):
+                Log.warning("backtracking will cause slowdown")
         return "+", "".join(regex_iso(*e.__regex__(), "+") for e in self.exprs)
 
     def __str__(self):
@@ -329,7 +367,7 @@ class Or(ParseExpression):
         matches = []
 
         for e in self.fast:
-            if isinstance(e, MatchFast):
+            if isinstance(e, Fast):
                 for ee in e.get_short_list(string, start):
                     try:
                         end = ee.tryParse(string, start)
@@ -524,7 +562,7 @@ def faster(exprs):
                 out.append(o)
             else:
                 try:
-                    e = MatchFast(acc)
+                    e = Fast(acc)
                     alternating.append(e)
                 except Exception as c:
                     alternating.extend(out)
@@ -541,7 +579,7 @@ def faster(exprs):
 
     if has_expecting:
         try:
-            e = MatchFast(acc)
+            e = Fast(acc)
             alternating.append(e)
         except Exception as cause:
             alternating.extend(out)
@@ -561,7 +599,7 @@ def _distinct(a, b):
     return ii
 
 
-class MatchFast(ParserElement):
+class Fast(ParserElement):
     __slots__ = ["lookup", "regex", "all_keys"]
 
     def __init__(self, maps):
@@ -638,7 +676,7 @@ class MatchFast(ParserElement):
             )
 
 
-class Each(ParseExpression):
+class FindAll(ParseExpression):
     """
     Requires all given `ParseExpression` s to be found, but in
     any order. Expressions may be separated by whitespace.
@@ -654,7 +692,7 @@ class Each(ParseExpression):
         :param exprs: The expressions to be matched
         :param mins: list of integers indincating any minimums
         """
-        super(Each, self).__init__(exprs)
+        super(FindAll, self).__init__(exprs)
         self.set_config(
             min_match=[
                 e.parser_config.min_match if isinstance(e, Many) else 1 for e in exprs
@@ -667,7 +705,7 @@ class Each(ParseExpression):
     def streamline(self):
         if self.streamlined:
             return self
-        return super(Each, self).streamline()
+        return super(FindAll, self).streamline()
 
     def _min_length(self):
         # TODO: MAY BE TOO CONSERVATIVE, WE MAY BE ABLE TO PROVE self CAN CONSUME A CHARACTER
@@ -739,11 +777,14 @@ class Each(ParseExpression):
 
 
 # export
+export("mo_parsing.utils", Many)
+
+
 from mo_parsing import core, engine
 
 core.And = And
 core.Or = Or
-core.Each = Each
+core.FindAll = FindAll
 core.MatchFirst = MatchFirst
 
 from mo_parsing import helpers
@@ -751,3 +792,4 @@ from mo_parsing import helpers
 helpers.And = And
 helpers.Or = Or
 helpers.MatchFirst = MatchFirst
+

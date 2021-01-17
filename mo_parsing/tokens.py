@@ -1,7 +1,7 @@
 # encoding: utf-8
 import sre_constants
 
-from mo_parsing.core import ParserElement
+from mo_parsing.core import ParserElement, NotAny
 from mo_parsing.engine import Engine, PLAIN_ENGINE
 from mo_parsing.exceptions import ParseException
 from mo_parsing.results import ParseResults
@@ -284,7 +284,7 @@ class Word(Token):
         max=None,
         exact=0,
         asKeyword=False,
-        excludeChars=None,
+        exclude=None,
     ):
         Token.__init__(self)
 
@@ -301,17 +301,17 @@ class Word(Token):
 
         if body_chars == init_chars:
             prec, regexp = Char(
-                init_chars, excludeChars=excludeChars
+                init_chars, exclude=exclude
             )[min:max].__regex__()
         elif max is None or max == MAX_INT:
             prec, regexp = (
-                Char(init_chars, excludeChars=excludeChars)
-                + Char(body_chars, excludeChars=excludeChars)[min - 1 :]
+                Char(init_chars, exclude=exclude)
+                + Char(body_chars, exclude=exclude)[min - 1 :]
             ).__regex__()
         else:
             prec, regexp = (
-                Char(init_chars, excludeChars=excludeChars)
-                + Char(body_chars, excludeChars=excludeChars)[min - 1 : max - 1]
+                Char(init_chars, exclude=exclude)
+                + Char(body_chars, exclude=exclude)[min - 1 : max - 1]
             ).__regex__()
 
         if asKeyword:
@@ -340,21 +340,33 @@ class Word(Token):
 
 class Char(Token):
     __slots__ = []
-    Config = append_config(Token, "charset")
+    Config = append_config(Token, "include", "exclude")
 
-    def __init__(self, charset, asKeyword=False, excludeChars=None):
+    def __init__(self, include="", asKeyword=False, exclude=""):
         """
-        Represent one character in a given charset
+        Represent one character in a given include
         """
         Token.__init__(self)
-        if excludeChars:
-            charset = set(charset) - set(excludeChars)
-        regex = regex_range(charset)
+        include = set(include) if include else set()
+        exclude = set(exclude) if exclude else set()
+        include = "".join(sorted(include - exclude))
+        exclude = "".join(sorted(exclude))
+
+        if not include:
+            regex = regex_range(exclude)
+            if regex[-1] == "]":
+                regex = "[^" + regex[1:]
+            else:
+                regex = "[^" + regex + "]"
+        else:
+            regex = regex_range(include)
+
         if asKeyword:
             regex = r"\b%s\b" % self
         self.set_config(
             regex=regex_compile(regex),
-            charset="".join(sorted(set(charset))),
+            include=include,
+            exclude=exclude
         )
 
     def parseImpl(self, string, start, doActions=True):
@@ -363,6 +375,9 @@ class Char(Token):
             return ParseResults(self, start, found.end(), [found.group()])
 
         raise ParseException(self, start, string)
+
+    def expecting(self):
+        return {c: [self] for c in self.parser_config.include}
 
     def min_length(self):
         return 1
@@ -380,7 +395,7 @@ class QuotedString(Token):
 
     Defined with the following parameters:
 
-        - quoteChar - string of one or more characters defining the
+        - quote_char - string of one or more characters defining the
           quote delimiting string
         - escChar - character to escape quotes, typically backslash
           (default= ``None``)
@@ -391,9 +406,9 @@ class QuotedString(Token):
           multiple lines (default= ``False``)
         - unquoteResults - boolean indicating whether the matched text
           should be unquoted (default= ``True``)
-        - endQuoteChar - string of one or more characters defining the
+        - end_quote_char - string of one or more characters defining the
           end of the quote delimited string (default= ``None``  => same as
-          quoteChar)
+          quote_char)
         - convertWhitespaceEscapes - convert escaped whitespace
           (``'\t'``, ``'\n'``, etc.) to actual whitespace
           (default= ``True``)
@@ -414,67 +429,54 @@ class QuotedString(Token):
 
     def __init__(
         self,
-        quoteChar,
+        quote_char,
         escChar=None,
         escQuote=None,
         multiline=False,
         unquoteResults=True,
-        endQuoteChar=None,
+        end_quote_char="",
         convertWhitespaceEscapes=True,
     ):
         super(QuotedString, self).__init__()
 
-        # remove white space from quote chars - wont work anyway
-        quoteChar = quoteChar.strip()
-        if not quoteChar:
-            warnings.warn(
-                "quoteChar cannot be the empty string", SyntaxWarning, stacklevel=2
-            )
-            raise SyntaxError()
+        quote_char = quote_char.strip()
+        end_quote_char = end_quote_char.strip() or quote_char
 
-        if endQuoteChar is None:
-            endQuoteChar = quoteChar
-        else:
-            endQuoteChar = endQuoteChar.strip()
-            if not endQuoteChar:
-                warnings.warn(
-                    "endQuoteChar cannot be the empty string",
-                    SyntaxWarning,
-                    stacklevel=2,
-                )
-                raise SyntaxError()
+        if not quote_char:
+            Log.error("quote_char cannot be the empty string")
+        if not end_quote_char:
+            Log.error("end_quote_char cannot be the empty string")
 
         self.set_config(
-            quote_char=quoteChar,
-            end_quote_char=endQuoteChar,
+            quote_char=quote_char,
+            end_quote_char=end_quote_char,
             esc_char=escChar,
             esc_quote=escQuote,
+            multiline=multiline,
             unquoteResults=unquoteResults,
             convertWhitespaceEscapes=convertWhitespaceEscapes,
         )
-        # TODO: FIX THIS MESS. WE SHOULD BE ABLE TO CONSTRUCT REGEX FROM ParserElements
-        included = Empty()
+        included = AnyChar()
         excluded = Literal(self.parser_config.end_quote_char)
 
         if not multiline:
             excluded |= Char("\r\n")
         if escQuote:
-            included |= Literal(escQuote)
+            included = Literal(escQuote) | included
         if escChar:
             excluded |= Literal(self.parser_config.esc_char)
-            included = included | escChar + Char(printables)
+            included = escChar + Char(printables) | included
             self.set_config(
                 escCharReplacePattern=re.escape(self.parser_config.esc_char) + "(.)"
             )
 
         prec, pattern = (
-            Literal(quoteChar)
-            + ((~excluded + AnyChar()) | included)[0:]
-            + Literal(self.parser_config.end_quote_char)
+            Literal(quote_char)
+            + (NotAny(excluded) + included)[0:]
+            + Literal(end_quote_char)
         ).__regex__()
 
-        self.set_config(multiline=multiline, regex=regex_compile(pattern))
-
+        self.set_config(regex=regex_compile(pattern))
         self.parser_name = text(self)
 
     def parseImpl(self, string, start, doActions=True):

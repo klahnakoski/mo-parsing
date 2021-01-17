@@ -231,7 +231,7 @@ class ParseResults(object):
                 raise Log.error("No attribute {{item}} for mutiple tokens", item=item)
             except Exception:
                 return getattr(v1, item)
-        except Exception:
+        except Exception as cause:
             raise AttributeError(f"No attribute {item}")
 
     def value(self):

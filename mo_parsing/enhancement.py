@@ -104,7 +104,8 @@ class ParseEnhancement(ParserElement):
 
 
 class FollowedBy(ParseEnhancement):
-    """Lookahead matching of the given parse expression.
+    """
+    Lookahead matching of the given parse expression.
     ``FollowedBy`` does *not* advance the parsing position within
     the input string, it only verifies that the specified parse
     expression matches at the current position.  ``FollowedBy``
@@ -543,7 +544,7 @@ class Forward(ParserElement):
     parser created using ``Forward``.
     """
 
-    __slots__ = ["expr", "used_by", "_str"]
+    __slots__ = ["expr", "used_by", "_str", "_reg"]
 
     def __init__(self, expr=Null):
         ParserElement.__init__(self)
@@ -551,6 +552,7 @@ class Forward(ParserElement):
         self.used_by = []
 
         self._str = None  # avoid recursion
+        self._reg = None  # avoid recursion
         if expr:
             self << engine.CURRENT.normalize(expr)
 
@@ -558,6 +560,7 @@ class Forward(ParserElement):
         output = ParserElement.copy(self)
         output.expr = self
         output._str = None
+        output._reg = None
 
         output.used_by = []
         return output
@@ -627,6 +630,16 @@ class Forward(ParserElement):
                 )
             raise cause
 
+    def __regex__(self):
+        if self._reg or not self.expr:
+            return None
+
+        try:
+            self._reg = True
+            return self.expr.__regex__()
+        finally:
+            self._reg = None
+
     def __str__(self):
         if self.parser_name:
             return self.parser_name
@@ -659,29 +672,68 @@ class TokenConverter(ParseEnhancement):
         return self.expr.__regex__()
 
 
+
+
 class Combine(TokenConverter):
     """
     Converter to concatenate all matching tokens to a single string.
     """
 
-    __slots__ = []
+    __slots__ = ["regex"]
     Config = append_config(TokenConverter, "separator")
 
     def __init__(self, expr, separator=""):
         super(Combine, self).__init__(expr.streamline())
         self.set_config(separator=separator)
-        self.parseAction.append(_combine)
-        self.streamlined = True
+        try:
+            self.regex = regex_compile(expr.__regex__()[1])
+            self.streamlined = True
+        except Exception as cause:
+            self.regex = None
 
+    def copy(self):
+        output = ParseEnhancement.copy(self)
+        output.regex = self.regex
+        return output
 
-def _combine(tokens, start, string):
-    output = ParseResults(
-        tokens.type,
-        tokens.start,
-        tokens.end,
-        [tokens.asString(sep=tokens.type.parser_config.separator)],
-    )
-    return output
+    def parseImpl(self, string, start, doActions=True):
+        regex = self.regex
+        if regex:
+            found = self.regex.match(string, start)
+            if found:
+                return ParseResults(self, start, found.end(), [found[0]])
+            else:
+                raise ParseException(self, start, string)
+
+        result = self.expr.parse(string, start, doActions=doActions)
+        output = ParseResults(
+            self,
+            start,
+            result.end,
+            [result.asString(sep=self.parser_config.separator)],
+        )
+        return output
+
+    def streamline(self):
+        if self.streamlined:
+            return self
+
+        expr = self.expr.streamline()
+        if expr is self.expr:
+            self.streamlined = True
+            return self
+        self.regex = regex_compile(expr.__regex__()[1])
+        return Combine(expr, self.parser_config.separator)
+
+    def expecting(self):
+        return self.expr.expecting()
+
+    def min_length(self):
+        return self.expr.min_length()
+
+    def __regex__(self):
+        return self.expr.__regex__()
+
 
 
 class Group(TokenConverter):

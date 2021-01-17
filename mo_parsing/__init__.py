@@ -54,6 +54,7 @@ from mo_parsing.exceptions import (
 )
 from mo_parsing.expressions import And, Each, MatchFirst, Or, ParseExpression
 from mo_parsing.infix import LEFT_ASSOC, RIGHT_ASSOC, infixNotation
+from mo_parsing.regex import Regex
 from mo_parsing.results import ParseResults
 from mo_parsing.tokens import (
     CaselessKeyword,
@@ -66,7 +67,6 @@ from mo_parsing.tokens import (
     LineStart,
     NoMatch,
     QuotedString,
-    Regex,
     StringStart,
     White,
     Word,
@@ -88,7 +88,7 @@ __all__ = [
     "CharsNotIn",
     "Combine",
     "Dict",
-    "Each",
+    "FindAll",
     "Empty",
     "FollowedBy",
     "Forward",
