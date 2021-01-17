@@ -28,7 +28,9 @@ from examples.simpleSQL import simpleSQL
 from mo_parsing import *
 from mo_parsing import helpers
 from mo_parsing.helpers import *
+from mo_parsing.infix import oneOf
 from mo_parsing.utils import *
+from mo_parsing.regex import srange
 from tests.json_parser_tests import test1, test2, test3, test4, test5
 from tests.test_simple_unit import PyparsingExpressionTestCase
 

@@ -144,26 +144,6 @@ class SingleCharLiteral(Literal):
 
 
 class Keyword(Token):
-    """Token to exactly match a specified string as a keyword, that is,
-    it must be immediately followed by a non-keyword character.  Compare
-    with `Literal`:
-
-     - ``Literal("if")`` will match the leading ``'if'`` in
-       ``'ifAndOnlyIf'``.
-     - ``Keyword("if")`` will not; it will only match the leading
-       ``'if'`` in ``'if x=1'``, or ``'if(y==2)'``
-
-    Accepts two optional constructor arguments in addition to the
-    keyword string:
-
-     - ``ident_chars`` is a string of characters that would be valid
-       identifier characters, defaulting to all alphanumerics + "_" and
-       "$"
-     - ``caseless`` allows case-insensitive matching, default is ``False``.
-
-    For case-insensitive matching, use `CaselessKeyword`.
-    """
-
     __slots__ = []
     Config = append_config(Token, "ident_chars")
 
@@ -293,43 +273,6 @@ class CloseMatch(Token):
 
 
 class Word(Token):
-    """Token for matching words composed of allowed character sets.
-    Defined with string containing all allowed initial characters, an
-    optional string containing allowed body characters (if omitted,
-    defaults to the initial character set), and an optional minimum,
-    maximum, and/or exact length.  The default value for ``min`` is
-    1 (a minimum value < 1 is not valid); the default values for
-    ``max`` and ``exact`` are 0, meaning no maximum or exact
-    length restriction. An optional ``excludeChars`` parameter can
-    list characters that might be found in the input ``body_chars``
-    string; useful to define a word of all printables except for one or
-    two characters, for instance.
-
-    `srange` is useful for defining custom character set strings
-    for defining ``Word`` expressions, using range notation from
-    regular expression character sets.
-
-    A common mistake is to use `Word` to match a specific literal
-    string, as in ``Word("Address")``. Remember that `Word`
-    uses the string argument to define *sets* of matchable characters.
-    This expression would match "Add", "AAA", "dAred", or any other word
-    made up of the characters 'A', 'd', 'r', 'e', and 's'. To match an
-    exact literal string, use `Literal` or `Keyword`.
-
-    mo_parsing includes helper strings for building Words:
-
-     - `alphas`
-     - `nums`
-     - `alphanums`
-     - `hexnums`
-     - `alphas8bit` (alphabetic characters in ASCII range 128-255
-       - accented, tilded, umlauted, etc.)
-     - `punc8bit` (non-alphabetic characters in ASCII range
-       128-255 - currency, symbols, superscripts, diacriticals, etc.)
-     - `printables` (any non-whitespace character)
-
-    """
-
     __slots__ = []
     Config = append_config(Token, "min")
 
@@ -429,132 +372,6 @@ class Char(Token):
 
     def __str__(self):
         return self.parser_config.regex.pattern
-
-
-class Regex(Token):
-    r"""Token for matching strings that match a given regular
-    expression. Defined with string specifying the regular expression in
-    a form recognized by the stdlib Python  `re module <https://docs.python.org/3/library/re.html>`_.
-    If the given regex contains named groups (defined using ``(?P<name>...)``),
-    these will be preserved as named parse results.
-    """
-    __slots__ = []
-    Config = append_config(Token, "flags")
-
-    def __new__(cls, pattern, flags=0, asGroupList=False, asMatch=False):
-        if asGroupList:
-            return object.__new__(_RegExAsGroup)
-        elif asMatch:
-            return object.__new__(_RegExAsMatch)
-        else:
-            return object.__new__(cls)
-
-    def __init__(self, pattern, flags=0, asGroupList=False, asMatch=False):
-        """The parameters ``pattern`` and ``flags`` are passed
-        to the ``regex_compile()`` function as-is. See the Python
-        `re module <https://docs.python.org/3/library/re.html>`_ module for an
-        explanation of the acceptable patterns and flags.
-        """
-        Token.__init__(self)
-
-        if isinstance(pattern, text):
-            if not pattern:
-                warnings.warn(
-                    "null string passed to Regex; use Empty() instead",
-                    SyntaxWarning,
-                    stacklevel=2,
-                )
-
-            try:
-                self.set_config(flags=flags, regex=re.compile(pattern, flags))
-            except sre_constants.error as cause:
-                Log.error(
-                    "invalid pattern {{pattern}} passed to Regex",
-                    pattern=pattern,
-                    cause=cause,
-                )
-        elif isinstance(pattern, regex_type):
-            self.set_config(flags=flags, regex=pattern)
-        else:
-            Log.error(
-                "Regex may only be constructed with a string or a compiled RE object"
-            )
-
-        self.parser_name = text(self)
-
-    def parseImpl(self, string, start, doActions=True):
-        found = self.parser_config.regex.match(string, start)
-        if found:
-            ret = ParseResults(self, start, found.end(), [found.group()])
-            d = found.groupdict()
-            if d:
-                for k, v in d.items():
-                    ret[k] = v
-            return ret
-
-        raise ParseException(self, start, string)
-
-    def min_length(self):
-        return 0
-
-    def __regex__(self):
-        return "|", self.parser_config.regex.pattern
-
-    def __str__(self):
-        return self.parser_config.regex.pattern
-
-    def sub(self, repl):
-        r"""
-        Return Regex with an attached parse action to transform the parsed
-        result as if called using `re.sub(expr, repl, string) <https://docs.python.org/3/library/re.html#re.sub>`_.
-
-        Example::
-
-            make_html = Regex(r"(\w+):(.*?):").sub(r"<\1>\2</\1>")
-            print(make_html.transformString("h1:main title:"))
-            # prints "<h1>main title</h1>"
-        """
-
-        def pa(tokens):
-            return self.parser_config.regex.sub(repl, tokens[0])
-
-        return self.addParseAction(pa)
-
-
-class _RegExAsGroup(Regex):
-    __slots__ = []
-
-    def parseImpl(self, string, start, doActions=True):
-        result = self.parser_config.regex.match(string, start)
-        if not result:
-            raise ParseException(self, start, string)
-
-        return ParseResults(self, start, result.end(), [result.groups()])
-
-    def sub(self, repl):
-        raise SyntaxError("cannot use sub() with Regex(asGroupList=True)")
-
-
-class _RegExAsMatch(Regex):
-    __slots__ = []
-
-    def parseImpl(self, string, start, doActions=True):
-        result = self.parser_config.regex.match(string, start)
-        if not result:
-            raise ParseException(self, start, string)
-
-        return ParseResults(self, start, result.end(), [result])
-
-    def sub(self, repl):
-        if callable(repl):
-            raise SyntaxError(
-                "cannot use sub() with a callable with Regex(asMatch=True)"
-            )
-
-        def pa(tokens):
-            return tokens[0].expand(repl)
-
-        return self.addParseAction(pa)
 
 
 class QuotedString(Token):

@@ -5,7 +5,6 @@
 #
 
 from examples import statemachine
-from examples import librarybookstate
 
 
 class Book(librarybookstate.BookStateMixin):

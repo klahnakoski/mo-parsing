@@ -219,7 +219,7 @@ class ParserElement(object):
         RETURN EXPECTED CHARACTER SEQUENCE, IF ANY
         :return:
         """
-        return {}
+        return {c: [self] for c in self.parser_config.charset}
 
     def min_length(self):
         if self.min_length_cache >= 0:

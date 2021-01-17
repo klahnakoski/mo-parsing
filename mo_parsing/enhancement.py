@@ -141,6 +141,7 @@ class NotAny(ParseEnhancement):
 
     __slots__ = ["regex"]
 
+
     def __init__(self, expr):
         super(NotAny, self).__init__(expr)
         prec, pattern = self.expr.__regex__()
@@ -583,6 +584,7 @@ class Forward(ParserElement):
         if not self.expr:
             Log.error("not allowed")
         self.expr = self.expr.addParseAction(action)
+        return self
 
     def leaveWhitespace(self):
         with Engine(""):

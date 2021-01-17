@@ -13,9 +13,9 @@ from types import FunctionType
 
 from mo_dots import is_null, Null
 from mo_future import unichr, text, generator_types, get_function_name
-from mo_imports import delay_import
+from mo_imports import expect
 
-ParseException = delay_import("mo_parsing.exceptions.ParseException")
+ParseException = expect("ParseException")
 
 
 def append_config(base, *slots):

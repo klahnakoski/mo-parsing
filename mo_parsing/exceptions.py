@@ -4,6 +4,7 @@ from functools import wraps
 
 from mo_dots import coalesce
 from mo_future import text, is_text
+from mo_imports import export
 
 from mo_parsing.utils import Log, listwrap, quote, indent
 from mo_parsing.utils import wrap_parse_action, col, line, lineno
@@ -210,3 +211,5 @@ def conditionAsParseAction(fn, message=None, fatal=False):
         return t
 
     return pa
+
+export("mo_parsing.utils", ParseException)

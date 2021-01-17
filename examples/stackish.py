@@ -46,7 +46,7 @@ strBody = Forward()
 
 
 def setBodyLength(tokens):
-    strBody << Word(srange(r"[\0x00-\0xffff]"), exact=int(tokens[0]))
+    strBody << Many(AnyChar(), exact=int(tokens[0]))
     return ""
 
 
