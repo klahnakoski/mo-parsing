@@ -92,6 +92,8 @@ class Engine:
         return Backup(self)
 
     def skip(self, string, start):
+        if not self.ignore_list and not self.white_chars:
+            return start
         if string is self.content:
             try:
                 end = self.skips[start]

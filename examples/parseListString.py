@@ -6,6 +6,7 @@
 from mo_parsing.helpers import *
 
 # first pass
+from mo_parsing.infix import oneOf
 
 lbrack = Literal("[")
 rbrack = Literal("]")

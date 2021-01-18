@@ -4,8 +4,9 @@
 #
 # A partial implementation of a parser of Excel formula expressions.
 #
-from mo_parsing import QuotedString
+from mo_parsing import QuotedString, CaselessKeyword
 from mo_parsing.helpers import *
+from mo_parsing.infix import oneOf, infixNotation, LEFT_ASSOC
 
 EQ, LPAR, RPAR, COLON, COMMA = map(Suppress, "=():,")
 EXCL, DOLLAR = map(Literal, "!$")

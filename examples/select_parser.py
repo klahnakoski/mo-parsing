@@ -6,6 +6,7 @@
 #
 from mo_parsing import *
 from mo_parsing.helpers import *
+from mo_parsing.infix import oneOf
 
 comment = "--" + restOfLine
 

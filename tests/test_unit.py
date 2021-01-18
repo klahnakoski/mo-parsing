@@ -2277,7 +2277,7 @@ class TestParsing(PyparsingExpressionTestCase):
 
             self.assertEqual(rest, test[len(first) :].rstrip())
 
-        k = Regex(r"a+", flags=re.S + re.M)
+        k = Regex(r"a+")
 
         tests = [
             (r"aaa", ["aaa"]),

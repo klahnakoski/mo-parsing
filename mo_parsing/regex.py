@@ -80,16 +80,19 @@ def repeat(tokens):
 
     operand, operator = tokens
     mode = operator["mode"]
-    if mode == "*":
+    if not mode:
+        if operator["exact"]:
+            return Many(operand, exact=int(operator["exact"]))
+        else:
+            return Many(operand, min_match=int(operator["min"]), max_match=int(operator["max"]))
+    elif mode in "*?":
         return ZeroOrMore(operand)
-    elif mode == "+":
+    elif mode in "+?":
         return OneOrMore(operand)
     elif mode == "?":
         return Optional(operand)
-    elif operator["exact"]:
-        return Many(operand, exact=int(operator["exact"]))
     else:
-        return Many(operand, min_match=int(operator["min"]), max_match=int(operator["max"]))
+        Log.error("not expected")
 
 engine = Engine("")
 engine.use()

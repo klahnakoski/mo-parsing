@@ -672,8 +672,6 @@ class TokenConverter(ParseEnhancement):
         return self.expr.__regex__()
 
 
-
-
 class Combine(TokenConverter):
     """
     Converter to concatenate all matching tokens to a single string.
@@ -728,8 +726,10 @@ class Combine(TokenConverter):
         return self.expr.min_length()
 
     def __regex__(self):
-        return self.expr.__regex__()
-
+        if self.regex:
+            return "|", self.regex.pattern
+        else:
+            return self.expr.__regex__()
 
 
 class Group(TokenConverter):

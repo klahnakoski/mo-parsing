@@ -16,8 +16,7 @@ from mo_future import unichr, text, generator_types, get_function_name
 from mo_imports import expect
 
 ParseException = expect("ParseException")
-Many = expect("Many"
-              )
+Many = expect("Many")
 
 def append_config(base, *slots):
     dups = set(slots) & set(base.Config._fields)

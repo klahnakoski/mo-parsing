@@ -32,6 +32,8 @@ from mo_parsing import *
 from mo_parsing.helpers import *
 from mo_testing.fuzzytestcase import assertAlmostEqual
 
+from mo_parsing.infix import oneOf
+
 MARK, UNMARK, AT, COLON, QUOTE = map(Suppress, "[]@:'")
 
 NUMBER = Word(nums).addParseAction(lambda t: int(t[0]))

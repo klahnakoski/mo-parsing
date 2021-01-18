@@ -7,11 +7,14 @@ to parse, and where), but isn't useful for anything else.
 __version__ = "1.0"
 __author__ = "Daniel 'Dang' Griffith <pythondev - dang at lazytwinacres . net>"
 
-
+from mo_parsing import CaselessLiteral
 from mo_parsing.helpers import *
 
 
 # This converts DFM character constants into Python string (unicode) values.
+from mo_parsing.infix import oneOf
+
+
 def to_chr(x):
     """chr(x) if 0 < x < 128 ; unicode(x) if x > 127."""
     return 0 < x < 128 and chr(x) or eval("u'\\u%d'" % x)
