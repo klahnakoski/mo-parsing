@@ -52,7 +52,7 @@ from mo_parsing.exceptions import (
     RecursiveGrammarException,
     conditionAsParseAction,
 )
-from mo_parsing.expressions import And, Each, MatchFirst, Or, ParseExpression
+from mo_parsing.expressions import And, MatchAll, MatchFirst, Or, ParseExpression
 from mo_parsing.infix import LEFT_ASSOC, RIGHT_ASSOC, infixNotation
 from mo_parsing.regex import Regex
 from mo_parsing.results import ParseResults
@@ -88,7 +88,7 @@ __all__ = [
     "CharsNotIn",
     "Combine",
     "Dict",
-    "FindAll",
+    "MatchAll",
     "Empty",
     "FollowedBy",
     "Forward",

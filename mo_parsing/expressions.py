@@ -142,12 +142,12 @@ class And(ParseExpression):
 
     """
 
-    __slots__ = ["regex"]
+    __slots__ = []
 
-    class _ErrorStop(Empty):
+    class SyntaxErrorGuard(Empty):
         def __init__(self, *args, **kwargs):
             with Engine(""):
-                super(And._ErrorStop, self).__init__(*args, **kwargs)
+                super(And.SyntaxErrorGuard, self).__init__(*args, **kwargs)
                 self.parser_name = "-"
 
     def __init__(self, exprs):
@@ -166,12 +166,6 @@ class And(ParseExpression):
                     tmp.append(expr)
             exprs[:] = tmp
         super(And, self).__init__(exprs)
-        self.regex = None
-
-    def copy(self):
-        output = ParseExpression.copy(self)
-        output.regex = self.regex
-        return output
 
     def streamline(self):
         if self.streamlined:
@@ -204,48 +198,26 @@ class And(ParseExpression):
 
         # streamline INDIVIDUAL EXPRESSIONS
         acc = []
-        curr = []
         for e in exprs:
             if e is None:
                 continue
             f = e.streamline()
             same = same and f is e
-
             if f.is_annotated():
-                curr.append(f)
+                acc.append(f)
             elif isinstance(f, And):
-                # MERGE WITH CHILD, BUT ONLY IF NOT AT RISK OF BACKTRACKING
                 same = False
-                curr.extend(f.exprs)
-                f = f.exprs[-1]  # LAST IN curr
+                acc.extend(f.exprs)
             else:
-                curr.append(f)
-
-            if is_backtracking(f):
-                acc.append(curr)
-                curr = []
-
-        if not acc:
-            acc = curr
-        elif curr:
-            same = False
-            acc.append(curr)
-            acc = [And(c) for c in acc]
-        elif len(acc) == 1:
-            acc = acc[0]
-        else:
-            same = False
-            acc = [And(c) for c in acc]
+                acc.append(f)
 
         if same:
             self.streamlined = True
-            self.regex = regex_compile(self.__regex__()[1])
             return self
 
         output = self.copy()
         output.exprs = acc
         output.streamlined = True
-        output.regex = regex_compile(output.__regex__()[1])
         return output
 
     def expecting(self):
@@ -265,27 +237,19 @@ class And(ParseExpression):
     def parseImpl(self, string, start, doActions=True):
         # pass False as last arg to _parse for first element, since we already
         # pre-parsed the string as part of our And pre-parsing
-        regex = self.regex
-        if regex:
-            found = regex.match(string, start)
-            if found:
-                return ParseResults(self, start, found.end(), [found[0]])
-            else:
-                raise ParseException(self, start, string)
-
-        encountered_error_stop = False
+        encountered_syntax_error = False
         end = start
         acc = []
         for expr in self.exprs:
-            if isinstance(expr, And._ErrorStop):
-                encountered_error_stop = True
+            if isinstance(expr, And.SyntaxErrorGuard):
+                encountered_syntax_error = True
                 continue
             try:
                 result = expr._parse(string, end, doActions)
                 end = result.end
                 acc.append(result)
             except ParseException as pe:
-                if encountered_error_stop:
+                if encountered_syntax_error:
                     raise ParseSyntaxException(pe.expr, pe.loc, pe.string)
                 else:
                     raise pe
@@ -306,9 +270,6 @@ class And(ParseExpression):
                 return
 
     def __regex__(self):
-        for e in self.exprs[:-1]:
-            if is_backtracking(e):
-                Log.warning("backtracking will cause slowdown")
         return "+", "".join(regex_iso(*e.__regex__(), "+") for e in self.exprs)
 
     def __str__(self):
@@ -676,7 +637,7 @@ class Fast(ParserElement):
             )
 
 
-class FindAll(ParseExpression):
+class MatchAll(ParseExpression):
     """
     Requires all given `ParseExpression` s to be found, but in
     any order. Expressions may be separated by whitespace.
@@ -692,7 +653,7 @@ class FindAll(ParseExpression):
         :param exprs: The expressions to be matched
         :param mins: list of integers indincating any minimums
         """
-        super(FindAll, self).__init__(exprs)
+        super(MatchAll, self).__init__(exprs)
         self.set_config(
             min_match=[
                 e.parser_config.min_match if isinstance(e, Many) else 1 for e in exprs
@@ -705,7 +666,7 @@ class FindAll(ParseExpression):
     def streamline(self):
         if self.streamlined:
             return self
-        return super(FindAll, self).streamline()
+        return super(MatchAll, self).streamline()
 
     def _min_length(self):
         # TODO: MAY BE TOO CONSERVATIVE, WE MAY BE ABLE TO PROVE self CAN CONSUME A CHARACTER
@@ -784,7 +745,7 @@ from mo_parsing import core, engine
 
 core.And = And
 core.Or = Or
-core.FindAll = FindAll
+core.MatchAll = MatchAll
 core.MatchFirst = MatchFirst
 
 from mo_parsing import helpers

@@ -685,11 +685,7 @@ class Combine(TokenConverter):
     def __init__(self, expr, separator=""):
         super(Combine, self).__init__(expr.streamline())
         self.set_config(separator=separator)
-        try:
-            self.regex = regex_compile(expr.__regex__()[1])
-            self.streamlined = True
-        except Exception as cause:
-            self.regex = None
+        self.regex = None
 
     def copy(self):
         output = ParseEnhancement.copy(self)
@@ -705,7 +701,7 @@ class Combine(TokenConverter):
             else:
                 raise ParseException(self, start, string)
 
-        result = self.expr.parse(string, start, doActions=doActions)
+        result = self.expr.parseImpl(string, start, doActions=doActions)
         output = ParseResults(
             self,
             start,

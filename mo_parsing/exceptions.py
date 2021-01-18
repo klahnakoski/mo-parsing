@@ -162,7 +162,7 @@ class ParseFatalException(Exception):
 class ParseSyntaxException(ParseFatalException):
     """
     just like `ParseFatalException`, but thrown internally
-    when an `ErrorStop<And._ErrorStop>` ('-' operator) indicates
+    when an `ErrorStop<And.SyntaxErrorGuard>` ('-' operator) indicates
     that parsing is to stop immediately because an unbacktrackable
     syntax error has been found.
     """

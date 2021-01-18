@@ -28,7 +28,7 @@ from mo_parsing.utils import Log, MAX_INT, wrap_parse_action, empty_tuple, is_fo
     And,
     MatchFirst,
     Or,
-    FindAll,
+    MatchAll,
     Empty,
     StringEnd,
     Literal,
@@ -447,7 +447,7 @@ class ParserElement(object):
         """
         Implementation of - operator, returns `And` with error stop
         """
-        return self + And._ErrorStop() + engine.CURRENT.normalize(other)
+        return self + And.SyntaxErrorGuard() + engine.CURRENT.normalize(other)
 
     def __rsub__(self, other):
         """
@@ -541,7 +541,7 @@ class ParserElement(object):
         """
         Implementation of & operator - returns `Each`
         """
-        return FindAll([self, engine.CURRENT.normalize(other)])
+        return MatchAll([self, engine.CURRENT.normalize(other)])
 
     def __rand__(self, other):
         """

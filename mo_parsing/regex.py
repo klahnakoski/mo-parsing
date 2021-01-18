@@ -24,7 +24,7 @@ from mo_parsing.enhancement import (
 from mo_parsing.expressions import MatchFirst, And
 from mo_parsing.infix import delimitedList
 from mo_parsing.tokens import Literal, AnyChar, Keyword, LineStart, LineEnd, Word, SingleCharLiteral
-from mo_parsing.utils import printables, alphanums, nums, hexnums, Log, listwrap
+from mo_parsing.utils import printables, alphanums, nums, hexnums, Log, listwrap, regex_compile
 
 
 def hex_to_char(t):
@@ -90,7 +90,6 @@ def repeat(tokens):
         return Many(operand, exact=int(operator["exact"]))
     else:
         return Many(operand, min_match=int(operator["min"]), max_match=int(operator["max"]))
-
 
 engine = Engine("")
 engine.use()
@@ -226,7 +225,10 @@ def srange(expr):
 
 
 def Regex(pattern):
-    return Combine(regex.parseString(pattern).value()).streamline()
+    output = Combine(regex.parseString(pattern).value()).streamline()
+    # WE ASSUME IT IS SAFE TO ASSIGN regex (NO SERIOUS BACKTRACKING PROBLEMS)
+    output.regex = regex_compile(pattern)
+    return output
 
 
 engine.release()

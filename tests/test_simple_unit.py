@@ -16,6 +16,7 @@ from mo_testing.fuzzytestcase import FuzzyTestCase
 
 from mo_parsing import *
 from mo_parsing.helpers import *
+from mo_parsing.infix import oneOf
 from mo_parsing.utils import *
 
 TestSpecification = namedtuple(
