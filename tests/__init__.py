@@ -1,11 +1,11 @@
 # encoding: utf-8
 from mo_future import text
-from mo_parsing.utils import Log
 
-from mo_parsing.core import replaceWith, ParserElement
+from mo_parsing.core import ParserElement
 from mo_parsing.exceptions import ParseException
 from mo_parsing.results import ParseResults
 from mo_parsing.tokens import Literal
+from mo_parsing.utils import Log
 
 
 def runTests(

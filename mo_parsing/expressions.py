@@ -331,13 +331,13 @@ class Or(ParseExpression):
             if isinstance(e, Fast):
                 for ee in e.get_short_list(string, start):
                     try:
-                        end = ee.tryParse(string, start)
+                        end = ee._parse(string, start)
                         matches.append((end, ee))
                     except ParseException as err:
                         causes.append(err)
             else:
                 try:
-                    end = e.tryParse(string, start)
+                    end = e._parse(string, start)
                     matches.append((end, e))
                 except ParseException as err:
                     causes.append(err)
@@ -683,7 +683,7 @@ class MatchAll(ParseExpression):
         while todo:
             for i, (c, (e, mi, ma)) in enumerate(zip(count, todo)):
                 try:
-                    loc = e.tryParse(string, end)
+                    loc = e._parse(string, end).end
                     if loc == end:
                         continue
                     end = loc
@@ -747,10 +747,3 @@ core.And = And
 core.Or = Or
 core.MatchAll = MatchAll
 core.MatchFirst = MatchFirst
-
-from mo_parsing import helpers
-
-helpers.And = And
-helpers.Or = Or
-helpers.MatchFirst = MatchFirst
-

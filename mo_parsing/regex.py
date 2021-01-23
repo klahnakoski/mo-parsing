@@ -5,10 +5,10 @@
 # Contact: kyle@lahnakoski.comd
 from string import whitespace
 
-from mo_future import unichr
+from mo_future import unichr, is_text
 
 from mo_parsing.core import add_reset_action
-from mo_parsing.engine import Engine
+from mo_parsing.engine import Engine, PLAIN_ENGINE
 from mo_parsing.enhancement import (
     Char,
     NotAny,
@@ -19,12 +19,15 @@ from mo_parsing.enhancement import (
     Combine,
     Group,
     Forward,
-    FollowedBy,
+    FollowedBy, TokenConverter, ParseEnhancement,
 )
 from mo_parsing.expressions import MatchFirst, And
 from mo_parsing.infix import delimitedList
-from mo_parsing.tokens import Literal, AnyChar, Keyword, LineStart, LineEnd, Word, SingleCharLiteral
-from mo_parsing.utils import printables, alphanums, nums, hexnums, Log, listwrap, regex_compile
+from mo_parsing.results import ParseResults
+from mo_parsing.tokens import Literal, AnyChar, LineStart, LineEnd, Word, SingleCharLiteral
+from mo_parsing.utils import printables, alphas, alphanums, nums, hexnums, Log, listwrap, regex_compile, ParseException
+
+__all__ = ["Regex"]
 
 
 def hex_to_char(t):
@@ -65,13 +68,14 @@ add_reset_action(_reset)
 
 def name_token(tokens):
     global num_captures
-    num_captures += 1
+    with PLAIN_ENGINE:
+        num_captures += 1
 
-    n = tokens["name"]
-    v = tokens["value"]
-    if not n:
-        n = str(num_captures)
-    return v.set_token_name(n)
+        n = tokens["name"]
+        v = tokens["value"]
+        if not n:
+            n = str(num_captures)
+        return Combine(v).set_token_name(n)
 
 
 def repeat(tokens):
@@ -94,8 +98,7 @@ def repeat(tokens):
     else:
         Log.error("not expected")
 
-engine = Engine("")
-engine.use()
+PLAIN_ENGINE.use()
 
 #########################################################################################
 # SQUARE BRACKETS
@@ -227,11 +230,80 @@ def srange(expr):
     return "".join(sorted(chars))
 
 
-def Regex(pattern):
-    output = Combine(regex.parseString(pattern).value()).streamline()
-    # WE ASSUME IT IS SAFE TO ASSIGN regex (NO SERIOUS BACKTRACKING PROBLEMS)
-    output.regex = regex_compile(pattern)
-    return output
+parameters = ("\\" + Char(alphanums)("name") | "\\g<" + Word(alphas, alphanums)("name") + ">").addParseAction(lambda t: t["name"])
+PLAIN_ENGINE.release()
 
 
-engine.release()
+class Regex(ParseEnhancement):
+    """
+    Converter to concatenate all matching tokens to a single string.
+    """
+
+    __slots__ = ["regex"]
+
+    def __init__(self, pattern):
+        ParseEnhancement.__init__(self, regex.parseString(pattern).value().streamline())
+        # WE ASSUME IT IS SAFE TO ASSIGN regex (NO SERIOUS BACKTRACKING PROBLEMS)
+        self.regex = regex_compile(pattern)
+
+    def copy(self):
+        output = ParseEnhancement.copy(self)
+        output.regex = self.regex
+        return output
+
+    def replace_with(self, replacement):
+        if is_text(replacement):
+            if self.regex:
+                # SHORTCUT: USE PYTHON REGEX
+                def pa(tokens):
+                    return tokens.type.regex.sub(replacement, tokens[0])
+
+                output = self.addParseAction(pa)
+                return output
+            else:
+                return TokenConverter.replace_with(self, replacement)
+        else:
+            # STANDARD addParseAction
+            return self.expr.addParseAction(replacement)
+
+    sub = replace_with
+
+    def parseImpl(self, string, start, doActions=True):
+        regex = self.regex
+        if regex:
+            found = self.regex.match(string, start)
+            if found:
+                return ParseResults(self, start, found.end(), [found[0]])
+            else:
+                raise ParseException(self, start, string)
+
+        result = self.expr.parseImpl(string, start, doActions=doActions)
+        output = ParseResults(
+            self,
+            start,
+            result.end,
+            [result.asString(sep=self.parser_config.separator)],
+        )
+        return output
+
+    def streamline(self):
+        # WE RUN THE DANGER OF MAKING PATHELOGICAL REGEX, SO WE DO NOT TRY
+        return self
+
+    def expecting(self):
+        return self.expr.expecting()
+
+    def min_length(self):
+        return self.expr.min_length()
+
+    def __regex__(self):
+        if self.regex:
+            return "|", self.regex.pattern
+        else:
+            return self.expr.__regex__()
+
+
+from mo_parsing import core
+
+core.regex_parameters = parameters
+del core

@@ -472,15 +472,18 @@ class SkipTo(ParseEnhancement):
         while loc <= instrlen:
             if fail:
                 # break if failOn expression matches
-                if fail.canParseNext(string, loc):
+                try:
+                    fail._parse(string, loc)
                     before_end = loc
                     break
+                except:
+                    pass
 
             if ignore:
                 # advance past ignore expressions
                 while 1:
                     try:
-                        loc = ignore.tryParse(string, loc)
+                        loc = ignore._parse(string, loc)
                         if loc == None:
                             Log.error("")
                     except ParseException:
@@ -677,28 +680,13 @@ class Combine(TokenConverter):
     Converter to concatenate all matching tokens to a single string.
     """
 
-    __slots__ = ["regex"]
     Config = append_config(TokenConverter, "separator")
 
     def __init__(self, expr, separator=""):
         super(Combine, self).__init__(expr.streamline())
         self.set_config(separator=separator)
-        self.regex = None
-
-    def copy(self):
-        output = ParseEnhancement.copy(self)
-        output.regex = self.regex
-        return output
 
     def parseImpl(self, string, start, doActions=True):
-        regex = self.regex
-        if regex:
-            found = self.regex.match(string, start)
-            if found:
-                return ParseResults(self, start, found.end(), [found[0]])
-            else:
-                raise ParseException(self, start, string)
-
         result = self.expr.parseImpl(string, start, doActions=doActions)
         output = ParseResults(
             self,
@@ -716,7 +704,6 @@ class Combine(TokenConverter):
         if expr is self.expr:
             self.streamlined = True
             return self
-        self.regex = regex_compile(expr.__regex__()[1])
         return Combine(expr, self.parser_config.separator)
 
     def expecting(self):
@@ -726,10 +713,7 @@ class Combine(TokenConverter):
         return self.expr.min_length()
 
     def __regex__(self):
-        if self.regex:
-            return "|", self.regex.pattern
-        else:
-            return self.expr.__regex__()
+        return self.expr.__regex__()
 
 
 class Group(TokenConverter):

@@ -47,10 +47,8 @@ from mo_parsing.enhancement import (
 from mo_parsing.exceptions import (
     ParseException,
     ParseException,
-    ParseFatalException,
     ParseSyntaxException,
     RecursiveGrammarException,
-    conditionAsParseAction,
 )
 from mo_parsing.expressions import And, MatchAll, MatchFirst, Or, ParseExpression
 from mo_parsing.infix import LEFT_ASSOC, RIGHT_ASSOC, infixNotation
@@ -110,7 +108,6 @@ __all__ = [
     "ParseEnhancement",
     "ParseException",
     "ParseExpression",
-    "ParseFatalException",
     "ParseResults",
     "ParseSyntaxException",
     "ParserElement",
@@ -133,5 +130,4 @@ __all__ = [
     "RIGHT_ASSOC",
     "infixNotation",
     "CloseMatch",
-    "conditionAsParseAction",
 ]

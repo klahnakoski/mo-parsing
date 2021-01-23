@@ -7,17 +7,15 @@
 #
 from mo_parsing import (
     Word,
-    alphas,
-    alphanums,
     Literal,
-    restOfLine,
     OneOrMore,
-    empty,
-    Suppress,
-    replaceWith,
+    Suppress, LineStart
 )
 
 # simulate some C++ code
+from mo_parsing.helpers import restOfLine, dblQuotedString
+from mo_parsing.utils import alphas, alphanums
+
 testData = """
 #define MAX_LOCS=100
 #define USERNAME = "floyd"
@@ -41,12 +39,12 @@ macroDef = (
     + restOfLine.set_token_name("value")
 )
 for t, s, e in macroDef.scanString(testData):
-
+    pass
 
 # or a quick way to make a dictionary of the names and values
 # (return only key and value tokens, and construct dict from key-value pairs)
 # - empty ahead of restOfLine advances past leading whitespace, does implicit lstrip during parsing
-macroDef = Suppress("#define") + ident + Suppress("=") + empty + restOfLine
+macroDef = Suppress("#define") + ident + Suppress("=") + Empty + restOfLine
 macros = dict(list(macroDef.searchString(testData)))
 
 
@@ -72,14 +70,6 @@ def substituteMacro(t, l, s):
 ident.addParseAction(substituteMacro)
 ident.ignore(macroDef)
 
-
-
-
-#################
-
-
-
-from mo_parsing import dblQuotedString, LineStart
 
 # remove all string macro definitions (after extracting to a string resource table?)
 stringMacroDef = Literal("#define") + ident + "=" + dblQuotedString + LineStart()

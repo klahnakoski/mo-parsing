@@ -129,37 +129,7 @@ class ParseException(Exception):
         return "lineno col line".split() + dir(type(self))
 
 
-class ParseFatalException(Exception):
-    """user-throwable exception thrown when inconsistent parse content
-    is found; stops all parsing immediately"""
-
-    __slots__ = []
-
-    def __init__(self, expr, start, string, msg=""):
-        self.internal = ParseException(expr, start, string, msg)
-
-    @property
-    def line(self):
-        return self.internal.line
-
-    @property
-    def lineno(self):
-        return self.internal.lineno
-
-    @property
-    def col(self):
-        return self.internal.col
-
-    @property
-    def column(self):
-        return self.internal.column
-
-    @property
-    def loc(self):
-        return self.internal.loc
-
-
-class ParseSyntaxException(ParseFatalException):
+class ParseSyntaxException(Exception):
     """
     just like `ParseFatalException`, but thrown internally
     when an `ErrorStop<And.SyntaxErrorGuard>` ('-' operator) indicates
@@ -198,19 +168,5 @@ class RecursiveGrammarException(Exception):
         return "RecursiveGrammarException: " + json.dumps([
             str(e) for e in self.parseElementTrace
         ])
-
-
-def conditionAsParseAction(fn, message=None, fatal=False):
-    msg = coalesce(message, "failed user-defined condition")
-    exc_type = ParseFatalException if fatal else ParseException
-    fn = wrap_parse_action(fn)
-
-    @wraps(fn)
-    def pa(t, l, s):
-        if not bool(fn(t, l, s)[0]):
-            raise exc_type(t.type, l, s, msg)
-        return t
-
-    return pa
 
 export("mo_parsing.utils", ParseException)

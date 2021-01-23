@@ -48,6 +48,6 @@ def inifile_BNF():
         keyDef = keyDef.addParseAction(stripKey)
 
         # using Dict will allow retrieval of named data fields as attributes of the parsed results
-        inibnf = Dict(ZeroOrMore(Group(sectionDef + Dict(ZeroOrMore(Group(keyDef))))))
+        inibnf = Dict(ZeroOrMore(Group(sectionDef + Dict(ZeroOrMore(Group(keyDef)))))).streamline()
 
     return inibnf

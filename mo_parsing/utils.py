@@ -18,6 +18,7 @@ from mo_imports import expect
 ParseException = expect("ParseException")
 Many = expect("Many")
 
+
 def append_config(base, *slots):
     dups = set(slots) & set(base.Config._fields)
     if dups:

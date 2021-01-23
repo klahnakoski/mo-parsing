@@ -472,7 +472,7 @@ class QuotedString(Token):
 
         prec, pattern = (
             Literal(quote_char)
-            + (NotAny(excluded) + included)[0:]
+            + ((~excluded + AnyChar()) | included)[0:]
             + Literal(end_quote_char)
         ).__regex__()
 
@@ -483,7 +483,7 @@ class QuotedString(Token):
         found = self.parser_config.regex.match(string, start)
         if not found:
             raise ParseException(self, start, string)
-
+        # :sdf\:jls::djf: sl:kfsjf
         end = found.end()
         ret = found.group()
 
@@ -891,6 +891,7 @@ core.Token = Token
 engine.Token = Token
 engine.Literal = Literal
 engine.CURRENT.literal = Literal
+engine.PLAIN_ENGINE.literal = Literal
 
 enhancement.Token = Token
 enhancement.Literal = Literal

@@ -2031,19 +2031,7 @@ class TestParsing(PyparsingExpressionTestCase):
             "incorrect Regex.sub result with simple string",
         )
 
-        # TODO: HOW CAN sub(r"\2") EVEN WORK WITHOUT asMatch?
-        # expr = Regex(r"([Hh]\d):\s*(.*)").sub(r"<\1>\2</\1>")
-        # result = expr.transformString(
-        #     "h1: This is the main heading\nh2: This is the sub-heading"
-        # )
-        #
-        # self.assertEqual(
-        #     result,
-        #     "<h1>This is the main heading</h1>\n<h2>This is the sub-heading</h2>",
-        #     "incorrect Regex.sub result with re string",
-        # )
-
-        expr = Regex(r"([Hh]\d):\s*(.*)", asMatch=True).sub(r"<\1>\2</\1>")
+        expr = Regex(r"([Hh]\d):\s*([^\n]*)").sub(r"<\1>\2</\1>")
         result = expr.transformString(
             "h1: This is the main heading\nh2: This is the sub-heading"
         )
@@ -2054,8 +2042,25 @@ class TestParsing(PyparsingExpressionTestCase):
             "incorrect Regex.sub result with re string",
         )
 
-        expr = Regex(r"<(.*?)>").sub(lambda m: m.group(1).upper())
-        result = expr.transformString("I want this in upcase: <what? what?>")
+        expr = Regex(r"([Hh]\d):\s*([^\n]*)").sub(r"<\1>\2</\1>")
+        result = expr.transformString(
+            "h1: This is the main heading\nh2: This is the sub-heading"
+        )
+
+        self.assertEqual(
+            result,
+            "<h1>This is the main heading</h1>\n<h2>This is the sub-heading</h2>",
+            "incorrect Regex.sub result with re string",
+        )
+
+        def replacer(m):
+            return m['1'].upper()
+
+        # expr = Regex(r"<(.*?)>").sub(replacer)
+        expr = Regex(r"<((?:(?!>).)*)>").sub(replacer)
+        # expr = Regex(r"<(.*?)>").sub(lambda m: m['1'].upper())
+        with Debugger():
+            result = expr.transformString("I want this in upcase: <what? what?>")
 
         self.assertEqual(
             result,
@@ -2513,7 +2518,7 @@ class TestParsing(PyparsingExpressionTestCase):
 
     def testSingleArgException(self):
         with self.assertRaises(" missing 2 required positional arguments"):
-            raise ParseFatalException("just one arg")
+            raise ParseException("just one arg")
 
     def testOriginalTextFor(self):
         def rfn(t):
@@ -3167,16 +3172,16 @@ class TestParsing(PyparsingExpressionTestCase):
     def testAddCondition(self):
         numParser = (
             Word(nums)
-            .addParseAction(lambda t, l, s: int(t[0]))
-            .addCondition(lambda t, l, s: t[0] % 2)
-            .addCondition(lambda t, l, s: t[0] >= 7)
+            .addParseAction(lambda t: int(t[0]))
+            .addCondition(lambda t: t[0] % 2)
+            .addCondition(lambda t: t[0] >= 7)
         )
 
         result = numParser.searchString("1 2 3 4 5 6 7 8 9 10")
 
         self.assertEqual(result, [[7], [9]], "failed to properly process conditions")
 
-        numParser = Word(nums).addParseAction(lambda t, l, s: int(t[0]))
+        numParser = Word(nums).addParseAction(lambda t: int(t[0]))
         rangeParser = numParser("from_") + Suppress("-") + numParser("to")
 
         result = rangeParser.searchString("1-4 2-4 4-3 5 6 7 8 9 10")
