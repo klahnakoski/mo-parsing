@@ -331,13 +331,13 @@ class Or(ParseExpression):
             if isinstance(e, Fast):
                 for ee in e.get_short_list(string, start):
                     try:
-                        end = ee._parse(string, start)
+                        end = ee._parse(string, start).end
                         matches.append((end, ee))
                     except ParseException as err:
                         causes.append(err)
             else:
                 try:
-                    end = e._parse(string, start)
+                    end = e._parse(string, start).end
                     matches.append((end, e))
                 except ParseException as err:
                     causes.append(err)
