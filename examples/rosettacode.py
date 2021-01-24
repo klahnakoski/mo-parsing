@@ -46,7 +46,7 @@ keywords = (WHILE, IF, PRINT, PUTC, ELSE) = map(
 any_keyword = MatchFirst(keywords)
 identifier = ~any_keyword + identifier
 integer = integer
-string = QuotedString('"', convertWhitespaceEscapes=False).set_parser_name("quoted string")
+string = QuotedString('"', convert_whitespace_escape=False).set_parser_name("quoted string")
 char = Regex(r"'\\?.'")
 
 expr = infixNotation(

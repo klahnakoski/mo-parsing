@@ -155,16 +155,13 @@ brackets = (
 # REGEX
 regex = Forward()
 
-more_macros = (
-    Literal("^").addParseAction(lambda: LineStart())
-    | Literal("$").addParseAction(lambda: LineEnd())
-    | Literal("\\b").addParseAction(lambda: NotAny(any_wordchar))
-)
-
+line_start = Literal("^").addParseAction(lambda: LineStart())
+line_end = Literal("$").addParseAction(lambda: LineEnd())
+word_edge = Literal("\\b").addParseAction(lambda: NotAny(any_wordchar))
 simple_char = Char(
     "".join(c for c in printables if c not in r".^$*+{}[]\|()") + " "
 ).addParseAction(lambda t: Literal(t.value()))
-
+esc_char = ("\\" + Char(r".^$*+{}[]\|()")).addParseAction(lambda t: Literal(t.value()[1]))
 
 with Engine():
     # ALLOW SPACES IN THE RANGE
@@ -190,6 +187,8 @@ group = ("(" + regex + ")").addParseAction(name_token)
 term = (
     macro
     | simple_char
+    | esc_char
+    | word_edge
     | brackets
     | ahead
     | not_ahead
@@ -200,12 +199,13 @@ term = (
     | group
 )
 
+
 more = (term + Optional(repetition)).addParseAction(repeat)
 sequence = OneOrMore(more).addParseAction(lambda t: And(t))
 regex << (
     delimitedList(sequence, separator="|")
     .set_token_name("value")
-    .addParseAction(lambda t: MatchFirst(t).streamline())
+    .addParseAction(lambda t: MatchFirst(listwrap(t.value())).streamline())
     .streamline()
 )
 
@@ -242,7 +242,8 @@ class Regex(ParseEnhancement):
     __slots__ = ["regex"]
 
     def __init__(self, pattern):
-        ParseEnhancement.__init__(self, regex.parseString(pattern).value().streamline())
+        parsed = regex.parseString(pattern)
+        ParseEnhancement.__init__(self, parsed.value().streamline())
         # WE ASSUME IT IS SAFE TO ASSIGN regex (NO SERIOUS BACKTRACKING PROBLEMS)
         self.regex = regex_compile(pattern)
 

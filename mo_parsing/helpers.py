@@ -1,9 +1,11 @@
 # encoding: utf-8
+import re
 from datetime import datetime
 
 from mo_future import text
 
 from mo_parsing.core import add_reset_action
+from mo_parsing.debug import Debugger
 from mo_parsing.engine import Engine
 from mo_parsing.enhancement import (
     Combine,
@@ -29,7 +31,7 @@ from mo_parsing.tokens import (
     Keyword,
     LineEnd,
     Word,
-    Literal,
+    Literal, AnyChar, Char,
 )
 from mo_parsing.utils import (
     alphanums,
@@ -37,13 +39,106 @@ from mo_parsing.utils import (
     col,
     hexnums,
     nums,
-    printables,
+    printables, Log,
 )
+
+
+def QuotedString(
+    quote_char,
+    esc_char=None,
+    esc_quote=None,
+    multiline=False,
+    unquote_results=True,
+    end_quote_char="",
+    convert_whitespace_escape=True,
+):
+    r"""
+    Token for matching strings that are delimited by quoting characters.
+
+    Defined with the following parameters:
+
+        - quote_char - string of one or more characters defining the
+          quote delimiting string
+        - esc_char - character to escape quotes, typically backslash
+          (default= ``None``)
+        - esc_quote - special quote sequence to escape an embedded quote
+          string (such as SQL's ``""`` to escape an embedded ``"``)
+          (default= ``None``)
+        - multiline - boolean indicating whether quotes can span
+          multiple lines (default= ``False``)
+        - unquoteResults - boolean indicating whether the matched text
+          should be unquoted (default= ``True``)
+        - end_quote_char - string of one or more characters defining the
+          end of the quote delimited string (default= ``None``  => same as
+          quote_char)
+        - convertWhitespaceEscapes - convert escaped whitespace
+          (``'\t'``, ``'\n'``, etc.) to actual whitespace
+          (default= ``True``)
+
+    """
+    quote_char = quote_char.strip()
+    end_quote_char = end_quote_char.strip() or quote_char
+
+    if not quote_char:
+        Log.error("quote_char cannot be the empty string")
+    if not end_quote_char:
+        Log.error("end_quote_char cannot be the empty string")
+
+    included = ~Literal(end_quote_char)+AnyChar()
+    excluded = Literal(end_quote_char)
+
+    if not multiline:
+        excluded |= Char("\r\n")
+    if esc_quote:
+        included = Literal(esc_quote) | included
+    if esc_char:
+        excluded |= Literal(esc_char)
+        included = esc_char + Char(printables) | included
+        esc_char_replace_pattern = re.escape(esc_char) + "(.)"
+
+    prec, pattern = (
+        Literal(quote_char) + ((~excluded + AnyChar()) | included)[0:]
+    ).__regex__()
+    # IMPORTANT: THE end_quote_char IS OUTSIDE THE Regex BECAUSE OF PATHOLOGICAL BACKTRACKING
+    output = Combine(Regex(pattern) + Literal(end_quote_char))
+
+    def post_parse(tokens):
+        ret = tokens[0]
+        if unquote_results:
+            # strip off quotes
+            ret = ret[len(quote_char) : -len(end_quote_char)]
+
+            if isinstance(ret, text):
+                # replace escaped whitespace
+                if "\\" in ret and convert_whitespace_escape:
+                    ws_map = {
+                        r"\t": "\t",
+                        r"\n": "\n",
+                        r"\f": "\f",
+                        r"\r": "\r",
+                    }
+                    for wslit, wschar in ws_map.items():
+                        ret = ret.replace(wslit, wschar)
+
+                # replace escaped characters
+                if esc_char:
+                    ret = re.sub(esc_char_replace_pattern, r"\g<1>", ret)
+
+                # replace escaped quotes
+                if esc_quote:
+                    ret = ret.replace(esc_quote, end_quote_char)
+
+        return ParseResults(output, tokens.start, tokens.end, [ret])
+
+    output.addParseAction(post_parse)
+    return output
+
 
 dblQuotedString = Combine(
     #       0         1         2         3         4         5
     #       012345678901234567890123456789012345678901234567890123456789
-    Regex(r'"(?:[^"\n\r\\]|(?:"")|(?:\\(?:[^x]|x[0-9a-fA-F]+)))*') + '"'
+    Regex(r'"(?:[^"\n\r\\]|(?:"")|(?:\\(?:[^x]|x[0-9a-fA-F]+)))*')
+    + '"'
 ).set_parser_name("string enclosed in double quotes")
 sglQuotedString = Combine(
     Regex(r"'(?:[^'\n\r\\]|(?:'')|(?:\\(?:[^x]|x[0-9a-fA-F]+)))*") + "'"

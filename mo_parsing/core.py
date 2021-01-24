@@ -19,7 +19,6 @@ from mo_parsing.utils import Log, MAX_INT, wrap_parse_action, empty_tuple, is_fo
     NotAny,
     Suppress,
     _flatten,
-    quotedString,
     And,
     MatchFirst,
     Or,
@@ -30,7 +29,7 @@ from mo_parsing.utils import Log, MAX_INT, wrap_parse_action, empty_tuple, is_fo
     Token,
     Group,
     regex_parameters
-) = [None] * 19
+) = [None] * 18
 
 DEBUG = False
 

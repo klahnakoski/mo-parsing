@@ -8,7 +8,7 @@ from mo_parsing.results import ParseResults
 from mo_parsing.utils import *
 import re
 import warnings
-from mo_future import text
+from mo_future import text, is_text
 
 
 class Token(ParserElement):
@@ -96,7 +96,10 @@ class Literal(Token):
     __slots__ = []
 
     def __init__(self, match):
+        if not is_text(match):
+            Log.error("Expecting string for literal")
         Token.__init__(self)
+
         self.set_config(match=match)
 
         if len(match) == 0:
@@ -387,152 +390,6 @@ class Char(Token):
 
     def __str__(self):
         return self.parser_config.regex.pattern
-
-
-class QuotedString(Token):
-    r"""
-    Token for matching strings that are delimited by quoting characters.
-
-    Defined with the following parameters:
-
-        - quote_char - string of one or more characters defining the
-          quote delimiting string
-        - escChar - character to escape quotes, typically backslash
-          (default= ``None``)
-        - escQuote - special quote sequence to escape an embedded quote
-          string (such as SQL's ``""`` to escape an embedded ``"``)
-          (default= ``None``)
-        - multiline - boolean indicating whether quotes can span
-          multiple lines (default= ``False``)
-        - unquoteResults - boolean indicating whether the matched text
-          should be unquoted (default= ``True``)
-        - end_quote_char - string of one or more characters defining the
-          end of the quote delimited string (default= ``None``  => same as
-          quote_char)
-        - convertWhitespaceEscapes - convert escaped whitespace
-          (``'\t'``, ``'\n'``, etc.) to actual whitespace
-          (default= ``True``)
-
-    """
-    __slots__ = []
-    Config = append_config(
-        Token,
-        "quote_char",
-        "end_quote_char",
-        "esc_char",
-        "esc_quote",
-        "multiline",
-        "unquoteResults",
-        "convertWhitespaceEscapes",
-        "escCharReplacePattern",
-    )
-
-    def __init__(
-        self,
-        quote_char,
-        escChar=None,
-        escQuote=None,
-        multiline=False,
-        unquoteResults=True,
-        end_quote_char="",
-        convertWhitespaceEscapes=True,
-    ):
-        super(QuotedString, self).__init__()
-
-        quote_char = quote_char.strip()
-        end_quote_char = end_quote_char.strip() or quote_char
-
-        if not quote_char:
-            Log.error("quote_char cannot be the empty string")
-        if not end_quote_char:
-            Log.error("end_quote_char cannot be the empty string")
-
-        self.set_config(
-            quote_char=quote_char,
-            end_quote_char=end_quote_char,
-            esc_char=escChar,
-            esc_quote=escQuote,
-            multiline=multiline,
-            unquoteResults=unquoteResults,
-            convertWhitespaceEscapes=convertWhitespaceEscapes,
-        )
-        included = AnyChar()
-        excluded = Literal(self.parser_config.end_quote_char)
-
-        if not multiline:
-            excluded |= Char("\r\n")
-        if escQuote:
-            included = Literal(escQuote) | included
-        if escChar:
-            excluded |= Literal(self.parser_config.esc_char)
-            included = escChar + Char(printables) | included
-            self.set_config(
-                escCharReplacePattern=re.escape(self.parser_config.esc_char) + "(.)"
-            )
-
-        prec, pattern = (
-            Literal(quote_char)
-            + ((~excluded + AnyChar()) | included)[0:]
-            + Literal(end_quote_char)
-        ).__regex__()
-
-        self.set_config(regex=regex_compile(pattern))
-        self.parser_name = text(self)
-
-    def parseImpl(self, string, start, doActions=True):
-        found = self.parser_config.regex.match(string, start)
-        if not found:
-            raise ParseException(self, start, string)
-        # :sdf\:jls::djf: sl:kfsjf
-        end = found.end()
-        ret = found.group()
-
-        if self.parser_config.unquoteResults:
-
-            # strip off quotes
-            ret = ret[
-                len(self.parser_config.quote_char) : -len(self.parser_config.end_quote_char)
-            ]
-
-            if isinstance(ret, text):
-                # replace escaped whitespace
-                if "\\" in ret and self.parser_config.convertWhitespaceEscapes:
-                    ws_map = {
-                        r"\t": "\t",
-                        r"\n": "\n",
-                        r"\f": "\f",
-                        r"\r": "\r",
-                    }
-                    for wslit, wschar in ws_map.items():
-                        ret = ret.replace(wslit, wschar)
-
-                # replace escaped characters
-                if self.parser_config.esc_char:
-                    ret = re.sub(
-                        self.parser_config.escCharReplacePattern, r"\g<1>", ret
-                    )
-
-                # replace escaped quotes
-                if self.parser_config.esc_quote:
-                    ret = ret.replace(
-                        self.parser_config.esc_quote, self.parser_config.end_quote_char
-                    )
-
-        return ParseResults(self, start, end, [ret])
-
-    def min_length(self):
-        return 2
-
-    def __str__(self):
-        try:
-            return super(QuotedString, self).__str__()
-        except Exception:
-            pass
-
-        return "quoted string, starting with %s ending with %s" % (
-            self.parser_config.quote_char,
-            self.parser_config.end_quote_char,
-        )
 
 
 class CharsNotIn(Token):

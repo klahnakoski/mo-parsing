@@ -10,7 +10,7 @@ from mo_parsing.infix import oneOf, infixNotation, LEFT_ASSOC
 
 EQ, LPAR, RPAR, COLON, COMMA = map(Suppress, "=():,")
 EXCL, DOLLAR = map(Literal, "!$")
-sheetRef = Word(alphas, alphanums) | QuotedString("'", escQuote="''")
+sheetRef = Word(alphas, alphanums) | QuotedString("'", esc_quote="''")
 colRef = Optional(DOLLAR) + Word(alphas, max=2)
 rowRef = Optional(DOLLAR) + Word(nums)
 cellRef = Combine(

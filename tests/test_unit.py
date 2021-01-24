@@ -27,6 +27,7 @@ from examples.jsonParser import jsonObject
 from examples.simpleSQL import simpleSQL
 from mo_parsing import *
 from mo_parsing import helpers
+from mo_parsing.debug import Debugger
 from mo_parsing.helpers import *
 from mo_parsing.infix import oneOf
 from mo_parsing.utils import *
@@ -2059,8 +2060,7 @@ class TestParsing(PyparsingExpressionTestCase):
         # expr = Regex(r"<(.*?)>").sub(replacer)
         expr = Regex(r"<((?:(?!>).)*)>").sub(replacer)
         # expr = Regex(r"<(.*?)>").sub(lambda m: m['1'].upper())
-        with Debugger():
-            result = expr.transformString("I want this in upcase: <what? what?>")
+        result = expr.transformString("I want this in upcase: <what? what?>")
 
         self.assertEqual(
             result,
@@ -2856,8 +2856,8 @@ class TestParsing(PyparsingExpressionTestCase):
             sglQuotedString,
             dblQuotedString,
             quotedString,
-            QuotedString('"', escQuote='""'),
-            QuotedString("'", escQuote="''"),
+            QuotedString('"', esc_quote='""'),
+            QuotedString("'", esc_quote="''"),
             QuotedString("^"),
             QuotedString("<", end_quote_char=">"),
         )
