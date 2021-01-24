@@ -130,8 +130,7 @@ def QuotedString(
 
         return ParseResults(output, tokens.start, tokens.end, [ret])
 
-    output.addParseAction(post_parse)
-    return output
+    return output.addParseAction(post_parse)
 
 
 dblQuotedString = Combine(
