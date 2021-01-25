@@ -133,7 +133,7 @@ def QuotedString(
                 if esc_quote:
                     ret = ret.replace(esc_quote, end_quote_char)
 
-        return ParseResults(output, tokens.start, tokens.end, [ret])
+        return ParseResults(tokens.type, tokens.start, tokens.end, [ret])
 
     return output.addParseAction(post_parse).streamline()
 

@@ -483,16 +483,12 @@ class SkipTo(ParseEnhancement):
                 # advance past ignore expressions
                 while 1:
                     try:
-                        loc = ignore._parse(string, loc)
-                        if loc == None:
-                            Log.error("")
+                        loc = ignore._parse(string, loc).end
                     except ParseException:
                         break
             try:
                 before_end = loc
                 loc = self.expr._parse(string, loc, doActions=False).end
-                if loc == None:
-                    Log.error("")
             except ParseException:
                 # no match, advance loc in string
                 loc += 1
