@@ -870,43 +870,33 @@ fraction.addParseAction(lambda t: t[0] / t[-1])
 
 mixed_integer = (
     fraction | signed_integer + Optional(Optional("-").suppress() + fraction)
-).set_parser_name("fraction or mixed integer-fraction")
-"""mixed integer of the form 'integer - fraction', with optional leading integer, returns float"""
-mixed_integer.addParseAction(sum)
+).set_parser_name("fraction or mixed integer-fraction").addParseAction(sum)
 
 real = (
-    Regex(r"[+-]?(:?\d+\.\d*|\.\d+)")
+    Regex(r"[+-]?(?:\d+\.\d*|\.\d+)")
     .set_parser_name("real number")
     .addParseAction(convertToFloat)
 )
-"""expression that parses a floating point number and returns a float"""
 
 sci_real = (
-    Regex(r"[+-]?(:?\d+(:?[eE][+-]?\d+)|(:?\d+\.\d*|\.\d+)(:?[eE][+-]?\d+)?)")
+    Regex(r"[+-]?(?:\d+(?:[eE][+-]?\d+)|(?:\d+\.\d*|\.\d+)(?:[eE][+-]?\d+)?)")
     .set_parser_name("real number with scientific notation")
     .addParseAction(convertToFloat)
 )
-"""expression that parses a floating point number with optional
-scientific notation and returns a float"""
 
-# streamlining this expression makes the docs nicer-looking
 number = (sci_real | real | signed_integer).streamline()
-"""any numeric expression, returns the corresponding Python type"""
 
 fnumber = (
     Regex(r"[+-]?\d+\.?\d*([eE][+-]?\d+)?")
     .set_parser_name("fnumber")
     .addParseAction(convertToFloat)
 )
-"""any int or real number, returned as float"""
 
 identifier = Word(alphas + "_", alphanums + "_").set_parser_name("identifier")
-"""typical code identifier (leading alpha or '_', followed by 0 or more alphas, nums, or '_')"""
 
 ipv4_address = Regex(
     r"(25[0-5]|2[0-4][0-9]|1?[0-9]{1,2})(\.(25[0-5]|2[0-4][0-9]|1?[0-9]{1,2})){3}"
 ).set_parser_name("IPv4 address")
-"IPv4 address (``0.0.0.0 - 255.255.255.255``)"
 
 _ipv6_part = Regex(r"[0-9a-fA-F]{1,4}").set_parser_name("hex_integer")
 _full_ipv6_address = (

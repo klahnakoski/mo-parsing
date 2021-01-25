@@ -2716,8 +2716,7 @@ class TestParsing(PyparsingExpressionTestCase):
         ]
 
         expr = nestedExpr(ignoreExpr=comment)
-        with Debugger():
-            result = expr.parseString(teststring)
+        result = expr.parseString(teststring)
 
         self.assertEqual(
             result, expected, 'Lisp-ish comments (";; <...> $") didn\'t work.'

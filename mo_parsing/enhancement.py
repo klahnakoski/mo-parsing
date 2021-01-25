@@ -11,7 +11,14 @@ from mo_parsing.exceptions import (
     RecursiveGrammarException,
 )
 from mo_parsing.results import ParseResults, Annotation
-from mo_parsing.utils import Log, listwrap, empty_tuple, regex_iso, append_config, regex_compile
+from mo_parsing.utils import (
+    Log,
+    listwrap,
+    empty_tuple,
+    regex_iso,
+    append_config,
+    regex_compile,
+)
 from mo_parsing.utils import MAX_INT, is_forward
 
 # import later
@@ -54,10 +61,7 @@ class ParseEnhancement(ParserElement):
 
     def expecting(self):
         if self.expr:
-            return OrderedDict((
-                (k, [self])
-                for k, e in self.expr.expecting().items()
-            ))
+            return OrderedDict(((k, [self]) for k, e in self.expr.expecting().items()))
         else:
             return {}
 
@@ -141,7 +145,6 @@ class NotAny(ParseEnhancement):
     """
 
     __slots__ = ["regex"]
-
 
     def __init__(self, expr):
         super(NotAny, self).__init__(expr)
@@ -703,7 +706,7 @@ class Combine(TokenConverter):
         return Combine(expr, self.parser_config.separator)
 
     def expecting(self):
-        return self.expr.expecting()
+        return OrderedDict((k, [self]) for k in self.expr.expecting().keys())
 
     def min_length(self):
         return self.expr.min_length()

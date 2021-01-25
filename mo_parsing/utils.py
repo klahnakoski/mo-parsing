@@ -106,25 +106,22 @@ def regex_caseless(literal):
     )
 
 
-_escapes = {
-    "\\": "\\\\",
-    "^": "\\^",
-    "-": "\\-",
-    "]": "\\]",
-    "\n": "\\n",
-    "\r": "\\r",
-    "\t": "\\t",
-}
+_escapes = {"\n": "\\n", "\r": "\\r", "\t": "\\t"}
+_escapes.update({c: "\\" + c for c in r".^$*?+-{}[]\|()"})
 
 
 def regex_range(s):
     def esc(s):
-        return _escapes.get(s, s)
+        r = re.escape(s)
+        o = _escapes.get(s, s)
+        if s not in "\t\r\n #~&" and r!=o:
+            Log.error("expecting same")
+        return o
 
     if not s:
         return ""
     if len(s) == 1:
-        return re.escape(s)
+        return esc(s)
 
     start = None
     prev = None

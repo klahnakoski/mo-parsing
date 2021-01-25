@@ -129,7 +129,7 @@ class ParseException(Exception):
         return "lineno col line".split() + dir(type(self))
 
 
-class ParseSyntaxException(Exception):
+class ParseSyntaxException(ParseException):
     """
     just like `ParseFatalException`, but thrown internally
     when an `ErrorStop<And.SyntaxErrorGuard>` ('-' operator) indicates

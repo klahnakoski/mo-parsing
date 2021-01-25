@@ -60,6 +60,9 @@ class ParseExpression(ParserElement):
         else:
             for e in self.exprs:
                 expect = e.expecting()
+                if not expect:
+                    # THIS ONE SAYS NOTHING ABOUT EXPECTATION
+                    return {}
                 for k, _ in expect.items():
                     output[k] = [self]
         return output
@@ -228,7 +231,8 @@ class And(ParseExpression):
         for e in self.exprs:
             for k in e.expecting().keys():
                 acc[k] = [self]
-            break
+            if e.min_length():
+                break
         return acc
 
     def _min_length(self):
@@ -287,15 +291,15 @@ class Or(ParseExpression):
     operator.
     """
 
-    __slots__ = ["fast"]
+    __slots__ = ["alternate"]
 
     def __init__(self, exprs):
         ParseExpression.__init__(self, exprs)
-        self.fast = self.exprs
+        self.alternate = self.exprs
 
     def copy(self):
         output = ParseExpression.copy(self)
-        output.fast = self.fast
+        output.alternate = self.alternate
         return output
 
     def _min_length(self):
@@ -317,7 +321,7 @@ class Or(ParseExpression):
                 if not isinstance(output, ParseExpression):
                     return output
 
-        output.fast = faster(output.exprs)
+        output.alternate = faster(output.exprs)
 
         output.streamlined = True
         output.checkRecursion()
@@ -327,7 +331,7 @@ class Or(ParseExpression):
         causes = []
         matches = []
 
-        for e in self.fast:
+        for e in self.alternate:
             if isinstance(e, Fast):
                 for ee in e.get_short_list(string, start):
                     try:
@@ -418,15 +422,15 @@ class MatchFirst(ParseExpression):
     match. May be constructed using the ``'|'`` operator.
     """
 
-    __slots__ = ["fast"]
+    __slots__ = ["alternate"]
 
     def __init__(self, exprs):
         ParseExpression.__init__(self, exprs)
-        self.fast = self.exprs
+        self.alternate = self.exprs
 
     def copy(self):
         output = ParseExpression.copy(self)
-        output.fast = self.fast
+        output.alternate = self.alternate
         return output
 
     def _min_length(self):
@@ -439,7 +443,7 @@ class MatchFirst(ParseExpression):
     def parseImpl(self, string, start, doActions=True):
         causes = []
 
-        for e in self.fast:
+        for e in self.alternate:
             try:
                 result = e._parse(string, start, doActions)
                 return ParseResults(self, result.start, result.end, [result])
@@ -462,7 +466,7 @@ class MatchFirst(ParseExpression):
             if len(output.exprs) == 1:
                 return output.exprs[0]
 
-        output.fast = faster(output.exprs)
+        output.alternate = faster(output.exprs)
 
         output.streamlined = True
         output.checkRecursion()

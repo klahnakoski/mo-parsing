@@ -2,6 +2,7 @@
 from mo_future import text
 
 from mo_parsing.core import ParserElement
+from mo_parsing.debug import Debugger
 from mo_parsing.exceptions import ParseException
 from mo_parsing.results import ParseResults
 from mo_parsing.tokens import Literal
@@ -138,7 +139,7 @@ def runTests(
             result = self.parseString(t, parseAll=parseAll)
         except ParseException as pe:
             if not failureTest:
-                error("FAIL", cause=pe)
+                error("can not parse {{sql}}", sql=t, cause=pe)
 
             result = pe
         except Exception as exc:

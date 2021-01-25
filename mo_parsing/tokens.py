@@ -1,14 +1,14 @@
 # encoding: utf-8
-import sre_constants
+import re
+from collections import OrderedDict
 
-from mo_parsing.core import ParserElement, NotAny
+from mo_future import text, is_text
+
+from mo_parsing.core import ParserElement
 from mo_parsing.engine import Engine, PLAIN_ENGINE
 from mo_parsing.exceptions import ParseException
 from mo_parsing.results import ParseResults
 from mo_parsing.utils import *
-import re
-import warnings
-from mo_future import text, is_text
 
 
 class Token(ParserElement):
@@ -276,8 +276,8 @@ class CloseMatch(Token):
 
 
 class Word(Token):
-    __slots__ = []
-    Config = append_config(Token, "min")
+    __slots__ = ["regex"]
+    Config = append_config(Token, "min", "init_chars")
 
     def __init__(
         self,
@@ -320,25 +320,34 @@ class Word(Token):
         if as_keyword:
             regexp = r"\b" + regexp + r"\b"
 
-        self.set_config(regex=regex_compile(regexp), min=min)
+        self.regex = regex_compile(regexp)
+        self.set_config(min=min, init_chars=init_chars)
+
+    def copy(self):
+        output = Token.copy(self)
+        output.regex=self.regex
+        return output
 
     def parseImpl(self, string, start, doActions=True):
-        found = self.parser_config.regex.match(string, start)
+        found = self.regex.match(string, start)
         if found:
             return ParseResults(self, start, found.end(), [found.group()])
-
-        raise ParseException(self, start, string)
+        else:
+            raise ParseException(self, start, string)
 
     def min_length(self):
         return self.parser_config.min
 
+    # def expecting(self):
+    #     return OrderedDict((c, [self]) for c in self.parser_config.init_chars)
+
     def __regex__(self):
-        return "+", self.parser_config.regex.pattern
+        return "+", self.regex.pattern
 
     def __str__(self):
         if self.parser_name:
             return self.parser_name
-        return f"W:({self.parser_config.regex.pattern})"
+        return f"W:({self.regex.pattern})"
 
 
 class Char(Token):

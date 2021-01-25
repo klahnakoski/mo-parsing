@@ -46,12 +46,9 @@ api_scanner = apiRef.scanString(test)
 while 1:
     try:
         t, s, e = next(api_scanner)
-
-    except ParseSyntaxException as pe:
-
-
+    except StopIteration:
+        break
+    except ParseException as pe:
         # reset api scanner to start after this exception location
         test = "\n" * (pe.lineno - 1) + test[pe.loc + 1 :]
         api_scanner = apiRef.scanString(test)
-    except StopIteration:
-        break

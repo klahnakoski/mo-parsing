@@ -3,6 +3,7 @@
 # UNDER THE MIT LICENSE
 #
 # Contact: kyle@lahnakoski.comd
+from collections import OrderedDict
 from string import whitespace
 
 from mo_future import unichr, is_text
@@ -214,6 +215,8 @@ not_ahead = ("(?!" + regex + ")").addParseAction(lambda t: NotAny(t["value"]))
 behind = ("(?<=" + regex + ")").addParseAction(lambda t: Log.error("not supported"))
 not_behind = ("(?<!" + regex + ")").addParseAction(lambda t: Log.error("not supported"))
 non_capture = ("(?:" + regex + ")").addParseAction(lambda t: t["value"])
+
+
 named = (
     Literal("(?P<").addParseAction(INC) + Word(alphanums + "_")("name") + ">" + regex + ")"
 ).addParseAction(name_token).addParseAction(DEC)
@@ -351,10 +354,20 @@ class Regex(ParseEnhancement):
 
     def streamline(self):
         # WE RUN THE DANGER OF MAKING PATHELOGICAL REGEX, SO WE DO NOT TRY
-        return self
+        if self.streamlined:
+           return self
+
+        expr = self.expr.streamline()
+        if expr is self:
+            self.streamlined = True
+            return self
+        output = self.copy()
+        output.expr = expr
+        output.streamlined = True
+        return output
 
     def expecting(self):
-        return self.expr.expecting()
+        return OrderedDict((k, [self]) for k in self.expr.expecting().keys())
 
     def min_length(self):
         return self.expr.min_length()
