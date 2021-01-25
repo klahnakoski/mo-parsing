@@ -598,7 +598,6 @@ class TestParsing(PyparsingExpressionTestCase):
         )
 
     def testParseIDL(self):
-        # Debugger().__enter__()
         def test(string, numToks, errloc=0):
 
             try:
@@ -1171,8 +1170,6 @@ class TestParsing(PyparsingExpressionTestCase):
         )
         for test in zip(testCases, expectedResults):
             t, exp = test
-            if t=='[^0-9\\\\]':
-                Debugger().__enter__()
             res = srange(t)
             self.assertEqual(
                 res,

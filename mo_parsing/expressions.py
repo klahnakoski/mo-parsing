@@ -55,13 +55,16 @@ class ParseExpression(ParserElement):
         if not self.is_annotated():
             for e in self.exprs:
                 expect = e.expecting()
+                if not expect:
+                    # NOT SURE WHAT THIS IS EXPECTING, BAIL
+                    return {}
                 for k, ee in expect.items():
                     output.setdefault(k, []).extend(ee)
         else:
             for e in self.exprs:
                 expect = e.expecting()
                 if not expect:
-                    # THIS ONE SAYS NOTHING ABOUT EXPECTATION
+                    # NOT SURE WHAT THIS IS EXPECTING, BAIL
                     return {}
                 for k, _ in expect.items():
                     output[k] = [self]
@@ -229,7 +232,10 @@ class And(ParseExpression):
 
         acc = OrderedDict()
         for e in self.exprs:
-            for k in e.expecting().keys():
+            expect = e.expecting()
+            if not expect:
+                return {}
+            for k in expect.keys():
                 acc[k] = [self]
             if e.min_length():
                 break

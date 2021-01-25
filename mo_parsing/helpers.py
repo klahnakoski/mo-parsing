@@ -862,15 +862,20 @@ signed_integer = (
 )
 
 fraction = (
-    signed_integer.addParseAction(convertToFloat)
-    + "/"
-    + signed_integer.addParseAction(convertToFloat)
-).set_parser_name("fraction")
-fraction.addParseAction(lambda t: t[0] / t[-1])
+    (
+        signed_integer.addParseAction(convertToFloat)
+        + "/"
+        + signed_integer.addParseAction(convertToFloat)
+    )
+    .set_parser_name("fraction")
+    .addParseAction(lambda t: t[0] / t[2])
+)
 
 mixed_integer = (
-    fraction | signed_integer + Optional(Optional("-").suppress() + fraction)
-).set_parser_name("fraction or mixed integer-fraction").addParseAction(sum)
+    (fraction | signed_integer + Optional(Optional("-").suppress() + fraction))
+    .set_parser_name("fraction or mixed integer-fraction")
+    .addParseAction(sum)
+)
 
 real = (
     Regex(r"[+-]?(?:\d+\.\d*|\.\d+)")
@@ -944,7 +949,7 @@ def convertToDate(fmt="%Y-%m-%d"):
 
     def cvt_fn(t, l, s):
         try:
-            return datetime.strptime(s[t.start: t.end], fmt).date()
+            return datetime.strptime(s[t.start : t.end], fmt).date()
         except ValueError as ve:
             raise ParseException(t.type, l, s, str(ve))
 
@@ -971,7 +976,7 @@ def convertToDatetime(fmt="%Y-%m-%dT%H:%M:%S.%f"):
 
     def cvt_fn(t, l, s):
         try:
-            return datetime.strptime(s[t.start:t.end], fmt)
+            return datetime.strptime(s[t.start : t.end], fmt)
         except ValueError as ve:
             raise ParseException(t.type, l, s, str(ve))
 
