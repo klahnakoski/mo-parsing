@@ -8,7 +8,7 @@
 #
 
 from mo_parsing import *
-from mo_parsing.helpers import integer, fnumber
+from mo_parsing.helpers import integer, fnumber, QuotedString
 
 COLON, LBRACK, RBRACK, LBRACE, RBRACE, TILDE, CARAT = map(Literal, ":[]{}~^")
 LPAR, RPAR = map(Suppress, "()")

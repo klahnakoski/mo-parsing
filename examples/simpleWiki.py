@@ -1,4 +1,4 @@
-from mo_parsing import *
+from mo_parsing.helpers import QuotedString
 
 wikiInput = """
 Here is a simple Wiki input:

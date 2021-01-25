@@ -84,11 +84,16 @@ def QuotedString(
     if not end_quote_char:
         Log.error("end_quote_char cannot be the empty string")
 
-    included = ~Literal(end_quote_char)+AnyChar()
     excluded = Literal(end_quote_char)
 
-    if not multiline:
+    if multiline:
+        anychar = AnyChar()
+    else:
+        anychar = Char(exclude="\n")
         excluded |= Char("\r\n")
+
+    included = ~Literal(end_quote_char)+anychar
+
     if esc_quote:
         included = Literal(esc_quote) | included
     if esc_char:
@@ -97,7 +102,7 @@ def QuotedString(
         esc_char_replace_pattern = re.escape(esc_char) + "(.)"
 
     prec, pattern = (
-        Literal(quote_char) + ((~excluded + AnyChar()) | included)[0:]
+        Literal(quote_char) + ((~excluded + anychar) | included)[0:]
     ).__regex__()
     # IMPORTANT: THE end_quote_char IS OUTSIDE THE Regex BECAUSE OF PATHOLOGICAL BACKTRACKING
     output = Combine(Regex(pattern) + Literal(end_quote_char))
@@ -130,7 +135,7 @@ def QuotedString(
 
         return ParseResults(output, tokens.start, tokens.end, [ret])
 
-    return output.addParseAction(post_parse)
+    return output.addParseAction(post_parse).streamline()
 
 
 dblQuotedString = Combine(

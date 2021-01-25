@@ -5,7 +5,7 @@
 # Contact: kyle@lahnakoski.comd
 from string import whitespace
 
-from mo_future import unichr, is_text, zip_longest
+from mo_future import unichr, is_text
 
 from mo_parsing.core import add_reset_action
 from mo_parsing.engine import Engine, PLAIN_ENGINE
@@ -19,13 +19,31 @@ from mo_parsing.enhancement import (
     Combine,
     Group,
     Forward,
-    FollowedBy, TokenConverter, ParseEnhancement,
+    FollowedBy,
+    ParseEnhancement,
 )
 from mo_parsing.expressions import MatchFirst, And
 from mo_parsing.infix import delimitedList
 from mo_parsing.results import ParseResults, Annotation
-from mo_parsing.tokens import Literal, AnyChar, LineStart, LineEnd, Word, SingleCharLiteral
-from mo_parsing.utils import printables, alphas, alphanums, nums, hexnums, Log, listwrap, regex_compile, ParseException
+from mo_parsing.tokens import (
+    Literal,
+    AnyChar,
+    LineStart,
+    LineEnd,
+    Word,
+    SingleCharLiteral,
+)
+from mo_parsing.utils import (
+    printables,
+    alphas,
+    alphanums,
+    nums,
+    hexnums,
+    Log,
+    listwrap,
+    regex_compile,
+    ParseException,
+)
 
 __all__ = ["Regex"]
 
@@ -66,11 +84,18 @@ def _reset():
 add_reset_action(_reset)
 
 
-def name_token(tokens):
+def INC():
     global num_captures
-    with PLAIN_ENGINE:
-        num_captures += 1
+    num_captures += 1
 
+
+def DEC():
+    global num_captures
+    num_captures -= 1
+
+
+def name_token(tokens):
+    with PLAIN_ENGINE:
         n = tokens["name"]
         v = tokens["value"]
         if not n:
@@ -88,7 +113,9 @@ def repeat(tokens):
         if operator["exact"]:
             return Many(operand, exact=int(operator["exact"]))
         else:
-            return Many(operand, min_match=int(operator["min"]), max_match=int(operator["max"]))
+            return Many(
+                operand, min_match=int(operator["min"]), max_match=int(operator["max"])
+            )
     elif mode in "*?":
         return ZeroOrMore(operand)
     elif mode in "+?":
@@ -97,6 +124,7 @@ def repeat(tokens):
         return Optional(operand)
     else:
         Log.error("not expected")
+
 
 PLAIN_ENGINE.use()
 
@@ -128,7 +156,9 @@ macro = (
     | bs_char
     | tab_char
 )
-escapedChar = (~macro + Combine("\\" + AnyChar())).addParseAction(lambda t: Literal(t.value()[1]))
+escapedChar = (
+    ~macro + Combine("\\" + AnyChar())
+).addParseAction(lambda t: Literal(t.value()[1]))
 plainChar = Char(exclude=r"\]").addParseAction(lambda t: Literal(t.value()))
 
 escapedHexChar = Combine(
@@ -147,7 +177,7 @@ charRange = Group(singleChar("min") + "-" + singleChar("max")).addParseAction(to
 brackets = (
     "["
     + Optional("^")("negate")
-    + OneOrMore(Group(charRange | singleChar | macro )("body"))
+    + OneOrMore(Group(charRange | singleChar | macro)("body"))
     + "]"
 ).addParseAction(to_bracket)
 
@@ -158,10 +188,10 @@ regex = Forward()
 line_start = Literal("^").addParseAction(lambda: LineStart())
 line_end = Literal("$").addParseAction(lambda: LineEnd())
 word_edge = Literal("\\b").addParseAction(lambda: NotAny(any_wordchar))
-simple_char = Char(
-    "".join(c for c in printables if c not in r".^$*+{}[]\|()") + " "
-).addParseAction(lambda t: Literal(t.value()))
-esc_char = ("\\" + Char(r".^$*+{}[]\|()")).addParseAction(lambda t: Literal(t.value()[1]))
+simple_char = Word(printables, exclude=r".^$*+{}[]\|()").addParseAction(lambda t: Literal(t.value()))
+esc_char = (
+    "\\" + AnyChar()
+).addParseAction(lambda t: Literal(t.value()[1]))
 
 with Engine():
     # ALLOW SPACES IN THE RANGE
@@ -172,7 +202,12 @@ with Engine():
         | "," + Word(nums)("max") + "}"
     )
 
-repetition = Group("{" + repetition | (Literal("*?") | Literal("+?") | Char("*+?"))("mode"))
+repetition = Group(
+    "{" + repetition | (Literal("*?") | Literal("+?") | Char("*+?"))("mode")
+)
+
+
+LB = Char("(")
 
 ahead = ("(?=" + regex + ")").addParseAction(lambda t: FollowedBy(t["value"]))
 not_ahead = ("(?!" + regex + ")").addParseAction(lambda t: NotAny(t["value"]))
@@ -180,9 +215,9 @@ behind = ("(?<=" + regex + ")").addParseAction(lambda t: Log.error("not supporte
 not_behind = ("(?<!" + regex + ")").addParseAction(lambda t: Log.error("not supported"))
 non_capture = ("(?:" + regex + ")").addParseAction(lambda t: t["value"])
 named = (
-    "(?P<" + Word(alphanums + "_")("name") + ">" + regex + ")"
-).addParseAction(name_token)
-group = ("(" + regex + ")").addParseAction(name_token)
+    Literal("(?P<").addParseAction(INC) + Word(alphanums + "_")("name") + ">" + regex + ")"
+).addParseAction(name_token).addParseAction(DEC)
+group = (LB.addParseAction(INC) + regex + ")").addParseAction(name_token).addParseAction(DEC)
 
 term = (
     macro
@@ -226,11 +261,14 @@ def srange(expr):
             drill(e.exprs[0].expr)
         else:
             Log.error("logic error")
+
     drill(pattern)
     return "".join(sorted(chars))
 
 
-parameters = ("\\" + Char(alphanums)("name") | "\\g<" + Word(alphas, alphanums)("name") + ">").addParseAction(lambda t: t["name"])
+parameters = (
+    "\\" + Char(alphanums)("name") | "\\g<" + Word(alphas, alphanums)("name") + ">"
+).addParseAction(lambda t: t["name"])
 PLAIN_ENGINE.release()
 
 
@@ -257,19 +295,32 @@ class Regex(ParseEnhancement):
         output.regex = self.regex
         return output
 
-    def as_group_list(self):
+    def capture_groups(self):
+        """
+        ADD A SPECIAL PARSE ACTION TO PROVIDE THE NUMBERED (eg "1") AND
+        NAMED GROUPS (eg (?P<name>...)
+        """
+
         def group_list(tokens):
             start, end = tokens.start, tokens.end
             # RE-MATCH  :(
-            found = tokens.type.regex.match(tokens.tokens[0])
+            sub_string = tokens.tokens[0]
+            found = tokens.type.regex.match(sub_string)
             lookup = dict(reversed(p) for p in found.re.groupindex.items())
             ann = []
-            for i, (g, (s, e)) in enumerate(zip(found.groups(), found.regs[1:]), start=1):
-                ann.append(g)
+            pe = 0
+            for i, (s, e) in enumerate(found.regs[1:], start=1):
+                g = sub_string[s:e]
+                if pe <= s:
+                    ann.append(g)
+                pe = e
+                ii = chr(i + ord("0"))
+                ann.append(Annotation(ii, s + start, e + start, [g]))
                 n = lookup.get(i)
                 if n:
-                    ann.append(Annotation(n, s+start, e+start, [g]))
+                    ann.append(Annotation(n, s + start, e + start, [g]))
             return ParseResults(_plain_group, start, end, ann)
+
         return self.addParseAction(group_list)
 
     def sub(self, replacement):
@@ -286,6 +337,7 @@ class Regex(ParseEnhancement):
             def pf(tokens):
                 regex_result = tokens.type.regex.match(tokens.tokens[0])
                 return replacement(regex_result)
+
             return self.addParseAction(pf)
 
     def parseImpl(self, string, start, doActions=True):

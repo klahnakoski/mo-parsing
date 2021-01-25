@@ -286,8 +286,8 @@ class Word(Token):
         min=1,
         max=None,
         exact=0,
-        asKeyword=False,
-        exclude=None,
+        as_keyword=False,  # IF WE EXPECT NON-WORD CHARACTERS BEFORE AND AFTER
+        exclude='',
     ):
         Token.__init__(self)
 
@@ -317,7 +317,7 @@ class Word(Token):
                 + Char(body_chars, exclude=exclude)[min - 1 : max - 1]
             ).__regex__()
 
-        if asKeyword:
+        if as_keyword:
             regexp = r"\b" + regexp + r"\b"
 
         self.set_config(regex=regex_compile(regexp), min=min)

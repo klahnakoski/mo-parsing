@@ -7,6 +7,7 @@
 #
 
 from mo_parsing import *
+from mo_parsing.helpers import QuotedString
 from mo_parsing.utils import alphas, alphanums
 
 LBRACK, RBRACK, LBRACE, RBRACE = map(Suppress, "[]{}")
