@@ -1995,8 +1995,8 @@ class TestParsing(PyparsingExpressionTestCase):
 
         test_str = "sldkjfj 123 456 lsdfkj"
 
-        expr = Regex(r"\w+ (\d+) (\d+) (\w+)", asGroupList=True)
-        expected_group_list = [tuple(test_str.split()[1:])]
+        expr = Regex(r"\w+ (\d+) (\d+) (\w+)").as_group_list()
+        expected_group_list = test_str.split()[1:]
         result = expr.parseString(test_str)
 
         self.assertParseResultsEquals(
@@ -2006,17 +2006,17 @@ class TestParsing(PyparsingExpressionTestCase):
         )
 
         expr = Regex(
-            r"\w+ (?P<num1>\d+) (?P<num2>\d+) (?P<last_word>\w+)", asMatch=True
-        )
+            r"\w+ (?P<num1>\d+) (?P<num2>\d+) (?P<last_word>\w+)"
+        ).as_group_list()
         result = expr.parseString(test_str)
 
         self.assertEqual(
-            result[0].groupdict(),
+            result,
             {"num1": "123", "num2": "456", "last_word": "lsdfkj"},
             "invalid group dict from Regex(asMatch=True)",
         )
         self.assertEqual(
-            result[0].groups(),
+            result[0],
             expected_group_list[0],
             "incorrect group list returned by Regex(asMatch)",
         )
@@ -2054,12 +2054,7 @@ class TestParsing(PyparsingExpressionTestCase):
             "incorrect Regex.sub result with re string",
         )
 
-        def replacer(m):
-            return m['1'].upper()
-
-        # expr = Regex(r"<(.*?)>").sub(replacer)
-        expr = Regex(r"<((?:(?!>).)*)>").sub(replacer)
-        # expr = Regex(r"<(.*?)>").sub(lambda m: m['1'].upper())
+        expr = Regex(r"<((?:(?!>).)*)>").sub(lambda m: m.group(1).upper())
         result = expr.transformString("I want this in upcase: <what? what?>")
 
         self.assertEqual(
@@ -2069,13 +2064,14 @@ class TestParsing(PyparsingExpressionTestCase):
         )
 
         with TestCase.assertRaises(self, SyntaxError):
-            Regex(r"<(.*?)>", asMatch=True).sub(lambda m: m.group(1).upper())
+            with Debugger():
+                Regex(r"<(.*?)>").sub(lambda m: m.group(1).upper())
 
         with TestCase.assertRaises(self, SyntaxError):
-            Regex(r"<(.*?)>", asGroupList=True).sub(lambda m: m.group(1).upper())
+            Regex(r"<(.*?)>").sub(lambda m: m.group(1).upper())
 
         with TestCase.assertRaises(self, SyntaxError):
-            Regex(r"<(.*?)>", asGroupList=True).sub("")
+            Regex(r"<(.*?)>").sub("")
 
     def testPrecededBy(self):
 

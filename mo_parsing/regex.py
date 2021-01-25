@@ -5,7 +5,7 @@
 # Contact: kyle@lahnakoski.comd
 from string import whitespace
 
-from mo_future import unichr, is_text
+from mo_future import unichr, is_text, zip_longest
 
 from mo_parsing.core import add_reset_action
 from mo_parsing.engine import Engine, PLAIN_ENGINE
@@ -23,7 +23,7 @@ from mo_parsing.enhancement import (
 )
 from mo_parsing.expressions import MatchFirst, And
 from mo_parsing.infix import delimitedList
-from mo_parsing.results import ParseResults
+from mo_parsing.results import ParseResults, Annotation
 from mo_parsing.tokens import Literal, AnyChar, LineStart, LineEnd, Word, SingleCharLiteral
 from mo_parsing.utils import printables, alphas, alphanums, nums, hexnums, Log, listwrap, regex_compile, ParseException
 
@@ -242,9 +242,14 @@ class Regex(ParseEnhancement):
     __slots__ = ["regex"]
 
     def __init__(self, pattern):
+        """
+        :param pattern:  THE REGEX PATTERN
+        :param asGroupList: RETURN A LIST OF CAPTURED GROUPS /1, /2, /3, ...
+        """
         parsed = regex.parseString(pattern)
         ParseEnhancement.__init__(self, parsed.value().streamline())
         # WE ASSUME IT IS SAFE TO ASSIGN regex (NO SERIOUS BACKTRACKING PROBLEMS)
+        self.streamlined = True
         self.regex = regex_compile(pattern)
 
     def copy(self):
@@ -252,40 +257,43 @@ class Regex(ParseEnhancement):
         output.regex = self.regex
         return output
 
-    def replace_with(self, replacement):
+    def as_group_list(self):
+        def group_list(tokens):
+            start, end = tokens.start, tokens.end
+            # RE-MATCH  :(
+            found = tokens.type.regex.match(tokens.tokens[0])
+            lookup = dict(reversed(p) for p in found.re.groupindex.items())
+            ann = []
+            for i, (g, (s, e)) in enumerate(zip(found.groups(), found.regs[1:]), start=1):
+                ann.append(g)
+                n = lookup.get(i)
+                if n:
+                    ann.append(Annotation(n, s+start, e+start, [g]))
+            return ParseResults(_plain_group, start, end, ann)
+        return self.addParseAction(group_list)
+
+    def sub(self, replacement):
+        # MIMIC re.sub
         if is_text(replacement):
-            if self.regex:
-                # SHORTCUT: USE PYTHON REGEX
-                def pa(tokens):
-                    return tokens.type.regex.sub(replacement, tokens[0])
+            # USE PYTHON REGEX
+            def pa(tokens):
+                return tokens.type.regex.sub(replacement, tokens[0])
 
-                output = self.addParseAction(pa)
-                return output
-            else:
-                return TokenConverter.replace_with(self, replacement)
+            output = self.addParseAction(pa)
+            return output
         else:
-            # STANDARD addParseAction
-            return self.expr.addParseAction(replacement)
-
-    sub = replace_with
+            # A FUNCTION
+            def pf(tokens):
+                regex_result = tokens.type.regex.match(tokens.tokens[0])
+                return replacement(regex_result)
+            return self.addParseAction(pf)
 
     def parseImpl(self, string, start, doActions=True):
-        regex = self.regex
-        if regex:
-            found = self.regex.match(string, start)
-            if found:
-                return ParseResults(self, start, found.end(), [found[0]])
-            else:
-                raise ParseException(self, start, string)
-
-        result = self.expr.parseImpl(string, start, doActions=doActions)
-        output = ParseResults(
-            self,
-            start,
-            result.end,
-            [result.asString(sep=self.parser_config.separator)],
-        )
-        return output
+        found = self.regex.match(string, start)
+        if found:
+            return ParseResults(self, start, found.end(), [found[0]])
+        else:
+            raise ParseException(self, start, string)
 
     def streamline(self):
         # WE RUN THE DANGER OF MAKING PATHELOGICAL REGEX, SO WE DO NOT TRY
@@ -302,6 +310,9 @@ class Regex(ParseEnhancement):
             return "|", self.regex.pattern
         else:
             return self.expr.__regex__()
+
+
+_plain_group = Group(None)
 
 
 from mo_parsing import core

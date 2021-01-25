@@ -264,6 +264,7 @@ class ParserElement(object):
         return self._parseString(string, parseAll=parseAll)
 
     def _parseString(self, string, parseAll=False):
+        # TODO: PUT THIS streamling IN THE ENTRY POINT
         expr = self.streamline()
         for e in expr.engine.ignore_list:
             e.streamline()
