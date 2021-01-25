@@ -31,7 +31,9 @@ from mo_parsing.tokens import (
     Keyword,
     LineEnd,
     Word,
-    Literal, AnyChar, Char,
+    Literal,
+    AnyChar,
+    Char,
 )
 from mo_parsing.utils import (
     alphanums,
@@ -39,7 +41,8 @@ from mo_parsing.utils import (
     col,
     hexnums,
     nums,
-    printables, Log,
+    printables,
+    Log,
 )
 
 
@@ -92,7 +95,7 @@ def QuotedString(
         anychar = Char(exclude="\n")
         excluded |= Char("\r\n")
 
-    included = ~Literal(end_quote_char)+anychar
+    included = ~Literal(end_quote_char) + anychar
 
     if esc_quote:
         included = Literal(esc_quote) | included
@@ -951,7 +954,7 @@ def convertToDate(fmt="%Y-%m-%d"):
 
     def cvt_fn(t, l, s):
         try:
-            return datetime.strptime(t[0], fmt).date()
+            return datetime.strptime(s[t.start: t.end], fmt).date()
         except ValueError as ve:
             raise ParseException(t.type, l, s, str(ve))
 
@@ -978,7 +981,7 @@ def convertToDatetime(fmt="%Y-%m-%dT%H:%M:%S.%f"):
 
     def cvt_fn(t, l, s):
         try:
-            return datetime.strptime(t[0], fmt)
+            return datetime.strptime(s[t.start:t.end], fmt)
         except ValueError as ve:
             raise ParseException(t.type, l, s, str(ve))
 
@@ -986,20 +989,23 @@ def convertToDatetime(fmt="%Y-%m-%dT%H:%M:%S.%f"):
 
 
 iso8601_date = (
-    Regex(r"(?P<year>\d{4})(?:-(?P<month>\d\d)(?:-(?P<day>\d\d))?)?").set_parser_name("ISO8601 date")
+    Regex(r"(?P<year>\d{4})(?:-(?P<month>\d\d)(?:-(?P<day>\d\d))?)?")
+    .capture_groups()
+    .set_parser_name("ISO8601 date")
 )
-"ISO8601 date (``yyyy-mm-dd``)"
 
-iso8601_datetime = Regex(
-    r"(?P<year>\d{4})-(?P<month>\d\d)-(?P<day>\d\d)[T"
-    r" ](?P<hour>\d\d):(?P<minute>\d\d)(:(?P<second>\d\d(\.\d*)?)?)?(?P<tz>Z|[+-]\d\d:?\d\d)?"
-).set_parser_name("ISO8601 datetime")
-"ISO8601 datetime (``yyyy-mm-ddThh:mm:ss.s(Z|+-00:00)``) - trailing seconds, milliseconds, and timezone optional; accepts separating ``'T'`` or ``' '``"
+iso8601_datetime = (
+    Regex(
+        r"(?P<year>\d{4})-(?P<month>\d\d)-(?P<day>\d\d)[T"
+        r" ](?P<hour>\d\d):(?P<minute>\d\d)(:(?P<second>\d\d(\.\d*)?)?)?(?P<tz>Z|[+-]\d\d:?\d\d)?"
+    )
+    .capture_groups()
+    .set_parser_name("ISO8601 datetime")
+)
 
 uuid = (
     Regex(r"[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}").set_parser_name("UUID")
 )
-"UUID (``xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx``)"
 
 _html_stripper = anyOpenTag.suppress() | anyCloseTag.suppress()
 

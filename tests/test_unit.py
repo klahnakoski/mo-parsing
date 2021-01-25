@@ -2702,7 +2702,7 @@ class TestParsing(PyparsingExpressionTestCase):
         )
 
         # Lisp-ish comments
-        comment = Regex(r";;.*")
+        comment = Regex(r";;[^\n]*")
         teststring = """
         (let ((greeting "Hello, world!")) ;;(foo bar
            (display greeting))
@@ -2716,7 +2716,8 @@ class TestParsing(PyparsingExpressionTestCase):
         ]
 
         expr = nestedExpr(ignoreExpr=comment)
-        result = expr.parseString(teststring)
+        with Debugger():
+            result = expr.parseString(teststring)
 
         self.assertEqual(
             result, expected, 'Lisp-ish comments (";; <...> $") didn\'t work.'

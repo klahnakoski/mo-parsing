@@ -310,6 +310,8 @@ class Regex(ParseEnhancement):
             ann = []
             pe = 0
             for i, (s, e) in enumerate(found.regs[1:], start=1):
+                if s == -1:
+                    continue  # NOT FOUND
                 g = sub_string[s:e]
                 if pe <= s:
                     ann.append(g)
