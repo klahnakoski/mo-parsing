@@ -80,13 +80,13 @@ numPart = (
     )
     + Optional(units)
 ).addParseAction(sum)
-numWords = ((numPart + Optional(mag)).addParseAction(wordprod)[1, ...]).addParseAction(
-    sum
+numWords = (
+    ((numPart + Optional(mag)).addParseAction(wordprod)[1, ...])
+    .addParseAction(sum)
+    .set_parser_name("num word parser")
+    .ignore(Literal("-"))
+    .ignore(CaselessLiteral("and"))
 )
-numWords.set_parser_name("num word parser")
-
-numWords.ignore(Literal("-"))
-numWords.ignore(CaselessLiteral("and"))
 
 tests = """
     one hundred twenty hundred, None

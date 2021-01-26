@@ -576,79 +576,23 @@ def makeHTMLTags(tagStr, suppress_LT=Suppress("<"), suppress_GT=Suppress(">")):
     return openTag, closeTag
 
 
-def withAttribute(*args, **attrDict):
-    """Helper to create a validating parse action to be used with start
-    tags created with `makeXMLTags` or
-    `makeHTMLTags`. Use ``withAttribute`` to qualify
-    a starting tag with a required attribute value, to avoid false
-    matches on common tags such as ``<TD>`` or ``<DIV>``.
-
-    Call ``withAttribute`` with a series of attribute names and
-    values. Specify the list of filter attributes names and values as:
-
-     - keyword arguments, as in ``(align="right")``, or
-     - as an explicit dict with ``**`` operator, when an attribute
-       name is also a Python reserved word, as in ``**{"class":"Customer", "align":"right"}``
-     - a list of name-value tuples, as in ``(("ns1:class", "Customer"), ("ns2:align", "right"))``
-
-    For attribute names with a namespace prefix, you must use the second
-    form.  Attribute names are matched insensitive to upper/lower case.
-
-    If just testing for ``class`` (with or without a namespace), use
-    `withClass`.
-
-    To verify that the attribute exists, but without specifying a value,
-    pass ``withAttribute.ANY_VALUE`` as the value.
-
-    Example::
-
-        html = '''
-            <div>
-            Some text
-            <div type="grid">1 4 0 1 0</div>
-            <div type="graph">1,3 2,3 1,1</div>
-            <div>this has no type</div>
-            </div>
-
-        '''
-        div,div_end = makeHTMLTags("div")
-
-        # only match div tag having a type attribute with value "grid"
-        div_grid = div().addParseAction(withAttribute(type="grid"))
-        grid_expr = div_grid + SkipTo(div | div_end)("body")
-        for grid_header in grid_expr.searchString(html):
-            print(grid_header.body)
-
-        # construct a match with any div tag having a type attribute, regardless of the value
-        div_any_type = div().addParseAction(withAttribute(type=withAttribute.ANY_VALUE))
-        div_expr = div_any_type + SkipTo(div | div_end)("body")
-        for div_header in div_expr.searchString(html):
-            print(div_header.body)
-
-    prints::
-
-        1 4 0 1 0
-
-        1 4 0 1 0
-        1,3 2,3 1,1
+def withAttribute(**attr):
     """
-    if args:
-        attrs = args[:]
-    else:
-        attrs = attrDict.items()
-    attrs = [(k, v) for k, v in attrs]
-
+    Verify attributes have given value, or at least exists (using withAttribute.ANY_VALUE)
+    :param attr:  Expecting named parameters set to the expected value
+    :return:  Raise an exception if there is no match
+    """
     def pa(tokens, loc, string):
-        for attrName, attrValue in attrs:
-            if attrName not in tokens:
-                raise ParseException(tokens.type, loc, string, "no matching attribute ")
-            if attrValue != withAttribute.ANY_VALUE and tokens[attrName] != attrValue:
+        for name, expected_value in attr.items():
+            if name not in tokens:
+                raise ParseException(tokens.type, loc, string, f"is expecting {name} attribute")
+            if expected_value != withAttribute.ANY_VALUE and tokens[name] != expected_value:
                 raise ParseException(
                     tokens.type,
                     loc,
                     string,
-                    f"attribute '{attrName}' has value '{tokens[attrName]}', must be"
-                    f" '{attrValue}'",
+                    f"attribute '{name}' has value '{tokens[name]}', must be"
+                    f" '{expected_value}'",
                 )
 
     return pa

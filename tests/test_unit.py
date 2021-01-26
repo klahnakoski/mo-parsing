@@ -2621,7 +2621,7 @@ class TestParsing(PyparsingExpressionTestCase):
             [
                 withAttribute(b="x"),
                 # withAttribute(B="x"),
-                withAttribute(("b", "x")),
+                withAttribute(**{"b": "x"}),
                 # withAttribute(("B", "x")),
                 withClass("boo"),
             ],

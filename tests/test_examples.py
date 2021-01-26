@@ -54,8 +54,6 @@ skip_list = [
     "urlExtractorNew",
     "verilogParse",
     "verilogParse_test",
-    "withAttribute",
-    "wordsToNum",
     "LAparser_test",
 ]
 
