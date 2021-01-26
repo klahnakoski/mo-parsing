@@ -110,7 +110,7 @@ _escapes = {"\n": "\\n", "\r": "\\r", "\t": "\\t"}
 _escapes.update({c: "\\" + c for c in r".^$*?+-{}[]\|()"})
 
 
-def regex_range(s):
+def regex_range(s, exclude=False):
     def esc(s):
         r = re.escape(s)
         o = _escapes.get(s, s)
@@ -121,11 +121,14 @@ def regex_range(s):
     if not s:
         return ""
     if len(s) == 1:
-        return esc(s)
+        if exclude:
+            return f"[^{esc(s)}]"
+        else:
+            return esc(s)
 
     start = None
     prev = None
-    acc = ["["]
+    acc = ["[^"] if exclude else ["["]
     for c in list(sorted(set(s))) + ["\a"]:
         if prev and ord(prev) == ord(c) - 1:
             if not start:

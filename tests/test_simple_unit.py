@@ -555,21 +555,6 @@ class TestResultsModifyingParseAction(PyparsingExpressionTestCase):
         )
 
 
-class TestRegex(PyparsingExpressionTestCase):
-    def test_parsing_real_numbers_using_regex_instead_of_combine(self):
-        self.runTest(
-            desc="Parsing real numbers - using Regex instead of Combine",
-            expr=Regex(r"\d+\.\d+").addParseAction(lambda t: float(t[0]))[...],
-            text="1.2 2.3 3.1416 98.6",
-            expected_list=[
-                1.2,
-                2.3,
-                3.1416,
-                98.6,
-            ],  # note, these are now floats, not strs
-        )
-
-
 class TestParseCondition(PyparsingExpressionTestCase):
     def test_Define_a_condition_to_only_match_numeric_values_that_are_multiples_of_7(
         self,

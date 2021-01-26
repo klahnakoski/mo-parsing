@@ -365,11 +365,7 @@ class Char(Token):
         exclude = "".join(sorted(exclude))
 
         if not include:
-            regex = regex_range(exclude)
-            if regex[-1] == "]":
-                regex = "[^" + regex[1:]
-            else:
-                regex = "[^" + regex + "]"
+            regex = regex_range(exclude, exclude=True)
         else:
             regex = regex_range(include)
 
