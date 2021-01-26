@@ -77,16 +77,17 @@ class Engine:
         self.content = None
         self.regex = re.compile(self.__regex__()[1])
 
-    def add_ignore(self, ignore_expr):
+    def add_ignore(self, *ignore_exprs):
         """
         ADD TO THE LIST OF IGNORED EXPRESSIONS
         :param ignore_expr:
         """
-        ignore_expr = ignore_expr.suppress()
-        self.ignore_list.append(ignore_expr)
-        self.content = None
-        self.regex = re.compile(self.__regex__()[1])
-        return self
+        for ignore_expr in ignore_exprs:
+            ignore_expr = ignore_expr.suppress()
+            self.ignore_list.append(ignore_expr)
+            self.content = None
+            self.regex = re.compile(self.__regex__()[1])
+            return self
 
     def backup(self):
         return Backup(self)

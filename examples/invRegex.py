@@ -11,23 +11,25 @@
 # - () grouping
 # - | alternation
 #
-from mo_parsing.white import setDefaultWhitespaceChars
+
 
 __all__ = ["count", "invert"]
 
+from mo_parsing.infix import oneOf
+
 from mo_parsing import (
     Literal,
-    oneOf,
-    printables,
-    ParserElement,
     Combine,
     SkipTo,
     infixNotation,
-    ParseFatalException,
     Word,
     Suppress,
     ParseResults,
+    LEFT_ASSOC,
 )
+from mo_parsing.engine import Engine
+from mo_parsing.regex import srange
+from mo_parsing.utils import printables, nums
 
 
 class CharacterRangeEmitter:
@@ -71,7 +73,7 @@ class DotEmitter:
 
 class GroupEmitter:
     def __init__(self, exprs):
-        self.exprs = ParseResults(exprs)
+        self.exprs = exprs
 
     def makeGenerator(self):
         def groupGen():
@@ -125,7 +127,7 @@ def handleRange(toks):
 def handleRepetition(toks):
     toks = toks[0]
     if toks[1] in "*+":
-        raise ParseFatalException("unbounded repetition operators not supported", 0, "")
+        raise Exception("unbounded repetition operators not supported", 0, "")
     if toks[1] == "?":
         return OptionalEmitter(toks[0])
     if "count" in toks:
@@ -165,7 +167,7 @@ def handleMacro(toks):
     elif macroChar == "s":
         return LiteralEmitter(" ")
     else:
-        raise ParseFatalException(
+        raise Exception(
             "unsupported macro character (" + macroChar + ")", 0, ""
         )
 
@@ -188,41 +190,47 @@ _parser = None
 def parser():
     global _parser
     if _parser is None:
-        setDefaultWhitespaceChars("")
-        lbrack, rbrack, lbrace, rbrace, lparen, rparen, colon, qmark = map(
-            Literal, "[]{}():?"
-        )
+        with Engine(""):
+            lbrack, rbrack, lbrace, rbrace, lparen, rparen, colon, qmark = map(
+                Literal, "[]{}():?"
+            )
 
-        reMacro = Combine("\\" + oneOf(list("dws")))
-        escapedChar = ~reMacro + Combine("\\" + oneOf(list(printables)))
-        reLiteralChar = (
-            "".join(c for c in printables if c not in r"\[]{}().*?+|") + " \t"
-        )
+            reMacro = Combine("\\" + oneOf(list("dws")))
+            escapedChar = ~reMacro + Combine("\\" + oneOf(list(printables)))
+            reLiteralChar = (
+                "".join(c for c in printables if c not in r"\[]{}().*?+|") + " \t"
+            )
 
-        reRange = Combine(lbrack + SkipTo(rbrack, ignore=escapedChar) + rbrack)
-        reLiteral = escapedChar | oneOf(list(reLiteralChar))
-        reNonCaptureGroup = Suppress("?:")
-        reDot = Literal(".")
-        repetition = (
-            (lbrace + Word(nums)("count") + rbrace)
-            | (lbrace + Word(nums)("minCount") + "," + Word(nums)("maxCount") + rbrace)
-            | oneOf(list("*+?"))
-        )
+            reRange = Combine(lbrack + SkipTo(rbrack, ignore=escapedChar) + rbrack)
+            reLiteral = escapedChar | oneOf(list(reLiteralChar))
+            reNonCaptureGroup = Suppress("?:")
+            reDot = Literal(".")
+            repetition = (
+                (lbrace + Word(nums)("count") + rbrace)
+                | (
+                    lbrace
+                    + Word(nums)("minCount")
+                    + ","
+                    + Word(nums)("maxCount")
+                    + rbrace
+                )
+                | oneOf(list("*+?"))
+            )
 
-        reRange.addParseAction(handleRange)
-        reLiteral.addParseAction(handleLiteral)
-        reMacro.addParseAction(handleMacro)
-        reDot.addParseAction(handleDot)
+            reRange.addParseAction(handleRange)
+            reLiteral.addParseAction(handleLiteral)
+            reMacro.addParseAction(handleMacro)
+            reDot.addParseAction(handleDot)
 
-        reTerm = reLiteral | reRange | reMacro | reDot | reNonCaptureGroup
-        reExpr = infixNotation(
-            reTerm,
-            [
-                (repetition, 1, LEFT_ASSOC, handleRepetition),
-                (None, 2, LEFT_ASSOC, handleSequence),
-                (Suppress("|"), 2, LEFT_ASSOC, handleAlternative),
-            ],
-        )
+            reTerm = reLiteral | reRange | reMacro | reDot | reNonCaptureGroup
+            reExpr = infixNotation(
+                reTerm,
+                [
+                    (repetition, 1, LEFT_ASSOC, handleRepetition),
+                    (None, 2, LEFT_ASSOC, handleSequence),
+                    (Suppress("|"), 2, LEFT_ASSOC, handleAlternative),
+                ],
+            )
         _parser = reExpr
 
     return _parser
@@ -235,9 +243,9 @@ def count(gen):
 
 def invert(regex):
     r"""Call this routine as a generator to return all the strings that
-       match the input regular expression.
-           for s in invert(r"[A-Z]{3}\d{3}"):
-               print s
+    match the input regular expression.
+        for s in invert(r"[A-Z]{3}\d{3}"):
+            print s
     """
     invReGenerator = GroupEmitter(parser().parseString(regex)).makeGenerator()
     return invReGenerator()
@@ -278,15 +286,12 @@ def main():
     [ABCDEFG](?:#|##|b|bb)?(?:maj|min|m|sus|aug|dim)?[0-9]?(?:/[ABCDEFG](?:#|##|b|bb)?)?
     (Fri|Mon|S(atur|un)|T(hur|ue)s|Wednes)day
     A(pril|ugust)|((Dec|Nov|Sept)em|Octo)ber|(Febr|Jan)uary|Ju(ly|ne)|Ma(rch|y)
-    """.split(
-        "\n"
-    )
+    """.split("\n")
 
     for t in tests:
         t = t.strip()
         if not t:
             continue
-
 
         try:
             num = count(invert(t))
@@ -297,11 +302,9 @@ def main():
                 maxprint -= 1
                 if not maxprint:
                     break
-        except ParseFatalException as pfe:
-
+        except Exception as pfe:
 
             continue
-
 
 
 main()

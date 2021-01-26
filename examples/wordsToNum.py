@@ -7,6 +7,9 @@ from mo_parsing import *
 from operator import mul
 from functools import reduce
 
+from mo_parsing.engine import Engine
+from mo_parsing.helpers import integer
+
 
 def makeLit(s, val):
     ret = CaselessLiteral(s)
@@ -80,13 +83,14 @@ numPart = (
     )
     + Optional(units)
 ).addParseAction(sum)
-numWords = (
-    ((numPart + Optional(mag)).addParseAction(wordprod)[1, ...])
-    .addParseAction(sum)
-    .set_parser_name("num word parser")
-    .ignore(Literal("-"))
-    .ignore(CaselessLiteral("and"))
-)
+with Engine() as e:
+    e.add_ignore(Literal("-"))
+    e.add_ignore(CaselessLiteral("and"))
+    numWords = (
+        ((numPart + Optional(mag)).addParseAction(wordprod)[1, ...])
+        .addParseAction(sum)
+        .set_parser_name("num word parser")
+    )
 
 tests = """
     one hundred twenty hundred, None
@@ -114,9 +118,9 @@ def verify_result(t):
     if "_skipped" in t:
         t["pass"] = False
     elif "expected" in t:
-        t["pass"] = t.result == t.expected
+        t["pass"] = t['result'] == t['expected']
 
 
-test_expr.addParseAction(verify_result)
+test_expr = test_expr.addParseAction(verify_result)
 
-test_expr.runTests(tests)
+test_expr = test_expr.runTests(tests)
