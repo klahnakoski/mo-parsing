@@ -7,10 +7,11 @@
 #
 
 from mo_parsing import *
+from mo_parsing.helpers import QuotedString
 from mo_parsing.utils import alphas, alphanums
 
 LBRACK, RBRACK, LBRACE, RBRACE = map(Suppress, "[]{}")
-ident = Word(alphas, alphanums + "_") | QuotedString("{", endQuoteChar="}")
+ident = Word(alphas, alphanums + "_") | QuotedString("{", end_quote_char="}")
 arg = "$" + ident
 
 # define an API call with a specific number of arguments - using '-'
@@ -45,12 +46,9 @@ api_scanner = apiRef.scanString(test)
 while 1:
     try:
         t, s, e = next(api_scanner)
-
-    except ParseSyntaxException as pe:
-
-
+    except StopIteration:
+        break
+    except ParseException as pe:
         # reset api scanner to start after this exception location
         test = "\n" * (pe.lineno - 1) + test[pe.loc + 1 :]
         api_scanner = apiRef.scanString(test)
-    except StopIteration:
-        break

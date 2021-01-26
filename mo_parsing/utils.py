@@ -13,9 +13,10 @@ from types import FunctionType
 
 from mo_dots import is_null, Null
 from mo_future import unichr, text, generator_types, get_function_name
-from mo_imports import delay_import
+from mo_imports import expect
 
-ParseException = delay_import("mo_parsing.exceptions.ParseException")
+ParseException = expect("ParseException")
+Many = expect("Many")
 
 
 def append_config(base, *slots):
@@ -28,7 +29,7 @@ def append_config(base, *slots):
 
 
 try:
-    from mo_logs import Log
+    from mo_logs import Log, Except
 except Exception:
 
     class Log(object):
@@ -74,7 +75,10 @@ _prec = {"|": 0, "+": 1, "*": 2}
 
 def regex_compile(pattern):
     """REGEX COMPILE WITHOUT THE ON-A-SINGLE-LINE ASSUMPTION"""
-    return re.compile(pattern, re.MULTILINE | re.DOTALL)
+    try:
+        return re.compile(pattern, re.MULTILINE | re.DOTALL)
+    except Exception as cause:
+        Log.error("could not compile {{pattern}}", pattern=pattern, cause=cause)
 
 
 regex_type = type(regex_compile("[A-Z]"))
@@ -102,25 +106,22 @@ def regex_caseless(literal):
     )
 
 
-_escapes = {
-    "\\": "\\\\",
-    "^": "\\^",
-    "-": "\\-",
-    "]": "\\]",
-    "\n": "\\n",
-    "\r": "\\r",
-    "\t": "\\t",
-}
+_escapes = {"\n": "\\n", "\r": "\\r", "\t": "\\t"}
+_escapes.update({c: "\\" + c for c in r".^$*?+-{}[]\|()"})
 
 
 def regex_range(s):
     def esc(s):
-        return _escapes.get(s, s)
+        r = re.escape(s)
+        o = _escapes.get(s, s)
+        if s not in "\t\r\n #~&" and r!=o:
+            Log.error("expecting same")
+        return o
 
     if not s:
         return ""
     if len(s) == 1:
-        return re.escape(s)
+        return esc(s)
 
     start = None
     prev = None
@@ -237,6 +238,11 @@ builtin_lookup = {"".join.__name__: ("iterable",)}
 def is_forward(expr):
     return expr.__class__.__name__ == "Forward"
 
+def is_backtracking(expr):
+    """
+    RETURN true IF THIS CAN BE EXPENSIVE BACKTRACKER
+    """
+    return isinstance(expr, Many) and expr.parser_config.max_match - expr.parser_config.min_match > 3
 
 def forward_type(expr):
     """

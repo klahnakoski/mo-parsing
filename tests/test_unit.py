@@ -27,8 +27,11 @@ from examples.jsonParser import jsonObject
 from examples.simpleSQL import simpleSQL
 from mo_parsing import *
 from mo_parsing import helpers
+from mo_parsing.debug import Debugger
 from mo_parsing.helpers import *
+from mo_parsing.infix import oneOf
 from mo_parsing.utils import *
+from mo_parsing.regex import srange
 from tests.json_parser_tests import test1, test2, test3, test4, test5
 from tests.test_simple_unit import PyparsingExpressionTestCase
 
@@ -595,7 +598,6 @@ class TestParsing(PyparsingExpressionTestCase):
         )
 
     def testParseIDL(self):
-        # Debugger().__enter__()
         def test(string, numToks, errloc=0):
 
             try:
@@ -909,9 +911,6 @@ class TestParsing(PyparsingExpressionTestCase):
             % ([str(s[0]) for s in allStrings]),
         )
 
-        print(
-            "testing catastrophic RE backtracking in implementation of dblQuotedString"
-        )
         for expr, test_string in [
             (dblQuotedString, '"' + "\\xff" * 500),
             (sglQuotedString, "'" + "\\xff" * 500),
@@ -922,7 +921,8 @@ class TestParsing(PyparsingExpressionTestCase):
         ]:
             expr.parseString(test_string + test_string[0])
             try:
-                expr.parseString(test_string)
+                with Timer("testing catastrophic RE backtracking"):
+                    expr.parseString(test_string)
             except Exception:
                 continue
 
@@ -1136,7 +1136,7 @@ class TestParsing(PyparsingExpressionTestCase):
             r"[A-Za-z0-9_]",
             r"[A-Za-z0-9_$]",
             r"[A-Za-z0-9_$\-]",
-            r"[^0-9\\]",
+            r"[0-9\\]",
             r"[a-zA-Z]",
             r"[/\^~]",
             r"[=\+\-!]",
@@ -1173,7 +1173,7 @@ class TestParsing(PyparsingExpressionTestCase):
             res = srange(t)
             self.assertEqual(
                 res,
-                exp,
+                "".join(sorted(exp)),
                 "srange error, srange({!r})->'{!r}', expected '{!r}'".format(
                     t, res, exp
                 ),
@@ -1220,9 +1220,9 @@ class TestParsing(PyparsingExpressionTestCase):
         )
 
         alpha_word = (
-            ~Literal("end") + Word(alphas, asKeyword=True)
+            ~Literal("end") + Word(alphas, as_keyword=True)
         ).set_parser_name("alpha")
-        num_word = Word(nums, asKeyword=True).set_parser_name("int")
+        num_word = Word(nums, as_keyword=True).set_parser_name("int")
 
         def test(expr, test_string, expected_list, expected_dict):
             if (expected_list, expected_dict) == (None, None):
@@ -1448,13 +1448,13 @@ class TestParsing(PyparsingExpressionTestCase):
         test(hatQuotes1, r"sdf:jls^--djf")
         test(dblEqQuotes, r"sdf:j=ls::--djf: sl")
         test(QuotedString(":::"), "jls::--djf: sl")
-        test(QuotedString("==", endQuoteChar="--"), r"sdf\:j=lz::")
+        test(QuotedString("==", end_quote_char="--"), r"sdf\:j=lz::")
         test(
             QuotedString("^^^", multiline=True),
             r"""==sdf\:j=lz::--djf: sl=^^=kfsjf
             sdlfjs ==sdf\:j=ls::--djf: sl==kfsjf""",
         )
-        with TestCase.assertRaises(self, SyntaxError):
+        with self.assertRaises():
             QuotedString("", "\\")
 
     def testRecursiveCombine(self):
@@ -1893,8 +1893,8 @@ class TestParsing(PyparsingExpressionTestCase):
         signedInt = Regex(r"[-+][0-9]+")
         unsignedInt = Regex(r"[0-9]+")
         simpleString = Regex(r'("[^\"]*")|(\'[^\']*\')')
-        namedGrouping = Regex(r'("(?P<content>[^\"]*)")')
-        compiledRE = Regex(re.compile(r"[A-Z]+"))
+        namedGrouping = Regex(r'("(?P<content>[^\"]*)")').capture_groups()
+        compiledRE = Regex(re.compile(r"[A-Z]+").pattern)
 
         def testMatch(expression, instring, shouldPass, expectedString=None):
             if shouldPass:
@@ -1986,14 +1986,15 @@ class TestParsing(PyparsingExpressionTestCase):
         with self.assertRaises(Exception):
             Regex("(\"[^\"]*\")|('[^']*'")
 
-        invRe = Regex("")
+        with self.assertRaises():
+            Regex("")
 
     def testRegexAsType(self):
 
         test_str = "sldkjfj 123 456 lsdfkj"
 
-        expr = Regex(r"\w+ (\d+) (\d+) (\w+)", asGroupList=True)
-        expected_group_list = [tuple(test_str.split()[1:])]
+        expr = Regex(r"\w+ (\d+) (\d+) (\w+)").capture_groups()
+        expected_group_list = test_str.split()[1:]
         result = expr.parseString(test_str)
 
         self.assertParseResultsEquals(
@@ -2003,17 +2004,17 @@ class TestParsing(PyparsingExpressionTestCase):
         )
 
         expr = Regex(
-            r"\w+ (?P<num1>\d+) (?P<num2>\d+) (?P<last_word>\w+)", asMatch=True
-        )
+            r"\w+ (?P<num1>\d+) (?P<num2>\d+) (?P<last_word>\w+)"
+        ).capture_groups()
         result = expr.parseString(test_str)
 
         self.assertEqual(
-            result[0].groupdict(),
+            result,
             {"num1": "123", "num2": "456", "last_word": "lsdfkj"},
             "invalid group dict from Regex(asMatch=True)",
         )
         self.assertEqual(
-            result[0].groups(),
+            result[0],
             expected_group_list[0],
             "incorrect group list returned by Regex(asMatch)",
         )
@@ -2029,19 +2030,7 @@ class TestParsing(PyparsingExpressionTestCase):
             "incorrect Regex.sub result with simple string",
         )
 
-        # TODO: HOW CAN sub(r"\2") EVEN WORK WITHOUT asMatch?
-        # expr = Regex(r"([Hh]\d):\s*(.*)").sub(r"<\1>\2</\1>")
-        # result = expr.transformString(
-        #     "h1: This is the main heading\nh2: This is the sub-heading"
-        # )
-        #
-        # self.assertEqual(
-        #     result,
-        #     "<h1>This is the main heading</h1>\n<h2>This is the sub-heading</h2>",
-        #     "incorrect Regex.sub result with re string",
-        # )
-
-        expr = Regex(r"([Hh]\d):\s*(.*)", asMatch=True).sub(r"<\1>\2</\1>")
+        expr = Regex(r"([Hh]\d):\s*([^\n]*)").sub(r"<\1>\2</\1>")
         result = expr.transformString(
             "h1: This is the main heading\nh2: This is the sub-heading"
         )
@@ -2052,7 +2041,18 @@ class TestParsing(PyparsingExpressionTestCase):
             "incorrect Regex.sub result with re string",
         )
 
-        expr = Regex(r"<(.*?)>").sub(lambda m: m.group(1).upper())
+        expr = Regex(r"([Hh]\d):\s*([^\n]*)").sub(r"<\1>\2</\1>")
+        result = expr.transformString(
+            "h1: This is the main heading\nh2: This is the sub-heading"
+        )
+
+        self.assertEqual(
+            result,
+            "<h1>This is the main heading</h1>\n<h2>This is the sub-heading</h2>",
+            "incorrect Regex.sub result with re string",
+        )
+
+        expr = Regex(r"<((?:(?!>).)*)>").sub(lambda m: m.group(1).upper())
         result = expr.transformString("I want this in upcase: <what? what?>")
 
         self.assertEqual(
@@ -2061,14 +2061,6 @@ class TestParsing(PyparsingExpressionTestCase):
             "incorrect Regex.sub result with callable",
         )
 
-        with TestCase.assertRaises(self, SyntaxError):
-            Regex(r"<(.*?)>", asMatch=True).sub(lambda m: m.group(1).upper())
-
-        with TestCase.assertRaises(self, SyntaxError):
-            Regex(r"<(.*?)>", asGroupList=True).sub(lambda m: m.group(1).upper())
-
-        with TestCase.assertRaises(self, SyntaxError):
-            Regex(r"<(.*?)>", asGroupList=True).sub("")
 
     def testPrecededBy(self):
 
@@ -2275,7 +2267,7 @@ class TestParsing(PyparsingExpressionTestCase):
 
             self.assertEqual(rest, test[len(first) :].rstrip())
 
-        k = Regex(r"a+", flags=re.S + re.M)
+        k = Regex(r"a+")
 
         tests = [
             (r"aaa", ["aaa"]),
@@ -2511,7 +2503,7 @@ class TestParsing(PyparsingExpressionTestCase):
 
     def testSingleArgException(self):
         with self.assertRaises(" missing 2 required positional arguments"):
-            raise ParseFatalException("just one arg")
+            raise ParseException("just one arg")
 
     def testOriginalTextFor(self):
         def rfn(t):
@@ -2629,7 +2621,7 @@ class TestParsing(PyparsingExpressionTestCase):
             [
                 withAttribute(b="x"),
                 # withAttribute(B="x"),
-                withAttribute(("b", "x")),
+                withAttribute(**{"b": "x"}),
                 # withAttribute(("B", "x")),
                 withClass("boo"),
             ],
@@ -2707,7 +2699,7 @@ class TestParsing(PyparsingExpressionTestCase):
         )
 
         # Lisp-ish comments
-        comment = Regex(r";;.*")
+        comment = Regex(r";;[^\n]*")
         teststring = """
         (let ((greeting "Hello, world!")) ;;(foo bar
            (display greeting))
@@ -2751,7 +2743,7 @@ class TestParsing(PyparsingExpressionTestCase):
         )
 
     def testWordExclude(self):
-        allButPunc = Word(printables, excludeChars=".,:;-_!?")
+        allButPunc = Word(printables, exclude=".,:;-_!?")
         test = "Hello, Mr. Ed, it's Wilbur!"
         result = allButPunc.searchString(test)
 
@@ -2849,10 +2841,10 @@ class TestParsing(PyparsingExpressionTestCase):
             sglQuotedString,
             dblQuotedString,
             quotedString,
-            QuotedString('"', escQuote='""'),
-            QuotedString("'", escQuote="''"),
+            QuotedString('"', esc_quote='""'),
+            QuotedString("'", esc_quote="''"),
             QuotedString("^"),
-            QuotedString("<", endQuoteChar=">"),
+            QuotedString("<", end_quote_char=">"),
         )
         for expr in testExprs:
             strs = delimitedList(expr).searchString(src)
@@ -3165,16 +3157,16 @@ class TestParsing(PyparsingExpressionTestCase):
     def testAddCondition(self):
         numParser = (
             Word(nums)
-            .addParseAction(lambda t, l, s: int(t[0]))
-            .addCondition(lambda t, l, s: t[0] % 2)
-            .addCondition(lambda t, l, s: t[0] >= 7)
+            .addParseAction(lambda t: int(t[0]))
+            .addCondition(lambda t: t[0] % 2)
+            .addCondition(lambda t: t[0] >= 7)
         )
 
         result = numParser.searchString("1 2 3 4 5 6 7 8 9 10")
 
         self.assertEqual(result, [[7], [9]], "failed to properly process conditions")
 
-        numParser = Word(nums).addParseAction(lambda t, l, s: int(t[0]))
+        numParser = Word(nums).addParseAction(lambda t: int(t[0]))
         rangeParser = numParser("from_") + Suppress("-") + numParser("to")
 
         result = rangeParser.searchString("1-4 2-4 4-3 5 6 7 8 9 10")
@@ -4037,9 +4029,7 @@ class TestParsing(PyparsingExpressionTestCase):
 
     def testParseFatalException(self):
 
-        with self.assertRaisesParseException(
-            exc_type=ParseFatalException, msg="failed to raise ErrorStop exception"
-        ):
+        with self.assertRaises(Exception):
             expr = "ZZZ" - Word(nums)
             expr.parseString("ZZZ bad")
 

@@ -6,6 +6,7 @@
 #
 from mo_parsing import *
 from mo_parsing.helpers import *
+from mo_parsing.infix import oneOf
 
 comment = "--" + restOfLine
 
@@ -30,7 +31,7 @@ vars().update(keywords)
 
 any_keyword = MatchFirst(keywords.values())
 
-quoted_identifier = QuotedString('"', escQuote='""')
+quoted_identifier = QuotedString('"', esc_quote='""')
 identifier = (~any_keyword + Word(alphas, alphanums + "_")).addParseAction(
     downcaseTokens
 ) | quoted_identifier
@@ -49,7 +50,7 @@ database_name = identifier.copy()
 expr = Forward().set_parser_name("expression")
 
 numeric_literal = number
-string_literal = QuotedString("'", escQuote="''")
+string_literal = QuotedString("'", esc_quote="''")
 blob_literal = Regex(r"[xX]'[0-9A-Fa-f]+'")
 literal_value = (
     numeric_literal

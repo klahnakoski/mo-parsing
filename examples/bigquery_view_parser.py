@@ -7,25 +7,10 @@
 # Michael Smedberg
 #
 
-from mo_parsing import (
-    MatchFirst,
-    Combine,
-    Word,
-    QuotedString,
-    CharsNotIn,
-    Optional,
-    Group,
-    ZeroOrMore,
-    Suppress,
-    Forward,
-    CaselessKeyword,
-    RIGHT_ASSOC,
-    LEFT_ASSOC,
-    infixNotation,
-    Regex,
-)
+from mo_parsing import *
 from mo_parsing.engine import Engine
-from mo_parsing.helpers import oneOf, restOfLine, cStyleComment, delimitedList
+from mo_parsing.helpers import restOfLine, cStyleComment, delimitedList, QuotedString
+from mo_parsing.infix import oneOf
 from mo_parsing.utils import Log, alphas, alphanums, nums
 
 

@@ -1,4 +1,4 @@
-from mo_parsing import *
+from mo_parsing.helpers import QuotedString
 
 wikiInput = """
 Here is a simple Wiki input:
@@ -29,7 +29,7 @@ def convertToHTML_A(t, l, s):
     return '<A href="{}">{}</A>'.format(url, text)
 
 
-urlRef = QuotedString("{{", endQuoteChar="}}").addParseAction(convertToHTML_A)
+urlRef = QuotedString("{{", end_quote_char="}}").addParseAction(convertToHTML_A)
 
 wikiMarkup = urlRef | boldItalicized | bolded | italicized
 

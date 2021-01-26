@@ -6,6 +6,7 @@
 # Copyright 2003, 2019 by Paul McGuire
 #
 from mo_parsing.helpers import *
+from mo_parsing.infix import oneOf
 from mo_parsing.utils import *
 
 greet = Word(alphas) + "," + Word(alphas) + oneOf("! ? .")

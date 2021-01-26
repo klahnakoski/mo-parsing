@@ -32,6 +32,8 @@ from mo_parsing import *
 from mo_parsing.helpers import *
 from mo_testing.fuzzytestcase import assertAlmostEqual
 
+from mo_parsing.infix import oneOf
+
 MARK, UNMARK, AT, COLON, QUOTE = map(Suppress, "[]@:'")
 
 NUMBER = Word(nums).addParseAction(lambda t: int(t[0]))
@@ -46,7 +48,7 @@ strBody = Forward()
 
 
 def setBodyLength(tokens):
-    strBody << Word(srange(r"[\0x00-\0xffff]"), exact=int(tokens[0]))
+    strBody << Many(AnyChar(), exact=int(tokens[0]))
     return ""
 
 

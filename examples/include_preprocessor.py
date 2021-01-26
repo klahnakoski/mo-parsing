@@ -15,7 +15,7 @@ from mo_parsing.utils import printables, line, col
 SEMI = Suppress(";")
 INCLUDE = Keyword("#include")
 quoted_string = quotedString.addParseAction(removeQuotes)
-file_ref = quoted_string | Word(printables, excludeChars=";")
+file_ref = quoted_string | Word(printables, exclude=";")
 
 # parser for parsing "#include xyz.dat;" directives
 include_directive = INCLUDE + file_ref("include_file_name") + SEMI

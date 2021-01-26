@@ -14,8 +14,8 @@ from mo_parsing import (
     CaselessKeyword,
 )
 from mo_parsing.engine import Engine
-from mo_parsing.helpers import delimitedList, restOfLine, upcaseTokens, oneOf, real, signed_integer, quotedString, \
-    RIGHT_ASSOC, LEFT_ASSOC
+from mo_parsing.helpers import restOfLine, upcaseTokens, real, signed_integer, quotedString
+from mo_parsing.infix import delimitedList, oneOf, RIGHT_ASSOC, LEFT_ASSOC
 from mo_parsing.utils import alphas, alphanums
 
 engine = Engine().use()

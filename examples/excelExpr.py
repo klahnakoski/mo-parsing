@@ -4,11 +4,13 @@
 #
 # A partial implementation of a parser of Excel formula expressions.
 #
-from mo_parsing import *
+from mo_parsing import CaselessKeyword
+from mo_parsing.helpers import *
+from mo_parsing.infix import oneOf, infixNotation, LEFT_ASSOC
 
 EQ, LPAR, RPAR, COLON, COMMA = map(Suppress, "=():,")
 EXCL, DOLLAR = map(Literal, "!$")
-sheetRef = Word(alphas, alphanums) | QuotedString("'", escQuote="''")
+sheetRef = Word(alphas, alphanums) | QuotedString("'", esc_quote="''")
 colRef = Optional(DOLLAR) + Word(alphas, max=2)
 rowRef = Optional(DOLLAR) + Word(nums)
 cellRef = Combine(
@@ -64,7 +66,7 @@ expr << (arithExpr | textExpr)
     """\
     =3*A7+5
     =3*Sheet1!$A$7+5
-    =3*'Sheet 1'!$A$7+5"
+    =3*'Sheet 1'!$A$7+5
     =3*'O''Reilly''s sheet'!$A$7+5
     =if(Sum(A1:A25)>42,Min(B1:B25),if(Sum(C1:C25)>3.14, (Min(C1:C25)+3)*18,Max(B1:B25)))
     =sum(a1:a25,10,min(b1,c2,d3))

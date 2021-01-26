@@ -14,5 +14,5 @@ setup(
     name='mo-parsing',
     packages=["mo_parsing"],
     url='https://github.com/klahnakoski/mo-parsing',
-    version='4.12.21016'
+    version='4.13.21026'
 )
