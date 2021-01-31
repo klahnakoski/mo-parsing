@@ -13,26 +13,21 @@ An experimental fork of [pyparsing](https://github.com/pyparsing/pyparsing)
 
 This has been forked to experiment with faster parsing in the [moz-sql-parser](https://github.com/klahnakoski/moz-sql-parser).
 
-More features
-
-* Added `Engine`, which controls parsing context and whitespace (a basic lexxer)
-* faster infix operator parsing (main reason for this fork)
-* ParseResults point to ParserElement for reduced size
-* packrat parser is always on
-* less stack used 
+* Added `Engine`, which controls parsing context and whitespace (a basic lexxer).  It replaces the whitespace modifying methods of pyparsing
 * the wildcard ("`*`") could be used to indicate multi-values are expected; this is not allowed: all values are multi-values
 * all actions are in `f(token, index, string)` form, which is opposite of pyparsing's `f(string, index token)` form
-
-
-More focused 
-
+* ParserElements are static: For example, `expr.addParseAction(action)` creates a new ParserElement, so must be assigned to variable or it is lost. **This is the biggest source of bugs when converting from pyparsing**
 * removed all backward-compatibility settings
 * no support for binary serialization (no pickle)
 
-More functional
+Faster Parsing
 
-* ParseResults are static, can not be changed, parsing functions must emit new objects
-* ParserElements are static: Many are generated during language definition
+* faster infix operator parsing (main reason for this fork)
+* ParseResults point to ParserElement for reduced size
+* regex used to reduce the number of failed parse attempts  
+* packrat parser is not need
+* less stack used 
+
 
 ## Details
 
@@ -53,19 +48,15 @@ The engine can be used to set global parsing parameters, like
 
 * `set_whitespace()` - set the ignored characters (like whitespace)
 * `add_ignore()` - include whole patterns that are ignored (like comments)
-* `set_debug_actions()` - insert functions to run for detailed debugging
 * `set_literal()` - Set the definition for what `Literal()` means
-* `set_keyword_chars()` - For default `Keyword()`
-
-The `engine.CURRENT` is added to every parse element created, and it is used during parsing to packrat the current parsed string. 
-
+* `set_keyword_chars()` - For default `Keyword()` (important for defining word boundary)
 
 ### Navigating ParseResults
 
 `ParseResults` are in the form of an n-ary tree; with the children found in `ParseResults.tokens`.  Each `ParseResult.type` points to the `ParserElement` that made it.  In general, if you want to get fancy with post processing (or in a `parseAction`), you will be required to navigate the raw `tokens` to generate a final result
 
 There are some convenience methods;  
-* `__iter__()` - allows you to iterate through parse results in **depth first search**. Empty results are skipped, and `Group`ed  results are treated as atoms (which can be further iterated if required) 
+* `__iter__()` - allows you to iterate through parse results in **depth first search**. Empty results are skipped, and `Group`ed results are treated as atoms (which can be further iterated if required) 
 * `name` is a convenient property for `ParseResults.type.token_name`
 * `__getitem__()` - allows you to jump into the parse tree to the given `name`. This is blocked by any names found inside `Group`ed results (because groups are considered atoms).      
 
@@ -79,3 +70,23 @@ Parse actions are methods that are run after a ParserElement found a match.
   * If your parse action returns an object, or list, or tuple, then it will be packaged in a `ParseResult` with same type as `tokens`.
   * If your parse action returns a `ParseResult` then it is accepted ***even if is belongs to some other pattern***
   
+### Debugging
+
+The PEG-style of mo-parsing (from pyparing) makes a very expressible and readable specification, but debugging a parser is still hard.  To look deeper into what the parser is doing use the `Debugger`:
+
+```
+with Debugger():
+    expr.parseString("my new language")
+```
+
+The debugger will print out details of what's happening
+
+* Each attempt, and if it matched or failed
+* A small number of bytes to show you the current position
+* location, line and character for more info about the current position
+* whitespace indicating stack depth
+* print out of the ParserElement performing the attempt
+
+This should help to to isolate the exact position your grammar is failing. 
+
+
