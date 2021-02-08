@@ -175,6 +175,10 @@ class NotAny(ParseEnhancement):
 
     def streamline(self):
         output = ParseEnhancement.streamline(self)
+        if isinstance(output, Empty):
+            return NoMatch()
+        if isinstance(output, NoMatch):
+            return Empty()
         if isinstance(output.expr, NoMatch):
             return Empty()
         if isinstance(output.expr, Empty):
@@ -519,7 +523,8 @@ class SkipTo(ParseEnhancement):
 
 
 class Forward(ParserElement):
-    """Forward declaration of an expression to be defined later -
+    """
+    Forward declaration of an expression to be defined later -
     used for recursive grammars, such as algebraic infix notation.
     When the expression is known, it is assigned to the ``Forward``
     variable using the '<<' operator.
@@ -581,7 +586,10 @@ class Forward(ParserElement):
 
         while is_forward(other):
             other = other.expr
-        self.expr = engine.CURRENT.normalize(other).streamline()
+        expr = engine.CURRENT.normalize(other).streamline()
+        if self.token_name:
+            expr = expr(self.token_name)
+        self.expr = expr
         self.checkRecursion()
         return self
 
@@ -622,8 +630,7 @@ class Forward(ParserElement):
 
     def parseImpl(self, string, loc, doActions=True):
         try:
-            result = self.expr._parse(string, loc, doActions)
-            return ParseResults(self, result.start, result.end, [result])
+            return self.expr._parse(string, loc, doActions)
         except Exception as cause:
             if is_null(self.expr):
                 Log.warning(
@@ -659,7 +666,10 @@ class Forward(ParserElement):
 
     def __call__(self, name):
         output = self.copy()
-        output.token_name = name
+        if is_null(self.expr):
+            output.token_name = name
+        else:
+            output.expr = self.expr(name)
         return output
 
 

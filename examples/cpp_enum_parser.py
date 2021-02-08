@@ -9,7 +9,7 @@
 #
 #
 
-from mo_parsing import *
+from mo_parsing.helpers import *
 
 # sample string with enums and other stuff
 sample = """

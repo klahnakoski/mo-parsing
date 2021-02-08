@@ -5,6 +5,10 @@
 #
 # Copyright Paul McGuire, 2019
 #
+from mo_parsing import engine
+from mo_parsing.helpers import QuotedString, integer, identifier, cppStyleComment
+from mo_parsing.infix import oneOf, delimitedList
+
 BNF = """
     stmt_list           =   {stmt} ;
 
@@ -37,6 +41,8 @@ BNF = """
 from mo_parsing import *
 
 
+engine.CURRENT.add_ignore(cppStyleComment)
+
 LBRACE, RBRACE, LPAR, RPAR, SEMI = map(Suppress, "{}();")
 EQ = Literal("=")
 
@@ -45,7 +51,6 @@ keywords = (WHILE, IF, PRINT, PUTC, ELSE) = map(
 )
 any_keyword = MatchFirst(keywords)
 identifier = ~any_keyword + identifier
-integer = integer
 string = QuotedString('"', convert_whitespace_escape=False).set_parser_name("quoted string")
 char = Regex(r"'\\?.'")
 
@@ -83,7 +88,6 @@ stmt <<= (
 ).set_parser_name("statement")
 
 code = stmt[...]
-code.ignore(cppStyleComment)
 
 
 tests = [
@@ -270,10 +274,6 @@ tests = [
         }
     """,
 ]
-
-import sys
-
-sys.setrecursionlimit(2000)
 
 for test in tests:
     results = code.parseString(test)
