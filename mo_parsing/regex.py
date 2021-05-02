@@ -259,28 +259,6 @@ regex << (
     .streamline()
 )
 
-
-def srange(expr):
-    pattern = brackets.parseString(expr).value()
-    chars = set()
-
-    def drill(e):
-        if isinstance(e, Literal):
-            chars.add(e.parser_config.match)
-        elif isinstance(e, Char):
-            chars.update(c for c in e.parser_config.include)
-        elif isinstance(e, MatchFirst):
-            for ee in e.exprs:
-                drill(ee)
-        elif isinstance(e, And):
-            drill(e.exprs[0].expr)
-        else:
-            Log.error("logic error")
-
-    drill(pattern)
-    return "".join(sorted(chars))
-
-
 parameters = (
     "\\" + Char(alphanums)("name") | "\\g<" + Word(alphas, alphanums)("name") + ">"
 ).addParseAction(lambda t: t["name"])

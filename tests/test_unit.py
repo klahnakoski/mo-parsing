@@ -8,16 +8,15 @@
 #
 import ast
 import math
-import operator
 import textwrap
 import traceback
 import unittest
+from datetime import date as datetime_date
+from datetime import datetime as datetime_datetime
 from io import StringIO
 from itertools import product
 from textwrap import dedent
 from unittest import TestCase, skip
-from datetime import date as datetime_date
-from datetime import datetime as datetime_datetime
 
 from mo_dots import coalesce
 from mo_times import Timer
@@ -27,11 +26,9 @@ from examples.jsonParser import jsonObject
 from examples.simpleSQL import simpleSQL
 from mo_parsing import *
 from mo_parsing import helpers
-from mo_parsing.debug import Debugger
 from mo_parsing.helpers import *
 from mo_parsing.infix import oneOf
 from mo_parsing.utils import *
-from mo_parsing.regex import srange
 from tests.json_parser_tests import test1, test2, test3, test4, test5
 from tests.test_simple_unit import PyparsingExpressionTestCase
 
@@ -1121,64 +1118,6 @@ class TestParsing(PyparsingExpressionTestCase):
             msg="Incorrect list for attribute pred, %s" % str(queryRes["pred"]),
         )
 
-    def testReStringRange(self):
-        testCases = (
-            r"[A-Z]",
-            r"[A-A]",
-            r"[A-Za-z]",
-            r"[A-z]",
-            r"[\ -\~]",
-            r"[\0x20-0]",
-            r"[\0x21-\0x7E]",
-            r"[\0xa1-\0xfe]",
-            r"[\040-0]",
-            r"[A-Za-z0-9]",
-            r"[A-Za-z0-9_]",
-            r"[A-Za-z0-9_$]",
-            r"[A-Za-z0-9_$\-]",
-            r"[0-9\\]",
-            r"[a-zA-Z]",
-            r"[/\^~]",
-            r"[=\+\-!]",
-            r"[A-]",
-            r"[-A]",
-            r"[\x21]",
-            r"[а-яА-ЯёЁA-Z$_\041α-ω]",
-        )
-        expectedResults = (
-            "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
-            "A",
-            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
-            "ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz",
-            " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~",
-            " !\"#$%&'()*+,-./0",
-            "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~",
-            "¡¢£¤¥¦§¨©ª«¬­®¯°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþ",
-            " !\"#$%&'()*+,-./0",
-            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789",
-            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_",
-            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_$",
-            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_$-",
-            "0123456789\\",
-            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ",
-            "/^~",
-            "=+-!",
-            "A-",
-            "-A",
-            "!",
-            "абвгдежзийклмнопрстуфхцчшщъыьэюяАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯёЁABCDEFGHIJKLMNOPQRSTUVWXYZ$_!αβγδεζηθικλμνξοπρςστυφχψω",
-        )
-        for test in zip(testCases, expectedResults):
-            t, exp = test
-            res = srange(t)
-            self.assertEqual(
-                res,
-                "".join(sorted(exp)),
-                "srange error, srange({!r})->'{!r}', expected '{!r}'".format(
-                    t, res, exp
-                ),
-            )
-
     def testSkipToParserTests(self):
         thingToFind = Literal("working")
         testExpr = (
@@ -1471,297 +1410,6 @@ class TestParsing(PyparsingExpressionTestCase):
         testVal = Stream.parseString(testInput)
 
         self.assertParseResultsEquals(testVal, expected_list=expected)
-
-    def testInfixNotationGrammarTest1(self):
-
-        integer = Word(nums).addParseAction(lambda t: int(t[0]))
-        variable = Word(alphas, exact=1)
-        operand = integer | variable
-
-        expop = Literal("^")
-        signop = oneOf("+ -")
-        multop = oneOf("* /")
-        plusop = oneOf("+ -")
-        factop = Literal("!")
-
-        expr = infixNotation(
-            operand,
-            [
-                (factop, 1, LEFT_ASSOC),
-                (expop, 2, RIGHT_ASSOC),
-                (signop, 1, RIGHT_ASSOC),
-                (multop, 2, LEFT_ASSOC),
-                (plusop, 2, LEFT_ASSOC),
-            ],
-        )
-
-        test = [
-            "(9 + 2) * 3",
-            "9 + 2 * 3",
-            "9 + 2 + 3",
-            "(9 + -2) * 3",
-            "(9 + --2) * 3",
-            "(9 + -2) * 3^2^2",
-            "(9! + -2) * 3^2^2",
-            "M*X + B",
-            "M*(X + B)",
-            "1+2*-3^4*5+-+-6",
-            "3!!",
-        ]
-        expected = [
-            [[9, "+", 2], "*", 3],
-            [9, "+", [2, "*", 3]],
-            [[9, "+", 2], "+", 3],
-            [[9, "+", ["-", 2]], "*", 3],
-            [[9, "+", ["-", ["-", 2]]], "*", 3],
-            [[9, "+", ["-", 2]], "*", [3, "^", [2, "^", 2]]],
-            [[[9, "!"], "+", ["-", 2]], "*", [3, "^", [2, "^", 2]]],
-            [["M", "*", "X"], "+", "B"],
-            ["M", "*", ["X", "+", "B"]],
-            [
-                [1, "+", [[2, "*", ["-", [3, "^", 4]]], "*", 5]],
-                "+",
-                ["-", ["+", ["-", 6]]],
-            ],
-            [[3, "!"], "!"],
-        ]
-        for test_str, exp_list in zip(test, expected):
-            result = expr.parseString(test_str)
-
-            self.assertParseResultsEquals(
-                result,
-                expected_list=exp_list,
-                msg="mismatched results for infixNotation: got %s, expected %s"
-                % (result, exp_list),
-            )
-
-    def testInfixNotationGrammarTest2(self):
-
-        boolVars = {"True": True, "False": False}
-
-        class BoolOperand:
-            reprsymbol = ""
-
-            def __init__(self, t):
-                self.args = t[0][0], t[2][0]
-
-            def __str__(self):
-                sep = " %s " % self.reprsymbol
-                return "(" + sep.join(map(str, self.args)) + ")"
-
-        class BoolAnd(BoolOperand):
-            reprsymbol = "&"
-
-            def __bool__(self):
-                for a in self.args:
-                    if isinstance(a, str):
-                        v = boolVars[a]
-                    else:
-                        v = bool(a)
-                    if not v:
-                        return False
-                return True
-
-        class BoolOr(BoolOperand):
-            reprsymbol = "|"
-
-            def __bool__(self):
-                for a in self.args:
-                    if isinstance(a, str):
-                        v = boolVars[a]
-                    else:
-                        v = bool(a)
-                    if v:
-                        return True
-                return False
-
-        class BoolNot(BoolOperand):
-            def __init__(self, t):
-                self.arg = t[1][0]
-
-            def __str__(self):
-                return "~" + str(self.arg)
-
-            def __bool__(self):
-                if isinstance(self.arg, str):
-                    v = boolVars[self.arg]
-                else:
-                    v = bool(self.arg)
-                return not v
-
-        boolOperand = Group(oneOf("True False") | Word(alphas, max=1))
-        boolExpr = infixNotation(
-            boolOperand,
-            [
-                ("not", 1, RIGHT_ASSOC, BoolNot),
-                ("and", 2, LEFT_ASSOC, BoolAnd),
-                ("or", 2, LEFT_ASSOC, BoolOr),
-            ],
-        )
-        test = [
-            "not not p",
-            "True and False",
-            "p and not q",
-            "not(p and q)",
-            "q or not p and r",
-            "q or not p or not r",
-            "q or not (p and r)",
-            "p or q or r",
-            "p or q or r and False",
-            "(p or q or r) and False",
-        ]
-
-        boolVars["p"] = True
-        boolVars["q"] = False
-        boolVars["r"] = True
-
-        for t in test:
-            res = boolExpr.parseString(t)
-            value = bool(res[0])
-            expected = eval(t, {}, boolVars)
-            self.assertEqual(expected, value)
-
-    def testInfixNotationGrammarTest3(self):
-
-        global count
-        count = 0
-
-        def evaluate_int(t):
-            global count
-            value = int(t[0])
-
-            count += 1
-            return value
-
-        integer = Word(nums).addParseAction(evaluate_int)
-        variable = Word(alphas, exact=1)
-        operand = integer | variable
-
-        expop = Literal("^")
-        signop = oneOf("+ -")
-        multop = oneOf("* /")
-        plusop = oneOf("+ -")
-        factop = Literal("!")
-
-        expr = infixNotation(
-            operand,
-            [
-                ("!", 1, LEFT_ASSOC),
-                ("^", 2, LEFT_ASSOC),
-                (signop, 1, RIGHT_ASSOC),
-                (multop, 2, LEFT_ASSOC),
-                (plusop, 2, LEFT_ASSOC),
-            ],
-        )
-
-        test = ["9"]
-        for t in test:
-            count = 0
-            expr.parseString(t)
-            self.assertEqual(count, 1, "count evaluated too many times!")
-
-    def testInfixNotationGrammarTest4(self):
-
-        word = Word(alphas)
-
-        def supLiteral(s):
-            """Returns the suppressed literal s"""
-            return Literal(s).suppress()
-
-        f = infixNotation(
-            word,
-            [
-                (supLiteral("!"), 1, RIGHT_ASSOC, lambda t, l, s: ["!", t[0]]),
-                (oneOf("= !="), 2, LEFT_ASSOC,),
-                (supLiteral("&"), 2, LEFT_ASSOC, lambda t, l, s: ["&", t]),
-                (supLiteral("|"), 2, LEFT_ASSOC, lambda t, l, s: ["|", t]),
-            ],
-        )
-
-        f = f + StringEnd()
-
-        tests = [
-            ("bar = foo", [["bar", "=", "foo"]]),
-            (
-                "bar = foo & baz = fee",
-                [["&", [["bar", "=", "foo"], ["baz", "=", "fee"]]]],
-            ),
-        ]
-        for test, expected in tests:
-            results = f.parseString(test)
-            self.assertParseResultsEquals(results, expected_list=expected)
-
-    def testInfixNotationGrammarTest5(self):
-        expop = Literal("**")
-        signop = oneOf("+ -")
-        multop = oneOf("* /")
-        plusop = oneOf("+ -")
-
-        class ExprNode:
-            def __init__(self, tokens):
-                self.tokens = tokens
-
-            def eval(self):
-                return None
-
-        class NumberNode(ExprNode):
-            def eval(self):
-                return self.tokens[0]
-
-        class SignOp(ExprNode):
-            def eval(self):
-                mult = {"+": 1, "-": -1}[self.tokens[0]]
-                return mult * self.tokens[1].eval()
-
-        class BinOp(ExprNode):
-            def eval(self):
-                ret = self.tokens[0][0].eval()
-                for op, operand in zip(self.tokens[1::2], self.tokens[2::2]):
-                    ret = self.opn_map[op](ret, operand[0].eval())
-                return ret
-
-        class ExpOp(BinOp):
-            opn_map = {"**": lambda a, b: b ** a}
-
-        class MultOp(BinOp):
-            opn_map = {"*": operator.mul, "/": operator.truediv}
-
-        class AddOp(BinOp):
-            opn_map = {"+": operator.add, "-": operator.sub}
-
-        operand = Group(number).addParseAction(NumberNode)
-        expr = infixNotation(
-            operand,
-            [
-                (expop, 2, RIGHT_ASSOC, (lambda pr: pr[::-1], ExpOp)),
-                (signop, 1, RIGHT_ASSOC, SignOp),
-                (multop, 2, LEFT_ASSOC, MultOp),
-                (plusop, 2, LEFT_ASSOC, AddOp),
-            ],
-        )
-
-        tests = [
-            "2+7",
-            "2**3",
-            "2**3**2",
-            "3**9",
-            "3**3**2",
-        ]
-
-        for t in tests:
-            t = t.strip()
-            if not t:
-                continue
-
-            parsed = expr.parseString(t)
-            eval_value = parsed[0].eval()
-            self.assertEqual(
-                eval_value,
-                eval(t),
-                "Error evaluating {!r}, expected {!r}, got {!r}".format(
-                    t, eval(t), eval_value
-                ),
-            )
 
     def testParseResultsWithNamedTuple(self):
 
@@ -4673,20 +4321,6 @@ class TestParsing(PyparsingExpressionTestCase):
             failureTests=True,
         )
         self.assertTrue(success, "failed keyword oneOf failure tests")
-
-    def testChainedTernaryOperator(self):
-
-        TERNARY_INFIX = infixNotation(integer, [(("?", ":"), 3, LEFT_ASSOC),])
-        self.assertParseResultsEquals(
-            TERNARY_INFIX.parseString("1?1:0?1:0", parseAll=True),
-            expected_list=[[1, "?", 1, ":", 0], "?", 1, ":", 0],
-        )
-
-        TERNARY_INFIX = infixNotation(integer, [(("?", ":"), 3, RIGHT_ASSOC),])
-        self.assertParseResultsEquals(
-            TERNARY_INFIX.parseString("1?1:0?1:0", parseAll=True),
-            expected_list=[1, "?", 1, ":", [0, "?", 1, ":", 0]],
-        )
 
     def testOneOfWithDuplicateSymbols(self):
         # test making oneOf with duplicate symbols
