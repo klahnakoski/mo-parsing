@@ -317,3 +317,34 @@ class TestParsing(PyparsingExpressionTestCase):
             expected_list=[1, "?", 1, ":", [0, "?", 1, ":", 0]],
         )
 
+    def test_default_operator(self):
+
+        def parser(tokens):
+            left, op, right = tokens
+            return {str(op): [left, right]}
+
+        def mul(tokens):
+            left, right = tokens
+            return {"*": [left, right]}
+
+        word = Word(alphas)
+
+        expr = infixNotation(
+            word, [
+                (None, 2, LEFT_ASSOC, mul),
+                (Literal("*") | "/", 2, LEFT_ASSOC, parser),
+                ("+", 2, LEFT_ASSOC, parser)
+            ]
+        )
+
+        result = expr.parseString("a b + c")
+        self.assertEqual(result, [{"+": [[{"*": ['a', 'b']}], "c"]}])
+
+        result = expr.parseString("a * b c")
+        self.assertEqual(result, [{"*": ["a", [{"*": ['b', 'c']}]]}])
+
+        result = expr.parseString("a b c")
+        self.assertEqual(result, [{"*": [[{"*": ['a', 'b']}], "c"]}])
+
+        result = expr.parseString("a / b c")
+        self.assertEqual(result, [{"/": ["a", [{"*": ['b', 'c']}]]}])

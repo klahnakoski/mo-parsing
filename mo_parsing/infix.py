@@ -124,7 +124,7 @@ def oneOf(strs, caseless=False, asKeyword=False):
 
 LEFT_ASSOC = object()
 RIGHT_ASSOC = object()
-_no_op = Empty()
+_no_op = Empty().suppress()
 
 
 def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
