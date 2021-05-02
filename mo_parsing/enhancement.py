@@ -175,6 +175,8 @@ class NotAny(ParseEnhancement):
 
     def streamline(self):
         output = ParseEnhancement.streamline(self)
+        if isinstance(output, Empty):
+            return NoMatch()
         if isinstance(output.expr, NoMatch):
             return Empty()
         if isinstance(output.expr, Empty):

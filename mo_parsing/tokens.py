@@ -42,6 +42,9 @@ class Empty(Token):
         end = self.engine.skip(string, start)
         return ParseResults(self, start, end, [])
 
+    def streamline(self):
+        return self
+
     def __regex__(self):
         return self.engine.__regex__()
 
