@@ -2247,7 +2247,6 @@ class TestParsing(PyparsingExpressionTestCase):
                     shouldSucceed, "successfully parsed when should have failed"
                 )
             except ParseException as pe:
-
                 self.assertFalse(
                     shouldSucceed, "failed to parse when should have succeeded"
                 )
@@ -2271,7 +2270,6 @@ class TestParsing(PyparsingExpressionTestCase):
                     shouldSucceed, "successfully parsed when should have failed"
                 )
             except ParseException as pe:
-
                 self.assertFalse(
                     shouldSucceed, "failed to parse when should have succeeded"
                 )
