@@ -226,7 +226,7 @@ class Many(ParseEnhancement):
 
     def stopOn(self, ender):
         if ender:
-            end = self.engine.normalize(ender)
+            end = self.parser_config.engine.normalize(ender)
             self.set_config(end=regex_compile(end.__regex__()[1]))
         return self
 
