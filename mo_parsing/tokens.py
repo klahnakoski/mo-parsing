@@ -11,6 +11,9 @@ from mo_parsing.utils import *
 
 
 class Token(ParserElement):
+    """
+    Represent some contiguous set for characters, no whitespace
+    """
     __slots__ = []
     Config = append_config(ParserElement, "match", "regex")
 
@@ -506,11 +509,7 @@ class White(Token):
     Config = append_config(Token, "min_len", "max_len", "white_chars")
 
     def __init__(self, ws=" \t\r\n", min=1, max=0, exact=0):
-        with Engine(white="".join(
-            c for c in self.engine.white_chars if c not in ws
-        )) as e:
-            super(White, self).__init__()
-            self.set_config(lock_engine=e)
+        Token.__init__(self)
         white_chars = "".join(sorted(set(ws)))
         self.parser_name = "|".join(White.whiteStrs[c] for c in white_chars)
 

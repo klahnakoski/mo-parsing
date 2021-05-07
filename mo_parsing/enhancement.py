@@ -237,22 +237,23 @@ class Many(ParseEnhancement):
 
     def parseImpl(self, string, start, doActions=True):
         acc = []
-        end = start
+        end = index = start
         max = self.parser_config.max_match
         stopper = self.parser_config.end
         count = 0
         try:
             while end < len(string) and count < max:
+                if end > index:
+                    index = self.parser_config.engine.skip(string, end)
                 if stopper:
-                    # end = self.engine.skip(string, end)
-                    if stopper.match(string, end):
+                    if stopper.match(string, index):
                         if self.parser_config.min_match <= count:
                             break
                         else:
                             raise ParseException(
                                 self, end, string, msg="found stopper too soon"
                             )
-                result = self.expr._parse(string, end, doActions)
+                result = self.expr._parse(string, index, doActions)
                 end = result.end
                 if result:
                     acc.append(result)
@@ -379,7 +380,6 @@ class OneOrMore(Many):
 
     def __init__(self, expr, engine=None, stopOn=None):
         Many.__init__(self, expr, engine, stopOn, min_match=1, max_match=MAX_INT)
-        self.set_config(lock_engine=self.expr.parser_config.lock_engine,)
 
     def __str__(self):
         if self.parser_name:
@@ -405,7 +405,6 @@ class ZeroOrMore(Many):
         super(ZeroOrMore, self).__init__(
             expr, engine, stopOn=stopOn, min_match=0, max_match=MAX_INT
         )
-        self.set_config(lock_engine=self.expr.parser_config.lock_engine)
 
     def parseImpl(self, string, start, doActions=True):
         try:

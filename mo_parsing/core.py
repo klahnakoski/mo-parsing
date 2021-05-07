@@ -101,7 +101,7 @@ class ParserElement(object):
         "min_length_cache",
         "parser_config",
     ]
-    Config = namedtuple("Config", ["callDuringTry", "failAction", "lock_engine"])
+    Config = namedtuple("Config", ["callDuringTry", "failAction"])
 
     def __init__(self):
         self.parseAction = list()
@@ -122,7 +122,6 @@ class ParserElement(object):
 
     def copy(self):
         output = object.__new__(self.__class__)
-        le = self.parser_config.lock_engine
         output.parseAction = self.parseAction[:]
         output.parser_name = self.parser_name
         output.token_name = self.token_name
