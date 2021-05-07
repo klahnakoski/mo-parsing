@@ -321,10 +321,10 @@ class ParserElement(object):
         instrlen = len(string)
         end = 0
         matches = 0
+        eng = engine.CURRENT
         while end <= instrlen and matches < maxMatches:
-            start = end
-            # start = self.engine.skip(string, end)
             try:
+                start = eng.skip(string, end)
                 tokens = self._parse(string, start)
             except ParseException:
                 end = start + 1

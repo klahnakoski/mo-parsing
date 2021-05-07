@@ -3377,6 +3377,11 @@ class TestParsing(PyparsingExpressionTestCase):
         engine.CURRENT.add_ignore(pythonStyleComment)
         expr = Literal(";") + Empty()
 
+        self.assertEqual(
+            list(expr.split('a = "a;b"; return a # this is a comment; it has a semicolon!')),
+            ['a = "a;b"', "return a # this is a comment; it has a semicolon!"]
+        )
+
         sample = """
         def main():
             this_semi_does_nothing();

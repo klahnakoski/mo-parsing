@@ -188,7 +188,7 @@ def countedArray(expr, intExpr=None):
 
     def countFieldParseAction(t, l, s):
         n = t[0]
-        arrayExpr << Group(Many(expr, exact=n))
+        arrayExpr << Group(Many(expr, exact=n, engine=engine.CURRENT))
         return []
 
     intExpr = (
@@ -674,8 +674,6 @@ def indentedBlock(blockStatementExpr, indent=True):
 
     A valid block must contain at least one ``blockStatement``.
     """
-    blockStatementExpr.engine.add_ignore("\\" + LineEnd())
-
     PEER = Forward()
     DEDENT = Forward()
 
@@ -728,24 +726,28 @@ def indentedBlock(blockStatementExpr, indent=True):
         else:
             raise ParseException(t.type, s, l, "not a subentry")
 
-    NL = OneOrMore(LineEnd().suppress())
-    INDENT = Empty().addParseAction(indent_stack)
-    NODENT = Empty().addParseAction(nodent_stack)
+    ignore_list = engine.CURRENT.ignore_list
+    with Engine(engine.CURRENT.white_chars) as e:
+        e.add_ignore(*ignore_list)
 
-    if indent:
-        smExpr = Group(
-            Optional(NL)
-            + INDENT
-            + OneOrMore(PEER + Group(blockStatementExpr) + Optional(NL))
-            + DEDENT
-        )
-    else:
-        smExpr = Group(
-            Optional(NL)
-            + NODENT
-            + OneOrMore(PEER + Group(blockStatementExpr) + Optional(NL))
-            + DEDENT
-        )
+        NL = OneOrMore(LineEnd().suppress())
+        INDENT = Empty().addParseAction(indent_stack)
+        NODENT = Empty().addParseAction(nodent_stack)
+
+        if indent:
+            smExpr = Group(
+                Optional(NL)
+                + INDENT
+                + OneOrMore(PEER + Group(blockStatementExpr) + Optional(NL))
+                + DEDENT
+            )
+        else:
+            smExpr = Group(
+                Optional(NL)
+                + NODENT
+                + OneOrMore(PEER + Group(blockStatementExpr) + Optional(NL))
+                + DEDENT
+            )
     return smExpr.setFailAction(_reset_stack).set_parser_name("indented block")
 
 
