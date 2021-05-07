@@ -288,22 +288,25 @@ class ParserElement(object):
     def _parseString(self, string, parseAll=False):
         # TODO: PUT THIS streamline IN THE ENTRY POINT
         start = 0
+
+        # FIND THE WHITESPACE DEFINITION
         e = expr = self.streamline()
         while is_forward(e):
             e = e.expr
-
-        eng = None
         if isinstance(e, Many) or isinstance(e, And):
             eng = e.parser_config.engine
             start = eng.skip(string, start)
+        else:
+            eng = engine.CURRENT
+
         if expr.token_name:
             # TOP LEVEL NAMES ARE NOT ALLOWED
             expr = Group(expr)
+        start = eng.skip(string, start)
         tokens = expr._parse(string, start)
         end = tokens.end
         if parseAll:
-            if eng:
-                end = eng.skip(string, end)
+            end = eng.skip(string, end)
             StringEnd()._parse(string, end)
         return tokens
 
