@@ -649,15 +649,16 @@ class MatchAll(ParseExpression):
     """
 
     __slots__ = []
-    Config = append_config(ParseExpression, "min_match", "max_match")
+    Config = append_config(ParseExpression, "min_match", "max_match", "engine")
 
-    def __init__(self, exprs):
+    def __init__(self, exprs, engine):
         """
         :param exprs: The expressions to be matched
         :param mins: list of integers indincating any minimums
         """
         super(MatchAll, self).__init__(exprs)
         self.set_config(
+            engine=engine,
             min_match=[
                 e.parser_config.min_match if isinstance(e, Many) else 1 for e in exprs
             ],
@@ -689,7 +690,7 @@ class MatchAll(ParseExpression):
                     loc = e._parse(string, end).end
                     if loc == end:
                         continue
-                    end = loc
+                    end = self.parser_config.engine.skip(string, loc)
                     c2 = count[i] = c + 1
                     if c2 >= ma:
                         del todo[i]
@@ -704,8 +705,9 @@ class MatchAll(ParseExpression):
         for c, (e, mi, ma) in zip(count, todo):
             if c < mi:
                 raise ParseException(
-                    string,
+                    self,
                     start,
+                    string,
                     "Missing minimum (%i) more required elements (%s)" % (mi, e),
                 )
 
@@ -724,11 +726,12 @@ class MatchAll(ParseExpression):
         # add any unmatched Optionals, in case they have default values defined
         matchOrder += [e for e in self.exprs if id(e) not in found]
 
+        # TODO: CAN WE AVOID THIS RE-PARSE?
         results = []
         end = start
         for e in matchOrder:
             result = e._parse(string, end, doActions)
-            end = result.end
+            end = self.parser_config.engine.skip(string, result.end)
             results.append(result)
 
         return ParseResults(self, results[0].start, results[-1].end, results)

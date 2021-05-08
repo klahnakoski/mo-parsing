@@ -262,7 +262,7 @@ class Many(ParseEnhancement):
             if self.parser_config.min_match <= count <= max:
                 pass
             else:
-                ParseException(self, start, string, msg="Not correct amount of matches")
+                raise ParseException(self, start, string, msg="Not correct amount of matches")
         if count:
             if (
                 count < self.parser_config.min_match
@@ -808,7 +808,8 @@ def _suppress_post_parse(tokens, start, string):
 
 
 class PrecededBy(LookAhead):
-    """Lookbehind matching of the given parse expression.
+    """
+    Lookbehind matching of the given parse expression.
     ``PrecededBy`` does not advance the parsing position within the
     input string, it only verifies that the specified parse expression
     matches prior to the current position.  ``PrecededBy`` always
@@ -857,15 +858,14 @@ class PrecededBy(LookAhead):
             instring_slice = string[:start]
             last_cause = ParseException(self, start, string)
 
-            with self.engine.backup():
-                for offset in range(self.parser_config.retreat, start + 1):
-                    try:
-                        ret = test_expr._parse(instring_slice, start - offset)
-                        break
-                    except ParseException as cause:
-                        last_cause = cause
-                else:
-                    raise last_cause
+            for offset in range(self.parser_config.retreat, start + 1):
+                try:
+                    ret = test_expr._parse(instring_slice, start - offset)
+                    break
+                except ParseException as cause:
+                    last_cause = cause
+            else:
+                raise last_cause
         # return empty list of tokens, but preserve any defined results names
 
         ret.__class__ = Annotation
