@@ -3,9 +3,10 @@ from collections import OrderedDict
 
 from mo_dots import Null, is_null
 from mo_future import text, is_text
+from mo_imports import export, expect
 
+from mo_parsing import Engine
 from mo_parsing.core import ParserElement
-from mo_parsing.engine import Engine
 from mo_parsing.exceptions import (
     ParseException,
     RecursiveGrammarException,
@@ -21,19 +22,18 @@ from mo_parsing.utils import (
 )
 from mo_parsing.utils import MAX_INT, is_forward
 
-# import later
-(
-    Token,
-    NoMatch,
-    Literal,
-    Keyword,
-    Word,
-    CharsNotIn,
-    _PositionToken,
-    StringEnd,
-    Empty,
-    Char,
-) = [None] * 10
+(Token, NoMatch, Literal, Keyword, Word, CharsNotIn, StringEnd, Empty, Char, _PositionToken) = expect(
+    "Token",
+    "NoMatch",
+    "Literal",
+    "Keyword",
+    "Word",
+    "CharsNotIn",
+    "StringEnd",
+    "Empty",
+    "Char",
+    "_PositionToken"
+)
 
 _get = object.__getattribute__
 
@@ -877,18 +877,21 @@ class PrecededBy(ParseEnhancement):
         raise NotImplemented()
 
 
-# export
-from mo_parsing import core, engine, results
+export("mo_parsing.core", SkipTo)
+export("mo_parsing.core", Many)
+export("mo_parsing.core", ZeroOrMore)
+export("mo_parsing.core", OneOrMore)
+export("mo_parsing.core", Optional)
+export("mo_parsing.core", NotAny)
+export("mo_parsing.core", Suppress)
+export("mo_parsing.core", Group)
 
-core.SkipTo = SkipTo
-core.Many = Many
-core.ZeroOrMore = ZeroOrMore
-core.OneOrMore = OneOrMore
-core.Optional = Optional
-core.NotAny = NotAny
-core.Suppress = Suppress
-core.Group = Group
+export("mo_parsing.results", Group)
+export("mo_parsing.results", Dict)
+export("mo_parsing.results", Suppress)
 
-results.Group = Group
-results.Dict = Dict
-results.Suppress = Suppress
+export("mo_parsing.engine", Empty)
+
+export("mo_parsing.utils", Many)
+
+from mo_parsing import engine

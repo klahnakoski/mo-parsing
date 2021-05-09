@@ -7,6 +7,7 @@ from collections import OrderedDict
 from string import whitespace
 
 from mo_future import unichr, is_text
+from mo_imports import export
 
 from mo_parsing.core import add_reset_action
 from mo_parsing.engine import Engine, PLAIN_ENGINE
@@ -371,8 +372,4 @@ class Regex(ParseEnhancement):
 
 _plain_group = Group(None)
 
-
-from mo_parsing import core
-
-core.regex_parameters = parameters
-del core
+export("mo_parsing.core", "regex_parameters", parameters)

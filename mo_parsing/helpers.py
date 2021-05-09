@@ -5,8 +5,7 @@ from datetime import datetime
 from mo_future import text
 
 from mo_parsing.core import add_reset_action
-from mo_parsing.debug import Debugger
-from mo_parsing.engine import Engine
+from mo_parsing.engine import Engine, STANDARD_ENGINE
 from mo_parsing.enhancement import (
     Combine,
     Dict,

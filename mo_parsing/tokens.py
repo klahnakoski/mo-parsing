@@ -1,17 +1,20 @@
 # encoding: utf-8
-import re
-from collections import OrderedDict
 
-from mo_future import text, is_text
+from mo_future import is_text
+from mo_imports import export
 
 from mo_parsing.core import ParserElement
 from mo_parsing.engine import Engine, PLAIN_ENGINE
 from mo_parsing.exceptions import ParseException
-from mo_parsing.results import ParseResults
+from mo_parsing.results import ParseResults, engine
 from mo_parsing.utils import *
 
 
 class Token(ParserElement):
+    """
+    Represent some contiguous set for characters, no whitespace
+    """
+
     __slots__ = []
     Config = append_config(ParserElement, "match", "regex")
 
@@ -738,29 +741,24 @@ class WordEnd(_PositionToken):
         return "+", self.parser_config.regex.pattern
 
 
-# export
-from mo_parsing import core, enhancement, engine, results
+export("mo_parsing.results", Token)
+export("mo_parsing.results", Empty)
 
-core.Empty = Empty
-core.StringEnd = StringEnd
-core.Literal = Literal
-core.Token = Token
+export("mo_parsing.core", Empty)
+export("mo_parsing.core", StringEnd)
+export("mo_parsing.core", Literal)
+export("mo_parsing.core", Token)
 
-engine.Token = Token
-engine.Literal = Literal
-engine.CURRENT.literal = Literal
-engine.PLAIN_ENGINE.literal = Literal
+export("mo_parsing.engine", Literal)
+export("mo_parsing.engine", Token)
 
-enhancement.Token = Token
-enhancement.Literal = Literal
-enhancement.Keyword = Keyword
-enhancement.Word = Word
-enhancement.CharsNotIn = CharsNotIn
-enhancement._PositionToken = _PositionToken
-enhancement.StringEnd = StringEnd
-enhancement.Empty = Empty
-enhancement.NoMatch = NoMatch
-enhancement.Char = Char
-
-results.Token = Token
-results.Empty = Empty
+export("mo_parsing.enhancement", Token)
+export("mo_parsing.enhancement", NoMatch)
+export("mo_parsing.enhancement", Literal)
+export("mo_parsing.enhancement", Keyword)
+export("mo_parsing.enhancement", Word)
+export("mo_parsing.enhancement", CharsNotIn)
+export("mo_parsing.enhancement", StringEnd)
+export("mo_parsing.enhancement", Empty)
+export("mo_parsing.enhancement", Char)
+export("mo_parsing.enhancement", _PositionToken)

@@ -5,6 +5,7 @@ from operator import itemgetter
 
 from mo_future import Iterable, text, generator_types
 from mo_imports import export
+from mo_parsing import engine
 
 from mo_parsing.core import ParserElement, _PendingSkip
 from mo_parsing.engine import Engine
@@ -23,7 +24,6 @@ from mo_parsing.utils import (
     append_config,
     regex_caseless,
     regex_compile,
-    is_backtracking,
 )
 
 LOOKUP_COST = 5
@@ -748,13 +748,7 @@ class MatchAll(ParseExpression):
         return "{" + " & ".join(text(e) for e in self.exprs) + "}"
 
 
-# export
-export("mo_parsing.utils", Many)
-
-
-from mo_parsing import core, engine
-
-core.And = And
-core.Or = Or
-core.MatchAll = MatchAll
-core.MatchFirst = MatchFirst
+export("mo_parsing.core", And)
+export("mo_parsing.core", Or)
+export("mo_parsing.core", MatchAll)
+export("mo_parsing.core", MatchFirst)

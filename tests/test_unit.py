@@ -1118,7 +1118,7 @@ class TestParsing(PyparsingExpressionTestCase):
             msg="Incorrect list for attribute pred, %s" % str(queryRes["pred"]),
         )
 
-    def testSkipToParserTests(self):
+    def testSkipTo(self):
         thingToFind = Literal("working")
         testExpr = (
             SkipTo(Literal(";"), include=True, ignore=cStyleComment) + thingToFind
@@ -1132,9 +1132,15 @@ class TestParsing(PyparsingExpressionTestCase):
                 testExpr.parseString(someText)
 
         # This first test works, as the SkipTo expression is immediately following the ignore expression (cStyleComment)
-        tryToParse("some text /* comment with ; in */; working")
+        self.assertEqual(
+            testExpr.parseString("some text /* comment with ; in */; working"),
+            ["some text /* comment with ; in */", [";"], "working"]
+        )
         # This second test previously failed, as there is text following the ignore expression, and before the SkipTo expression.
-        tryToParse("some text /* comment with ; in */some other stuff; working")
+        self.assertEqual(
+            testExpr.parseString("some text /* comment with ; in */some other stuff; working"),
+            ["some text /* comment with ; in */some other stuff", [";"], "working"]
+        )
 
         # tests for optional failOn argument
         testExpr = (
@@ -2247,7 +2253,6 @@ class TestParsing(PyparsingExpressionTestCase):
                     shouldSucceed, "successfully parsed when should have failed"
                 )
             except ParseException as pe:
-
                 self.assertFalse(
                     shouldSucceed, "failed to parse when should have succeeded"
                 )
@@ -2271,7 +2276,6 @@ class TestParsing(PyparsingExpressionTestCase):
                     shouldSucceed, "successfully parsed when should have failed"
                 )
             except ParseException as pe:
-
                 self.assertFalse(
                     shouldSucceed, "failed to parse when should have succeeded"
                 )

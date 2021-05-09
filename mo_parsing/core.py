@@ -3,13 +3,13 @@ from collections import namedtuple
 from threading import RLock
 
 from mo_future import text
+from mo_imports import expect, export
 
-from mo_parsing.engine import Engine
+from mo_parsing import engine, Engine
 from mo_parsing.exceptions import ParseException
-from mo_parsing.results import ParseResults
+from mo_parsing.results import ParseResults, _flatten
 from mo_parsing.utils import Log, MAX_INT, wrap_parse_action, empty_tuple, is_forward
 
-# import later
 (
     SkipTo,
     Many,
@@ -18,7 +18,6 @@ from mo_parsing.utils import Log, MAX_INT, wrap_parse_action, empty_tuple, is_fo
     Optional,
     NotAny,
     Suppress,
-    _flatten,
     And,
     MatchFirst,
     Or,
@@ -29,7 +28,25 @@ from mo_parsing.utils import Log, MAX_INT, wrap_parse_action, empty_tuple, is_fo
     Token,
     Group,
     regex_parameters,
-) = [None] * 18
+) = expect(
+    "SkipTo",
+    "Many",
+    "ZeroOrMore",
+    "OneOrMore",
+    "Optional",
+    "NotAny",
+    "Suppress",
+    "And",
+    "MatchFirst",
+    "Or",
+    "MatchAll",
+    "Empty",
+    "StringEnd",
+    "Literal",
+    "Token",
+    "Group",
+    "regex_parameters",
+)
 
 DEBUG = False
 
@@ -275,7 +292,7 @@ class ParserElement(object):
         return self._parseString(string, parseAll=parseAll)
 
     def _parseString(self, string, parseAll=False):
-        # TODO: PUT THIS streamling IN THE ENTRY POINT
+        # TODO: PUT THIS streamline IN THE ENTRY POINT
         expr = self.streamline()
         for e in expr.engine.ignore_list:
             e.streamline()
@@ -695,17 +712,5 @@ class _PendingSkip(ParserElement):
         Log.error("use of `...` expression without following SkipTo target expression")
 
 
-# export
-from mo_parsing import engine, results
-
-engine.ParserElement = ParserElement
-results.ParserElement = ParserElement
-
-NO_PARSER = (
-    ParserElement().set_parser_name("<nothing>")
-)  # USE THIS WHEN YOU DO NOT CARE ABOUT THE PARSER TYPE
-NO_RESULTS = ParseResults(NO_PARSER, -1, 0, [])
-
-results.NO_PARSER = NO_PARSER
-results.NO_RESULTS = NO_RESULTS
-del results
+export("mo_parsing.results", ParserElement)
+export("mo_parsing.engine", ParserElement)

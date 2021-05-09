@@ -3,12 +3,15 @@ import re
 from collections import namedtuple
 
 from mo_future import is_text
+from mo_imports import expect, Expecting
 
 from mo_parsing.utils import Log, indent, quote, regex_range, alphanums, regex_iso
 
-ParserElement, Literal, Token = [None] * 3
+Literal, Token, Empty, ParserElement = expect("Literal", "Token", "Empty", "ParserElement")
 
 CURRENT = None
+PLAIN_ENGINE = None
+STANDARD_ENGINE = None
 
 
 class Engine:
@@ -21,8 +24,22 @@ class Engine:
         self.content = None
         self.skips = {}
         self.regex = None
+        self.expr = None
         self.set_whitespace(white)
         self.previous = None  # WE MAINTAIN A STACK OF ENGINES
+
+    def copy(self):
+        output = Engine(self.white_chars)
+        output.literal = self.literal
+        output.keyword_chars = self.keyword_chars
+        output.ignore_list = self.ignore_list
+        output.debugActions = self.debugActions
+        output.all_exceptions = self.all_exceptions
+        output.content = None
+        output.skips = {}
+        output.regex = self.regex
+        output.expr = self.expr
+        return output
 
     def __enter__(self):
         global CURRENT
@@ -75,6 +92,7 @@ class Engine:
     def set_whitespace(self, chars):
         self.white_chars = "".join(sorted(set(chars)))
         self.content = None
+        self.expr = None if isinstance(Empty, Expecting) else Empty()
         self.regex = re.compile(self.__regex__()[1])
 
     def add_ignore(self, *ignore_exprs):
@@ -86,6 +104,7 @@ class Engine:
             ignore_expr = ignore_expr.suppress()
             self.ignore_list.append(ignore_expr)
             self.content = None
+            self.expr = None if isinstance(Empty, Expecting) else Empty()
             self.regex = re.compile(self.__regex__()[1])
             return self
 
@@ -155,6 +174,3 @@ def noop(*args):
 
 
 DebugActions = namedtuple("DebugActions", ["TRY", "MATCH", "FAIL"])
-
-PLAIN_ENGINE = Engine("").use()
-Engine().use()
