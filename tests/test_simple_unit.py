@@ -337,7 +337,7 @@ class TestRepetition(PyparsingExpressionTestCase):
         )
 
     def test_many_with_stopper(self):
-        expr = Many("x", stopOn="y").streamline()
+        expr = Many("x", stopOn="y", engine=engine.CURRENT).streamline()
         result = expr.parseString("xxxxy")
         expecting = "xxxx"
         self.assertEqual(result, expecting)

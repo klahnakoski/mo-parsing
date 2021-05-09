@@ -26,7 +26,7 @@ from mo_parsing.utils import Log, MAX_INT, wrap_parse_action, empty_tuple, is_fo
     Literal,
     Token,
     Group,
-    regex_parameters
+    regex_parameters,
 ) = expect(
     "SkipTo",
     "Many",
@@ -44,7 +44,7 @@ from mo_parsing.utils import Log, MAX_INT, wrap_parse_action, empty_tuple, is_fo
     "Literal",
     "Token",
     "Group",
-    "regex_parameters"
+    "regex_parameters",
 )
 
 DEBUG = False
@@ -93,6 +93,7 @@ def entrypoint(func):
 class ParserElement(object):
     """Abstract base level parser element class."""
 
+    zero_length = False
     __slots__ = [
         "parseAction",
         "parser_name",

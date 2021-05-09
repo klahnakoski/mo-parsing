@@ -127,7 +127,9 @@ RIGHT_ASSOC = object()
 _no_op = Empty().suppress()
 
 
-def infixNotation(baseExpr, spec, lpar=Suppress(Literal("(")), rpar=Suppress(Literal(")"))):
+def infixNotation(
+    baseExpr, spec, lpar=Suppress(Literal("(")), rpar=Suppress(Literal(")"))
+):
     """
     :param baseExpr: expression representing the most basic element for the
        nested

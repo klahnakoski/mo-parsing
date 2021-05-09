@@ -66,7 +66,6 @@ from mo_parsing.tokens import (
     Char,
     CloseMatch,
     Empty,
-    GoToColumn,
     LineEnd,
     LineStart,
     NoMatch,
@@ -84,8 +83,6 @@ from mo_parsing.tokens import (
 )
 
 
-
-
 __all__ = [
     "And",
     "AnyChar",
@@ -98,7 +95,6 @@ __all__ = [
     "Empty",
     "FollowedBy",
     "Forward",
-    "GoToColumn",
     "Group",
     "Keyword",
     "LineEnd",

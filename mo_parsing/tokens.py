@@ -14,6 +14,7 @@ class Token(ParserElement):
     """
     Represent some contiguous set for characters, no whitespace
     """
+
     __slots__ = []
     Config = append_config(ParserElement, "match", "regex")
 
@@ -28,6 +29,7 @@ class Empty(Token):
     Often used to consume-and-suppress trailing whitespace
     """
 
+    zero_length = True
     __slots__ = []
 
     def __init__(self, name=None):
@@ -58,6 +60,7 @@ class Empty(Token):
 class NoMatch(Token):
     """A token that will never match."""
 
+    zero_length = True
     __slots__ = []
 
     def __init__(self):
@@ -72,6 +75,24 @@ class NoMatch(Token):
 
     def __regex__(self):
         return "+", "a^"
+
+
+class LookBehind(Token):
+    zero_length = True
+    __slots__ = []
+
+    def __init__(self, name=None):
+        Token.__init__(self)
+        self.parser_name = name
+
+    def is_annotated(self):
+        return self.parseAction or self.token_name
+
+    def min_length(self):
+        return 0
+
+    def streamline(self):
+        return self
 
 
 class AnyChar(Token):
@@ -470,7 +491,8 @@ class CharsNotIn(Token):
 
 
 class White(Token):
-    """Special matching class for matching whitespace.  Normally,
+    """
+    Special matching class for matching whitespace.  Normally,
     whitespace is ignored by mo_parsing grammars.  This class is included
     when some whitespace structures are significant.  Define with
     a string containing the whitespace characters to be matched; default
@@ -535,77 +557,43 @@ class White(Token):
         return ParseResults(self, start, end, string[start:end])
 
 
-class _PositionToken(Token):
-    __slots__ = []
-
-    def __init__(self):
-        super(_PositionToken, self).__init__()
-        self.parser_name = self.__class__.__name__
-
-    def min_length(self):
-        return 0
-
-
-class GoToColumn(_PositionToken):
-    """Token to advance to a specific column of input text; useful for
-    tabular report scraping.
-    """
-
-    __slots__ = []
-
-    def __init__(self, colno):
-        super(GoToColumn, self).__init__()
-        self.col = colno
-
-    def preParse(self, string, loc):
-        if col(loc, string) != self.col:
-            instrlen = len(string)
-            loc = self._skipIgnorables(string, loc)
-            while (
-                loc < instrlen
-                and string[loc].isspace()
-                and col(loc, string) != self.col
-            ):
-                loc += 1
-        return loc
-
-    def parseImpl(self, string, start, doActions=True):
-        thiscol = col(start, string)
-        if thiscol > self.col:
-            raise ParseException(self, start, string, "Text not in expected column")
-        newloc = start + self.col - thiscol
-        ret = string[start:newloc]
-        return newloc, ret
-
-
-class LineStart(_PositionToken):
-    r"""Matches if current position is at the beginning of a line within
+class LineStart(Token):
+    r"""
+    Matches if current position is at the beginning of a line within
     the parse string
     """
+    zero_length = True
     __slots__ = []
 
     def __init__(self):
-        super(LineStart, self).__init__()
+        Token.__init__(self)
+        self.parser_name = self.__class__.__name__
 
     def parseImpl(self, string, start, doActions=True):
         if col(start, string) == 1:
             return ParseResults(self, start, start, [])
         raise ParseException(self, start, string)
 
-    def __regeex__(self):
-        return "^"
+    def min_length(self):
+        return 0
+
+    def __regex__(self):
+        return "*", "^"
 
 
-class LineEnd(_PositionToken):
-    """Matches if current position is at the end of a line within the
+class LineEnd(LookBehind):
+    """
+    Matches if current position is at the end of a line within the
     parse string
     """
 
+    zero_length = True
     __slots__ = []
 
     def __init__(self):
         with Engine(" \t") as e:
-            super(LineEnd, self).__init__()
+            Token.__init__(self)
+            self.parser_name = self.__class__.__name__
             self.set_config(lock_engine=e, regex=regex_compile("\\r?(\\n|$)"))
 
     def parseImpl(self, string, start, doActions=True):
@@ -621,15 +609,17 @@ class LineEnd(_PositionToken):
         return "|", self.parser_config.regex.pattern
 
 
-class StringStart(_PositionToken):
+class StringStart(Token):
     """Matches if current position is at the beginning of the parse
     string
     """
 
+    zero_length = True
     __slots__ = []
 
     def __init__(self):
-        super(StringStart, self).__init__()
+        Token.__init__(self)
+        self.parser_name = self.__class__.__name__
 
     def parseImpl(self, string, loc, doActions=True):
         if loc != 0:
@@ -638,13 +628,21 @@ class StringStart(_PositionToken):
             raise ParseException(self, loc, string)
         return []
 
+    def min_length(self):
+        return 0
 
-class StringEnd(_PositionToken):
+
+class StringEnd(Token):
     """
     Matches if current position is at the end of the parse string
     """
 
+    zero_length = True
     __slots__ = []
+
+    def __init__(self):
+        Token.__init__(self)
+        self.parser_name = self.__class__.__name__
 
     def parseImpl(self, string, start, doActions=True):
         end = len(string)
@@ -653,9 +651,13 @@ class StringEnd(_PositionToken):
 
         raise ParseException(self, start, string)
 
+    def min_length(self):
+        return 0
 
-class WordStart(_PositionToken):
-    """Matches if the current position is at the beginning of a Word,
+
+class WordStart(Token):
+    """
+    Matches if the current position is at the beginning of a Word,
     and is not preceded by any character in a given set of
     ``wordChars`` (default= ``printables``). To emulate the
     ``\b`` behavior of regular expressions, use
@@ -664,11 +666,13 @@ class WordStart(_PositionToken):
     a line.
     """
 
+    zero_length = True
     __slots__ = []
-    Config = append_config(_PositionToken, "word_chars")
+    Config = append_config(Token, "word_chars")
 
     def __init__(self, wordChars=printables):
-        super(WordStart, self).__init__()
+        Token.__init__(self)
+        self.parser_name = self.__class__.__name__
         self.set_config(
             regex=regex_compile(
                 f"(?:(?<={(CharsNotIn(wordChars, exact=1)).__regex__()[1]})|^)(?={Char(wordChars).__regex__()[1]})"
@@ -690,8 +694,9 @@ class WordStart(_PositionToken):
         return "+", self.parser_config.regex.pattern
 
 
-class WordEnd(_PositionToken):
-    """Matches if the current position is at the end of a Word, and is
+class WordEnd(LookBehind):
+    """
+    Matches if the current position is at the end of a Word, and is
     not followed by any character in a given set of ``wordChars``
     (default= ``printables``). To emulate the ``\b`` behavior of
     regular expressions, use ``WordEnd(alphanums)``. ``WordEnd``
@@ -699,11 +704,13 @@ class WordEnd(_PositionToken):
     of a line.
     """
 
+    zero_length = True
     __slots__ = []
-    Config = append_config(_PositionToken, "word_chars")
+    Config = append_config(Token, "word_chars")
 
     def __init__(self, wordChars=printables):
-        super(WordEnd, self).__init__()
+        Token.__init__(self)
+        self.parser_name = self.__class__.__name__
         self.set_config(
             word_chars="".join(sorted(set(wordChars))),
             regex=regex_compile(
@@ -712,11 +719,8 @@ class WordEnd(_PositionToken):
         )
 
     def copy(self):
-        output = _PositionToken.copy(self)
+        output = Token.copy(self)
         return output
-
-    def min_length(self):
-        return 0
 
     def parseImpl(self, string, start, doActions=True):
         word_chars = self.parser_config.word_chars
@@ -726,8 +730,12 @@ class WordEnd(_PositionToken):
                 raise ParseException(self, start, string)
         return ParseResults(self, start, start, [])
 
+    def min_length(self):
+        return 0
+
     def __regex__(self):
         return "+", self.parser_config.regex.pattern
+
 
 export("mo_parsing.results", Token)
 export("mo_parsing.results", Empty)
@@ -746,8 +754,7 @@ export("mo_parsing.enhancement", Literal)
 export("mo_parsing.enhancement", Keyword)
 export("mo_parsing.enhancement", Word)
 export("mo_parsing.enhancement", CharsNotIn)
-export("mo_parsing.enhancement", _PositionToken)
 export("mo_parsing.enhancement", StringEnd)
 export("mo_parsing.enhancement", Empty)
 export("mo_parsing.enhancement", Char)
-
+export("mo_parsing.enhancement", LookBehind)

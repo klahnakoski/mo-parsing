@@ -11,7 +11,16 @@ from mo_parsing.utils import is_forward, forward_type
 USE_ATTRIBUTE_ACCESS = False
 
 
-Suppress, ParserElement, NO_PARSER, NO_RESULTS, Group, Dict, Token, Empty = expect("Suppress", "ParserElement", "NO_PARSER", "NO_RESULTS", "Group", "Dict", "Token", "Empty")
+Suppress, ParserElement, NO_PARSER, NO_RESULTS, Group, Dict, Token, Empty = expect(
+    "Suppress",
+    "ParserElement",
+    "NO_PARSER",
+    "NO_RESULTS",
+    "Group",
+    "Dict",
+    "Token",
+    "Empty",
+)
 
 
 class ParseResults(object):

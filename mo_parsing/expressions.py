@@ -15,7 +15,7 @@ from mo_parsing.exceptions import (
     ParseSyntaxException,
 )
 from mo_parsing.results import ParseResults
-from mo_parsing.tokens import Empty
+from mo_parsing.tokens import Empty, LookBehind
 from mo_parsing.utils import (
     empty_tuple,
     is_forward,
@@ -202,7 +202,10 @@ class And(ParseExpression):
             same = same and f is e
             if f.is_annotated():
                 acc.append(f)
-            elif isinstance(f, And) and f.parser_config.engine is self.parser_config.engine:
+            elif (
+                isinstance(f, And)
+                and f.parser_config.engine is self.parser_config.engine
+            ):
                 same = False
                 acc.extend(f.exprs)
             else:
@@ -243,7 +246,10 @@ class And(ParseExpression):
         acc = []
         for i, expr in enumerate(self.exprs):
             if end > index:
-                index = self.parser_config.engine.skip(string, end)
+                if isinstance(expr, LookBehind):
+                    index = end
+                else:
+                    index = self.parser_config.engine.skip(string, end)
             if isinstance(expr, And.SyntaxErrorGuard):
                 encountered_syntax_error = True
                 continue

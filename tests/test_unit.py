@@ -1118,7 +1118,7 @@ class TestParsing(PyparsingExpressionTestCase):
             msg="Incorrect list for attribute pred, %s" % str(queryRes["pred"]),
         )
 
-    def testSkipToParserTests(self):
+    def testSkipTo(self):
         thingToFind = Literal("working")
         testExpr = (
             SkipTo(Literal(";"), include=True, ignore=cStyleComment) + thingToFind
@@ -1132,9 +1132,15 @@ class TestParsing(PyparsingExpressionTestCase):
                 testExpr.parseString(someText)
 
         # This first test works, as the SkipTo expression is immediately following the ignore expression (cStyleComment)
-        tryToParse("some text /* comment with ; in */; working")
+        self.assertEqual(
+            testExpr.parseString("some text /* comment with ; in */; working"),
+            ["some text /* comment with ; in */", [";"], "working"]
+        )
         # This second test previously failed, as there is text following the ignore expression, and before the SkipTo expression.
-        tryToParse("some text /* comment with ; in */some other stuff; working")
+        self.assertEqual(
+            testExpr.parseString("some text /* comment with ; in */some other stuff; working"),
+            ["some text /* comment with ; in */some other stuff", [";"], "working"]
+        )
 
         # tests for optional failOn argument
         testExpr = (
@@ -1187,10 +1193,10 @@ class TestParsing(PyparsingExpressionTestCase):
         e = Literal("start") + ...
         test(e, "start 123 end", None, None)
 
-        e = And(["start", ..., "end"])
+        e = And(["start", ..., "end"], engine.CURRENT)
         test(e, "start 123 end", ["start", "123", "end"], {"_skipped": "123"})
 
-        e = And([..., "end"])
+        e = And([..., "end"], engine.CURRENT)
         test(e, "start 123 end", ["start 123", "end"], {"_skipped": "start 123"})
 
         e = "start" + (num_word | ...) + "end"
@@ -1714,11 +1720,10 @@ class TestParsing(PyparsingExpressionTestCase):
                 )
 
     def testLineAndStringEnd(self):
-        with Engine(""):
-            NLs = OneOrMore(LineEnd)
-            bnf1 = delimitedList(Word(alphanums), NLs)
-            bnf2 = Word(alphanums) + StringEnd
-            bnf3 = Word(alphanums) + SkipTo(StringEnd)
+        NLs = OneOrMore(LineEnd)
+        bnf1 = delimitedList(Word(alphanums), NLs)
+        bnf2 = Word(alphanums) + StringEnd
+        bnf3 = Word(alphanums) + SkipTo(StringEnd)
         # TODO: Is bnf2 match last word?  Does bnf3.skipTo(stringEnd) include the \n?
         tests = [
             ("testA\ntestB\ntestC\n", ["testA", "testB", "testC"]),

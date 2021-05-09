@@ -30,6 +30,19 @@ class Engine(ParserElement):
         self.set_whitespace(white)
         self.previous = None  # WE MAINTAIN A STACK OF ENGINES
 
+    def copy(self):
+        output = Engine(self.white_chars)
+        output.literal = self.literal
+        output.keyword_chars = self.keyword_chars
+        output.ignore_list = self.ignore_list
+        output.debugActions = self.debugActions
+        output.all_exceptions = self.all_exceptions
+        output.content = None
+        output.skips = {}
+        output.regex = self.regex
+        output.expr = self.expr
+        return output
+
     def __enter__(self):
         global CURRENT
         self.previous = CURRENT  # WE MAINTAIN A STACK OF ENGINES

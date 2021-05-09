@@ -22,28 +22,17 @@ from mo_parsing.utils import (
 )
 from mo_parsing.utils import MAX_INT, is_forward
 
-(
-    Token,
-    NoMatch,
-    Literal,
-    Keyword,
-    Word,
-    CharsNotIn,
-    _PositionToken,
-    StringEnd,
-    Empty,
-    Char,
-) = expect(
+(Token, NoMatch, Literal, Keyword, Word, CharsNotIn, StringEnd, Empty, Char, LookBehind) = expect(
     "Token",
     "NoMatch",
     "Literal",
     "Keyword",
     "Word",
     "CharsNotIn",
-    "_PositionToken",
     "StringEnd",
     "Empty",
-    "Char"
+    "Char",
+    "LookBehind"
 )
 
 _get = object.__getattribute__
@@ -120,6 +109,7 @@ class FollowedBy(ParseEnhancement):
     name.
     """
 
+    zero_length = True
     __slots__ = []
 
     def __init__(self, expr):
@@ -150,6 +140,7 @@ class NotAny(LookAhead):
     May be constructed using the '~' operator.
     """
 
+    zero_length = True
     __slots__ = ["regex"]
 
     def __init__(self, expr):
@@ -208,7 +199,9 @@ class Many(ParseEnhancement):
     __slots__ = []
     Config = append_config(ParseEnhancement, "engine", "min_match", "max_match", "end")
 
-    def __init__(self, expr, engine, stopOn=None, min_match=0, max_match=MAX_INT, exact=None):
+    def __init__(
+        self, expr, engine, stopOn=None, min_match=0, max_match=MAX_INT, exact=None
+    ):
         """
         MATCH expr SOME NUMBER OF TIMES (OR UNTIL stopOn IS REACHED
         :param expr: THE EXPRESSION TO MATCH
@@ -221,7 +214,11 @@ class Many(ParseEnhancement):
             min_match = exact
             max_match = exact
 
-        self.set_config(engine=engine or parse_engine.CURRENT, min_match=min_match, max_match=max_match)
+        self.set_config(
+            engine=engine or parse_engine.CURRENT,
+            min_match=min_match,
+            max_match=max_match,
+        )
         self.stopOn(stopOn)
 
     def stopOn(self, ender):
@@ -244,7 +241,10 @@ class Many(ParseEnhancement):
         try:
             while end < len(string) and count < max:
                 if end > index:
-                    index = self.parser_config.engine.skip(string, end)
+                    if isinstance(self.expr, LookBehind):
+                        index = end
+                    else:
+                        index = self.parser_config.engine.skip(string, end)
                 if stopper:
                     if stopper.match(string, index):
                         if self.parser_config.min_match <= count:
@@ -262,7 +262,9 @@ class Many(ParseEnhancement):
             if self.parser_config.min_match <= count <= max:
                 pass
             else:
-                raise ParseException(self, start, string, msg="Not correct amount of matches")
+                raise ParseException(
+                    self, start, string, msg="Not correct amount of matches"
+                )
         if count:
             if (
                 count < self.parser_config.min_match
@@ -452,9 +454,9 @@ class SkipTo(ParseEnhancement):
     """Token for skipping over all undefined text until the matched expression is found."""
 
     __slots__ = []
-    Config = append_config(ParseEnhancement, "include", "fail", "ignore")
+    Config = append_config(ParseEnhancement, "include", "fail", "ignore", "engine")
 
-    def __init__(self, expr, include=False, ignore=None, failOn=None):
+    def __init__(self, expr, include=False, ignore=None, failOn=None, engine_=None):
         """
         :param expr: target expression marking the end of the data to be skipped
         :param include: if True, the target expression is also parsed
@@ -466,8 +468,12 @@ class SkipTo(ParseEnhancement):
           the SkipTo is not a match
         """
         ParseEnhancement.__init__(self, expr)
+
         self.set_config(
-            include=include, fail=parse_engine.CURRENT.normalize(failOn), ignore=ignore
+            include=include,
+            fail=parse_engine.CURRENT.normalize(failOn),
+            ignore=ignore,
+            engine=engine_ or engine.CURRENT,
         )
         self.parser_name = str(self)
 
@@ -481,11 +487,12 @@ class SkipTo(ParseEnhancement):
 
         loc = start
         while loc <= instrlen:
+            skip_end = loc
+            loc = before_end = self.parser_config.engine.skip(string, loc)
             if fail:
                 # break if failOn expression matches
                 try:
                     fail._parse(string, loc)
-                    before_end = loc
                     break
                 except:
                     pass
@@ -495,10 +502,11 @@ class SkipTo(ParseEnhancement):
                 while 1:
                     try:
                         loc = ignore._parse(string, loc).end
+                        skip_end = loc
+                        loc = before_end = self.parser_config.engine.skip(string, loc)
                     except ParseException:
                         break
             try:
-                before_end = loc
                 loc = self.expr._parse(string, loc, doActions=False).end
             except ParseException:
                 # no match, advance loc in string
@@ -506,14 +514,13 @@ class SkipTo(ParseEnhancement):
             else:
                 # matched skipto expr, done
                 break
-
         else:
             # ran off the end of the input string without matching skipto expr, fail
             raise ParseException(self, start, string)
 
         # build up return values
         end = loc
-        skiptext = string[start:before_end]
+        skiptext = string[start:skip_end]
         skip_result = []
         if skiptext:
             skip_result.append(skiptext)
@@ -830,6 +837,7 @@ class PrecededBy(LookAhead):
     the current parse position for a lookbehind match.
     """
 
+    zero_length = True
     __slots__ = []
     Config = append_config(ParseEnhancement, "retreat", "exact")
 
@@ -841,7 +849,7 @@ class PrecededBy(LookAhead):
             self.set_config(retreat=expr.min_length(), exact=True)
         elif isinstance(expr, (Word, CharsNotIn)):
             self.set_config(retreat=expr.min_length(), exact=False)
-        elif isinstance(expr, _PositionToken):
+        elif expr.__class__.zero_length:
             self.set_config(retreat=0, exact=True)
         else:
             self.set_config(retreat=expr.min_length(), exact=False)

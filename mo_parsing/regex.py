@@ -120,7 +120,10 @@ def repeat(tokens):
             return Many(operand, PLAIN_ENGINE, exact=int(operator["exact"]))
         else:
             return Many(
-                operand, PLAIN_ENGINE, min_match=int(operator["min"]), max_match=int(operator["max"])
+                operand,
+                PLAIN_ENGINE,
+                min_match=int(operator["min"]),
+                max_match=int(operator["max"]),
             )
     elif mode in "*?":
         return ZeroOrMore(operand, PLAIN_ENGINE)
@@ -130,6 +133,7 @@ def repeat(tokens):
         return Optional(operand, PLAIN_ENGINE)
     else:
         Log.error("not expected")
+
 
 PLAIN_ENGINE.use()
 
