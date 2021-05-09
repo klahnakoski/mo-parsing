@@ -7,11 +7,11 @@ from mo_imports import expect, Expecting
 
 from mo_parsing.utils import Log, indent, quote, regex_range, alphanums, regex_iso
 
-Literal, Token, Empty, ParserElement = expect("Literal", "Token", "Empty", "ParserElement")
+Literal, Token, Empty, ParserElement, PLAIN_ENGINE, STANDARD_ENGINE= expect(
+    "Literal", "Token", "Empty", "ParserElement", "PLAIN_ENGINE", "STANDARD_ENGINE"
+)
 
 CURRENT = None
-PLAIN_ENGINE = None
-STANDARD_ENGINE = None
 
 
 class Engine:

@@ -22,7 +22,18 @@ from mo_parsing.utils import (
 )
 from mo_parsing.utils import MAX_INT, is_forward
 
-(Token, NoMatch, Literal, Keyword, Word, CharsNotIn, StringEnd, Empty, Char, _PositionToken) = expect(
+(
+    Token,
+    NoMatch,
+    Literal,
+    Keyword,
+    Word,
+    CharsNotIn,
+    StringEnd,
+    Empty,
+    Char,
+    _PositionToken,
+) = expect(
     "Token",
     "NoMatch",
     "Literal",
@@ -32,7 +43,7 @@ from mo_parsing.utils import MAX_INT, is_forward
     "StringEnd",
     "Empty",
     "Char",
-    "_PositionToken"
+    "_PositionToken",
 )
 
 _get = object.__getattribute__

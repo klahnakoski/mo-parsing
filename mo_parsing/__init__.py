@@ -78,18 +78,19 @@ from mo_parsing.tokens import (
     AnyChar,
 )
 
-
-engine.PLAIN_ENGINE = Engine("").use()
-engine.STANDARD_ENGINE = Engine().use()
+PLAIN_ENGINE = Engine("").use()
+STANDARD_ENGINE = Engine().use()
 NO_PARSER = ParserElement().set_parser_name("<nothing>")
 NO_RESULTS = ParseResults(NO_PARSER, -1, 0, [])
 
+export("mo_parsing.tokens", PLAIN_ENGINE)
+export("mo_parsing.engine", PLAIN_ENGINE)
+export("mo_parsing.engine", STANDARD_ENGINE)
 export("mo_parsing.results", NO_PARSER)
 export("mo_parsing.results", NO_RESULTS)
 
 from mo_parsing.infix import LEFT_ASSOC, RIGHT_ASSOC, infixNotation
 from mo_parsing.regex import Regex
-
 
 
 __all__ = [
