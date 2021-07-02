@@ -14,7 +14,6 @@ skip_list = [
     "antlr_grammar",
     "booleansearchparser",
     "cLibHeader",
-    "cpp_enum_parser",
     "datetimeParseActions",
     "decaf_parser",
     "delta_time",
