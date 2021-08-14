@@ -1,6 +1,6 @@
 ## Development
      
-After forking the pyparsing repo, and cloning your fork locally, install the libraries needed to run tests
+After forking the mo-parsing repo, and cloning your fork locally, install the libraries needed to run tests
 
      pip install -r tests/requirements.txt
      pre-commit install
