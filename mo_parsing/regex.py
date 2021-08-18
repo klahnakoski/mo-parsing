@@ -10,7 +10,7 @@ from mo_future import unichr, is_text
 from mo_imports import export
 
 from mo_parsing.core import add_reset_action
-from mo_parsing.engine import Engine, PLAIN_ENGINE
+from mo_parsing.engines import Engine, PLAIN_ENGINE
 from mo_parsing.enhancement import (
     Char,
     NotAny,

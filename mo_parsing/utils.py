@@ -76,7 +76,7 @@ _prec = {"|": 0, "+": 1, "*": 2}
 def regex_compile(pattern):
     """REGEX COMPILE WITHOUT THE ON-A-SINGLE-LINE ASSUMPTION"""
     try:
-        return re.compile(pattern, re.MULTILINE | re.DOTALL)
+        return re.compile(pattern, re.DOTALL)
     except Exception as cause:
         Log.error("could not compile {{pattern}}", pattern=pattern, cause=cause)
 

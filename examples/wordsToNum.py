@@ -7,7 +7,7 @@ from mo_parsing import *
 from operator import mul
 from functools import reduce
 
-from mo_parsing.engine import Engine
+from mo_parsing.engines import Engine
 from mo_parsing.helpers import integer
 
 

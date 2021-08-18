@@ -10,7 +10,7 @@
 #
 # Updated 9 Aug 2016 - use more current mo_parsing constructs/idioms
 #
-from mo_parsing.engine import Engine
+from mo_parsing.engines import Engine
 from mo_parsing.helpers import number, dblQuotedString, removeQuotes, delimitedList, cppStyleComment
 
 json_bnf = """

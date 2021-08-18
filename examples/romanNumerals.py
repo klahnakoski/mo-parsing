@@ -4,7 +4,7 @@
 #
 
 from mo_parsing import *
-from mo_parsing.engine import Engine
+from mo_parsing.engines import Engine
 from mo_parsing.utils import Log
 
 
@@ -26,6 +26,11 @@ fivehundred = romanNumeralLiteral("D", 500)
 ninehundred = romanNumeralLiteral("CM", 900)
 onethousand = romanNumeralLiteral("M", 1000)
 
+
+def summer(tokens):
+    return sum(tokens)
+
+
 with Engine(""):
     numeral = (
         onethousand
@@ -40,15 +45,10 @@ with Engine(""):
         | nine
         | five
         | four
-    | one
-).leaveWhitespace()
+        | one
+    )
 
-
-def summer(tokens):
-    return sum(tokens)
-
-
-romanNumeral = numeral[1, ...].addParseAction(summer)
+    romanNumeral = numeral[1, ...].addParseAction(summer)
 
 # unit tests
 def makeRomanNumeral(n):

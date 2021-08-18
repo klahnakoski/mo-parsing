@@ -26,6 +26,7 @@ from examples.jsonParser import jsonObject
 from examples.simpleSQL import simpleSQL
 from mo_parsing import *
 from mo_parsing import helpers
+from mo_parsing.engines import PLAIN_ENGINE
 from mo_parsing.helpers import *
 from mo_parsing.infix import oneOf
 from mo_parsing.utils import *
@@ -147,12 +148,12 @@ class TestParsing(PyparsingExpressionTestCase):
                         "expected error at {}, found at {}".format(errloc, e.loc),
                     )
 
-        test("SELECT * from XYZZY, ABC", 6)
-        test("select * from SYS.XYZZY", 5)
-        test("Select A from Sys.dual", 5)
-        test("Select A,B,C from Sys.dual", 7)
-        test("Select A, B, C from Sys.dual", 7)
-        test("Select A, B, C from Sys.dual, Table2   ", 8)
+        test("SELECT * from XYZZY, ABC", 5)
+        test("select * from SYS.XYZZY", 4)
+        test("Select A from Sys.dual", 4)
+        test("Select A,B,C from Sys.dual", 6)
+        test("Select A, B, C from Sys.dual", 6)
+        test("Select A, B, C from Sys.dual, Table2   ", 7)
         test("Xelect A, B, C from Sys.dual", 0, 0)
         test("Select A, B, C frox Sys.dual", 0, 15)
         test("Select", 0, 6)
@@ -1193,10 +1194,10 @@ class TestParsing(PyparsingExpressionTestCase):
         e = Literal("start") + ...
         test(e, "start 123 end", None, None)
 
-        e = And(["start", ..., "end"], engine.CURRENT)
+        e = And(["start", ..., "end"], engines.CURRENT)
         test(e, "start 123 end", ["start", "123", "end"], {"_skipped": "123"})
 
-        e = And([..., "end"], engine.CURRENT)
+        e = And([..., "end"], engines.CURRENT)
         test(e, "start 123 end", ["start 123", "end"], {"_skipped": "start 123"})
 
         e = "start" + (num_word | ...) + "end"
@@ -1668,7 +1669,7 @@ class TestParsing(PyparsingExpressionTestCase):
 
         with Timer(""):
 
-            engine.CURRENT.set_whitespace(" ")
+            engines.CURRENT.set_whitespace(" ")
 
             test_patt = Word("A") - LineStart() + Word("B")
 
@@ -1712,7 +1713,7 @@ class TestParsing(PyparsingExpressionTestCase):
             )
 
         with Timer(""):
-            engine.CURRENT.set_whitespace(" ")
+            engines.CURRENT.set_whitespace(" ")
             for t, s, e in (LineStart() + "AAA").scanString(test):
 
                 self.assertEqual(
@@ -1720,10 +1721,11 @@ class TestParsing(PyparsingExpressionTestCase):
                 )
 
     def testLineAndStringEnd(self):
-        NLs = OneOrMore(LineEnd)
-        bnf1 = delimitedList(Word(alphanums), NLs)
-        bnf2 = Word(alphanums) + StringEnd
-        bnf3 = Word(alphanums) + SkipTo(StringEnd)
+        with PLAIN_ENGINE:
+            NLs = OneOrMore(LineEnd)
+            bnf1 = delimitedList(Word(alphanums), NLs)
+            bnf2 = Word(alphanums) + StringEnd
+            bnf3 = Word(alphanums) + SkipTo(StringEnd)
         # TODO: Is bnf2 match last word?  Does bnf3.skipTo(stringEnd) include the \n?
         tests = [
             ("testA\ntestB\ntestC\n", ["testA", "testB", "testC"]),
@@ -2257,7 +2259,7 @@ class TestParsing(PyparsingExpressionTestCase):
                 )
 
         # add test for trailing comments
-        engine.CURRENT.add_ignore(cppStyleComment)
+        engines.CURRENT.add_ignore(cppStyleComment)
 
         tests = [
             ("AAAAA //blah", False, True),
@@ -3378,8 +3380,8 @@ class TestParsing(PyparsingExpressionTestCase):
         self.assertEqual(result[0].strip(), "Here is some sample HTML text.")
 
     def testExprSplitter(self):
-        engine.CURRENT.add_ignore(quotedString)
-        engine.CURRENT.add_ignore(pythonStyleComment)
+        engines.CURRENT.add_ignore(quotedString)
+        engines.CURRENT.add_ignore(pythonStyleComment)
         expr = Literal(";") + Empty()
 
         self.assertEqual(
@@ -3519,15 +3521,15 @@ class TestParsing(PyparsingExpressionTestCase):
 
         wd = Word(alphas)
 
-        engine.CURRENT.set_literal(Suppress)
+        engines.CURRENT.set_literal(Suppress)
         result = (wd + "," + wd + oneOf("! . ?")).parseString("Hello, World!")
         self.assertEqual(result.length(), 3, "default_literal(Suppress) failed!")
 
-        engine.CURRENT.set_literal(Literal)
+        engines.CURRENT.set_literal(Literal)
         result = (wd + "," + wd + oneOf("! . ?")).parseString("Hello, World!")
         self.assertEqual(result.length(), 4, "default_literal(Literal) failed!")
 
-        engine.CURRENT.set_literal(CaselessKeyword)
+        engines.CURRENT.set_literal(CaselessKeyword)
         # WAS:
         # result = ("SELECT" + wd + "FROM" + wd).parseString("select color from colors")
         # self.assertEqual(result, "SELECT color FROM colors".split(),
@@ -3538,7 +3540,7 @@ class TestParsing(PyparsingExpressionTestCase):
             msg="default_literal(CaselessKeyword) failed!",
         )
 
-        engine.CURRENT.set_literal(CaselessLiteral)
+        engines.CURRENT.set_literal(CaselessLiteral)
         # result = ("SELECT" + wd + "FROM" + wd).parseString("select color from colors")
         # self.assertEqual(result, "SELECT color FROM colors".split(),
         #                  "default_literal(CaselessLiteral) failed!")
@@ -3549,7 +3551,7 @@ class TestParsing(PyparsingExpressionTestCase):
         )
 
         integer = Word(nums)
-        engine.CURRENT.set_literal(Literal)
+        engines.CURRENT.set_literal(Literal)
         date_str = integer("year") + "/" + integer("month") + "/" + integer("day")
         # result = date_str.parseString("1999/12/31")
         # self.assertEqual(result, ['1999', '/', '12', '/', '31'], "default_literal(example 1) failed!")
@@ -3560,7 +3562,7 @@ class TestParsing(PyparsingExpressionTestCase):
         )
 
         # change to Suppress
-        engine.CURRENT.set_literal(Suppress)
+        engines.CURRENT.set_literal(Suppress)
         date_str = integer("year") + "/" + integer("month") + "/" + integer("day")
 
         # result = date_str.parseString("1999/12/31")  # -> ['1999', '12', '31']
@@ -3609,7 +3611,7 @@ class TestParsing(PyparsingExpressionTestCase):
                 False, "failed to match keyword using updated keyword chars"
             )
 
-        engine.CURRENT.set_keyword_chars(alphas)
+        engines.CURRENT.set_keyword_chars(alphas)
         try:
             Keyword("start").parseString("start1000")
         except ParseException:
@@ -3617,7 +3619,7 @@ class TestParsing(PyparsingExpressionTestCase):
                 False, "failed to match keyword using updated keyword chars"
             )
 
-        engine.CURRENT.set_keyword_chars(alphanums)
+        engines.CURRENT.set_keyword_chars(alphanums)
         with self.assertRaisesParseException(msg="failed to fail matching keyword using updated keyword chars"):
             CaselessKeyword("START").parseString("start1000")
 
@@ -3628,7 +3630,7 @@ class TestParsing(PyparsingExpressionTestCase):
                 False, "failed to match keyword using updated keyword chars"
             )
 
-        engine.CURRENT.set_keyword_chars(alphas)
+        engines.CURRENT.set_keyword_chars(alphas)
         try:
             CaselessKeyword("START").parseString("start1000")
         except ParseException:

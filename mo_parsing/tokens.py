@@ -4,9 +4,9 @@ from mo_future import is_text
 from mo_imports import export
 
 from mo_parsing.core import ParserElement
-from mo_parsing.engine import Engine
+from mo_parsing.engines import Engine
 from mo_parsing.exceptions import ParseException
-from mo_parsing.results import ParseResults, engine
+from mo_parsing.results import ParseResults, engines
 from mo_parsing.utils import *
 
 
@@ -180,7 +180,7 @@ class Keyword(Token):
     def __init__(self, match, ident_chars=None, caseless=None):
         Token.__init__(self)
         if ident_chars is None:
-            ident_chars = engine.CURRENT.keyword_chars
+            ident_chars = engines.CURRENT.keyword_chars
         else:
             ident_chars = "".join(sorted(set(ident_chars)))
 
@@ -583,8 +583,7 @@ class LineStart(Token):
 
 class LineEnd(LookBehind):
     """
-    Matches if current position is at the end of a line within the
-    parse string
+    Matches if current position is at the end of a line
     """
 
     zero_length = True
@@ -643,12 +642,16 @@ class StringEnd(Token):
     def __init__(self):
         Token.__init__(self)
         self.parser_name = self.__class__.__name__
+        self.set_config(regex=regex_compile("(?:\\r?\\n)*$"))
 
     def parseImpl(self, string, start, doActions=True):
         end = len(string)
         if start >= end:
             return ParseResults(self, end, end, [])
 
+        found = self.parser_config.regex.match(string, start)
+        if found:
+            return ParseResults(self, start, found.end(), [])
         raise ParseException(self, start, string)
 
     def min_length(self):
@@ -745,8 +748,8 @@ export("mo_parsing.core", StringEnd)
 export("mo_parsing.core", Literal)
 export("mo_parsing.core", Token)
 
-export("mo_parsing.engine", Literal)
-export("mo_parsing.engine", Token)
+export("mo_parsing.engines", Literal)
+export("mo_parsing.engines", Token)
 
 export("mo_parsing.enhancement", Token)
 export("mo_parsing.enhancement", NoMatch)

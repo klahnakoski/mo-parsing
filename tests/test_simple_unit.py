@@ -337,7 +337,7 @@ class TestRepetition(PyparsingExpressionTestCase):
         )
 
     def test_many_with_stopper(self):
-        expr = Many("x", stopOn="y", engine=engine.CURRENT).streamline()
+        expr = Many("x", stopOn="y", engine=engines.CURRENT).streamline()
         result = expr.parseString("xxxxy")
         expecting = "xxxx"
         self.assertEqual(result, expecting)
@@ -629,7 +629,7 @@ class TestCommonHelperExpressions(PyparsingExpressionTestCase):
         )
 
     def test_skipping_comments_with_ignore(self):
-        engine.CURRENT.add_ignore(cppStyleComment)
+        engines.CURRENT.add_ignore(cppStyleComment)
         self.runTest(
             desc="skipping comments with ignore",
             expr=identifier("lhs") + "=" + fnumber("rhs"),

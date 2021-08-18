@@ -337,7 +337,7 @@ class ParseResults(object):
     def __radd__(self, other):
         if not other:  # happens when using sum() on parsers
             return self
-        other = engine.CURRENT.normalize(other)
+        other = engines.CURRENT.normalize(other)
         return other + self
 
     def __repr__(self):
@@ -513,4 +513,4 @@ class Annotation(ParseResults):
 
 
 MutableMapping.register(ParseResults)
-from mo_parsing import engine
+from mo_parsing import engines

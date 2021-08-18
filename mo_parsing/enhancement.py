@@ -4,8 +4,7 @@ from collections import OrderedDict
 from mo_dots import Null, is_null
 from mo_future import text, is_text
 from mo_imports import export, expect
-
-from mo_parsing import engine as parse_engine
+from mo_parsing import engines
 from mo_parsing.core import ParserElement
 from mo_parsing.exceptions import (
     ParseException,
@@ -47,7 +46,7 @@ class ParseEnhancement(ParserElement):
 
     def __init__(self, expr):
         ParserElement.__init__(self)
-        self.expr = expr = engine.CURRENT.normalize(expr)
+        self.expr = expr = engines.CURRENT.normalize(expr)
         if is_forward(expr):
             expr.track(self)
 
@@ -200,7 +199,7 @@ class Many(ParseEnhancement):
     Config = append_config(ParseEnhancement, "engine", "min_match", "max_match", "end")
 
     def __init__(
-        self, expr, engine, stopOn=None, min_match=0, max_match=MAX_INT, exact=None
+        self, expr, engine=None, stopOn=None, min_match=0, max_match=MAX_INT, exact=None
     ):
         """
         MATCH expr SOME NUMBER OF TIMES (OR UNTIL stopOn IS REACHED
@@ -215,7 +214,7 @@ class Many(ParseEnhancement):
             max_match = exact
 
         self.set_config(
-            engine=engine or parse_engine.CURRENT,
+            engine=engine or engines.CURRENT,
             min_match=min_match,
             max_match=max_match,
         )
@@ -471,9 +470,9 @@ class SkipTo(ParseEnhancement):
 
         self.set_config(
             include=include,
-            fail=parse_engine.CURRENT.normalize(failOn),
+            fail=engines.CURRENT.normalize(failOn),
             ignore=ignore,
-            engine=engine_ or engine.CURRENT,
+            engine=engine_ or engines.CURRENT,
         )
         self.parser_name = str(self)
 
@@ -571,7 +570,7 @@ class Forward(ParserElement):
         self._str = None  # avoid recursion
         self._reg = None  # avoid recursion
         if expr:
-            self << parse_engine.CURRENT.normalize(expr)
+            self << engines.CURRENT.normalize(expr)
 
     def copy(self):
         output = ParserElement.copy(self)
@@ -596,7 +595,7 @@ class Forward(ParserElement):
 
         while is_forward(other):
             other = other.expr
-        self.expr = parse_engine.CURRENT.normalize(other).streamline()
+        self.expr = engines.CURRENT.normalize(other).streamline()
         self.checkRecursion()
         return self
 
@@ -733,7 +732,7 @@ class Group(TokenConverter):
 
     def __init__(self, expr):
         ParserElement.__init__(self)
-        self.expr = parse_engine.CURRENT.normalize(expr)
+        self.expr = engines.CURRENT.normalize(expr)
 
     def is_annotated(self):
         return True
@@ -898,8 +897,6 @@ export("mo_parsing.results", Group)
 export("mo_parsing.results", Dict)
 export("mo_parsing.results", Suppress)
 
-export("mo_parsing.engine", Empty)
+export("mo_parsing.engines", Empty)
 
 export("mo_parsing.utils", Many)
-
-from mo_parsing import engine

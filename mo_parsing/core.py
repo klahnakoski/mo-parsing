@@ -298,7 +298,7 @@ class ParserElement(object):
             eng = e.parser_config.engine
             start = eng.skip(string, start)
         else:
-            eng = engine.CURRENT
+            eng = engines.CURRENT
 
         if expr.token_name:
             # TOP LEVEL NAMES ARE NOT ALLOWED
@@ -323,9 +323,9 @@ class ParserElement(object):
 
     def _scanString(self, string, maxMatches=MAX_INT, overlap=False):
         instrlen = len(string)
-        end = 0
+        start = end = 0
         matches = 0
-        eng = engine.CURRENT
+        eng = engines.CURRENT
         while end <= instrlen and matches < maxMatches:
             try:
                 start = eng.skip(string, end)
@@ -473,7 +473,7 @@ class ParserElement(object):
         if other is Ellipsis:
             return _PendingSkip(self)
 
-        return And([self, engine.CURRENT.normalize(other)], engine.CURRENT).streamline()
+        return And([self, engines.CURRENT.normalize(other)], engines.CURRENT).streamline()
 
     def __radd__(self, other):
         """
@@ -482,19 +482,19 @@ class ParserElement(object):
         if other is Ellipsis:
             return SkipTo(self)("_skipped") + self
 
-        return engine.CURRENT.normalize(other) + self
+        return engines.CURRENT.normalize(other) + self
 
     def __sub__(self, other):
         """
         Implementation of - operator, returns `And` with error stop
         """
-        return self + And.SyntaxErrorGuard() + engine.CURRENT.normalize(other)
+        return self + And.SyntaxErrorGuard() + engines.CURRENT.normalize(other)
 
     def __rsub__(self, other):
         """
         Implementation of - operator when left operand is not a `ParserElement`
         """
-        return engine.CURRENT.normalize(other) - self
+        return engines.CURRENT.normalize(other) - self
 
     def __mul__(self, other):
         """
@@ -546,7 +546,7 @@ class ParserElement(object):
             )
 
         ret = Many(
-            self, engine.CURRENT, min_match=minElements, max_match=maxElements
+            self, engines.CURRENT, min_match=minElements, max_match=maxElements
         ).streamline()
         return ret
 
@@ -560,37 +560,37 @@ class ParserElement(object):
         if other is Ellipsis:
             return _PendingSkip(Optional(self))
 
-        return MatchFirst([self, engine.CURRENT.normalize(other)]).streamline()
+        return MatchFirst([self, engines.CURRENT.normalize(other)]).streamline()
 
     def __ror__(self, other):
         """
         Implementation of | operator when left operand is not a `ParserElement`
         """
-        return engine.CURRENT.normalize(other) | self
+        return engines.CURRENT.normalize(other) | self
 
     def __xor__(self, other):
         """
         Implementation of ^ operator - returns `Or`
         """
-        return Or([self, engine.CURRENT.normalize(other)])
+        return Or([self, engines.CURRENT.normalize(other)])
 
     def __rxor__(self, other):
         """
         Implementation of ^ operator when left operand is not a `ParserElement`
         """
-        return engine.CURRENT.normalize(other) ^ self
+        return engines.CURRENT.normalize(other) ^ self
 
     def __and__(self, other):
         """
         Implementation of & operator - returns `Each`
         """
-        return MatchAll([self, engine.CURRENT.normalize(other)], engine.CURRENT)
+        return MatchAll([self, engines.CURRENT.normalize(other)], engines.CURRENT)
 
     def __rand__(self, other):
         """
         Implementation of & operator when left operand is not a `ParserElement`
         """
-        return engine.CURRENT.normalize(other) & self
+        return engines.CURRENT.normalize(other) & self
 
     def __invert__(self):
         """
@@ -720,4 +720,4 @@ export("mo_parsing.results", ParserElement)
 export("mo_parsing.results", NO_PARSER)
 export("mo_parsing.results", NO_RESULTS)
 
-from mo_parsing import engine
+from mo_parsing import engines

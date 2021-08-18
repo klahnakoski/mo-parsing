@@ -8,7 +8,7 @@
 #
 
 from mo_parsing import *
-from mo_parsing.engine import Engine
+from mo_parsing.engines import Engine
 from mo_parsing.helpers import restOfLine, cStyleComment, delimitedList, QuotedString
 from mo_parsing.infix import oneOf
 from mo_parsing.utils import Log, alphas, alphanums, nums

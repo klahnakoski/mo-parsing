@@ -21,7 +21,7 @@ from mo_parsing import (
     Or,
     Group,
 )
-from mo_parsing.engine import Engine
+from mo_parsing.engines import Engine
 from mo_parsing.helpers import delimitedList
 from mo_parsing.utils import alphas, alphanums, nums
 

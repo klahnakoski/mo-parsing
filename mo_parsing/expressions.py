@@ -5,10 +5,10 @@ from operator import itemgetter
 
 from mo_future import Iterable, text, generator_types
 from mo_imports import export
-from mo_parsing import engine
+from mo_parsing import engines
 
 from mo_parsing.core import ParserElement, _PendingSkip
-from mo_parsing.engine import Engine
+from mo_parsing.engines import Engine
 from mo_parsing.enhancement import Optional, SkipTo, Many
 from mo_parsing.exceptions import (
     ParseException,
@@ -46,7 +46,7 @@ class ParseExpression(ParserElement):
         else:
             exprs = [exprs]
 
-        self.exprs = [engine.CURRENT.normalize(e) for e in exprs]
+        self.exprs = [engines.CURRENT.normalize(e) for e in exprs]
         for e in self.exprs:
             if is_forward(e):
                 e.track(self)
@@ -146,7 +146,7 @@ class And(ParseExpression):
                 super(And.SyntaxErrorGuard, self).__init__(*args, **kwargs)
                 self.parser_name = "-"
 
-    def __init__(self, exprs, engine):
+    def __init__(self, exprs, engine=None):
         if exprs and Ellipsis in exprs:
             tmp = []
             for i, expr in enumerate(exprs):
@@ -162,7 +162,9 @@ class And(ParseExpression):
                     tmp.append(expr)
             exprs[:] = tmp
         super(And, self).__init__(exprs)
-        self.set_config(engine=engine)
+        self.set_config(
+            engine=engine or engines.CURRENT
+        )
 
     def streamline(self):
         if self.streamlined:
@@ -269,7 +271,7 @@ class And(ParseExpression):
         if other is Ellipsis:
             return _PendingSkip(self)
 
-        return And([self, engine.CURRENT.normalize(other)], engine.CURRENT).streamline()
+        return And([self, engines.CURRENT.normalize(other)], engines.CURRENT).streamline()
 
     def checkRecursion(self, seen=empty_tuple):
         subRecCheckList = seen + (self,)
@@ -486,10 +488,10 @@ class MatchFirst(ParseExpression):
         if other is Ellipsis:
             return _PendingSkip(Optional(self))
 
-        return MatchFirst([self, engine.CURRENT.normalize(other)]).streamline()
+        return MatchFirst([self, engines.CURRENT.normalize(other)]).streamline()
 
     def __ror__(self, other):
-        return engine.CURRENT.normalize(other) | self
+        return engines.CURRENT.normalize(other) | self
 
     def __regex__(self):
         return (

@@ -10,7 +10,7 @@ import types
 import importlib
 from urllib.parse import urlparse
 from mo_parsing import *
-from mo_parsing.engine import Engine
+from mo_parsing.engines import Engine
 
 DEBUG = False
 

@@ -5,7 +5,7 @@
 #
 # Copyright Paul McGuire, 2019
 #
-from mo_parsing import engine
+from mo_parsing import engines
 from mo_parsing.helpers import QuotedString, integer, identifier, cppStyleComment
 from mo_parsing.infix import oneOf, delimitedList
 
@@ -41,7 +41,7 @@ BNF = """
 from mo_parsing import *
 
 
-engine.CURRENT.add_ignore(cppStyleComment)
+engines.CURRENT.add_ignore(cppStyleComment)
 
 LBRACE, RBRACE, LPAR, RPAR, SEMI = map(Suppress, "{}();")
 EQ = Literal("=")

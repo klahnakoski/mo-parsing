@@ -33,7 +33,7 @@ Faster Parsing
 
 ### The `Engine`
 
-The `mo_parsing.engine.CURRENT` is used during parser creation: It is effectively the lexxer with additional features to simplify the language definition.  You declare a standard `Engine` like so:
+The `mo_parsing.engines.CURRENT` is used during parser creation: It is effectively the lexxer with additional features to simplify the language definition.  You declare a standard `Engine` like so:
 
     with Engine() as engine:
         # PUT YOUR LANGUAGE DEFINITION HERE
@@ -89,4 +89,6 @@ The debugger will print out details of what's happening
 
 This should help to to isolate the exact position your grammar is failing. 
 
+## Contributing
 
+If you plan to extend or enhance this code, please [see the README in the tests directory](tests/README.md)

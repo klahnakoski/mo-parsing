@@ -5,7 +5,7 @@ from datetime import datetime
 from mo_future import text
 
 from mo_parsing.core import add_reset_action
-from mo_parsing.engine import Engine, STANDARD_ENGINE
+from mo_parsing.engines import Engine, STANDARD_ENGINE
 from mo_parsing.enhancement import (
     Combine,
     Dict,
@@ -188,7 +188,7 @@ def countedArray(expr, intExpr=None):
 
     def countFieldParseAction(t, l, s):
         n = t[0]
-        arrayExpr << Group(Many(expr, exact=n, engine=engine.CURRENT))
+        arrayExpr << Group(Many(expr, exact=n, engine=engines.CURRENT))
         return []
 
     intExpr = (
@@ -430,7 +430,7 @@ def nestedExpr(opener="(", closer=")", content=None, ignoreExpr=quotedString):
                 " is given"
             )
 
-        ignore_chars = engine.CURRENT.white_chars
+        ignore_chars = engines.CURRENT.white_chars
         with Engine(""):
 
             def scrub(t):
@@ -726,8 +726,8 @@ def indentedBlock(blockStatementExpr, indent=True):
         else:
             raise ParseException(t.type, s, l, "not a subentry")
 
-    ignore_list = engine.CURRENT.ignore_list
-    with Engine(engine.CURRENT.white_chars) as e:
+    ignore_list = engines.CURRENT.ignore_list
+    with Engine(engines.CURRENT.white_chars) as e:
         e.add_ignore(*ignore_list)
 
         NL = OneOrMore(LineEnd().suppress())
@@ -991,7 +991,7 @@ comma_separated_list = delimitedList(Optional(
 
 
 # export
-from mo_parsing import core, engine
+from mo_parsing import core, engines
 
 core._flatten = _flatten
 core.quotedString = quotedString

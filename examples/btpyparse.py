@@ -21,6 +21,7 @@ from mo_parsing import (
     CaselessLiteral,
     Dict,
 )
+from mo_parsing.engines import PLAIN_ENGINE
 
 
 class Macro:
@@ -48,33 +49,32 @@ def bracketed(expr):
 
 
 # Define parser components for strings (the hard bit)
-chars_no_curly = Regex(r"[^{}]+")
-chars_no_curly.leaveWhitespace()
-chars_no_quotecurly = Regex(r'[^"{}]+')
-chars_no_quotecurly.leaveWhitespace()
-# Curly string is some stuff without curlies, or nested curly sequences
-curly_string = Forward()
-curly_item = Group(curly_string) | chars_no_curly
-curly_string << LCURLY + ZeroOrMore(curly_item) + RCURLY
-# quoted string is either just stuff within quotes, or stuff within quotes, within
-# which there is nested curliness
-quoted_item = Group(curly_string) | chars_no_quotecurly
-quoted_string = QUOTE + ZeroOrMore(quoted_item) + QUOTE
+with PLAIN_ENGINE:
+    chars_no_curly = Regex(r"[^{}]+")
+    chars_no_quotecurly = Regex(r'[^"{}]+')
+    # Curly string is some stuff without curlies, or nested curly sequences
+    curly_string = Forward()
+    curly_item = Group(curly_string) | chars_no_curly
+    curly_string << LCURLY + ZeroOrMore(curly_item) + RCURLY
+    # quoted string is either just stuff within quotes, or stuff within quotes, within
+    # which there is nested curliness
+    quoted_item = Group(curly_string) | chars_no_quotecurly
+    quoted_string = QUOTE + ZeroOrMore(quoted_item) + QUOTE
 
-# Numbers can just be numbers. Only integers though.
-number = Regex("[0-9]+")
+    # Numbers can just be numbers. Only integers though.
+    number = Regex("[0-9]+")
 
-# Basis characters (by exclusion) for variable / field names.  The following
-# list of characters is from the btparse documentation
-any_name = Regex("[^\\s\"#%'(),={}]+")
+    # Basis characters (by exclusion) for variable / field names.  The following
+    # list of characters is from the btparse documentation
+    any_name = Regex("[^\\s\"#%'(),={}]+")
 
-# btparse says, and the test bibs show by experiment, that macro and field names
-# cannot start with a digit.  In fact entry type names cannot start with a digit
-# either (see tests/bibs). Cite keys can start with a digit
-not_digname = Regex("[^\\d\\s\"#%'(),={}][^\\s\"#%'(),={}]*")
+    # btparse says, and the test bibs show by experiment, that macro and field names
+    # cannot start with a digit.  In fact entry type names cannot start with a digit
+    # either (see tests/bibs). Cite keys can start with a digit
+    not_digname = Regex("[^\\d\\s\"#%'(),={}][^\\s\"#%'(),={}]*")
 
-# Comment comments out to end of line
-comment = AT + CaselessLiteral("comment") + Regex(r"[\s{(].*").leaveWhitespace()
+    # Comment comments out to end of line
+    comment = AT + CaselessLiteral("comment") + Regex(r"[\s{(].*")
 
 # The name types with their digiteyness
 not_dig_lower = not_digname.copy().addParseAction(lambda t: t[0].lower())
