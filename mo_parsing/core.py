@@ -88,7 +88,7 @@ class Parser(object):
             engs = element.engine
             while isinstance(engs, list):
                 engine = engs[0]
-                if any(e is not engine for e in engs):
+                if any(e is not engine for e in engs if e):
                     Log.error("must dis-ambiguate the whitespace before parsing")
                 engs = engine
 
