@@ -87,8 +87,11 @@ class Parser(object):
         try:
             engs = element.engine
             while isinstance(engs, list):
+                engs = [e for e in engs if e is not None]
+                if not engs:
+                    break
                 engine = engs[0]
-                if any(e is not engine for e in engs if e):
+                if any(e is not engine for e in engs[1:]):
                     Log.error("must dis-ambiguate the whitespace before parsing")
                 engs = engine
 
@@ -99,6 +102,7 @@ class Parser(object):
         with self.engine:
             self.element = Group(element)
 
+        self.named = bool(element.token_name)
         self.streamlined = True
 
     @entrypoint
@@ -135,10 +139,10 @@ class Parser(object):
             end = self.engine.skip(string, tokens.end)
             StringEnd()._parse(string, end)
 
-        output = tokens.tokens[0]
-        if output.name:
+        if self.named:
             return tokens
-        return output
+        else:
+            return tokens.tokens[0]
 
     @entrypoint
     def scanString(self, string, maxMatches=MAX_INT, overlap=False):

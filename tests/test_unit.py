@@ -2625,7 +2625,7 @@ class TestParsing(PyparsingExpressionTestCase):
 
         id_ref = locatedExpr("ID" + Word(alphanums, exact=12)("id"))
 
-        res = id_ref.searchString(samplestr1)[0]
+        res = id_ref.searchString(samplestr1)[0][0]
 
         self.assertEqual(
             samplestr1[res["locn_start"] : res["locn_end"]].strip(),  # CURRENTLY CAN NOT GET END, ONLY GET BEGINNING OF NEXT TOKEN

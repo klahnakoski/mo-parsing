@@ -568,7 +568,7 @@ class Forward(ParserElement):
     parser created using ``Forward``.
     """
 
-    __slots__ = ["expr", "used_by", "_str", "_reg"]
+    __slots__ = ["expr", "used_by", "_str", "_reg", "_eng"]
 
     def __init__(self, expr=Null):
         ParserElement.__init__(self)
@@ -577,6 +577,7 @@ class Forward(ParserElement):
 
         self._str = None  # avoid recursion
         self._reg = None  # avoid recursion
+        self._eng = False
         if expr:
             self << engines.CURRENT.normalize(expr)
 
@@ -585,6 +586,7 @@ class Forward(ParserElement):
         output.expr = self
         output._str = None
         output._reg = None
+        output._eng = False
 
         output.used_by = []
         return output
@@ -638,7 +640,18 @@ class Forward(ParserElement):
 
     @property
     def engine(self):
-        return self.expr.engine
+        try:
+            if self._eng:
+                return None
+        except Exception as cause:
+            Log.error("", cause=cause)
+
+        # Avoid infinite recursion by setting a temporary
+        self._eng = True
+        try:
+            return self.expr.engine
+        finally:
+            self._eng = False
 
     def parseImpl(self, string, loc, doActions=True):
         try:
