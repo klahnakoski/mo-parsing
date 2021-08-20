@@ -3219,7 +3219,7 @@ class TestParsing(PyparsingExpressionTestCase):
                 ),
             )
             self.assertEqual(
-                type(result),
+                type(result[0]),
                 type(expected),
                 "numeric parse failed (wrong type) ({} should be {})".format(
                     type(result), type(expected)
