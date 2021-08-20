@@ -267,6 +267,7 @@ regex << (
     .addParseAction(lambda t: MatchFirst(listwrap(t.value())).streamline())
     .streamline()
 )
+regex = regex.finalize()
 
 parameters = (
     "\\" + Char(alphanums)("name") | "\\g<" + Word(alphas, alphanums)("name") + ">"

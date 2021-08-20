@@ -4,8 +4,9 @@ from datetime import datetime
 
 from mo_future import text
 
+from mo_parsing import engines
 from mo_parsing.core import add_reset_action
-from mo_parsing.engines import Engine, STANDARD_ENGINE
+from mo_parsing.engines import Engine, STANDARD_ENGINE, PLAIN_ENGINE
 from mo_parsing.enhancement import (
     Combine,
     Dict,
@@ -772,7 +773,7 @@ cStyleComment = Combine(
 
 htmlComment = Regex(r"<!--[\s\S]*?-->").set_parser_name("HTML comment")
 
-with Engine("") as engine:
+with PLAIN_ENGINE:
     restOfLine = Regex(r"[^\n]*").set_parser_name("rest of line")
 
     dblSlashComment = Regex(r"//(?:\\\n|[^\n])*").set_parser_name("// comment")
@@ -987,11 +988,3 @@ _commasepitem = (
 comma_separated_list = delimitedList(Optional(
     quotedString | _commasepitem, default=""
 )).set_parser_name("comma separated list")
-"""Predefined expression of 1 or more printable words or quoted strings, separated by commas."""
-
-
-# export
-from mo_parsing import core, engines
-
-core._flatten = _flatten
-core.quotedString = quotedString

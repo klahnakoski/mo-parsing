@@ -27,6 +27,7 @@ from mo_parsing.utils import Log, MAX_INT, wrap_parse_action, empty_tuple, is_fo
     Token,
     Group,
     regex_parameters,
+
 ) = expect(
     "SkipTo",
     "Many",
@@ -44,7 +45,7 @@ from mo_parsing.utils import Log, MAX_INT, wrap_parse_action, empty_tuple, is_fo
     "Literal",
     "Token",
     "Group",
-    "regex_parameters",
+    "regex_parameters"
 )
 
 DEBUG = False
@@ -91,12 +92,9 @@ class Parser(object):
                     Log.error("must dis-ambiguate the whitespace before parsing")
                 engs = engine
 
-            self.engine = engs or engines.PLAIN_ENGINE
+            self.engine = engs or engines.CURRENT or engines.STANDARD_ENGINE
         except Exception as cause:
             Log.error("problem", cause=cause)
-
-        if isinstance(self.engine, list):
-            Log.error("not expected")
 
         with self.engine:
             self.element = Group(element)
@@ -146,7 +144,7 @@ class Parser(object):
         :param overlap: IF MATCHES CAN OVERLAP
         :return: SEQUENCE OF ParseResults, start, end
         """
-        return self._scanString(string, maxMatches=maxMatches, overlap=overlap)
+        return ((t[0], s, e) for t, s, e in self._scanString(string, maxMatches=maxMatches, overlap=overlap))
 
     def _scanString(self, string, maxMatches=MAX_INT, overlap=False):
         instrlen = len(string)
@@ -160,7 +158,7 @@ class Parser(object):
                 end = start + 1
             else:
                 matches += 1
-                yield tokens.tokens[0], tokens.start, tokens.end
+                yield tokens, tokens.start, tokens.end
                 if overlap or tokens.end <= end:
                     end += 1
                 else:
@@ -197,9 +195,10 @@ class Parser(object):
         # keep string locs straight between transformString and scanString
         for t, s, e in self._scanString(string):
             out.append(string[end:s])
+            t = t.tokens[0]
             if t:
                 if isinstance(t, ParseResults):
-                    out.append("".join(t[0]))
+                    out.append("".join(t))
                 elif isinstance(t, list):
                     out.append("".join(t))
                 else:
@@ -207,7 +206,7 @@ class Parser(object):
             end = e
         out.append(string[end:])
         out = [o for o in out if o]
-        return "".join(map(text, _flatten(out)))
+        return "".join(map(text, out))
 
     @entrypoint
     def searchString(self, string, maxMatches=MAX_INT):
@@ -253,7 +252,7 @@ class Parser(object):
         for t, s, e in self._scanString(string, maxMatches=maxsplit):
             yield string[last:s]
             if includeSeparators:
-                yield t[0]
+                yield t.tokens[0]
             last = e
         yield string[last:]
 

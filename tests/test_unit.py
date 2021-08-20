@@ -25,9 +25,8 @@ from examples import fourFn, configParse, idlParse, ebnf
 from examples.jsonParser import jsonObject
 from examples.simpleSQL import simpleSQL
 from mo_parsing import *
+from mo_parsing import engines
 from mo_parsing import helpers
-from mo_parsing.debug import Debugger
-from mo_parsing.engines import PLAIN_ENGINE
 from mo_parsing.helpers import *
 from mo_parsing.infix import oneOf
 from mo_parsing.utils import *
