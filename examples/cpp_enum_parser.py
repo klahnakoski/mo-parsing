@@ -8,6 +8,7 @@
 # generates corresponding Python constant definitions.
 #
 #
+from mo_testing.fuzzytestcase import assertAlmostEqual
 
 from mo_parsing.helpers import *
 
@@ -39,15 +40,36 @@ LBRACE, RBRACE, EQ, COMMA = map(Suppress, "{}=,")
 _enum = Suppress("enum")
 identifier = Word(alphas, alphanums + "_")
 integer = Word(nums)
-enumValue = Group(identifier("name") + Optional(EQ + integer("value")))
+enumValue = Group(
+    identifier("name")
+    + Optional(EQ + integer("value").addParseAction(lambda t: int(t[0])))
+)
 enumList = Group(enumValue + ZeroOrMore(COMMA + enumValue))
 enum = _enum + identifier("enum") + LBRACE + enumList("names") + RBRACE
 
-# find instances of enums ignoring other syntax
-for item, start, stop in enum.scanString(sample):
-    id = 0
-    for entry in item.names:
-        if entry.value != "":
-            id = int(entry.value)
-
-        id += 1
+assertAlmostEqual(
+    list(t for t, _, _ in enum.scanString(sample)),
+    [
+        {
+            "enum": "hello",
+            "names": [
+                {"name": "Zero"},
+                {"name": "One"},
+                {"name": "Two"},
+                {"name": "Three"},
+                {"name": "Five", "value": 5},
+                {"name": "Six"},
+                {"name": "Ten", "value": 10},
+            ],
+        },
+        {
+            "enum": "blah",
+            "names": [
+                {"name": "alpha"},
+                {"name": "beta"},
+                {"name": "gamma", "value": 10},
+                {"name": "zeta", "value": 50},
+            ],
+        },
+    ],
+)

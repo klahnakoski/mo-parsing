@@ -5,7 +5,7 @@ from collections import Iterable
 
 from mo_dots import listwrap
 from mo_future import text
-from mo_imports import delay_import
+from mo_imports import delay_import, expect
 
 from mo_parsing import engines
 from mo_parsing.enhancement import (

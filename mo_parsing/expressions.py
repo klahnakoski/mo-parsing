@@ -5,8 +5,8 @@ from operator import itemgetter
 
 from mo_future import Iterable, text, generator_types
 from mo_imports import export
-from mo_parsing import engines
 
+from mo_parsing import engines
 from mo_parsing.core import ParserElement, _PendingSkip
 from mo_parsing.engines import Engine
 from mo_parsing.enhancement import Optional, SkipTo, Many

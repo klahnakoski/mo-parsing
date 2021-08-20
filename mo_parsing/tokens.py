@@ -2,12 +2,16 @@
 
 from mo_future import is_text
 from mo_imports import export
+from pyparsing import _PositionToken
 
+from mo_parsing import engines
 from mo_parsing.core import ParserElement
 from mo_parsing.engines import Engine
 from mo_parsing.exceptions import ParseException
-from mo_parsing.results import ParseResults, engines
+from mo_parsing.results import ParseResults
 from mo_parsing.utils import *
+
+PLAIN_ENGINE = expect("PLAIN_ENGINE")
 
 
 class Token(ParserElement):
@@ -697,7 +701,7 @@ class WordStart(Token):
         return "+", self.parser_config.regex.pattern
 
 
-class WordEnd(LookBehind):
+class WordEnd(_PositionToken):
     """
     Matches if the current position is at the end of a Word, and is
     not followed by any character in a given set of ``wordChars``
@@ -761,3 +765,4 @@ export("mo_parsing.enhancement", StringEnd)
 export("mo_parsing.enhancement", Empty)
 export("mo_parsing.enhancement", Char)
 export("mo_parsing.enhancement", LookBehind)
+export("mo_parsing.enhancement", _PositionToken)

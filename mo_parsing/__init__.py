@@ -2,6 +2,8 @@
 
 # ORIGINALLY COPIED FROM pyparsing UNDER THE MIT LICENCE
 
+from mo_parsing import engines
+from mo_parsing.core import ParserElement, _PendingSkip
 # module pyparsing.py
 #
 # Copyright (c) 2003-2019  Paul T. McGuire
@@ -26,8 +28,6 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 from mo_parsing.engines import Engine
-from mo_parsing import engines
-from mo_parsing.core import ParserElement, _PendingSkip
 from mo_parsing.enhancement import *
 from mo_parsing.exceptions import (
     ParseException,
@@ -40,10 +40,8 @@ from mo_parsing.expressions import And, MatchAll, MatchFirst, Or, ParseExpressio
 engines.PLAIN_ENGINE = Engine("").use()
 engines.STANDARD_ENGINE = Engine().use()
 
-
 from mo_parsing.infix import LEFT_ASSOC, RIGHT_ASSOC, infixNotation
 from mo_parsing.regex import Regex
-from mo_parsing.results import ParseResults, engines
 from mo_parsing.tokens import (
     CaselessKeyword,
     CaselessLiteral,

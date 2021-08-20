@@ -3,11 +3,12 @@ from collections import namedtuple
 from threading import RLock
 
 from mo_future import text
-from mo_imports import expect, export
-from mo_parsing.results import ParseResults, _flatten
+from mo_imports import export, expect
 
+from mo_parsing import engines
 from mo_parsing.exceptions import ParseException
-from mo_parsing.utils import Log, MAX_INT, wrap_parse_action, empty_tuple, is_forward
+from mo_parsing.results import ParseResults
+from mo_parsing.utils import Log, MAX_INT, wrap_parse_action, empty_tuple
 
 (
     SkipTo,
@@ -27,7 +28,6 @@ from mo_parsing.utils import Log, MAX_INT, wrap_parse_action, empty_tuple, is_fo
     Token,
     Group,
     regex_parameters,
-
 ) = expect(
     "SkipTo",
     "Many",
@@ -45,7 +45,7 @@ from mo_parsing.utils import Log, MAX_INT, wrap_parse_action, empty_tuple, is_fo
     "Literal",
     "Token",
     "Group",
-    "regex_parameters"
+    "regex_parameters",
 )
 
 DEBUG = False
@@ -742,5 +742,3 @@ NO_RESULTS = ParseResults(NO_PARSER, -1, 0, [])
 export("mo_parsing.results", ParserElement)
 export("mo_parsing.results", NO_PARSER)
 export("mo_parsing.results", NO_RESULTS)
-
-from mo_parsing import engines

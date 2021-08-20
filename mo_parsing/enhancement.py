@@ -4,6 +4,7 @@ from collections import OrderedDict
 from mo_dots import Null, is_null
 from mo_future import text, is_text
 from mo_imports import export, expect
+
 from mo_parsing import engines
 from mo_parsing.core import ParserElement
 from mo_parsing.exceptions import (
@@ -21,7 +22,19 @@ from mo_parsing.utils import (
 )
 from mo_parsing.utils import MAX_INT, is_forward
 
-(Token, NoMatch, Literal, Keyword, Word, CharsNotIn, StringEnd, Empty, Char, LookBehind) = expect(
+(
+    Token,
+    NoMatch,
+    Literal,
+    Keyword,
+    Word,
+    CharsNotIn,
+    StringEnd,
+    Empty,
+    Char,
+    LookBehind,
+    _PositionToken,
+) = expect(
     "Token",
     "NoMatch",
     "Literal",
@@ -31,7 +44,8 @@ from mo_parsing.utils import MAX_INT, is_forward
     "StringEnd",
     "Empty",
     "Char",
-    "LookBehind"
+    "LookBehind",
+    "_PositionToken",
 )
 
 _get = object.__getattribute__
