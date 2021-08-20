@@ -75,19 +75,188 @@ def entrypoint(func):
                 except Exception as e:
                     Log.error("reset action failed", cause=e)
 
-            self = args[0]
-            if (
-                not self.streamlined
-                and (not is_forward(self) or not self.expr.streamlined)
-                and not streamlined.get(id(self))
-            ):
-                Log.alert("Expecting expression to be streamlined before use")
-                _id = id(self)
-                self = self.streamline()
-                streamlined[_id] = self
-            return func(self, *args[1:], **kwargs)
+            return func(*args, **kwargs)
 
     return output
+
+
+class Parser(object):
+    def __init__(self, element):
+        self.element = element = element.streamline()
+        try:
+            engs = element.engine
+            while isinstance(engs, list):
+                engine = engs[0]
+                if any(e is not engine for e in engs):
+                    Log.error("must dis-ambiguate the whitespace before parsing")
+                engs = engine
+
+            self.engine = engs or engines.PLAIN_ENGINE
+        except Exception as cause:
+            Log.error("problem", cause=cause)
+
+        if isinstance(self.engine, list):
+            Log.error("not expected")
+
+        with self.engine:
+            self.element = Group(element)
+
+        self.streamlined = True
+
+    @entrypoint
+    def parseString(self, string, parseAll=False):
+        """
+        Parse a string with respect to the parser definition. This function is intended as the primary interface to the
+        client code.
+
+        :param string: The input string to be parsed.
+        :param parseAll: If set, the entire input string must match the grammar.
+        :raises ParseException: Raised if ``parseAll`` is set and the input string does not match the whole grammar.
+        :returns: the parsed data as a `ParseResults` object, which may be accessed as a `list`, a `dict`, or
+          an object with attributes if the given parser includes results names.
+
+        If the input string is required to match the entire grammar, ``parseAll`` flag must be set to True. This
+        is also equivalent to ending the grammar with ``StringEnd()``.
+
+        To report proper column numbers, ``parseString`` operates on a copy of the input string where all tabs are
+        converted to spaces (8 spaces per tab, as per the default in ``string.expandtabs``). If the input string
+        contains tabs and the grammar uses parse actions that use the ``loc`` argument to index into the string
+        being parsed, one can ensure a consistent view of the input string by doing one of the following:
+
+        - define your parse action using the full ``(s,loc,toks)`` signature, and reference the input string using the
+          parse action's ``s`` argument, or
+        - explicitly expand the tabs in your input string before calling ``parseString``.
+
+        """
+        return self._parseString(string, parseAll=parseAll)
+
+    def _parseString(self, string, parseAll=False):
+        start = self.engine.skip(string, 0)
+        tokens = self.element._parse(string, start)
+        if parseAll:
+            end = self.engine.skip(string, tokens.end)
+            StringEnd()._parse(string, end)
+        return tokens.tokens[0]
+
+    @entrypoint
+    def scanString(self, string, maxMatches=MAX_INT, overlap=False):
+        """
+        :param string: TO BE SCANNED
+        :param maxMatches: MAXIMUM NUMBER MATCHES TO RETURN
+        :param overlap: IF MATCHES CAN OVERLAP
+        :return: SEQUENCE OF ParseResults, start, end
+        """
+        return self._scanString(string, maxMatches=maxMatches, overlap=overlap)
+
+    def _scanString(self, string, maxMatches=MAX_INT, overlap=False):
+        instrlen = len(string)
+        start = end = 0
+        matches = 0
+        while end <= instrlen and matches < maxMatches:
+            try:
+                start = self.engine.skip(string, end)
+                tokens = self.element._parse(string, start)
+            except ParseException:
+                end = start + 1
+            else:
+                matches += 1
+                yield tokens.tokens[0], tokens.start, tokens.end
+                if overlap or tokens.end <= end:
+                    end += 1
+                else:
+                    end = tokens.end
+
+    @entrypoint
+    def transformString(self, string):
+        """
+        Modify matching text with results of a parse action.
+
+        To use ``transformString``, define a grammar and
+        attach a parse action to it that modifies the returned token list.
+        Invoking ``transformString()`` on a target string will then scan for matches,
+        and replace the matched text patterns according to the logic in the parse
+        action.  ``transformString()`` returns the resulting transformed string.
+
+        Example::
+
+            wd = Word(alphas)
+            wd.addParseAction(lambda toks: toks[0].title())
+
+            print(wd.transformString("now is the winter of our discontent made glorious summer by this sun of york."))
+
+        prints::
+
+            Now Is The Winter Of Our Discontent Made Glorious Summer By This Sun Of York.
+        """
+        return self._transformString(string)
+
+    def _transformString(self, string):
+        out = []
+        end = 0
+        # force preservation of <TAB>s, to minimize unwanted transformation of string, and to
+        # keep string locs straight between transformString and scanString
+        for t, s, e in self._scanString(string):
+            out.append(string[end:s])
+            if t:
+                if isinstance(t, ParseResults):
+                    out.append("".join(t[0]))
+                elif isinstance(t, list):
+                    out.append("".join(t))
+                else:
+                    out.append(t)
+            end = e
+        out.append(string[end:])
+        out = [o for o in out if o]
+        return "".join(map(text, _flatten(out)))
+
+    @entrypoint
+    def searchString(self, string, maxMatches=MAX_INT):
+        """
+        :param string: Content to scan
+        :param maxMatches: Limit number of matches
+        :return: All the matches, packaged as ParseResults
+        """
+        return self._searchString(string, maxMatches=maxMatches)
+
+    def _searchString(self, string, maxMatches=MAX_INT):
+        scanned = [t for t, s, e in self._scanString(string, maxMatches)]
+        if not scanned:
+            return ParseResults(ZeroOrMore(self.element), -1, 0, [])
+        else:
+            return ParseResults(
+                ZeroOrMore(self.element), scanned[0].start, scanned[-1].end, scanned
+            )
+
+    @entrypoint
+    def split(self, string, maxsplit=MAX_INT, includeSeparators=False):
+        """
+        Generator method to split a string using the given expression as a separator.
+        May be called with optional ``maxsplit`` argument, to limit the number of splits;
+        and the optional ``includeSeparators`` argument (default= ``False``), if the separating
+        matching text should be included in the split results.
+
+        Example::
+
+            punc = oneOf(list(".,;:/-!?"))
+            print(list(punc.split("This, this?, this sentence, is badly punctuated!")))
+
+        prints::
+
+            ['This', ' this', '', ' this sentence', ' is badly punctuated', '']
+        """
+        return self._split(
+            string, maxsplit=maxsplit, includeSeparators=includeSeparators
+        )
+
+    def _split(self, string, maxsplit=MAX_INT, includeSeparators=False):
+        last = 0
+        for t, s, e in self._scanString(string, maxMatches=maxsplit):
+            yield string[last:s]
+            if includeSeparators:
+                yield t[0]
+            last = e
+        yield string[last:]
+
 
 
 class ParserElement(object):
@@ -237,6 +406,10 @@ class ParserElement(object):
     def _min_length(self):
         return 0
 
+    @property
+    def engine(self):
+        return None
+
     def parseImpl(self, string, start, doActions=True):
         return ParseResults(self, start, start, [])
 
@@ -259,186 +432,29 @@ class ParserElement(object):
                 result = next_result
         return result
 
-    @entrypoint
+    def finalize(self):
+        """
+        Return a Parser for use in parsing (optimization only)
+        :return:
+        """
+        return Parser(self)
+
     def parseString(self, string, parseAll=False):
-        """
-        Parse a string with respect to the parser definition. This function is intended as the primary interface to the
-        client code.
+        return self.finalize().parseString(string, parseAll)
 
-        :param string: The input string to be parsed.
-        :param parseAll: If set, the entire input string must match the grammar.
-        :raises ParseException: Raised if ``parseAll`` is set and the input string does not match the whole grammar.
-        :returns: the parsed data as a `ParseResults` object, which may be accessed as a `list`, a `dict`, or
-          an object with attributes if the given parser includes results names.
-
-        If the input string is required to match the entire grammar, ``parseAll`` flag must be set to True. This
-        is also equivalent to ending the grammar with ``StringEnd()``.
-
-        To report proper column numbers, ``parseString`` operates on a copy of the input string where all tabs are
-        converted to spaces (8 spaces per tab, as per the default in ``string.expandtabs``). If the input string
-        contains tabs and the grammar uses parse actions that use the ``loc`` argument to index into the string
-        being parsed, one can ensure a consistent view of the input string by doing one of the following:
-
-        - define your parse action using the full ``(s,loc,toks)`` signature, and reference the input string using the
-          parse action's ``s`` argument, or
-        - explicitly expand the tabs in your input string before calling ``parseString``.
-
-        """
-        return self._parseString(string, parseAll=parseAll)
-
-    def _parseString(self, string, parseAll=False):
-        # TODO: PUT THIS streamline IN THE ENTRY POINT
-        start = 0
-
-        # FIND THE WHITESPACE DEFINITION
-        e = expr = self.streamline()
-        while is_forward(e):
-            e = e.expr
-        if isinstance(e, Many) or isinstance(e, And):
-            eng = e.parser_config.engine
-            start = eng.skip(string, start)
-        else:
-            eng = engines.CURRENT
-
-        if expr.token_name:
-            # TOP LEVEL NAMES ARE NOT ALLOWED
-            expr = Group(expr)
-        start = eng.skip(string, start)
-        tokens = expr._parse(string, start)
-        end = tokens.end
-        if parseAll:
-            end = eng.skip(string, end)
-            StringEnd()._parse(string, end)
-        return tokens
-
-    @entrypoint
     def scanString(self, string, maxMatches=MAX_INT, overlap=False):
-        """
-        :param string: TO BE SCANNED
-        :param maxMatches: MAXIMUM NUMBER MATCHES TO RETURN
-        :param overlap: IF MATCHES CAN OVERLAP
-        :return: SEQUENCE OF ParseResults, start, end
-        """
-        return self._scanString(string, maxMatches=maxMatches, overlap=overlap)
+        return self.finalize().scanString(string, maxMatches=maxMatches, overlap=overlap)
 
-    def _scanString(self, string, maxMatches=MAX_INT, overlap=False):
-        instrlen = len(string)
-        start = end = 0
-        matches = 0
-        eng = engines.CURRENT
-        while end <= instrlen and matches < maxMatches:
-            try:
-                start = eng.skip(string, end)
-                tokens = self._parse(string, start)
-            except ParseException:
-                end = start + 1
-            else:
-                matches += 1
-                yield tokens, tokens.start, tokens.end
-                if overlap or tokens.end <= end:
-                    end += 1
-                else:
-                    end = tokens.end
-
-    @entrypoint
     def transformString(self, string):
-        """
-        Modify matching text with results of a parse action.
+        return self.finalize().transformString(string)
 
-        To use ``transformString``, define a grammar and
-        attach a parse action to it that modifies the returned token list.
-        Invoking ``transformString()`` on a target string will then scan for matches,
-        and replace the matched text patterns according to the logic in the parse
-        action.  ``transformString()`` returns the resulting transformed string.
-
-        Example::
-
-            wd = Word(alphas)
-            wd.addParseAction(lambda toks: toks[0].title())
-
-            print(wd.transformString("now is the winter of our discontent made glorious summer by this sun of york."))
-
-        prints::
-
-            Now Is The Winter Of Our Discontent Made Glorious Summer By This Sun Of York.
-        """
-        return self._transformString(string)
-
-    def _transformString(self, string):
-        out = []
-        end = 0
-        # force preservation of <TAB>s, to minimize unwanted transformation of string, and to
-        # keep string locs straight between transformString and scanString
-        for t, s, e in self._scanString(string):
-            out.append(string[end:s])
-            if t:
-                if isinstance(t, ParseResults):
-                    out.append("".join(t))
-                elif isinstance(t, list):
-                    out.append("".join(t))
-                else:
-                    out.append(t)
-            end = e
-        out.append(string[end:])
-        out = [o for o in out if o]
-        return "".join(map(text, _flatten(out)))
-
-    @entrypoint
     def searchString(self, string, maxMatches=MAX_INT):
-        """
-        :param string: Content to scan
-        :param maxMatches: Limit number of matches
-        :return: All the matches, packaged as ParseResults
-        """
-        return self._searchString(string, maxMatches=maxMatches)
+        return self.finalize().searchString(string, maxMatches=maxMatches)
 
-    def _searchString(self, string, maxMatches=MAX_INT):
-        if isinstance(self, Group):
-            g = self
-            scanned = [t for t, s, e in self._scanString(string, maxMatches)]
-        else:
-            g = Group(self)
-            scanned = [
-                ParseResults(g, s, e, [t])
-                for t, s, e in self._scanString(string, maxMatches)
-            ]
-
-        if not scanned:
-            return ParseResults(ZeroOrMore(g), -1, 0, [])
-        else:
-            return ParseResults(
-                ZeroOrMore(g), scanned[0].start, scanned[-1].end, scanned
-            )
-
-    @entrypoint
     def split(self, string, maxsplit=MAX_INT, includeSeparators=False):
-        """
-        Generator method to split a string using the given expression as a separator.
-        May be called with optional ``maxsplit`` argument, to limit the number of splits;
-        and the optional ``includeSeparators`` argument (default= ``False``), if the separating
-        matching text should be included in the split results.
-
-        Example::
-
-            punc = oneOf(list(".,;:/-!?"))
-            print(list(punc.split("This, this?, this sentence, is badly punctuated!")))
-
-        prints::
-
-            ['This', ' this', '', ' this sentence', ' is badly punctuated', '']
-        """
-        return self._split(
+        return self.finalize().split(
             string, maxsplit=maxsplit, includeSeparators=includeSeparators
         )
-
-    def _split(self, string, maxsplit=MAX_INT, includeSeparators=False):
-        last = 0
-        for t, s, e in self._scanString(string, maxMatches=maxsplit):
-            yield string[last:s]
-            if includeSeparators:
-                yield t[0]
-            last = e
-        yield string[last:]
 
     def replace_with(self, replacement):
         """

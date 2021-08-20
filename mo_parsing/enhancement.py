@@ -64,6 +64,10 @@ class ParseEnhancement(ParserElement):
     def _min_length(self):
         return self.expr.min_length()
 
+    @property
+    def engine(self):
+        return self.expr.engine
+
     def parseImpl(self, string, start, doActions=True):
         result = self.expr._parse(string, start, doActions)
         return ParseResults(self, result.start, result.end, [result])
@@ -230,6 +234,10 @@ class Many(ParseEnhancement):
         if self.parser_config.min_match == 0:
             return 0
         return self.expr.min_length()
+
+    @property
+    def engine(self):
+        return self.parser_config.engine
 
     def parseImpl(self, string, start, doActions=True):
         acc = []
@@ -627,6 +635,10 @@ class Forward(ParserElement):
             finally:
                 self.min_length_cache = None
         return 0
+
+    @property
+    def engine(self):
+        return self.expr.engine
 
     def parseImpl(self, string, loc, doActions=True):
         try:

@@ -11,9 +11,9 @@ from mo_parsing.utils import Log, indent, quote, regex_range, alphanums, regex_i
 
 Literal, Token, Empty = expect("Literal", "Token", "Empty")
 
-CURRENT = None
-PLAIN_ENGINE = None
-STANDARD_ENGINE = None
+CURRENT = None  # THE CURRENT DEFINED WHITESPACE
+PLAIN_ENGINE = None  # NOTHING IS WHITESPACE ENGINE
+STANDARD_ENGINE = None  # SIMPLE WHITESPACE
 
 
 class Engine(ParserElement):
@@ -28,7 +28,7 @@ class Engine(ParserElement):
         self.regex = None
         self.expr = None
         self.set_whitespace(white)
-        self.previous = None  # WE MAINTAIN A STACK OF ENGINES
+        self.previous = []  # WE MAINTAIN A STACK OF ENGINES
 
     def copy(self):
         output = Engine(self.white_chars)
@@ -45,7 +45,7 @@ class Engine(ParserElement):
 
     def __enter__(self):
         global CURRENT
-        self.previous = CURRENT  # WE MAINTAIN A STACK OF ENGINES
+        self.previous.append(CURRENT)  # WE MAINTAIN A STACK OF ENGINES
         CURRENT = self
         return self
 
@@ -60,8 +60,7 @@ class Engine(ParserElement):
         if not self.previous:
             Log.error("expecting engine to be released just once")
 
-        CURRENT = self.previous
-        self.previous = None
+        CURRENT = self.previous.pop()
 
     def release(self):
         self.__exit__(None, None, None)

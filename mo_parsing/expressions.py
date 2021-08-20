@@ -240,6 +240,10 @@ class And(ParseExpression):
     def _min_length(self):
         return sum(e.min_length() for e in self.exprs)
 
+    @property
+    def engine(self):
+        return self.parser_config.engine
+
     def parseImpl(self, string, start, doActions=True):
         # pass False as last arg to _parse for first element, since we already
         # pre-parsed the string as part of our And pre-parsing
@@ -333,6 +337,10 @@ class Or(ParseExpression):
         output.streamlined = True
         output.checkRecursion()
         return output
+
+    @property
+    def engine(self):
+        return [e.engine for e in self.exprs]
 
     def parseImpl(self, string, start, doActions=True):
         causes = []
@@ -446,6 +454,10 @@ class MatchFirst(ParseExpression):
         else:
             Log.warning("expecting streamline")
             return 0
+
+    @property
+    def engine(self):
+        return [e.engine for e in self.exprs]
 
     def parseImpl(self, string, start, doActions=True):
         causes = []
@@ -683,6 +695,10 @@ class MatchAll(ParseExpression):
     def _min_length(self):
         # TODO: MAY BE TOO CONSERVATIVE, WE MAY BE ABLE TO PROVE self CAN CONSUME A CHARACTER
         return min(e.min_length() for e in self.exprs)
+
+    @property
+    def engine(self):
+        return [e.engine for e in self.exprs]
 
     def parseImpl(self, string, start, doActions=True):
         end = start

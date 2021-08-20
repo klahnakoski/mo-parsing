@@ -26,6 +26,7 @@ from examples.jsonParser import jsonObject
 from examples.simpleSQL import simpleSQL
 from mo_parsing import *
 from mo_parsing import helpers
+from mo_parsing.debug import Debugger
 from mo_parsing.engines import PLAIN_ENGINE
 from mo_parsing.helpers import *
 from mo_parsing.infix import oneOf
@@ -3130,7 +3131,7 @@ class TestParsing(PyparsingExpressionTestCase):
         expected = [
             ("1997", None, None),
             ("1997", "07", None),
-            ("1997", "07", "16"),
+            ("1997", "07", "16")
         ]
         for r, exp in zip(results, expected):
             self.assertTrue(
@@ -3212,17 +3213,17 @@ class TestParsing(PyparsingExpressionTestCase):
         for test, result in results:
             expected = ast.literal_eval(test)
             self.assertEqual(
-                result[0],
+                result,
                 expected,
                 "numeric parse failed (wrong value) ({} should be {})".format(
-                    result[0], expected
+                    result, expected
                 ),
             )
             self.assertEqual(
-                type(result[0]),
+                type(result),
                 type(expected),
                 "numeric parse failed (wrong type) ({} should be {})".format(
-                    type(result[0]), type(expected)
+                    type(result), type(expected)
                 ),
             )
 

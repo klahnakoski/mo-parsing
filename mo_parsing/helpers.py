@@ -545,7 +545,7 @@ def makeHTMLTags(tagStr, suppress_LT=Suppress("<"), suppress_GT=Suppress(">")):
     )
     simpler_name = "".join(resname.replace(":", " ").title().split())
 
-    with STANDARD_ENGINE.use():
+    with STANDARD_ENGINE:
         openTag = (
             (
                 suppress_LT
