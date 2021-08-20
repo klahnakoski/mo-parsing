@@ -148,7 +148,7 @@ class Parser(object):
         :param overlap: IF MATCHES CAN OVERLAP
         :return: SEQUENCE OF ParseResults, start, end
         """
-        return ((t[0], s, e) for t, s, e in self._scanString(string, maxMatches=maxMatches, overlap=overlap))
+        return ((t.tokens[0], s, e) for t, s, e in self._scanString(string, maxMatches=maxMatches, overlap=overlap))
 
     def _scanString(self, string, maxMatches=MAX_INT, overlap=False):
         instrlen = len(string)
