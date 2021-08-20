@@ -134,7 +134,11 @@ class Parser(object):
         if parseAll:
             end = self.engine.skip(string, tokens.end)
             StringEnd()._parse(string, end)
-        return tokens.tokens[0]
+
+        output = tokens.tokens[0]
+        if output.name:
+            return tokens
+        return output
 
     @entrypoint
     def scanString(self, string, maxMatches=MAX_INT, overlap=False):
