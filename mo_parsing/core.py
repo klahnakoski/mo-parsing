@@ -468,9 +468,9 @@ class ParserElement(object):
         Add parse action that replaces the token with replacement
 
         RegEx variables are accepted:
-        \1
-        \g<1>
-        \g<name>
+        \\1
+        \\g<1>
+        \\g<name>
         """
 
         # FIND NAMES IN replacement
