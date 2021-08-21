@@ -1721,7 +1721,7 @@ class TestParsing(PyparsingExpressionTestCase):
                 )
 
     def testLineAndStringEnd(self):
-        with PLAIN_ENGINE:
+        with NO_WHITESPACE:
             NLs = OneOrMore(LineEnd)
             bnf1 = delimitedList(Word(alphanums), NLs)
             bnf2 = Word(alphanums) + StringEnd
@@ -2359,7 +2359,7 @@ class TestParsing(PyparsingExpressionTestCase):
         vowel = oneOf(list("AEIOUY"))
         consonant = oneOf(list("BCDFGHJKLMNPQRSTVWXZ"))
 
-        with whitespaces.PLAIN_ENGINE:
+        with whitespaces.NO_WHITESPACE:
             leadingConsonant = ws + consonant
             leadingVowel = ws + vowel
             trailingConsonant = consonant + we

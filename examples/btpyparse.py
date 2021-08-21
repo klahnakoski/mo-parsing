@@ -21,7 +21,7 @@ from mo_parsing import (
     CaselessLiteral,
     Dict,
 )
-from mo_parsing.whitespaces import PLAIN_ENGINE
+from mo_parsing.whitespaces import NO_WHITESPACE
 
 
 class Macro:
@@ -49,7 +49,7 @@ def bracketed(expr):
 
 
 # Define parser components for strings (the hard bit)
-with PLAIN_ENGINE:
+with NO_WHITESPACE:
     chars_no_curly = Regex(r"[^{}]+")
     chars_no_quotecurly = Regex(r'[^"{}]+')
     # Curly string is some stuff without curlies, or nested curly sequences

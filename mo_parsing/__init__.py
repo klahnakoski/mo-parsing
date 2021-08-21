@@ -37,8 +37,8 @@ from mo_parsing.exceptions import (
 )
 from mo_parsing.expressions import And, MatchAll, MatchFirst, Or, ParseExpression
 
-whitespaces.PLAIN_ENGINE = Whitespace("").use()
-whitespaces.STANDARD_ENGINE = Whitespace().use()
+whitespaces.NO_WHITESPACE = Whitespace("").use()
+whitespaces.STANDARD_WHITESPACE = Whitespace().use()
 
 from mo_parsing.infix import LEFT_ASSOC, RIGHT_ASSOC, infixNotation
 from mo_parsing.regex import Regex

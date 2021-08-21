@@ -13,7 +13,7 @@ An experimental fork of [pyparsing](https://github.com/pyparsing/pyparsing)
 
 This has been forked to experiment with faster parsing in the [moz-sql-parser](https://github.com/klahnakoski/moz-sql-parser).
 
-* Added `Whitespace`, which controls parsing context and whitespace (a basic lexxer).  It replaces the whitespace modifying methods of pyparsing
+* Added `Whitespace`, which controls parsing context and whitespace.  It replaces the whitespace modifying methods of pyparsing
 * the wildcard ("`*`") could be used to indicate multi-values are expected; this is not allowed: all values are multi-values
 * all actions are in `f(token, index, string)` form, which is opposite of pyparsing's `f(string, index token)` form
 * ParserElements are static: For example, `expr.addParseAction(action)` creates a new ParserElement, so must be assigned to variable or it is lost. **This is the biggest source of bugs when converting from pyparsing**
@@ -31,12 +31,12 @@ Faster Parsing
 
 ## Details
 
-### The `Whitespace` Skipping
+### The `Whitespace` Skipper
 
-The `mo_parsing.engines.CURRENT` is used during parser creation: It is effectively the whitespace skipper: With additional features to simplify the language definition.  You declare a "standard" `Whitespace` like so:
+The `mo_parsing.engines.CURRENT` is used during parser creation: It is effectively defines "whitespace" for skipping, with additional features to simplify the language definition.  You declare "standard" `Whitespace` like so:
 
     with Whitespace() as whitespace:
-        # PUT YOUR LANGUAGE DEFINITION HERE
+        # PUT YOUR LANGUAGE DEFINITION HERE (space, tab and CR are "wthiespace")
 
 If you are declaring a large language, and you want to minimize indentation, and you are careful, you may also use this pattern:
 
@@ -46,14 +46,14 @@ If you are declaring a large language, and you want to minimize indentation, and
 
 The whitespace can be used to set global parsing parameters, like
 
-* `set_whitespace()` - set the ignored characters (like whitespace)
+* `set_whitespace()` - set the ignored characters (default: `"\t\n "`)
 * `add_ignore()` - include whole patterns that are ignored (like comments)
 * `set_literal()` - Set the definition for what `Literal()` means
 * `set_keyword_chars()` - For default `Keyword()` (important for defining word boundary)
 
 ### Navigating ParseResults
 
-`ParseResults` are in the form of an n-ary tree; with the children found in `ParseResults.tokens`.  Each `ParseResult.type` points to the `ParserElement` that made it.  In general, if you want to get fancy with post processing (or in a `parseAction`), you will be required to navigate the raw `tokens` to generate a final result
+The results off parsing are in `ParseResults` and are in the form of an n-ary tree; with the children found in `ParseResults.tokens`.  Each `ParseResult.type` points to the `ParserElement` that made it.  In general, if you want to get fancy with post processing (or in a `parseAction`), you will be required to navigate the raw `tokens` to generate a final result
 
 There are some convenience methods;  
 * `__iter__()` - allows you to iterate through parse results in **depth first search**. Empty results are skipped, and `Group`ed results are treated as atoms (which can be further iterated if required) 
@@ -72,7 +72,7 @@ Parse actions are methods that are run after a ParserElement found a match.
   
 ### Debugging
 
-The PEG-style of mo-parsing (from pyparing) makes a very expressible and readable specification, but debugging a parser is still hard.  To look deeper into what the parser is doing use the `Debugger`:
+The PEG-style of mo-parsing (from pyparsing) makes a very expressible and readable specification, but debugging a parser is still hard.  To look deeper into what the parser is doing use the `Debugger`:
 
 ```
 with Debugger():

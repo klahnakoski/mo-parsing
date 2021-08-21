@@ -10,8 +10,6 @@ from mo_parsing.exceptions import ParseException
 from mo_parsing.results import ParseResults
 from mo_parsing.utils import *
 
-PLAIN_ENGINE = expect("PLAIN_ENGINE")
-
 
 class Token(ParserElement):
     """

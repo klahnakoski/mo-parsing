@@ -33,7 +33,6 @@ from mo_parsing.utils import MAX_INT, is_forward
     Empty,
     Char,
     LookBehind,
-    _PositionToken,
 ) = expect(
     "Token",
     "NoMatch",
@@ -45,7 +44,6 @@ from mo_parsing.utils import MAX_INT, is_forward
     "Empty",
     "Char",
     "LookBehind",
-    "_PositionToken",
 )
 
 _get = object.__getattribute__

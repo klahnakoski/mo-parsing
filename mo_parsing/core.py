@@ -95,7 +95,7 @@ class Parser(object):
                     Log.error("must dis-ambiguate the whitespace before parsing")
                 engs = whitespace
 
-            self.whitespace = engs or whitespaces.CURRENT or whitespaces.STANDARD_ENGINE
+            self.whitespace = engs or whitespaces.CURRENT or whitespaces.STANDARD_WHITESPACE
         except Exception as cause:
             Log.error("problem", cause=cause)
 

@@ -6,7 +6,7 @@ from mo_future import text
 
 from mo_parsing import whitespaces
 from mo_parsing.core import add_reset_action
-from mo_parsing.whitespaces import Whitespace, STANDARD_ENGINE, PLAIN_ENGINE
+from mo_parsing.whitespaces import Whitespace, STANDARD_WHITESPACE, NO_WHITESPACE
 from mo_parsing.enhancement import (
     Combine,
     Dict,
@@ -546,7 +546,7 @@ def makeHTMLTags(tagStr, suppress_LT=Suppress("<"), suppress_GT=Suppress(">")):
     )
     simpler_name = "".join(resname.replace(":", " ").title().split())
 
-    with STANDARD_ENGINE:
+    with STANDARD_WHITESPACE:
         openTag = (
             (
                 suppress_LT
@@ -773,7 +773,7 @@ cStyleComment = Combine(
 
 htmlComment = Regex(r"<!--[\s\S]*?-->").set_parser_name("HTML comment")
 
-with PLAIN_ENGINE:
+with NO_WHITESPACE:
     restOfLine = Regex(r"[^\n]*").set_parser_name("rest of line")
 
     dblSlashComment = Regex(r"//(?:\\\n|[^\n])*").set_parser_name("// comment")

@@ -10,7 +10,7 @@ from mo_future import unichr, is_text
 from mo_imports import export
 
 from mo_parsing.core import add_reset_action
-from mo_parsing.whitespaces import Whitespace, PLAIN_ENGINE
+from mo_parsing.whitespaces import Whitespace, NO_WHITESPACE
 from mo_parsing.enhancement import (
     Char,
     NotAny,
@@ -97,7 +97,7 @@ def DEC():
 
 
 def name_token(tokens):
-    with PLAIN_ENGINE:
+    with NO_WHITESPACE:
         n = tokens["name"]
         v = tokens["value"]
         if not n:
@@ -117,25 +117,25 @@ def repeat(tokens):
     mode = operator["mode"]
     if not mode:
         if operator["exact"]:
-            return Many(operand, PLAIN_ENGINE, exact=int(operator["exact"]))
+            return Many(operand, NO_WHITESPACE, exact=int(operator["exact"]))
         else:
             return Many(
                 operand,
-                PLAIN_ENGINE,
+                NO_WHITESPACE,
                 min_match=int(operator["min"]),
                 max_match=int(operator["max"]),
             )
     elif mode in "*?":
-        return ZeroOrMore(operand, PLAIN_ENGINE)
+        return ZeroOrMore(operand, NO_WHITESPACE)
     elif mode in "+?":
-        return OneOrMore(operand, PLAIN_ENGINE)
+        return OneOrMore(operand, NO_WHITESPACE)
     elif mode == "?":
-        return Optional(operand, PLAIN_ENGINE)
+        return Optional(operand, NO_WHITESPACE)
     else:
         Log.error("not expected")
 
 
-PLAIN_ENGINE.use()
+NO_WHITESPACE.use()
 
 
 #########################################################################################
@@ -173,11 +173,11 @@ plainChar = Char(exclude=r"\]").addParseAction(lambda t: Literal(t.value()))
 
 escapedHexChar = Combine(
     (Literal("\\0x") | Literal("\\x") | Literal("\\X"))  # lookup literals is faster
-    + OneOrMore(Char(hexnums), PLAIN_ENGINE)
+    + OneOrMore(Char(hexnums), NO_WHITESPACE)
 ).addParseAction(hex_to_char)
 
 escapedOctChar = Combine(
-    Literal("\\0") + OneOrMore(Char("01234567"), PLAIN_ENGINE)
+    Literal("\\0") + OneOrMore(Char("01234567"), NO_WHITESPACE)
 ).addParseAction(lambda t: Literal(unichr(int(t.value()[2:], 8))))
 
 singleChar = escapedHexChar | escapedOctChar | escapedChar | plainChar
@@ -186,8 +186,8 @@ charRange = Group(singleChar("min") + "-" + singleChar("max")).addParseAction(to
 
 brackets = (
     "["
-    + Optional("^", PLAIN_ENGINE)("negate")
-    + OneOrMore(Group(charRange | singleChar | macro)("body"), PLAIN_ENGINE)
+    + Optional("^", NO_WHITESPACE)("negate")
+    + OneOrMore(Group(charRange | singleChar | macro)("body"), NO_WHITESPACE)
     + "]"
 ).addParseAction(to_bracket)
 
@@ -259,8 +259,8 @@ term = (
 )
 
 
-more = (term + Optional(repetition, PLAIN_ENGINE)).addParseAction(repeat)
-sequence = OneOrMore(more, PLAIN_ENGINE).addParseAction(lambda t: And(t, PLAIN_ENGINE))
+more = (term + Optional(repetition, NO_WHITESPACE)).addParseAction(repeat)
+sequence = OneOrMore(more, NO_WHITESPACE).addParseAction(lambda t: And(t, NO_WHITESPACE))
 regex << (
     delimitedList(sequence, separator="|")
     .set_token_name("value")
@@ -272,7 +272,7 @@ regex = regex.finalize()
 parameters = (
     "\\" + Char(alphanums)("name") | "\\g<" + Word(alphas, alphanums)("name") + ">"
 ).addParseAction(lambda t: t["name"])
-PLAIN_ENGINE.release()
+NO_WHITESPACE.release()
 
 
 class Regex(ParseEnhancement):

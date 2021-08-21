@@ -12,8 +12,8 @@ from mo_parsing.utils import Log, indent, quote, regex_range, alphanums, regex_i
 Literal, Token, Empty = expect("Literal", "Token", "Empty")
 
 CURRENT = None  # THE CURRENT DEFINED WHITESPACE
-PLAIN_ENGINE = None  # NOTHING IS WHITESPACE ENGINE
-STANDARD_ENGINE = None  # SIMPLE WHITESPACE
+NO_WHITESPACE = None  # NOTHING IS WHITESPACE ENGINE
+STANDARD_WHITESPACE = None  # SIMPLE WHITESPACE
 
 
 class Whitespace(ParserElement):
