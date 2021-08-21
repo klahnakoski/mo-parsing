@@ -2359,13 +2359,14 @@ class TestParsing(PyparsingExpressionTestCase):
         vowel = oneOf(list("AEIOUY"))
         consonant = oneOf(list("BCDFGHJKLMNPQRSTVWXZ"))
 
-        leadingConsonant = ws + consonant
-        leadingVowel = ws + vowel
-        trailingConsonant = consonant + we
-        trailingVowel = vowel + we
-        internalVowel = ~ws + vowel + ~we
+        with engines.PLAIN_ENGINE:
+            leadingConsonant = ws + consonant
+            leadingVowel = ws + vowel
+            trailingConsonant = consonant + we
+            trailingVowel = vowel + we
+            internalVowel = ~ws + vowel + ~we
 
-        bnf = leadingVowel | trailingVowel
+            bnf = leadingVowel | trailingVowel
 
         trailingConsonant.searchString("ABC DEF")
 

@@ -2,7 +2,6 @@
 
 from mo_future import is_text
 from mo_imports import export
-from pyparsing import _PositionToken
 
 from mo_parsing import engines
 from mo_parsing.core import ParserElement
@@ -701,7 +700,7 @@ class WordStart(Token):
         return "+", self.parser_config.regex.pattern
 
 
-class WordEnd(_PositionToken):
+class WordEnd(Token):
     """
     Matches if the current position is at the end of a Word, and is
     not followed by any character in a given set of ``wordChars``
@@ -715,13 +714,14 @@ class WordEnd(_PositionToken):
     __slots__ = []
     Config = append_config(Token, "word_chars")
 
-    def __init__(self, wordChars=printables):
+    def __init__(self, word_chars=None):
         Token.__init__(self)
+        word_chars = coalesce(word_chars, engines.CURRENT.keyword_chars)
         self.parser_name = self.__class__.__name__
         self.set_config(
-            word_chars="".join(sorted(set(wordChars))),
+            word_chars="".join(sorted(set(word_chars))),
             regex=regex_compile(
-                f"(?<={Char(wordChars).__regex__()[1]})({(~Char(wordChars)).__regex__()[1]}|$)"
+                f"(?<={Char(word_chars).__regex__()[1]})({(~Char(word_chars)).__regex__()[1]}|$)"
             ),
         )
 
@@ -730,12 +730,11 @@ class WordEnd(_PositionToken):
         return output
 
     def parseImpl(self, string, start, doActions=True):
-        word_chars = self.parser_config.word_chars
-        instrlen = len(string)
-        if instrlen > 0 and start < instrlen:
-            if string[start] in word_chars or string[start - 1] not in word_chars:
-                raise ParseException(self, start, string)
-        return ParseResults(self, start, start, [])
+        found = self.parser_config.regex.match(string, start)
+        if found:
+            return ParseResults(self, start, start, [])
+        else:
+            raise ParseException(self, start, string)
 
     def min_length(self):
         return 0
@@ -765,4 +764,3 @@ export("mo_parsing.enhancement", StringEnd)
 export("mo_parsing.enhancement", Empty)
 export("mo_parsing.enhancement", Char)
 export("mo_parsing.enhancement", LookBehind)
-export("mo_parsing.enhancement", _PositionToken)
