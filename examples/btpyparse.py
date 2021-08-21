@@ -21,7 +21,7 @@ from mo_parsing import (
     CaselessLiteral,
     Dict,
 )
-from mo_parsing.engines import PLAIN_ENGINE
+from mo_parsing.whitespaces import PLAIN_ENGINE
 
 
 class Macro:

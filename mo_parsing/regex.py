@@ -10,7 +10,7 @@ from mo_future import unichr, is_text
 from mo_imports import export
 
 from mo_parsing.core import add_reset_action
-from mo_parsing.engines import Engine, PLAIN_ENGINE
+from mo_parsing.whitespaces import Whitespace, PLAIN_ENGINE
 from mo_parsing.enhancement import (
     Char,
     NotAny,
@@ -203,7 +203,7 @@ simple_char = Word(
 ).addParseAction(lambda t: Literal(t.value()))
 esc_char = ("\\" + AnyChar()).addParseAction(lambda t: Literal(t.value()[1]))
 
-with Engine():
+with Whitespace():
     # ALLOW SPACES IN THE RANGE
     repetition = (
         Word(nums)("exact") + "}"

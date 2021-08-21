@@ -63,7 +63,7 @@ class TestAllExamples(unittest.TestCase):
 
 def _single_test(name):
     def output(self):
-        with Engine():
+        with Whitespace():
             import_module("examples." + name)
 
     return output

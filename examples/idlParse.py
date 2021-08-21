@@ -17,7 +17,7 @@ from mo_parsing import (
     Keyword,
     Regex,
 )
-from mo_parsing.engines import Engine
+from mo_parsing.whitespaces import Whitespace
 from mo_parsing.helpers import restOfLine, cStyleComment, delimitedList, quotedString
 from mo_parsing.utils import alphas, alphanums
 
@@ -28,7 +28,7 @@ def CORBA_IDL_BNF():
     global bnf
 
     if not bnf:
-        with Engine() as e:
+        with Whitespace() as e:
             singleLineComment = "//" + restOfLine
             e.add_ignore(singleLineComment)
             e.add_ignore(cStyleComment)

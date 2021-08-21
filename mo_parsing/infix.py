@@ -7,7 +7,7 @@ from mo_dots import listwrap
 from mo_future import text
 from mo_imports import delay_import, expect
 
-from mo_parsing import engines
+from mo_parsing import whitespaces
 from mo_parsing.enhancement import (
     Combine,
     Forward,
@@ -39,9 +39,9 @@ def delimitedList(expr, separator=",", combine=False):
         delimitedList(Word(hexnums), delim=':', combine=True).parseString("AA:BB:CC:DD:EE") # -> ['AA:BB:CC:DD:EE']
     """
     if combine:
-        return Combine(expr + ZeroOrMore(separator + expr, engines.CURRENT))
+        return Combine(expr + ZeroOrMore(separator + expr, whitespaces.CURRENT))
     else:
-        return expr + ZeroOrMore(Suppress(separator) + expr, engines.CURRENT)
+        return expr + ZeroOrMore(Suppress(separator) + expr, whitespaces.CURRENT)
 
 
 def oneOf(strs, caseless=False, asKeyword=False):
@@ -167,7 +167,7 @@ def infixNotation(
         def record_self(tok):
             ParseResults(tok.type, tok.start, tok.end, [tok.type.parser_name])
 
-        output = engines.CURRENT.normalize(op)
+        output = whitespaces.CURRENT.normalize(op)
         is_suppressed = isinstance(output, Suppress)
         if is_suppressed:
             output = output.expr

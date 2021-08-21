@@ -13,7 +13,7 @@ An experimental fork of [pyparsing](https://github.com/pyparsing/pyparsing)
 
 This has been forked to experiment with faster parsing in the [moz-sql-parser](https://github.com/klahnakoski/moz-sql-parser).
 
-* Added `Engine`, which controls parsing context and whitespace (a basic lexxer).  It replaces the whitespace modifying methods of pyparsing
+* Added `Whitespace`, which controls parsing context and whitespace (a basic lexxer).  It replaces the whitespace modifying methods of pyparsing
 * the wildcard ("`*`") could be used to indicate multi-values are expected; this is not allowed: all values are multi-values
 * all actions are in `f(token, index, string)` form, which is opposite of pyparsing's `f(string, index token)` form
 * ParserElements are static: For example, `expr.addParseAction(action)` creates a new ParserElement, so must be assigned to variable or it is lost. **This is the biggest source of bugs when converting from pyparsing**
@@ -31,20 +31,20 @@ Faster Parsing
 
 ## Details
 
-### The `Engine`
+### The `Whitespace` Skipping
 
-The `mo_parsing.engines.CURRENT` is used during parser creation: It is effectively the lexxer with additional features to simplify the language definition.  You declare a standard `Engine` like so:
+The `mo_parsing.engines.CURRENT` is used during parser creation: It is effectively the whitespace skipper: With additional features to simplify the language definition.  You declare a "standard" `Whitespace` like so:
 
-    with Engine() as engine:
+    with Whitespace() as whitespace:
         # PUT YOUR LANGUAGE DEFINITION HERE
 
 If you are declaring a large language, and you want to minimize indentation, and you are careful, you may also use this pattern:
 
-    engine = Engine().use()
+    whitespace = Whitespace().use()
     # PUT YOUR LANGUAGE DEFINITION HERE
-    engine.release()
+    whitespace.release()
 
-The engine can be used to set global parsing parameters, like
+The whitespace can be used to set global parsing parameters, like
 
 * `set_whitespace()` - set the ignored characters (like whitespace)
 * `add_ignore()` - include whole patterns that are ignored (like comments)

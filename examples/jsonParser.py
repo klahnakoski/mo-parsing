@@ -10,7 +10,7 @@
 #
 # Updated 9 Aug 2016 - use more current mo_parsing constructs/idioms
 #
-from mo_parsing.engines import Engine
+from mo_parsing.whitespaces import Whitespace
 from mo_parsing.helpers import number, dblQuotedString, removeQuotes, delimitedList, cppStyleComment
 
 json_bnf = """
@@ -43,7 +43,7 @@ def make_keyword(kwd_str, kwd_value):
     return Keyword(kwd_str).addParseAction(lambda: kwd_value)
 
 
-with Engine() as engine:
+with Whitespace() as whitespace:
 
     TRUE = make_keyword("true", True)
     FALSE = make_keyword("false", False)
@@ -65,4 +65,4 @@ with Engine() as engine:
     jsonMembers = delimitedList(memberDef)
     jsonObject << Dict(LBRACE + Optional(jsonMembers) + RBRACE)
     jsonComment = cppStyleComment
-    engine.add_ignore(jsonComment)
+    whitespace.add_ignore(jsonComment)

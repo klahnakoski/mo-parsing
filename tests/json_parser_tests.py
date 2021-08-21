@@ -135,7 +135,7 @@ test4 = """
         "cachePagesDirtyRead": 10,
 /*
     Defines the templates Cofax will use when
-    being browsed by a search engine identified in
+    being browsed by a search whitespace identified in
     searchEngineRobotsDb
 */
         "searchEngineListTemplate": "forSearchEnginesList.htm",

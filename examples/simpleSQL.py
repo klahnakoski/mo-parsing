@@ -13,12 +13,12 @@ from mo_parsing import (
     infixNotation,
     CaselessKeyword,
 )
-from mo_parsing.engines import Engine
+from mo_parsing.whitespaces import Whitespace
 from mo_parsing.helpers import restOfLine, upcaseTokens, real, signed_integer, quotedString
 from mo_parsing.infix import delimitedList, oneOf, RIGHT_ASSOC, LEFT_ASSOC
 from mo_parsing.utils import alphas, alphanums
 
-engine = Engine().use()
+whitespace = Whitespace().use()
 
 selectStmt = Forward()
 SELECT, FROM, WHERE, AND, OR, IN, IS, NOT, NULL = map(
@@ -66,5 +66,5 @@ simpleSQL = selectStmt
 
 # define Oracle comment format, and ignore them
 oracleSqlComment = "--" + restOfLine
-engine.add_ignore(oracleSqlComment)
-engine.release()
+whitespace.add_ignore(oracleSqlComment)
+whitespace.release()

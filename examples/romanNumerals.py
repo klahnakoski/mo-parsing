@@ -4,7 +4,7 @@
 #
 
 from mo_parsing import *
-from mo_parsing.engines import Engine
+from mo_parsing.whitespaces import Whitespace
 from mo_parsing.utils import Log
 
 
@@ -31,7 +31,7 @@ def summer(tokens):
     return sum(tokens)
 
 
-with Engine(""):
+with Whitespace(""):
     numeral = (
         onethousand
         | ninehundred

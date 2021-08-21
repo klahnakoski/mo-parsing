@@ -16,7 +16,7 @@ PLAIN_ENGINE = None  # NOTHING IS WHITESPACE ENGINE
 STANDARD_ENGINE = None  # SIMPLE WHITESPACE
 
 
-class Engine(ParserElement):
+class Whitespace(ParserElement):
     def __init__(self, white=" \n\r\t"):
         self.literal = Literal
         self.keyword_chars = alphanums + "_$"
@@ -31,7 +31,7 @@ class Engine(ParserElement):
         self.previous = []  # WE MAINTAIN A STACK OF ENGINES
 
     def copy(self):
-        output = Engine(self.white_chars)
+        output = Whitespace(self.white_chars)
         output.literal = self.literal
         output.keyword_chars = self.keyword_chars
         output.ignore_list = self.ignore_list
@@ -44,7 +44,7 @@ class Engine(ParserElement):
         return output
 
     def copy(self):
-        output = Engine(self.white_chars)
+        output = Whitespace(self.white_chars)
         output.literal = self.literal
         output.keyword_chars = self.keyword_chars
         output.ignore_list = self.ignore_list
@@ -71,7 +71,7 @@ class Engine(ParserElement):
         """
         global CURRENT
         if not self.previous:
-            Log.error("expecting engine to be released just once")
+            Log.error("expecting whitespace to be released just once")
 
         CURRENT = self.previous.pop()
 
@@ -174,17 +174,17 @@ class Engine(ParserElement):
 
 
 class Backup(object):
-    def __init__(self, engine):
-        self.engine = engine
-        self.content = engine.content
-        self.skips = engine.skips
+    def __init__(self, whitespace):
+        self.whitespace = whitespace
+        self.content = whitespace.content
+        self.skips = whitespace.skips
 
     def __enter__(self):
         pass
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.engine.content = self.content
-        self.engine.skips = self.skips
+        self.whitespace.content = self.content
+        self.whitespace.skips = self.skips
 
 
 def noop(*args):

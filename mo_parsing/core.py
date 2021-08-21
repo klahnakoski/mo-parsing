@@ -5,7 +5,7 @@ from threading import RLock
 from mo_future import text
 from mo_imports import export, expect
 
-from mo_parsing import engines
+from mo_parsing import whitespaces
 from mo_parsing.exceptions import ParseException
 from mo_parsing.results import ParseResults
 from mo_parsing.utils import Log, MAX_INT, wrap_parse_action, empty_tuple
@@ -85,21 +85,21 @@ class Parser(object):
     def __init__(self, element):
         self.element = element = element.streamline()
         try:
-            engs = element.engine
+            engs = element.whitespace
             while isinstance(engs, list):
                 engs = [e for e in engs if e is not None]
                 if not engs:
                     break
-                engine = engs[0]
-                if any(e is not engine for e in engs[1:]):
+                whitespace = engs[0]
+                if any(e is not whitespace for e in engs[1:]):
                     Log.error("must dis-ambiguate the whitespace before parsing")
-                engs = engine
+                engs = whitespace
 
-            self.engine = engs or engines.CURRENT or engines.STANDARD_ENGINE
+            self.whitespace = engs or whitespaces.CURRENT or whitespaces.STANDARD_ENGINE
         except Exception as cause:
             Log.error("problem", cause=cause)
 
-        with self.engine:
+        with self.whitespace:
             self.element = Group(element)
 
         self.named = bool(element.token_name)
@@ -133,10 +133,10 @@ class Parser(object):
         return self._parseString(string, parseAll=parseAll)
 
     def _parseString(self, string, parseAll=False):
-        start = self.engine.skip(string, 0)
+        start = self.whitespace.skip(string, 0)
         tokens = self.element._parse(string, start)
         if parseAll:
-            end = self.engine.skip(string, tokens.end)
+            end = self.whitespace.skip(string, tokens.end)
             StringEnd()._parse(string, end)
 
         if self.named:
@@ -160,7 +160,7 @@ class Parser(object):
         matches = 0
         while end <= instrlen and matches < maxMatches:
             try:
-                start = self.engine.skip(string, end)
+                start = self.whitespace.skip(string, end)
                 tokens = self.element._parse(string, start)
             except ParseException:
                 end = start + 1
@@ -414,7 +414,7 @@ class ParserElement(object):
         return 0
 
     @property
-    def engine(self):
+    def whitespace(self):
         return None
 
     def parseImpl(self, string, start, doActions=True):
@@ -496,7 +496,7 @@ class ParserElement(object):
         if other is Ellipsis:
             return _PendingSkip(self)
 
-        return And([self, engines.CURRENT.normalize(other)], engines.CURRENT).streamline()
+        return And([self, whitespaces.CURRENT.normalize(other)], whitespaces.CURRENT).streamline()
 
     def __radd__(self, other):
         """
@@ -505,19 +505,19 @@ class ParserElement(object):
         if other is Ellipsis:
             return SkipTo(self)("_skipped") + self
 
-        return engines.CURRENT.normalize(other) + self
+        return whitespaces.CURRENT.normalize(other) + self
 
     def __sub__(self, other):
         """
         Implementation of - operator, returns `And` with error stop
         """
-        return self + And.SyntaxErrorGuard() + engines.CURRENT.normalize(other)
+        return self + And.SyntaxErrorGuard() + whitespaces.CURRENT.normalize(other)
 
     def __rsub__(self, other):
         """
         Implementation of - operator when left operand is not a `ParserElement`
         """
-        return engines.CURRENT.normalize(other) - self
+        return whitespaces.CURRENT.normalize(other) - self
 
     def __mul__(self, other):
         """
@@ -569,7 +569,7 @@ class ParserElement(object):
             )
 
         ret = Many(
-            self, engines.CURRENT, min_match=minElements, max_match=maxElements
+            self, whitespaces.CURRENT, min_match=minElements, max_match=maxElements
         ).streamline()
         return ret
 
@@ -583,37 +583,37 @@ class ParserElement(object):
         if other is Ellipsis:
             return _PendingSkip(Optional(self))
 
-        return MatchFirst([self, engines.CURRENT.normalize(other)]).streamline()
+        return MatchFirst([self, whitespaces.CURRENT.normalize(other)]).streamline()
 
     def __ror__(self, other):
         """
         Implementation of | operator when left operand is not a `ParserElement`
         """
-        return engines.CURRENT.normalize(other) | self
+        return whitespaces.CURRENT.normalize(other) | self
 
     def __xor__(self, other):
         """
         Implementation of ^ operator - returns `Or`
         """
-        return Or([self, engines.CURRENT.normalize(other)])
+        return Or([self, whitespaces.CURRENT.normalize(other)])
 
     def __rxor__(self, other):
         """
         Implementation of ^ operator when left operand is not a `ParserElement`
         """
-        return engines.CURRENT.normalize(other) ^ self
+        return whitespaces.CURRENT.normalize(other) ^ self
 
     def __and__(self, other):
         """
         Implementation of & operator - returns `Each`
         """
-        return MatchAll([self, engines.CURRENT.normalize(other)], engines.CURRENT)
+        return MatchAll([self, whitespaces.CURRENT.normalize(other)], whitespaces.CURRENT)
 
     def __rand__(self, other):
         """
         Implementation of & operator when left operand is not a `ParserElement`
         """
-        return engines.CURRENT.normalize(other) & self
+        return whitespaces.CURRENT.normalize(other) & self
 
     def __invert__(self):
         """

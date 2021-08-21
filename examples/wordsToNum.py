@@ -7,7 +7,7 @@ from mo_parsing import *
 from operator import mul
 from functools import reduce
 
-from mo_parsing.engines import Engine
+from mo_parsing.whitespaces import Whitespace
 from mo_parsing.helpers import integer
 
 
@@ -83,7 +83,7 @@ numPart = (
     )
     + Optional(units)
 ).addParseAction(sum)
-with Engine() as e:
+with Whitespace() as e:
     e.add_ignore(Literal("-"))
     e.add_ignore(CaselessLiteral("and"))
     numWords = (

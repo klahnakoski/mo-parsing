@@ -6,9 +6,9 @@ from operator import itemgetter
 from mo_future import Iterable, text, generator_types
 from mo_imports import export
 
-from mo_parsing import engines
+from mo_parsing import whitespaces
 from mo_parsing.core import ParserElement, _PendingSkip
-from mo_parsing.engines import Engine
+from mo_parsing.whitespaces import Whitespace
 from mo_parsing.enhancement import Optional, SkipTo, Many
 from mo_parsing.exceptions import (
     ParseException,
@@ -46,7 +46,7 @@ class ParseExpression(ParserElement):
         else:
             exprs = [exprs]
 
-        self.exprs = [engines.CURRENT.normalize(e) for e in exprs]
+        self.exprs = [whitespaces.CURRENT.normalize(e) for e in exprs]
         for e in self.exprs:
             if is_forward(e):
                 e.track(self)
@@ -138,15 +138,15 @@ class And(ParseExpression):
     """
 
     __slots__ = []
-    Config = append_config(ParseExpression, "engine")
+    Config = append_config(ParseExpression, "whitespace")
 
     class SyntaxErrorGuard(Empty):
         def __init__(self, *args, **kwargs):
-            with Engine(""):
+            with Whitespace(""):
                 super(And.SyntaxErrorGuard, self).__init__(*args, **kwargs)
                 self.parser_name = "-"
 
-    def __init__(self, exprs, engine=None):
+    def __init__(self, exprs, whitespace=None):
         if exprs and Ellipsis in exprs:
             tmp = []
             for i, expr in enumerate(exprs):
@@ -163,7 +163,7 @@ class And(ParseExpression):
             exprs[:] = tmp
         super(And, self).__init__(exprs)
         self.set_config(
-            engine=engine or engines.CURRENT
+            whitespace=whitespace or whitespaces.CURRENT
         )
 
     def streamline(self):
@@ -206,7 +206,7 @@ class And(ParseExpression):
                 acc.append(f)
             elif (
                 isinstance(f, And)
-                and f.parser_config.engine is self.parser_config.engine
+                and f.parser_config.whitespace is self.parser_config.whitespace
             ):
                 same = False
                 acc.extend(f.exprs)
@@ -241,8 +241,8 @@ class And(ParseExpression):
         return sum(e.min_length() for e in self.exprs)
 
     @property
-    def engine(self):
-        return self.parser_config.engine
+    def whitespace(self):
+        return self.parser_config.whitespace
 
     def parseImpl(self, string, start, doActions=True):
         # pass False as last arg to _parse for first element, since we already
@@ -255,7 +255,7 @@ class And(ParseExpression):
                 if isinstance(expr, LookBehind):
                     index = end
                 else:
-                    index = self.parser_config.engine.skip(string, end)
+                    index = self.parser_config.whitespace.skip(string, end)
             if isinstance(expr, And.SyntaxErrorGuard):
                 encountered_syntax_error = True
                 continue
@@ -275,7 +275,7 @@ class And(ParseExpression):
         if other is Ellipsis:
             return _PendingSkip(self)
 
-        return And([self, engines.CURRENT.normalize(other)], engines.CURRENT).streamline()
+        return And([self, whitespaces.CURRENT.normalize(other)], whitespaces.CURRENT).streamline()
 
     def checkRecursion(self, seen=empty_tuple):
         subRecCheckList = seen + (self,)
@@ -339,8 +339,8 @@ class Or(ParseExpression):
         return output
 
     @property
-    def engine(self):
-        return [e.engine for e in self.exprs]
+    def whitespace(self):
+        return [e.whitespace for e in self.exprs]
 
     def parseImpl(self, string, start, doActions=True):
         causes = []
@@ -456,8 +456,8 @@ class MatchFirst(ParseExpression):
             return 0
 
     @property
-    def engine(self):
-        return [e.engine for e in self.exprs]
+    def whitespace(self):
+        return [e.whitespace for e in self.exprs]
 
     def parseImpl(self, string, start, doActions=True):
         causes = []
@@ -500,10 +500,10 @@ class MatchFirst(ParseExpression):
         if other is Ellipsis:
             return _PendingSkip(Optional(self))
 
-        return MatchFirst([self, engines.CURRENT.normalize(other)]).streamline()
+        return MatchFirst([self, whitespaces.CURRENT.normalize(other)]).streamline()
 
     def __ror__(self, other):
-        return engines.CURRENT.normalize(other) | self
+        return whitespaces.CURRENT.normalize(other) | self
 
     def __regex__(self):
         return (
@@ -669,16 +669,16 @@ class MatchAll(ParseExpression):
     """
 
     __slots__ = []
-    Config = append_config(ParseExpression, "min_match", "max_match", "engine")
+    Config = append_config(ParseExpression, "min_match", "max_match", "whitespace")
 
-    def __init__(self, exprs, engine):
+    def __init__(self, exprs, whitespace):
         """
         :param exprs: The expressions to be matched
         :param mins: list of integers indincating any minimums
         """
         super(MatchAll, self).__init__(exprs)
         self.set_config(
-            engine=engine,
+            whitespace=whitespace,
             min_match=[
                 e.parser_config.min_match if isinstance(e, Many) else 1 for e in exprs
             ],
@@ -697,8 +697,8 @@ class MatchAll(ParseExpression):
         return min(e.min_length() for e in self.exprs)
 
     @property
-    def engine(self):
-        return [e.engine for e in self.exprs]
+    def whitespace(self):
+        return [e.whitespace for e in self.exprs]
 
     def parseImpl(self, string, start, doActions=True):
         end = start
@@ -714,7 +714,7 @@ class MatchAll(ParseExpression):
                     loc = e._parse(string, end).end
                     if loc == end:
                         continue
-                    end = self.parser_config.engine.skip(string, loc)
+                    end = self.parser_config.whitespace.skip(string, loc)
                     c2 = count[i] = c + 1
                     if c2 >= ma:
                         del todo[i]
@@ -755,7 +755,7 @@ class MatchAll(ParseExpression):
         end = start
         for e in matchOrder:
             result = e._parse(string, end, doActions)
-            end = self.parser_config.engine.skip(string, result.end)
+            end = self.parser_config.whitespace.skip(string, result.end)
             results.append(result)
 
         return ParseResults(self, results[0].start, results[-1].end, results)

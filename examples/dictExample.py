@@ -8,7 +8,7 @@
 from mo_testing.fuzzytestcase import assertAlmostEqual
 
 from mo_parsing import *
-from mo_parsing import engines
+from mo_parsing import whitespaces
 
 testData = """
 +-------+------+------+------+------+------+------+------+------+
@@ -36,7 +36,7 @@ trailing = Literal(
 
 datatable = heading + Dict(ZeroOrMore(rowData)) + trailing
 
-engines.CURRENT.set_debug_actions()
+whitespaces.CURRENT.set_debug_actions()
 
 # now parse data and print results
 data = datatable.parseString(testData)

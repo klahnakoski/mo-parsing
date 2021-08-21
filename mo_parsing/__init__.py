@@ -2,7 +2,7 @@
 
 # ORIGINALLY COPIED FROM pyparsing UNDER THE MIT LICENCE
 
-from mo_parsing import engines
+from mo_parsing import whitespaces
 from mo_parsing.core import ParserElement, _PendingSkip
 # module pyparsing.py
 #
@@ -27,7 +27,7 @@ from mo_parsing.core import ParserElement, _PendingSkip
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
-from mo_parsing.engines import Engine
+from mo_parsing.whitespaces import Whitespace
 from mo_parsing.enhancement import *
 from mo_parsing.exceptions import (
     ParseException,
@@ -37,8 +37,8 @@ from mo_parsing.exceptions import (
 )
 from mo_parsing.expressions import And, MatchAll, MatchFirst, Or, ParseExpression
 
-engines.PLAIN_ENGINE = Engine("").use()
-engines.STANDARD_ENGINE = Engine().use()
+whitespaces.PLAIN_ENGINE = Whitespace("").use()
+whitespaces.STANDARD_ENGINE = Whitespace().use()
 
 from mo_parsing.infix import LEFT_ASSOC, RIGHT_ASSOC, infixNotation
 from mo_parsing.regex import Regex

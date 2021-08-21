@@ -3,9 +3,9 @@
 from mo_future import is_text
 from mo_imports import export
 
-from mo_parsing import engines
+from mo_parsing import whitespaces
 from mo_parsing.core import ParserElement
-from mo_parsing.engines import Engine
+from mo_parsing.whitespaces import Whitespace
 from mo_parsing.exceptions import ParseException
 from mo_parsing.results import ParseResults
 from mo_parsing.utils import *
@@ -47,14 +47,14 @@ class Empty(Token):
 
     def parseImpl(self, string, start, doActions=True):
         end = start
-        # end = self.engine.skip(string, start)
+        # end = self.whitespace.skip(string, start)
         return ParseResults(self, start, end, [])
 
     def streamline(self):
         return self
 
     def __regex__(self):
-        return self.engine.__regex__()
+        return self.whitespace.__regex__()
 
     def __str__(self):
         return self.parser_name or "Empty"
@@ -183,7 +183,7 @@ class Keyword(Token):
     def __init__(self, match, ident_chars=None, caseless=None):
         Token.__init__(self)
         if ident_chars is None:
-            ident_chars = engines.CURRENT.keyword_chars
+            ident_chars = whitespaces.CURRENT.keyword_chars
         else:
             ident_chars = "".join(sorted(set(ident_chars)))
 
@@ -593,7 +593,7 @@ class LineEnd(LookBehind):
     __slots__ = []
 
     def __init__(self):
-        with Engine(" \t") as e:
+        with Whitespace(" \t") as e:
             Token.__init__(self)
             self.parser_name = self.__class__.__name__
             self.set_config(lock_engine=e, regex=regex_compile("\\r?(\\n|$)"))
@@ -626,7 +626,7 @@ class StringStart(Token):
     def parseImpl(self, string, loc, doActions=True):
         if loc != 0:
             # see if entire string up to here is just whitespace and ignoreables
-            # if loc != self.engine.skip(string, 0):
+            # if loc != self.whitespace.skip(string, 0):
             raise ParseException(self, loc, string)
         return []
 
@@ -716,7 +716,7 @@ class WordEnd(Token):
 
     def __init__(self, word_chars=None):
         Token.__init__(self)
-        word_chars = coalesce(word_chars, engines.CURRENT.keyword_chars)
+        word_chars = coalesce(word_chars, whitespaces.CURRENT.keyword_chars)
         self.parser_name = self.__class__.__name__
         self.set_config(
             word_chars="".join(sorted(set(word_chars))),
@@ -751,8 +751,8 @@ export("mo_parsing.core", StringEnd)
 export("mo_parsing.core", Literal)
 export("mo_parsing.core", Token)
 
-export("mo_parsing.engines", Literal)
-export("mo_parsing.engines", Token)
+export("mo_parsing.whitespaces", Literal)
+export("mo_parsing.whitespaces", Token)
 
 export("mo_parsing.enhancement", Token)
 export("mo_parsing.enhancement", NoMatch)

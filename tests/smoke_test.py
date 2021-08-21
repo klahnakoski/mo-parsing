@@ -7,7 +7,7 @@ end = time()
 
 print(f"import time = {str(round(end-start, 2))} seconds")
 
-from mo_parsing.engines import Engine
+from mo_parsing.whitespaces import Whitespace
 
-with Engine():
+with Whitespace():
     Regex("[^\\]]")
