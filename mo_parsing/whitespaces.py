@@ -43,19 +43,6 @@ class Whitespace(ParserElement):
         output.expr = self.expr
         return output
 
-    def copy(self):
-        output = Whitespace(self.white_chars)
-        output.literal = self.literal
-        output.keyword_chars = self.keyword_chars
-        output.ignore_list = self.ignore_list
-        output.debugActions = self.debugActions
-        output.all_exceptions = self.all_exceptions
-        output.content = None
-        output.skips = {}
-        output.regex = self.regex
-        output.expr = self.expr
-        return output
-
     def __enter__(self):
         global CURRENT
         self.previous.append(CURRENT)  # WE MAINTAIN A STACK OF ENGINES
@@ -66,7 +53,7 @@ class Whitespace(ParserElement):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """
-        ENSURE self IS NOT CURRENT
+        REMOVE THIS WHITESPACE CONTEXT
         :return:
         """
         global CURRENT

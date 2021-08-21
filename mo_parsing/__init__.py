@@ -2,8 +2,6 @@
 
 # ORIGINALLY COPIED FROM pyparsing UNDER THE MIT LICENCE
 
-from mo_parsing import whitespaces
-from mo_parsing.core import ParserElement, _PendingSkip
 # module pyparsing.py
 #
 # Copyright (c) 2003-2019  Paul T. McGuire
@@ -27,7 +25,8 @@ from mo_parsing.core import ParserElement, _PendingSkip
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
-from mo_parsing.whitespaces import Whitespace
+from mo_parsing import whitespaces
+from mo_parsing.core import ParserElement, _PendingSkip
 from mo_parsing.enhancement import *
 from mo_parsing.exceptions import (
     ParseException,
@@ -36,6 +35,7 @@ from mo_parsing.exceptions import (
     RecursiveGrammarException,
 )
 from mo_parsing.expressions import And, MatchAll, MatchFirst, Or, ParseExpression
+from mo_parsing.whitespaces import Whitespace
 
 whitespaces.NO_WHITESPACE = Whitespace("").use()
 whitespaces.STANDARD_WHITESPACE = Whitespace().use()

@@ -1,11 +1,10 @@
 # encoding: utf-8
 import re
 import warnings
-from collections import Iterable
 
 from mo_dots import listwrap
-from mo_future import text
-from mo_imports import delay_import, expect
+from mo_future import text, Iterable
+from mo_imports import delay_import
 
 from mo_parsing import whitespaces
 from mo_parsing.enhancement import (
