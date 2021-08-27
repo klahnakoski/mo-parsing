@@ -154,6 +154,11 @@ class ParseResults(object):
             return self[0] == other
         elif not self:
             return False
+        elif isinstance(other, dict):
+            for k, v in other.items():
+                if self[k] != v:
+                    return False
+            return True
         else:
             Log.error("do not know how to handle")
 

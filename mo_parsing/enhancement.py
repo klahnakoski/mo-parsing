@@ -50,7 +50,8 @@ _get = object.__getattribute__
 
 
 class ParseEnhancement(ParserElement):
-    """Abstract subclass of `ParserElement`, for combining and
+    """
+    Abstract subclass of `ParserElement`, for combining and
     post-processing parsed tokens.
     """
 
@@ -277,7 +278,7 @@ class Many(ParseEnhancement):
                 if result:
                     acc.append(result)
                     count += 1
-        except ParseException:
+        except ParseException as pe:
             if self.parser_config.min_match <= count <= max:
                 pass
             else:
@@ -626,6 +627,12 @@ class Forward(ParserElement):
             Log.error("not allowed")
         self.expr = self.expr.addParseAction(action)
         return self
+
+    def leaveWhitespace(self):
+        with whitespaces.NO_WHITESPACE:
+            output = self.copy()
+            output.expr = self.expr.leaveWhitespace()
+            return output
 
     def streamline(self):
         if not self.expr or self.expr.streamlined:

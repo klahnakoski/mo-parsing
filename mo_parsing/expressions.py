@@ -9,7 +9,7 @@ from mo_imports import export
 from mo_parsing import whitespaces
 from mo_parsing.core import ParserElement, _PendingSkip
 from mo_parsing.whitespaces import Whitespace
-from mo_parsing.enhancement import Optional, SkipTo, Many
+from mo_parsing.enhancement import Optional, SkipTo, Many, Suppress
 from mo_parsing.exceptions import (
     ParseException,
     ParseSyntaxException,
@@ -80,6 +80,14 @@ class ParseExpression(ParserElement):
         self.exprs.append(other)
         return self
 
+    def leaveWhitespace(self):
+        """Extends ``leaveWhitespace`` defined in base class, and also invokes ``leaveWhitespace`` on
+        all contained expressions."""
+        with whitespaces.NO_WHITESPACE:
+            output = self.copy()
+            output.exprs = [e.leaveWhitespace() for e in self.exprs]
+            return output
+
     def streamline(self):
         if self.streamlined:
             return self
@@ -121,10 +129,6 @@ class ParseExpression(ParserElement):
     def __call__(self, name):
         if not name:
             return self
-        # for e in self.exprs:
-        #     if isinstance(e, ParserElement) and e.token_name:
-        #         Log.error("token name is already set in child, use Group() to clarify")
-
         return ParserElement.__call__(self, name)
 
 
@@ -432,9 +436,10 @@ class Or(ParseExpression):
 
 
 class MatchFirst(ParseExpression):
-    """Requires that at least one `ParseExpression` is found. If
+    """
+    Requires that at least one `ParseExpression` is found. If
     two expressions match, the first one listed is the one that will
-    match. May be constructed using the ``'|'`` operator.
+    match. May be constructed using the `|` operator.
     """
 
     __slots__ = ["alternate"]
