@@ -91,4 +91,4 @@ This should help to to isolate the exact position your grammar is failing.
 
 ## Contributing
 
-If you plan to extend or enhance this code, please [see the README in the tests directory](tests/README.md)
+If you plan to extend or enhance this code, please [see the README in the tests directory](https://github.com/klahnakoski/mo-parsing/blob/dev/tests/README.md)
