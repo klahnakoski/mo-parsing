@@ -1,6 +1,6 @@
 # More Parsing!
 
-An experimental fork of [pyparsing](https://github.com/pyparsing/pyparsing)
+A fork of [pyparsing](https://github.com/pyparsing/pyparsing) for faster parsing
 
 
 |Branch      |Status   |
@@ -9,9 +9,9 @@ An experimental fork of [pyparsing](https://github.com/pyparsing/pyparsing)
 |dev         | [![Build Status](https://travis-ci.org/klahnakoski/mo-parsing.svg?branch=dev)](https://travis-ci.org/klahnakoski/mo-parsing)    |
 
 
-## Summary of Differences
+## Differences from PyParsing
 
-This has been forked to experiment with faster parsing in the [moz-sql-parser](https://github.com/klahnakoski/moz-sql-parser).
+This fork was originally created to support faster parsing for [mo-sql-parsing](https://github.com/klahnakoski/moz-sql-parser).  Since then it has deviated sufficiently to be it's own collection of parser specification functions.  Here are the differences:
 
 * Added `Whitespace`, which controls parsing context and whitespace.  It replaces the whitespace modifying methods of pyparsing
 * the wildcard ("`*`") could be used to indicate multi-values are expected; this is not allowed: all values are multi-values
@@ -36,7 +36,7 @@ Faster Parsing
 The `mo_parsing.engines.CURRENT` is used during parser creation: It is effectively defines "whitespace" for skipping, with additional features to simplify the language definition.  You declare "standard" `Whitespace` like so:
 
     with Whitespace() as whitespace:
-        # PUT YOUR LANGUAGE DEFINITION HERE (space, tab and CR are "wthiespace")
+        # PUT YOUR LANGUAGE DEFINITION HERE (space, tab and CR are "whitespace")
 
 If you are declaring a large language, and you want to minimize indentation, and you are careful, you may also use this pattern:
 
@@ -91,4 +91,4 @@ This should help to to isolate the exact position your grammar is failing.
 
 ## Contributing
 
-If you plan to extend or enhance this code, please [see the README in the tests directory](tests/README.md)
+If you plan to extend or enhance this code, please [see the README in the tests directory](https://github.com/klahnakoski/mo-parsing/blob/dev/tests/README.md)
