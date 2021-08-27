@@ -5,7 +5,7 @@ from setuptools import setup
 setup(
     author='Various',
     author_email='kyle@lahnakoski.com',
-    classifiers=["Development Status :: 4 - Beta","License :: OSI Approved :: MIT License","Programming Language :: Python :: 3.7","Programming Language :: Python :: 3.9","Topic :: Software Development :: Libraries","Topic :: Software Development :: Libraries :: Python Modules"],
+    classifiers=["Development Status :: 4 - Beta","License :: OSI Approved :: MIT License","Programming Language :: Python :: 3.7","Topic :: Software Development :: Libraries","Topic :: Software Development :: Libraries :: Python Modules"],
     description='Another PEG Parsing Tool',
     install_requires=["mo-dots==5.22.21182","mo-future==5.17.21182"],
     license='MIT',
@@ -14,5 +14,5 @@ setup(
     name='mo-parsing',
     packages=["mo_parsing"],
     url='https://github.com/klahnakoski/mo-parsing',
-    version='5.34.21239'
+    version='5.35.21239'
 )
