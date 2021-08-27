@@ -7,3 +7,5 @@
 /mo_parsing/__pycache__
 /examples/*.tab
 __pycache__
+/build
+/mo_parsing.egg-info
