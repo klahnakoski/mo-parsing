@@ -2400,7 +2400,7 @@ Examples for the two proposed decorators:
   17 assert producer1() == (10 + 5 + 2.5 + 7.5)
 
 Function Timeout
-Ever had a function take forever in weird edge cases?  In one case, a function was extracting URIs from a long string using regular expressions, and sometimes it was running into a bug in the Python regexp engine and would take minutes rather than milliseconds.  The best solution was to install a timeout using an alarm signal and simply abort processing.  This can conveniently be wrapped in a decorator: 
+Ever had a function take forever in weird edge cases?  In one case, a function was extracting URIs from a long string using regular expressions, and sometimes it was running into a bug in the Python regexp whitespace and would take minutes rather than milliseconds.  The best solution was to install a timeout using an alarm signal and simply abort processing.  This can conveniently be wrapped in a decorator:
 
    1 import signal
    2 import functools

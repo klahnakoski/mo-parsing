@@ -13,7 +13,7 @@ from mo_parsing import (
     Group,
     Dict,
     Optional,
-    engine,
+    whitespaces,
     Empty,
 )
 from mo_parsing.helpers import restOfLine
@@ -34,7 +34,7 @@ def inifile_BNF():
         semi = Literal(";")
 
         comment = semi + Optional(restOfLine)
-        engine.CURRENT.add_ignore(comment)
+        whitespaces.CURRENT.add_ignore(comment)
 
         nonrbrack = "".join([c for c in printables if c != "]"]) + " \t"
         nonequals = "".join([c for c in printables if c != "="]) + " \t"

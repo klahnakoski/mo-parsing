@@ -10,8 +10,8 @@ from mo_parsing.infix import oneOf
 
 comment = "--" + restOfLine
 
-engine = Engine().use()
-engine.add_ignore(comment)
+whitespace = Whitespace().use()
+whitespace.add_ignore(comment)
 
 
 LPAR, RPAR, COMMA = map(Suppress, "(),")
@@ -189,7 +189,7 @@ select_stmt << (
     )
 )
 
-engine.release()
+whitespace.release()
 
 tests = """\
     select * from xyzzy where z > 100

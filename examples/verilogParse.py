@@ -63,37 +63,12 @@
 #
 import gc
 import os
-import time
 import pprint
-import sys
-
-from mo_parsing.cache import enablePackrat
+import time
 
 __version__ = "1.0.11"
 
-from mo_parsing import (
-    Literal,
-    Keyword,
-    Word,
-    OneOrMore,
-    ZeroOrMore,
-    Forward,
-    delimitedList,
-    Group,
-    Optional,
-    Combine,
-    alphas,
-    nums,
-    restOfLine,
-    alphanums,
-    dblQuotedString,
-    empty,
-    oneOf,
-    StringEnd,
-    FollowedBy,
-    Regex,
-    cppStyleComment,
-)
+from mo_parsing.helpers import *
 
 
 def dumpTokens(t, l, s):

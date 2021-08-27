@@ -21,15 +21,15 @@ from mo_parsing import (
     Or,
     Group,
 )
-from mo_parsing.engine import Engine
+from mo_parsing.whitespaces import Whitespace
 from mo_parsing.helpers import delimitedList
 from mo_parsing.utils import alphas, alphanums, nums
 
-engine = Engine().use()
+whitespace = Whitespace().use()
 ebnfComment = (
         "(*" + ZeroOrMore(CharsNotIn("*") | ("*" + ~Literal(")"))) + "*)"
 ).set_parser_name("ebnfComment")
-engine.add_ignore(ebnfComment)
+whitespace.add_ignore(ebnfComment)
 
 
 def do_integer(toks):
@@ -194,7 +194,7 @@ syntax = OneOrMore(syntax_rule).addParseAction(do_syntax)
 
 def parse(ebnf, given_table={}):
     global forward_count
-    with Engine():
+    with Whitespace():
         symbol_table.clear()
         symbol_table.update(given_table)
         forward_count = 0
@@ -205,4 +205,4 @@ def parse(ebnf, given_table={}):
             expr.set_parser_name(name)
         return table
 
-engine.release()
+whitespace.release()

@@ -32,10 +32,10 @@ class PyparsingExpressionTestCase(FuzzyTestCase):
     """
 
     def setUp(self):
-        self.engine = Engine().use()
+        self.whitespace = Whitespace().use()
 
     def tearDown(self):
-        self.engine.release()
+        self.whitespace.release()
 
     def assertParseResultsEquals(
         self, result, expected_list=None, expected_dict=None, msg=None
@@ -337,7 +337,7 @@ class TestRepetition(PyparsingExpressionTestCase):
         )
 
     def test_many_with_stopper(self):
-        expr = Many("x", stopOn="y").streamline()
+        expr = Many("x", stopOn="y", whitespace=whitespaces.CURRENT).streamline()
         result = expr.parseString("xxxxy")
         expecting = "xxxx"
         self.assertEqual(result, expecting)
@@ -555,21 +555,6 @@ class TestResultsModifyingParseAction(PyparsingExpressionTestCase):
         )
 
 
-class TestRegex(PyparsingExpressionTestCase):
-    def test_parsing_real_numbers_using_regex_instead_of_combine(self):
-        self.runTest(
-            desc="Parsing real numbers - using Regex instead of Combine",
-            expr=Regex(r"\d+\.\d+").addParseAction(lambda t: float(t[0]))[...],
-            text="1.2 2.3 3.1416 98.6",
-            expected_list=[
-                1.2,
-                2.3,
-                3.1416,
-                98.6,
-            ],  # note, these are now floats, not strs
-        )
-
-
 class TestParseCondition(PyparsingExpressionTestCase):
     def test_Define_a_condition_to_only_match_numeric_values_that_are_multiples_of_7(
         self,
@@ -644,7 +629,7 @@ class TestCommonHelperExpressions(PyparsingExpressionTestCase):
         )
 
     def test_skipping_comments_with_ignore(self):
-        engine.CURRENT.add_ignore(cppStyleComment)
+        whitespaces.CURRENT.add_ignore(cppStyleComment)
         self.runTest(
             desc="skipping comments with ignore",
             expr=identifier("lhs") + "=" + fnumber("rhs"),

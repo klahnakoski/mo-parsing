@@ -5,7 +5,12 @@
 #
 # Copyright 2004-2016, by Paul McGuire
 #
+from mo_parsing.utils import alphas, alphanums
+
+from mo_parsing.helpers import cStyleComment, cppStyleComment
+
 from mo_parsing import *
+from mo_parsing.infix import delimitedList, oneOf
 
 typemap = {
     "byte": "c_byte",
@@ -165,24 +170,13 @@ for en_, _, _ in enum_def.scanString(c_header):
     for ev in en_.evalues:
         enum_constants.append((ev.name, ev.value))
 
-
-
-
-for tdname, tdtyp in typedefs:
-
+# TODO: VERIFY PARSE OUTPUT IS WHAT'S EXPECTED
 for fntd in fn_typedefs:
     print(
         "{} = CFUNCTYPE({})".format(
             fntd.fn_name, ",\n    ".join(typeAsCtypes(a.argtype) for a in fntd.fn_args)
         )
     )
-for udtype in user_defined_types:
-
-
-
-for en, ev in enum_constants:
-
-
 
 for fn in functions:
     prefix = "{}.{}".format(module, fn.fn_name)
@@ -197,5 +191,4 @@ for fn in functions:
                 prefix, ",".join(typeAsCtypes(a.argtype) for a in fn.fn_args)
             )
         )
-    else:
 

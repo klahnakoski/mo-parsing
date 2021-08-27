@@ -7,9 +7,10 @@ from collections import OrderedDict
 from string import whitespace
 
 from mo_future import unichr, is_text
+from mo_imports import export
 
 from mo_parsing.core import add_reset_action
-from mo_parsing.engine import Engine, PLAIN_ENGINE
+from mo_parsing.whitespaces import Whitespace, NO_WHITESPACE
 from mo_parsing.enhancement import (
     Char,
     NotAny,
@@ -96,7 +97,7 @@ def DEC():
 
 
 def name_token(tokens):
-    with PLAIN_ENGINE:
+    with NO_WHITESPACE:
         n = tokens["name"]
         v = tokens["value"]
         if not n:
@@ -108,26 +109,34 @@ def repeat(tokens):
     if tokens.length() == 1:
         return tokens.value()
 
-    operand, operator = tokens
+    try:
+        operand, operator = tokens
+    except Exception as cause:
+        Log.error("not expected", cause=cause)
+
     mode = operator["mode"]
     if not mode:
         if operator["exact"]:
-            return Many(operand, exact=int(operator["exact"]))
+            return Many(operand, NO_WHITESPACE, exact=int(operator["exact"]))
         else:
             return Many(
-                operand, min_match=int(operator["min"]), max_match=int(operator["max"])
+                operand,
+                NO_WHITESPACE,
+                min_match=int(operator["min"]),
+                max_match=int(operator["max"]),
             )
     elif mode in "*?":
-        return ZeroOrMore(operand)
+        return ZeroOrMore(operand, NO_WHITESPACE)
     elif mode in "+?":
-        return OneOrMore(operand)
+        return OneOrMore(operand, NO_WHITESPACE)
     elif mode == "?":
-        return Optional(operand)
+        return Optional(operand, NO_WHITESPACE)
     else:
         Log.error("not expected")
 
 
-PLAIN_ENGINE.use()
+NO_WHITESPACE.use()
+
 
 #########################################################################################
 # SQUARE BRACKETS
@@ -164,11 +173,11 @@ plainChar = Char(exclude=r"\]").addParseAction(lambda t: Literal(t.value()))
 
 escapedHexChar = Combine(
     (Literal("\\0x") | Literal("\\x") | Literal("\\X"))  # lookup literals is faster
-    + OneOrMore(Char(hexnums))
+    + OneOrMore(Char(hexnums), NO_WHITESPACE)
 ).addParseAction(hex_to_char)
 
 escapedOctChar = Combine(
-    Literal("\\0") + OneOrMore(Char("01234567"))
+    Literal("\\0") + OneOrMore(Char("01234567"), NO_WHITESPACE)
 ).addParseAction(lambda t: Literal(unichr(int(t.value()[2:], 8))))
 
 singleChar = escapedHexChar | escapedOctChar | escapedChar | plainChar
@@ -177,8 +186,8 @@ charRange = Group(singleChar("min") + "-" + singleChar("max")).addParseAction(to
 
 brackets = (
     "["
-    + Optional("^")("negate")
-    + OneOrMore(Group(charRange | singleChar | macro)("body"))
+    + Optional("^", NO_WHITESPACE)("negate")
+    + OneOrMore(Group(charRange | singleChar | macro)("body"), NO_WHITESPACE)
     + "]"
 ).addParseAction(to_bracket)
 
@@ -189,12 +198,12 @@ regex = Forward()
 line_start = Literal("^").addParseAction(lambda: LineStart())
 line_end = Literal("$").addParseAction(lambda: LineEnd())
 word_edge = Literal("\\b").addParseAction(lambda: NotAny(any_wordchar))
-simple_char = Word(printables, exclude=r".^$*+{}[]\|()").addParseAction(lambda t: Literal(t.value()))
-esc_char = (
-    "\\" + AnyChar()
-).addParseAction(lambda t: Literal(t.value()[1]))
+simple_char = Word(
+    printables, exclude=r".^$*+{}[]\|()"
+).addParseAction(lambda t: Literal(t.value()))
+esc_char = ("\\" + AnyChar()).addParseAction(lambda t: Literal(t.value()[1]))
 
-with Engine():
+with Whitespace():
     # ALLOW SPACES IN THE RANGE
     repetition = (
         Word(nums)("exact") + "}"
@@ -218,9 +227,21 @@ non_capture = ("(?:" + regex + ")").addParseAction(lambda t: t["value"])
 
 
 named = (
-    Literal("(?P<").addParseAction(INC) + Word(alphanums + "_")("name") + ">" + regex + ")"
-).addParseAction(name_token).addParseAction(DEC)
-group = (LB.addParseAction(INC) + regex + ")").addParseAction(name_token).addParseAction(DEC)
+    (
+        Literal("(?P<").addParseAction(INC)
+        + Word(alphanums + "_")("name")
+        + ">"
+        + regex
+        + ")"
+    )
+    .addParseAction(name_token)
+    .addParseAction(DEC)
+)
+group = (
+    (LB.addParseAction(INC) + regex + ")")
+    .addParseAction(name_token)
+    .addParseAction(DEC)
+)
 
 term = (
     macro
@@ -238,41 +259,20 @@ term = (
 )
 
 
-more = (term + Optional(repetition)).addParseAction(repeat)
-sequence = OneOrMore(more).addParseAction(lambda t: And(t))
+more = (term + Optional(repetition, NO_WHITESPACE)).addParseAction(repeat)
+sequence = OneOrMore(more, NO_WHITESPACE).addParseAction(lambda t: And(t, NO_WHITESPACE))
 regex << (
     delimitedList(sequence, separator="|")
     .set_token_name("value")
     .addParseAction(lambda t: MatchFirst(listwrap(t.value())).streamline())
     .streamline()
 )
-
-
-def srange(expr):
-    pattern = brackets.parseString(expr).value()
-    chars = set()
-
-    def drill(e):
-        if isinstance(e, Literal):
-            chars.add(e.parser_config.match)
-        elif isinstance(e, Char):
-            chars.update(c for c in e.parser_config.include)
-        elif isinstance(e, MatchFirst):
-            for ee in e.exprs:
-                drill(ee)
-        elif isinstance(e, And):
-            drill(e.exprs[0].expr)
-        else:
-            Log.error("logic error")
-
-    drill(pattern)
-    return "".join(sorted(chars))
-
+regex = regex.finalize()
 
 parameters = (
     "\\" + Char(alphanums)("name") | "\\g<" + Word(alphas, alphanums)("name") + ">"
 ).addParseAction(lambda t: t["name"])
-PLAIN_ENGINE.release()
+NO_WHITESPACE.release()
 
 
 class Regex(ParseEnhancement):
@@ -355,7 +355,7 @@ class Regex(ParseEnhancement):
     def streamline(self):
         # WE RUN THE DANGER OF MAKING PATHELOGICAL REGEX, SO WE DO NOT TRY
         if self.streamlined:
-           return self
+            return self
 
         expr = self.expr.streamline()
         if expr is self:
@@ -381,8 +381,4 @@ class Regex(ParseEnhancement):
 
 _plain_group = Group(None)
 
-
-from mo_parsing import core
-
-core.regex_parameters = parameters
-del core
+export("mo_parsing.core", "regex_parameters", parameters)

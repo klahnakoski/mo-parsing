@@ -6,4 +6,4 @@
 /*.tab#
 /mo_parsing/__pycache__
 /examples/*.tab
-/tests/__pycache__/*.pyc
+__pycache__

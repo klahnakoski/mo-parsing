@@ -6,13 +6,13 @@
 #
 # Copyright (c) 2006, 2016, Paul McGuire
 #
-from mo_logs import Log
 from mo_testing.fuzzytestcase import assertAlmostEqual
 from mo_threads import MAIN_THREAD
 from mo_times import Timer
 
 from mo_parsing import LineEnd
 from mo_parsing.helpers import makeHTMLTags, replaceHTMLEntity, commonHTMLEntity, htmlComment, anyOpenTag, anyCloseTag
+from mo_parsing.utils import Log
 
 scriptOpen, scriptClose = makeHTMLTags("script")
 scriptBody = scriptOpen + scriptOpen.tag_body + scriptClose

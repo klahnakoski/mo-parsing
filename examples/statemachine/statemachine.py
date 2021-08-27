@@ -10,7 +10,7 @@ import types
 import importlib
 from urllib.parse import urlparse
 from mo_parsing import *
-from mo_parsing.engine import Engine
+from mo_parsing.whitespaces import Whitespace
 
 DEBUG = False
 
@@ -22,7 +22,7 @@ class InvalidTransitionException(Exception):
     pass
 
 
-engine = Engine().use()
+whitespace = Whitespace().use()
 
 ident = Word(alphas + "_", alphanums + "_$")
 
@@ -342,7 +342,7 @@ class SuffixImporter:
         pass
 
 
-engine.add_ignore(pythonStyleComment)
+whitespace.add_ignore(pythonStyleComment)
 
 class PystateImporter(SuffixImporter):
     suffix = "pystate"
@@ -363,4 +363,4 @@ class PystateImporter(SuffixImporter):
 
 PystateImporter.register()
 
-engine.release()
+whitespace.release()

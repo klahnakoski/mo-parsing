@@ -1,13 +1,12 @@
 # encoding: utf-8
 import re
 import warnings
-from collections import Iterable
 
 from mo_dots import listwrap
-from mo_future import text
+from mo_future import text, Iterable
 from mo_imports import delay_import
 
-from mo_parsing import engine
+from mo_parsing import whitespaces
 from mo_parsing.enhancement import (
     Combine,
     Forward,
@@ -29,6 +28,7 @@ from mo_parsing.utils import regex_range, wrap_parse_action
 
 Regex = delay_import("mo_parsing.regex.Regex")
 
+
 def delimitedList(expr, separator=",", combine=False):
     """
     PARSE DELIMITED LIST OF expr
@@ -38,9 +38,9 @@ def delimitedList(expr, separator=",", combine=False):
         delimitedList(Word(hexnums), delim=':', combine=True).parseString("AA:BB:CC:DD:EE") # -> ['AA:BB:CC:DD:EE']
     """
     if combine:
-        return Combine(expr + ZeroOrMore(separator + expr))
+        return Combine(expr + ZeroOrMore(separator + expr, whitespaces.CURRENT))
     else:
-        return expr + ZeroOrMore(Suppress(separator) + expr)
+        return expr + ZeroOrMore(Suppress(separator) + expr, whitespaces.CURRENT)
 
 
 def oneOf(strs, caseless=False, asKeyword=False):
@@ -123,10 +123,12 @@ def oneOf(strs, caseless=False, asKeyword=False):
 
 LEFT_ASSOC = object()
 RIGHT_ASSOC = object()
-_no_op = Empty()
+_no_op = Empty().suppress()
 
 
-def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
+def infixNotation(
+    baseExpr, spec, lpar=Suppress(Literal("(")), rpar=Suppress(Literal(")"))
+):
     """
     :param baseExpr: expression representing the most basic element for the
        nested
@@ -144,11 +146,7 @@ def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
          or left associative, using the mo_parsing-defined constants
          ``RIGHT_ASSOC`` and ``LEFT_ASSOC``.
        - parseAction is the parse action to be associated with
-         expressions matching this operator expression (the parse action
-         tuple member may be omitted); if the parse action is passed
-         a tuple or list of functions, this is equivalent to calling
-         ``setParseAction(*fn)``
-         (`ParserElement.addParseAction`)
+         expressions matching this operator expression
     :param lpar: expression for matching left-parentheses
        (default= ``Suppress('(')``)
     :param rpar: expression for matching right-parentheses
@@ -168,7 +166,7 @@ def infixNotation(baseExpr, spec, lpar=Suppress("("), rpar=Suppress(")")):
         def record_self(tok):
             ParseResults(tok.type, tok.start, tok.end, [tok.type.parser_name])
 
-        output = engine.CURRENT.normalize(op)
+        output = whitespaces.CURRENT.normalize(op)
         is_suppressed = isinstance(output, Suppress)
         if is_suppressed:
             output = output.expr

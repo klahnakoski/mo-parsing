@@ -3,15 +3,20 @@ import re
 from collections import namedtuple
 
 from mo_future import is_text
+from mo_imports import expect, Expecting
 
+from mo_parsing.core import ParserElement
+from mo_parsing.results import ParseResults
 from mo_parsing.utils import Log, indent, quote, regex_range, alphanums, regex_iso
 
-ParserElement, Literal, Token = [None] * 3
+Literal, Token, Empty = expect("Literal", "Token", "Empty")
 
-CURRENT = None
+CURRENT = None  # THE CURRENT DEFINED WHITESPACE
+NO_WHITESPACE = None  # NOTHING IS WHITESPACE ENGINE
+STANDARD_WHITESPACE = None  # SIMPLE WHITESPACE
 
 
-class Engine:
+class Whitespace(ParserElement):
     def __init__(self, white=" \n\r\t"):
         self.literal = Literal
         self.keyword_chars = alphanums + "_$"
@@ -21,12 +26,26 @@ class Engine:
         self.content = None
         self.skips = {}
         self.regex = None
+        self.expr = None
         self.set_whitespace(white)
-        self.previous = None  # WE MAINTAIN A STACK OF ENGINES
+        self.previous = []  # WE MAINTAIN A STACK OF ENGINES
+
+    def copy(self):
+        output = Whitespace(self.white_chars)
+        output.literal = self.literal
+        output.keyword_chars = self.keyword_chars
+        output.ignore_list = self.ignore_list
+        output.debugActions = self.debugActions
+        output.all_exceptions = self.all_exceptions
+        output.content = None
+        output.skips = {}
+        output.regex = self.regex
+        output.expr = self.expr
+        return output
 
     def __enter__(self):
         global CURRENT
-        self.previous = CURRENT  # WE MAINTAIN A STACK OF ENGINES
+        self.previous.append(CURRENT)  # WE MAINTAIN A STACK OF ENGINES
         CURRENT = self
         return self
 
@@ -34,15 +53,14 @@ class Engine:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """
-        ENSURE self IS NOT CURRENT
+        REMOVE THIS WHITESPACE CONTEXT
         :return:
         """
         global CURRENT
         if not self.previous:
-            Log.error("expecting engine to be released just once")
+            Log.error("expecting whitespace to be released just once")
 
-        CURRENT = self.previous
-        self.previous = None
+        CURRENT = self.previous.pop()
 
     def release(self):
         self.__exit__(None, None, None)
@@ -75,6 +93,7 @@ class Engine:
     def set_whitespace(self, chars):
         self.white_chars = "".join(sorted(set(chars)))
         self.content = None
+        self.expr = None if isinstance(Empty, Expecting) else Empty()
         self.regex = re.compile(self.__regex__()[1])
 
     def add_ignore(self, *ignore_exprs):
@@ -86,11 +105,16 @@ class Engine:
             ignore_expr = ignore_expr.suppress()
             self.ignore_list.append(ignore_expr)
             self.content = None
+            self.expr = None if isinstance(Empty, Expecting) else Empty()
             self.regex = re.compile(self.__regex__()[1])
             return self
 
     def backup(self):
         return Backup(self)
+
+    def parseImpl(self, string, start, doActions=True):
+        end = self.skip(string, start)
+        return ParseResults(self.expr, start, end, [])
 
     def skip(self, string, start):
         if not self.ignore_list and not self.white_chars:
@@ -137,17 +161,17 @@ class Engine:
 
 
 class Backup(object):
-    def __init__(self, engine):
-        self.engine = engine
-        self.content = engine.content
-        self.skips = engine.skips
+    def __init__(self, whitespace):
+        self.whitespace = whitespace
+        self.content = whitespace.content
+        self.skips = whitespace.skips
 
     def __enter__(self):
         pass
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.engine.content = self.content
-        self.engine.skips = self.skips
+        self.whitespace.content = self.content
+        self.whitespace.skips = self.skips
 
 
 def noop(*args):
@@ -155,6 +179,3 @@ def noop(*args):
 
 
 DebugActions = namedtuple("DebugActions", ["TRY", "MATCH", "FAIL"])
-
-PLAIN_ENGINE = Engine("").use()
-Engine().use()

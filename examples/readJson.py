@@ -9,6 +9,7 @@
 # ~ response.close()
 
 # ~ print s
+from mo_testing.fuzzytestcase import assertAlmostEqual
 
 s = """
 {"phedex":{"request":[{"last_update":"1188037561", "numofapproved":"1",
@@ -1903,14 +1904,17 @@ from examples.jsonParser import jsonObject
 
 data = jsonObject.parseString(s)
 
-# ~ from pprint import pprint
-# ~ print( data[0] )
-# ~ print
-# ~ print data
+expected = [
+    {"last_update":"1188037561", "numofapproved":"1", "id":"7425"},
+    {"last_update":"1188751826", "numofapproved":"1", "id":"8041"},
+    {"last_update":"1190116795", "numofapproved":"1", "id":"9281"},
+    {"last_update":"1190248781", "numofapproved":"1","id":"9521"},
+    {"last_update":"1192615612", "numofapproved":"1","id":"12821"},
+    {"last_update":"1192729887", "numofapproved":"1","id":"13121"},
+    {"last_update":"1193152971", "numofapproved":"1","id":"13501"},
+    {"last_update":"1194022054", "numofapproved":"1","id":"14782"},
+    {"last_update":"1194429365", "numofapproved":"1","id":"15081"},
+    {"last_update":"1195069848", "numofapproved":"1","id":"16661"}
+]
 
-
-
-
-for req in data.phedex.request[:10]:
-    # ~ print req
-
+assertAlmostEqual(data['phedex']['request'], expected)

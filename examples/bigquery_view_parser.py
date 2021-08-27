@@ -8,7 +8,7 @@
 #
 
 from mo_parsing import *
-from mo_parsing.engine import Engine
+from mo_parsing.whitespaces import Whitespace
 from mo_parsing.helpers import restOfLine, cStyleComment, delimitedList, QuotedString
 from mo_parsing.infix import oneOf
 from mo_parsing.utils import Log, alphas, alphanums, nums
@@ -59,9 +59,9 @@ class BigQueryViewParser:
 
         # define comment format, and ignore them
         sql_comment = oneOf("-- #") + restOfLine | cStyleComment
-        engine = Engine().use()
-        engine.add_ignore(sql_comment)
-        # engine.set_debug_actions()
+        whitespace = Whitespace().use()
+        whitespace.add_ignore(sql_comment)
+        # whitespace.set_debug_actions()
 
         LPAR, RPAR, COMMA, LBRACKET, RBRACKET, LT, GT = map(Suppress, "(),[]<>")
         ungrouped_select_stmt = Forward().set_parser_name("select statement")
@@ -811,7 +811,7 @@ class BigQueryViewParser:
         ).set_parser_name("with clause")
         with_stmt << (WITH + delimitedList(with_clause))
 
-        engine.release()
+        whitespace.release()
         cls._parser = select_stmt
         return cls._parser
 

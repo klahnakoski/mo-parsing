@@ -14,7 +14,6 @@ skip_list = [
     "antlr_grammar",
     "booleansearchparser",
     "cLibHeader",
-    "cpp_enum_parser",
     "datetimeParseActions",
     "decaf_parser",
     "delta_time",
@@ -41,9 +40,7 @@ skip_list = [
     "pymicko",
     "pythonGrammarParser",
     "rangeCheck",
-    "readJson",
     "removeLineBreaks",
-    "rosettacode",
     "scanExamples",
     "searchParserAppDemo",
     "searchparser",
@@ -66,7 +63,7 @@ class TestAllExamples(unittest.TestCase):
 
 def _single_test(name):
     def output(self):
-        with Engine():
+        with Whitespace():
             import_module("examples." + name)
 
     return output

@@ -76,7 +76,7 @@ _prec = {"|": 0, "+": 1, "*": 2}
 def regex_compile(pattern):
     """REGEX COMPILE WITHOUT THE ON-A-SINGLE-LINE ASSUMPTION"""
     try:
-        return re.compile(pattern, re.MULTILINE | re.DOTALL)
+        return re.compile(pattern, re.DOTALL)
     except Exception as cause:
         Log.error("could not compile {{pattern}}", pattern=pattern, cause=cause)
 
@@ -110,22 +110,21 @@ _escapes = {"\n": "\\n", "\r": "\\r", "\t": "\\t"}
 _escapes.update({c: "\\" + c for c in r".^$*?+-{}[]\|()"})
 
 
-def regex_range(s):
+def regex_range(s, exclude=False):
     def esc(s):
-        r = re.escape(s)
-        o = _escapes.get(s, s)
-        if s not in "\t\r\n #~&" and r!=o:
-            Log.error("expecting same")
-        return o
+        return _escapes.get(s, s)
 
     if not s:
         return ""
     if len(s) == 1:
-        return esc(s)
+        if exclude:
+            return f"[^{esc(s)}]"
+        else:
+            return esc(s)
 
     start = None
     prev = None
-    acc = ["["]
+    acc = ["[^"] if exclude else ["["]
     for c in list(sorted(set(s))) + ["\a"]:
         if prev and ord(prev) == ord(c) - 1:
             if not start:
@@ -238,11 +237,16 @@ builtin_lookup = {"".join.__name__: ("iterable",)}
 def is_forward(expr):
     return expr.__class__.__name__ == "Forward"
 
+
 def is_backtracking(expr):
     """
     RETURN true IF THIS CAN BE EXPENSIVE BACKTRACKER
     """
-    return isinstance(expr, Many) and expr.parser_config.max_match - expr.parser_config.min_match > 3
+    return (
+        isinstance(expr, Many)
+        and expr.parser_config.max_match - expr.parser_config.min_match > 3
+    )
+
 
 def forward_type(expr):
     """
