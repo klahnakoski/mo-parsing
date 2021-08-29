@@ -126,7 +126,7 @@ class TestSimpleSQL(TestCase):
 
         with Debugger() as d:
             combined_ident.parseString("testing")
-            self.assertLess(d.count, 7)
+            self.assertLess(d.parse_count, 7)
 
     def test_word_has_expecting(self):
         expect = Word(alphanums).expecting()

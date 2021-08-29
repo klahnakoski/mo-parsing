@@ -166,9 +166,7 @@ class And(ParseExpression):
                     tmp.append(expr)
             exprs[:] = tmp
         super(And, self).__init__(exprs)
-        self.set_config(
-            whitespace=whitespace or whitespaces.CURRENT
-        )
+        self.set_config(whitespace=whitespace or whitespaces.CURRENT)
 
     def streamline(self):
         if self.streamlined:
@@ -279,7 +277,9 @@ class And(ParseExpression):
         if other is Ellipsis:
             return _PendingSkip(self)
 
-        return And([self, whitespaces.CURRENT.normalize(other)], whitespaces.CURRENT).streamline()
+        return And(
+            [self, whitespaces.CURRENT.normalize(other)], whitespaces.CURRENT
+        ).streamline()
 
     def checkRecursion(self, seen=empty_tuple):
         subRecCheckList = seen + (self,)
@@ -299,7 +299,10 @@ class And(ParseExpression):
         if all(len(s) == 1 for s in subs):
             return "".join(subs)
         else:
-            return " + ".join("{" + text(e) + "}" if isinstance(e, MatchFirst) else text(e) for e in self.exprs)
+            return " + ".join(
+                "{" + text(e) + "}" if isinstance(e, MatchFirst) else text(e)
+                for e in self.exprs
+            )
 
 
 class Or(ParseExpression):

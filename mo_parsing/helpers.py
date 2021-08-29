@@ -678,7 +678,7 @@ def indentedBlock(blockStatementExpr, indent=True):
     PEER = Forward()
     DEDENT = Forward()
 
-    def _reset_stack(p=None, l=None, s=None, ex=None):
+    def _reset_stack(t=None, i=None, s=None, c=None):
         oldCol, oldPeer, oldDedent = _indent_stack.pop()
         PEER << oldPeer
         DEDENT << oldDedent
@@ -690,7 +690,7 @@ def indentedBlock(blockStatementExpr, indent=True):
             curCol = col(l, s)
             if curCol != expectedCol:
                 if curCol > expectedCol:
-                    raise ParseException(t.type, s, l, "illegal nesting")
+                    raise ParseException(t.type, l, s, "illegal nesting")
                 raise ParseException(t.type, l, s, "not a peer entry")
 
         return output
@@ -725,7 +725,7 @@ def indentedBlock(blockStatementExpr, indent=True):
             DEDENT << Empty().addParseAction(dedent_stack(curCol))
             _indent_stack.append((curCol, PEER, DEDENT))
         else:
-            raise ParseException(t.type, s, l, "not a subentry")
+            raise ParseException(t.type, l, s, "not a subentry")
 
     ignore_list = whitespaces.CURRENT.ignore_list
     with Whitespace(whitespaces.CURRENT.white_chars) as e:

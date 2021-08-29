@@ -260,7 +260,9 @@ term = (
 
 
 more = (term + Optional(repetition, NO_WHITESPACE)).addParseAction(repeat)
-sequence = OneOrMore(more, NO_WHITESPACE).addParseAction(lambda t: And(t, NO_WHITESPACE))
+sequence = OneOrMore(more, NO_WHITESPACE).addParseAction(lambda t: And(
+    t, NO_WHITESPACE
+))
 regex << (
     delimitedList(sequence, separator="|")
     .set_token_name("value")

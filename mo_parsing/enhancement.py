@@ -213,10 +213,18 @@ class NotAny(LookAhead):
 
 class Many(ParseEnhancement):
     __slots__ = []
-    Config = append_config(ParseEnhancement, "whitespace", "min_match", "max_match", "end")
+    Config = append_config(
+        ParseEnhancement, "whitespace", "min_match", "max_match", "end"
+    )
 
     def __init__(
-        self, expr, whitespace=None, stopOn=None, min_match=0, max_match=MAX_INT, exact=None
+        self,
+        expr,
+        whitespace=None,
+        stopOn=None,
+        min_match=0,
+        max_match=MAX_INT,
+        exact=None,
     ):
         """
         MATCH expr SOME NUMBER OF TIMES (OR UNTIL stopOn IS REACHED
@@ -523,7 +531,9 @@ class SkipTo(ParseEnhancement):
                     try:
                         loc = ignore._parse(string, loc).end
                         skip_end = loc
-                        loc = before_end = self.parser_config.whitespace.skip(string, loc)
+                        loc = before_end = self.parser_config.whitespace.skip(
+                            string, loc
+                        )
                     except ParseException:
                         break
             try:
@@ -771,6 +781,7 @@ class Combine(TokenConverter):
 
     def __str__(self):
         return text(self.expr)
+
 
 class Group(TokenConverter):
     """

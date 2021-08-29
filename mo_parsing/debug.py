@@ -1,5 +1,9 @@
 # encoding: utf-8
+import inspect
+import sys
+
 from mo_future import text
+from mo_logs.exceptions import get_stacktrace
 
 from mo_parsing.core import ParserElement
 from mo_parsing.utils import (
@@ -7,7 +11,8 @@ from mo_parsing.utils import (
     lineno,
     col,
     stack_depth,
-    quote as plain_quote, Log,
+    quote as plain_quote,
+    Log,
 )
 
 DEBUGGING = False
@@ -17,7 +22,8 @@ class Debugger(object):
     def __init__(self):
         self.previous_parse = None
         self.was_debugging = False
-        self.count = 0
+        self.parse_count = 0
+        self.max_stack_depth = 0
 
     def __enter__(self):
         global DEBUGGING
@@ -38,7 +44,8 @@ def _debug_parse(debugger):
         _try(self, start, string)
         loc = start
         try:
-            debugger.count += 1
+            debugger.parse_count += 1
+            debugger.max_stack_depth = stackdepth()
             tokens = self.parseImpl(string, loc, doActions)
         except Exception as cause:
             self.parser_config.failAction and self.parser_config.failAction(
@@ -57,6 +64,7 @@ def _debug_parse(debugger):
         match(self, loc, tokens.end, string, tokens)
 
         return tokens
+
     return debug_parse
 
 
@@ -93,3 +101,15 @@ def fail(expr, start, string, cause):
 
 def quote(value, start=0, length=12):
     return (plain_quote(value[start : start + length - 2]) + (" " * length))[:length]
+
+
+def stackdepth():
+    """
+    return depth of stack at call point
+    """
+    frame = sys._getframe(1)
+    depth = 0
+    while frame:
+        depth += 1
+        frame = frame.f_back
+    return depth

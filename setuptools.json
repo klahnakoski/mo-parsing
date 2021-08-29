@@ -48,7 +48,7 @@
             "",
             "### The `Whitespace` Skipper",
             "",
-            "The `mo_parsing.engines.CURRENT` is used during parser creation: It is effectively defines \"whitespace\" for skipping, with additional features to simplify the language definition.  You declare \"standard\" `Whitespace` like so:",
+            "The `mo_parsing.whitespaces.CURRENT` is used during parser creation: It is effectively defines \"whitespace\" for skipping, with additional features to simplify the language definition.  You declare \"standard\" `Whitespace` like so:",
             "",
             "    with Whitespace() as whitespace:",
             "        # PUT YOUR LANGUAGE DEFINITION HERE (space, tab and CR are \"whitespace\")",

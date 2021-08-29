@@ -91,11 +91,13 @@ class Parser(object):
                 if not engs:
                     break
                 whitespace = engs[0]
-                if any(e is not whitespace for e in engs[1:]):
+                if any(e.id != whitespace.id for e in engs[1:]):
                     Log.error("must dis-ambiguate the whitespace before parsing")
                 engs = whitespace
 
-            self.whitespace = engs or whitespaces.CURRENT or whitespaces.STANDARD_WHITESPACE
+            self.whitespace = (
+                engs or whitespaces.CURRENT or whitespaces.STANDARD_WHITESPACE
+            )
         except Exception as cause:
             Log.error("problem", cause=cause)
 
@@ -152,7 +154,12 @@ class Parser(object):
         :param overlap: IF MATCHES CAN OVERLAP
         :return: SEQUENCE OF ParseResults, start, end
         """
-        return ((t.tokens[0], s, e) for t, s, e in self._scanString(string, maxMatches=maxMatches, overlap=overlap))
+        return (
+            (t.tokens[0], s, e)
+            for t, s, e in self._scanString(
+                string, maxMatches=maxMatches, overlap=overlap
+            )
+        )
 
     def _scanString(self, string, maxMatches=MAX_INT, overlap=False):
         instrlen = len(string)
@@ -263,7 +270,6 @@ class Parser(object):
                 yield t.tokens[0]
             last = e
         yield string[last:]
-
 
 
 class ParserElement(object):
@@ -450,7 +456,9 @@ class ParserElement(object):
         return self.finalize().parseString(string, parseAll)
 
     def scanString(self, string, maxMatches=MAX_INT, overlap=False):
-        return self.finalize().scanString(string, maxMatches=maxMatches, overlap=overlap)
+        return (
+            self.finalize().scanString(string, maxMatches=maxMatches, overlap=overlap)
+        )
 
     def transformString(self, string):
         return self.finalize().transformString(string)
@@ -459,8 +467,10 @@ class ParserElement(object):
         return self.finalize().searchString(string, maxMatches=maxMatches)
 
     def split(self, string, maxsplit=MAX_INT, includeSeparators=False):
-        return self.finalize().split(
-            string, maxsplit=maxsplit, includeSeparators=includeSeparators
+        return (
+            self
+            .finalize()
+            .split(string, maxsplit=maxsplit, includeSeparators=includeSeparators)
         )
 
     def replace_with(self, replacement):
@@ -496,7 +506,9 @@ class ParserElement(object):
         if other is Ellipsis:
             return _PendingSkip(self)
 
-        return And([self, whitespaces.CURRENT.normalize(other)], whitespaces.CURRENT).streamline()
+        return And(
+            [self, whitespaces.CURRENT.normalize(other)], whitespaces.CURRENT
+        ).streamline()
 
     def __radd__(self, other):
         """
@@ -607,7 +619,9 @@ class ParserElement(object):
         """
         Implementation of & operator - returns `Each`
         """
-        return MatchAll([self, whitespaces.CURRENT.normalize(other)], whitespaces.CURRENT)
+        return MatchAll(
+            [self, whitespaces.CURRENT.normalize(other)], whitespaces.CURRENT
+        )
 
     def __rand__(self, other):
         """

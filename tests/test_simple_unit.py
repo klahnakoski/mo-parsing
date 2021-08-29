@@ -15,6 +15,7 @@ from unittest import TestCase
 from mo_testing.fuzzytestcase import FuzzyTestCase
 
 from mo_parsing import *
+from mo_parsing.debug import Debugger
 from mo_parsing.helpers import *
 from mo_parsing.infix import oneOf
 from mo_parsing.utils import *
@@ -337,7 +338,7 @@ class TestRepetition(PyparsingExpressionTestCase):
         )
 
     def test_many_with_stopper(self):
-        expr = Many("x", stopOn="y", whitespace=whitespaces.CURRENT).streamline()
+        expr = Many("x", stopOn="y").streamline()
         result = expr.parseString("xxxxy")
         expecting = "xxxx"
         self.assertEqual(result, expecting)
