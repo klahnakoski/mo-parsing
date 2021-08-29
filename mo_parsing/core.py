@@ -641,8 +641,6 @@ class ParserElement(object):
         """
         output = self.copy()
         output.token_name = name
-        if not output.parser_name:
-            output.parser_name = name
         return output
 
     def suppress(self):

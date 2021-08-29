@@ -8,8 +8,7 @@ from mo_imports import export
 
 from mo_parsing import whitespaces
 from mo_parsing.core import ParserElement, _PendingSkip
-from mo_parsing.whitespaces import Whitespace
-from mo_parsing.enhancement import Optional, SkipTo, Many, Suppress
+from mo_parsing.enhancement import Optional, SkipTo, Many
 from mo_parsing.exceptions import (
     ParseException,
     ParseSyntaxException,
@@ -25,8 +24,9 @@ from mo_parsing.utils import (
     regex_caseless,
     regex_compile,
 )
+from mo_parsing.whitespaces import Whitespace
 
-LOOKUP_COST = 5
+LOOKUP_COST = 4
 
 
 class ParseExpression(ParserElement):
@@ -295,7 +295,11 @@ class And(ParseExpression):
         if self.parser_name:
             return self.parser_name
 
-        return "{" + " + ".join(text(e) for e in self.exprs) + "}"
+        subs = [text(e) for e in self.exprs]
+        if all(len(s) == 1 for s in subs):
+            return "".join(subs)
+        else:
+            return " + ".join("{" + text(e) + "}" if isinstance(e, MatchFirst) else text(e) for e in self.exprs)
 
 
 class Or(ParseExpression):

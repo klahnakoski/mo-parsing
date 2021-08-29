@@ -17,13 +17,15 @@ class Debugger(object):
     def __init__(self):
         self.previous_parse = None
         self.was_debugging = False
+        self.count = 0
 
     def __enter__(self):
         global DEBUGGING
         self.was_debugging = DEBUGGING
         DEBUGGING = True
         self.previous_parse = ParserElement._parse
-        ParserElement._parse = _debug_parse
+        ParserElement._parse = _debug_parse(self)
+        return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         global DEBUGGING
@@ -31,28 +33,31 @@ class Debugger(object):
         DEBUGGING = self.was_debugging
 
 
-def _debug_parse(self, string, start, doActions=True):
-    _try(self, start, string)
-    loc = start
-    try:
-        tokens = self.parseImpl(string, loc, doActions)
-    except Exception as cause:
-        self.parser_config.failAction and self.parser_config.failAction(
-            self, start, string, cause
-        )
-        fail(self, start, string, cause)
-        raise
-
-    if self.parseAction and (doActions or self.parser_config.callDuringTry):
+def _debug_parse(debugger):
+    def debug_parse(self, string, start, doActions=True):
+        _try(self, start, string)
+        loc = start
         try:
-            for fn in self.parseAction:
-                tokens = fn(tokens, start, string)
+            debugger.count += 1
+            tokens = self.parseImpl(string, loc, doActions)
         except Exception as cause:
+            self.parser_config.failAction and self.parser_config.failAction(
+                self, start, string, cause
+            )
             fail(self, start, string, cause)
             raise
-    match(self, loc, tokens.end, string, tokens)
 
-    return tokens
+        if self.parseAction and (doActions or self.parser_config.callDuringTry):
+            try:
+                for fn in self.parseAction:
+                    tokens = fn(tokens, start, string)
+            except Exception as cause:
+                fail(self, start, string, cause)
+                raise
+        match(self, loc, tokens.end, string, tokens)
+
+        return tokens
+    return debug_parse
 
 
 def _try(expr, start, string):

@@ -406,7 +406,7 @@ class OneOrMore(Many):
     def __str__(self):
         if self.parser_name:
             return self.parser_name
-        return "{" + text(self.expr) + "}..."
+        return "{" + text(self.expr) + "}+"
 
 
 class ZeroOrMore(Many):
@@ -438,7 +438,7 @@ class ZeroOrMore(Many):
         if self.parser_name:
             return self.parser_name
 
-        return "[" + text(self.expr) + "]..."
+        return "(" + text(self.expr) + ")*"
 
 
 class Optional(Many):
@@ -618,7 +618,10 @@ class Forward(ParserElement):
 
         while is_forward(other):
             other = other.expr
-        self.expr = whitespaces.CURRENT.normalize(other).streamline()
+        norm = whitespaces.CURRENT.normalize(other)
+        if norm is None:
+            Log.error("problem")
+        self.expr = norm.streamline()
         self.checkRecursion()
         return self
 
@@ -766,6 +769,8 @@ class Combine(TokenConverter):
     def __regex__(self):
         return self.expr.__regex__()
 
+    def __str__(self):
+        return text(self.expr)
 
 class Group(TokenConverter):
     """
