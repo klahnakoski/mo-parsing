@@ -1,5 +1,9 @@
 # encoding: utf-8
+import inspect
+import sys
+
 from mo_future import text
+from mo_logs.exceptions import get_stacktrace
 
 from mo_parsing.core import ParserElement
 from mo_parsing.utils import (
@@ -7,7 +11,8 @@ from mo_parsing.utils import (
     lineno,
     col,
     stack_depth,
-    quote as plain_quote, Log,
+    quote as plain_quote,
+    Log,
 )
 
 DEBUGGING = False
@@ -17,13 +22,16 @@ class Debugger(object):
     def __init__(self):
         self.previous_parse = None
         self.was_debugging = False
+        self.parse_count = 0
+        self.max_stack_depth = 0
 
     def __enter__(self):
         global DEBUGGING
         self.was_debugging = DEBUGGING
         DEBUGGING = True
         self.previous_parse = ParserElement._parse
-        ParserElement._parse = _debug_parse
+        ParserElement._parse = _debug_parse(self)
+        return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         global DEBUGGING
@@ -31,28 +39,33 @@ class Debugger(object):
         DEBUGGING = self.was_debugging
 
 
-def _debug_parse(self, string, start, doActions=True):
-    _try(self, start, string)
-    loc = start
-    try:
-        tokens = self.parseImpl(string, loc, doActions)
-    except Exception as cause:
-        self.parser_config.failAction and self.parser_config.failAction(
-            self, start, string, cause
-        )
-        fail(self, start, string, cause)
-        raise
-
-    if self.parseAction and (doActions or self.parser_config.callDuringTry):
+def _debug_parse(debugger):
+    def debug_parse(self, string, start, doActions=True):
+        _try(self, start, string)
+        loc = start
         try:
-            for fn in self.parseAction:
-                tokens = fn(tokens, start, string)
+            debugger.parse_count += 1
+            debugger.max_stack_depth = stackdepth()
+            tokens = self.parseImpl(string, loc, doActions)
         except Exception as cause:
+            self.parser_config.failAction and self.parser_config.failAction(
+                self, start, string, cause
+            )
             fail(self, start, string, cause)
             raise
-    match(self, loc, tokens.end, string, tokens)
 
-    return tokens
+        if self.parseAction and (doActions or self.parser_config.callDuringTry):
+            try:
+                for fn in self.parseAction:
+                    tokens = fn(tokens, start, string)
+            except Exception as cause:
+                fail(self, start, string, cause)
+                raise
+        match(self, loc, tokens.end, string, tokens)
+
+        return tokens
+
+    return debug_parse
 
 
 def _try(expr, start, string):
@@ -88,3 +101,15 @@ def fail(expr, start, string, cause):
 
 def quote(value, start=0, length=12):
     return (plain_quote(value[start : start + length - 2]) + (" " * length))[:length]
+
+
+def stackdepth():
+    """
+    return depth of stack at call point
+    """
+    frame = sys._getframe(1)
+    depth = 0
+    while frame:
+        depth += 1
+        frame = frame.f_back
+    return depth

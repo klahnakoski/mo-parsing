@@ -1,13 +1,10 @@
 # encoding: utf-8
 import json
-from functools import wraps
-
-from mo_dots import coalesce
 from mo_future import text, is_text
 from mo_imports import export
 
 from mo_parsing.utils import Log, listwrap, quote, indent
-from mo_parsing.utils import wrap_parse_action, col, line, lineno
+from mo_parsing.utils import col, line, lineno
 
 
 class ParseException(Exception):
@@ -15,7 +12,7 @@ class ParseException(Exception):
 
     # Performance tuning: we construct a *lot* of these, so keep this
     # constructor as small and fast as possible
-    __slots__ = []
+    __slots__ = ["expr", "start", "string", "unsorted_cause", "_msg", "_causes"]
 
     def __init__(self, expr, start, string, msg="", cause=None):
         if not isinstance(string, str):
@@ -23,8 +20,8 @@ class ParseException(Exception):
         self.expr = expr
         self.start = start
         self.string = string
-        self._msg = msg
         self.unsorted_cause = cause
+        self._msg = msg
         self._causes = None
 
     @property
@@ -32,7 +29,7 @@ class ParseException(Exception):
         if self._causes is None:
             self._causes = list(sorted(
                 listwrap(self.unsorted_cause),
-                key=lambda e: -e.loc if isinstance(e, ParseException) else 0,
+                key=lambda e: -e.start if isinstance(e, ParseException) else 0,
             ))
         return self._causes
 

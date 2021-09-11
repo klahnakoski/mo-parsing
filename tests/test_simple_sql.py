@@ -5,8 +5,9 @@ from unittest import TestCase
 from mo_parsing import (
     CaselessLiteral,
     Group,
-    Word,
+    Word, Regex,
 )
+from mo_parsing.debug import Debugger
 from mo_parsing.helpers import (
     number,
     hex_integer,
@@ -115,3 +116,18 @@ class TestSimpleSQL(TestCase):
             12345678-1234-5678-1234-567812345678
             """,
         )
+
+    def test_faster(self):
+        ansi_ident = Regex(r'\"(\"\"|[^"])*\"')
+        mysql_backtick_ident = Regex(r"\`(\`\`|[^`])*\`")
+        sqlserver_ident = Regex(r"\[(\]\]|[^\]])*\]")
+
+        combined_ident = ansi_ident | mysql_backtick_ident | sqlserver_ident | Word(alphanums)
+
+        with Debugger() as d:
+            combined_ident.parseString("testing")
+            self.assertLess(d.parse_count, 7)
+
+    def test_word_has_expecting(self):
+        expect = Word(alphanums).expecting()
+        self.assertEqual(expect, {})

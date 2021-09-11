@@ -365,8 +365,11 @@ class Word(Token):
     def min_length(self):
         return self.parser_config.min
 
-    # def expecting(self):
-    #     return OrderedDict((c, [self]) for c in self.parser_config.init_chars)
+    def expecting(self):
+        if len(self.parser_config.init_chars) < 11:
+            return {c: [self] for c in self.parser_config.init_chars}
+        else:
+            return {}
 
     def __regex__(self):
         return "+", self.regex.pattern

@@ -14,10 +14,12 @@ Literal, Token, Empty = expect("Literal", "Token", "Empty")
 CURRENT = None  # THE CURRENT DEFINED WHITESPACE
 NO_WHITESPACE = None  # NOTHING IS WHITESPACE ENGINE
 STANDARD_WHITESPACE = None  # SIMPLE WHITESPACE
+whitespace_stack = []
 
 
 class Whitespace(ParserElement):
     def __init__(self, white=" \n\r\t"):
+        self.id = id(self)
         self.literal = Literal
         self.keyword_chars = alphanums + "_$"
         self.ignore_list = []
@@ -28,26 +30,32 @@ class Whitespace(ParserElement):
         self.regex = None
         self.expr = None
         self.set_whitespace(white)
-        self.previous = []  # WE MAINTAIN A STACK OF ENGINES
+        self.parent = None
+        self.copies = []
 
     def copy(self):
         output = Whitespace(self.white_chars)
+        output.id = self.id
         output.literal = self.literal
         output.keyword_chars = self.keyword_chars
-        output.ignore_list = self.ignore_list
+        output.ignore_list = list(self.ignore_list)
         output.debugActions = self.debugActions
         output.all_exceptions = self.all_exceptions
         output.content = None
         output.skips = {}
         output.regex = self.regex
         output.expr = self.expr
+        output.parent = self
+        output.copies = []
         return output
 
     def __enter__(self):
         global CURRENT
-        self.previous.append(CURRENT)  # WE MAINTAIN A STACK OF ENGINES
-        CURRENT = self
-        return self
+
+        whitespace_stack.append(CURRENT)
+        CURRENT = new_whitespace = self.copy()
+        self.copies.append(new_whitespace)
+        return new_whitespace
 
     use = __enter__
 
@@ -57,10 +65,17 @@ class Whitespace(ParserElement):
         :return:
         """
         global CURRENT
-        if not self.previous:
-            Log.error("expecting whitespace to be released just once")
+        if self.copies and self.copies[-1] is CURRENT:
+            self.copies.pop()
+            CURRENT = whitespace_stack.pop()
+            return
 
-        CURRENT = self.previous.pop()
+        if self.parent:
+            self.parent.__exit__(exc_type, exc_val, exc_tb)
+            self.parent = None
+            return
+
+        Log.error("Released wrong whitespace")
 
     def release(self):
         self.__exit__(None, None, None)
@@ -85,12 +100,15 @@ class Whitespace(ParserElement):
         es.append(exc)
 
     def set_literal(self, literal):
+        self.id = id(self)
         self.literal = literal
 
     def set_keyword_chars(self, chars):
+        self.id = id(self)
         self.keyword_chars = "".join(sorted(set(chars)))
 
     def set_whitespace(self, chars):
+        self.id = id(self)
         self.white_chars = "".join(sorted(set(chars)))
         self.content = None
         self.expr = None if isinstance(Empty, Expecting) else Empty()
@@ -101,6 +119,7 @@ class Whitespace(ParserElement):
         ADD TO THE LIST OF IGNORED EXPRESSIONS
         :param ignore_expr:
         """
+        self.id = id(self)
         for ignore_expr in ignore_exprs:
             ignore_expr = ignore_expr.suppress()
             self.ignore_list.append(ignore_expr)
@@ -117,6 +136,9 @@ class Whitespace(ParserElement):
         return ParseResults(self.expr, start, end, [])
 
     def skip(self, string, start):
+        """
+        :return: next non-whitespace position
+        """
         if not self.ignore_list and not self.white_chars:
             return start
         if string is self.content:

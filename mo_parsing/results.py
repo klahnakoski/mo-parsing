@@ -3,7 +3,7 @@ import inspect
 
 from mo_dots import is_many, is_null
 from mo_future import is_text, text, NEXT, zip_longest, MutableMapping
-from mo_imports import expect
+from mo_imports import expect, export
 
 from mo_parsing.utils import Log, listwrap
 from mo_parsing.utils import is_forward, forward_type
@@ -342,7 +342,7 @@ class ParseResults(object):
     def __radd__(self, other):
         if not other:  # happens when using sum() on parsers
             return self
-        other = engines.CURRENT.normalize(other)
+        other = whitespaces.CURRENT.normalize(other)
         return other + self
 
     def __repr__(self):
@@ -518,3 +518,5 @@ class Annotation(ParseResults):
 
 
 MutableMapping.register(ParseResults)
+
+export("mo_parsing.utils", ParseResults)

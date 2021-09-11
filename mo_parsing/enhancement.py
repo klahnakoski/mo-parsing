@@ -213,10 +213,18 @@ class NotAny(LookAhead):
 
 class Many(ParseEnhancement):
     __slots__ = []
-    Config = append_config(ParseEnhancement, "whitespace", "min_match", "max_match", "end")
+    Config = append_config(
+        ParseEnhancement, "whitespace", "min_match", "max_match", "end"
+    )
 
     def __init__(
-        self, expr, whitespace=None, stopOn=None, min_match=0, max_match=MAX_INT, exact=None
+        self,
+        expr,
+        whitespace=None,
+        stopOn=None,
+        min_match=0,
+        max_match=MAX_INT,
+        exact=None,
     ):
         """
         MATCH expr SOME NUMBER OF TIMES (OR UNTIL stopOn IS REACHED
@@ -406,7 +414,7 @@ class OneOrMore(Many):
     def __str__(self):
         if self.parser_name:
             return self.parser_name
-        return "{" + text(self.expr) + "}..."
+        return "{" + text(self.expr) + "}+"
 
 
 class ZeroOrMore(Many):
@@ -438,7 +446,7 @@ class ZeroOrMore(Many):
         if self.parser_name:
             return self.parser_name
 
-        return "[" + text(self.expr) + "]..."
+        return "(" + text(self.expr) + ")*"
 
 
 class Optional(Many):
@@ -523,7 +531,9 @@ class SkipTo(ParseEnhancement):
                     try:
                         loc = ignore._parse(string, loc).end
                         skip_end = loc
-                        loc = before_end = self.parser_config.whitespace.skip(string, loc)
+                        loc = before_end = self.parser_config.whitespace.skip(
+                            string, loc
+                        )
                     except ParseException:
                         break
             try:
@@ -618,7 +628,10 @@ class Forward(ParserElement):
 
         while is_forward(other):
             other = other.expr
-        self.expr = whitespaces.CURRENT.normalize(other).streamline()
+        norm = whitespaces.CURRENT.normalize(other)
+        if norm is None:
+            Log.error("problem")
+        self.expr = norm.streamline()
         self.checkRecursion()
         return self
 
@@ -765,6 +778,9 @@ class Combine(TokenConverter):
 
     def __regex__(self):
         return self.expr.__regex__()
+
+    def __str__(self):
+        return text(self.expr)
 
 
 class Group(TokenConverter):

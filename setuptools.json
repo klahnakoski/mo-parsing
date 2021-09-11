@@ -9,6 +9,7 @@
         "Topic :: Software Development :: Libraries :: Python Modules"
     ],
     "description": "Another PEG Parsing Tool",
+    "extras_require": {"tests": ["mo-testing", "mo-threads", "mo-logs", "mo-files"]},
     "install_requires": ["mo-dots==5.22.21182", "mo-future==5.17.21182"],
     "license": "MIT",
     "long_description": {
@@ -48,7 +49,7 @@
             "",
             "### The `Whitespace` Skipper",
             "",
-            "The `mo_parsing.engines.CURRENT` is used during parser creation: It is effectively defines \"whitespace\" for skipping, with additional features to simplify the language definition.  You declare \"standard\" `Whitespace` like so:",
+            "The `mo_parsing.whitespaces.CURRENT` is used during parser creation: It is effectively defines \"whitespace\" for skipping, with additional features to simplify the language definition.  You declare \"standard\" `Whitespace` like so:",
             "",
             "    with Whitespace() as whitespace:",
             "        # PUT YOUR LANGUAGE DEFINITION HERE (space, tab and CR are \"whitespace\")",
@@ -114,5 +115,5 @@
     "name": "mo-parsing",
     "packages": ["mo_parsing"],
     "url": "https://github.com/klahnakoski/mo-parsing",
-    "version": "5.40.21239"
+    "version": "5.54.21254"
 }

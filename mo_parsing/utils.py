@@ -15,8 +15,7 @@ from mo_dots import is_null, Null
 from mo_future import unichr, text, generator_types, get_function_name
 from mo_imports import expect
 
-ParseException = expect("ParseException")
-Many = expect("Many")
+ParseResults, ParseException, Many = expect("ParseResults", "ParseException", "Many")
 
 
 def append_config(base, *slots):
@@ -346,9 +345,6 @@ def line(loc, string):
 
 
 def wrap_parse_action(func):
-    from mo_parsing.exceptions import ParseException
-    from mo_parsing.results import ParseResults
-
     if func in singleArgBuiltins:
         spec = inspect.getfullargspec(func)
     elif func.__class__.__name__ == "staticmethod":
@@ -372,8 +368,8 @@ def wrap_parse_action(func):
         num_args = len(spec.args)
 
     def wrapper(*args):
-        token, index, string = args
         try:
+            token, index, string = args
             result = func(*args[:num_args])
             if result is None:
                 return token
