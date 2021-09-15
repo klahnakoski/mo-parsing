@@ -37,6 +37,7 @@ skip_list = [
     "partial_gene_match",
     "pgn",
     "protobuf_parser",
+    "pymicko",
     "pythonGrammarParser",
     "rangeCheck",
     "removeLineBreaks",
