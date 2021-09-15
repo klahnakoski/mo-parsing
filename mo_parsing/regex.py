@@ -2,7 +2,7 @@
 
 # UNDER THE MIT LICENSE
 #
-# Contact: kyle@lahnakoski.comd
+# Contact: kyle@lahnakoski.com
 from collections import OrderedDict
 from string import whitespace
 
