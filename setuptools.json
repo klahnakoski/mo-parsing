@@ -115,5 +115,5 @@
     "name": "mo-parsing",
     "packages": ["mo_parsing"],
     "url": "https://github.com/klahnakoski/mo-parsing",
-    "version": "5.54.21254"
+    "version": "5.55.21258"
 }
