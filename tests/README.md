@@ -2,7 +2,7 @@
 
 After forking the mo-parsing repo, and cloning your fork locally, install the libraries needed to run tests
 
-If you are interested in anhancing or extending this code: |First verify the code passes tests 
+If you are interested in enhancing or extending this code: First verify the code passes tests 
      
 For __Linux__:
 

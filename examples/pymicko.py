@@ -16,15 +16,21 @@
 #    GNU General Public License for more details.
 #
 #    A copy of the GNU General Public License can be found at <https://www.gnu.org/licenses/>.
-
 from mo_parsing import *
-from sys import stdin, argv, exit
+from mo_parsing.debug import Debugger
+from mo_parsing.helpers import delimitedList, cStyleComment
+from mo_parsing.infix import oneOf
+from mo_parsing.utils import lineno, col, line, alphas, alphanums, nums
+from mo_parsing.whitespaces import STANDARD_WHITESPACE
+
+ParserElement.setParseAction = ParserElement.addParseAction
 
 # defines debug level
 # 0 - no debug
 # 1 - print parsing results
 # 2 - print parsing results and symbol table
 # 3 - print parsing results only, without executing parse actions (grammar-only testing)
+
 DEBUG = 0
 
 ##########################################################################################
@@ -204,12 +210,12 @@ DEBUG = 0
 ##########################################################################################
 ##########################################################################################
 
-
 class Enumerate(dict):
     """C enum emulation (original by Scott David Daniels)"""
 
     def __init__(self, names):
-        for number, name in enumerate(names.split()):
+        for name in names.split():
+            number = name.lower()
             setattr(self, name, number)
             self[number] = name
 
@@ -568,7 +574,7 @@ class SymbolTable:
                 self.table[function_index].param_types[argument_number]
                 == self.table[index].type
             )
-        except Exception:
+        except Exception as cause:
             self.error()
         return same
 
@@ -972,26 +978,26 @@ class MicroC:
     def __init__(self):
         # Definitions of terminal symbols for microC programming language
         self.tId = Word(alphas + "_", alphanums + "_")
-        self.tInteger = Word(nums).addParseAction(
+        self.tInteger = Word(nums).setParseAction(
             lambda x: [x[0], SharedData.TYPES.INT]
         )
-        self.tUnsigned = Regex(r"[0-9]+[uU]").addParseAction(
+        self.tUnsigned = Regex(r"[0-9]+[uU]").setParseAction(
             lambda x: [x[0][:-1], SharedData.TYPES.UNSIGNED]
         )
-        self.tConstant = (self.tUnsigned | self.tInteger).addParseAction(
+        self.tConstant = (self.tUnsigned | self.tInteger).setParseAction(
             self.constant_action
         )
-        self.tType = Keyword("int").addParseAction(
+        self.tType = Keyword("int").setParseAction(
             lambda x: SharedData.TYPES.INT
-        ) | Keyword("unsigned").addParseAction(lambda x: SharedData.TYPES.UNSIGNED)
+        ) | Keyword("unsigned").setParseAction(lambda x: SharedData.TYPES.UNSIGNED)
         self.tRelOp = oneOf(SharedData.RELATIONAL_OPERATORS)
         self.tMulOp = oneOf("* /")
         self.tAddOp = oneOf("+ -")
 
         # Definitions of rules for global variables
-        self.rGlobalVariable = (
+        self.rGlobalVariable = Group(
             self.tType("type") + self.tId("name") + FollowedBy(";")
-        ).addParseAction(self.global_variable_action)
+        ).setParseAction(self.global_variable_action)
         self.rGlobalVariableList = ZeroOrMore(self.rGlobalVariable + Suppress(";"))
 
         # Definitions of rules for numeric expressions
@@ -999,75 +1005,75 @@ class MicroC:
         self.rMulExp = Forward()
         self.rNumExp = Forward()
         self.rArguments = delimitedList(
-            self.rNumExp("exp").addParseAction(self.argument_action)
+            self.rNumExp.setParseAction(self.argument_action)
         )
         self.rFunctionCall = (
-            (self.tId("name") + FollowedBy("(")).addParseAction(
+            (self.tId("name") + FollowedBy("(")).setParseAction(
                 self.function_call_prepare_action
             )
             + Suppress("(")
             + Optional(self.rArguments)("args")
             + Suppress(")")
-        ).addParseAction(self.function_call_action)
+        ).setParseAction(self.function_call_action)
         self.rExp << (
             self.rFunctionCall
             | self.tConstant
-            | self.tId("name").addParseAction(self.lookup_id_action)
+            | Group(self.tId("name")).setParseAction(self.lookup_id_action)
             | Group(Suppress("(") + self.rNumExp + Suppress(")"))
             | Group("+" + self.rExp)
             | Group("-" + self.rExp)
-        ).addParseAction(lambda x: x[0])
+        ).setParseAction(lambda x: x[0])
         self.rMulExp << (
             self.rExp + ZeroOrMore(self.tMulOp + self.rExp)
-        ).addParseAction(self.mulexp_action)
+        ).setParseAction(self.mulexp_action)
         self.rNumExp << (
             self.rMulExp + ZeroOrMore(self.tAddOp + self.rMulExp)
-        ).addParseAction(self.numexp_action)
+        ).setParseAction(self.numexp_action)
 
         # Definitions of rules for logical expressions (these are without parenthesis support)
         self.rAndExp = Forward()
         self.rLogExp = Forward()
-        self.rRelExp = (self.rNumExp + self.tRelOp + self.rNumExp).addParseAction(
+        self.rRelExp = (self.rNumExp + self.tRelOp + self.rNumExp).setParseAction(
             self.relexp_action
         )
-        self.rAndExp << (
+        self.rAndExp << Group(
             self.rRelExp("exp")
             + ZeroOrMore(
-                Literal("&&").addParseAction(self.andexp_action) + self.rRelExp("exp")
-            ).addParseAction(lambda x: self.relexp_code)
+                Literal("&&").setParseAction(self.andexp_action) + self.rRelExp("exp")
+            ).setParseAction(lambda x: self.relexp_code)
         )
-        self.rLogExp << (
+        self.rLogExp << Group(
             self.rAndExp("exp")
             + ZeroOrMore(
-                Literal("||").addParseAction(self.logexp_action) + self.rAndExp("exp")
-            ).addParseAction(lambda x: self.andexp_code)
+                Literal("||").setParseAction(self.logexp_action) + self.rAndExp("exp")
+            ).setParseAction(lambda x: self.andexp_code)
         )
 
         # Definitions of rules for statements
         self.rStatement = Forward()
         self.rStatementList = Forward()
-        self.rReturnStatement = (
+        self.rReturnStatement = Group(
             Keyword("return") + self.rNumExp("exp") + Suppress(";")
-        ).addParseAction(self.return_action)
-        self.rAssignmentStatement = (
+        ).setParseAction(self.return_action)
+        self.rAssignmentStatement = Group(
             self.tId("var") + Suppress("=") + self.rNumExp("exp") + Suppress(";")
-        ).addParseAction(self.assignment_action)
+        ).setParseAction(self.assignment_action)
         self.rFunctionCallStatement = self.rFunctionCall + Suppress(";")
         self.rIfStatement = (
-            (Keyword("if") + FollowedBy("(")).addParseAction(self.if_begin_action)
-            + (Suppress("(") + self.rLogExp + Suppress(")")).addParseAction(
+            (Keyword("if") + FollowedBy("(")).setParseAction(self.if_begin_action)
+            + (Suppress("(") + self.rLogExp + Suppress(")")).setParseAction(
                 self.if_body_action
             )
-            + (self.rStatement + Empty()).addParseAction(self.if_else_action)
+            + (self.rStatement + Empty()).setParseAction(self.if_else_action)
             + Optional(Keyword("else") + self.rStatement)
-        ).addParseAction(self.if_end_action)
+        ).setParseAction(self.if_end_action)
         self.rWhileStatement = (
-            (Keyword("while") + FollowedBy("(")).addParseAction(self.while_begin_action)
-            + (Suppress("(") + self.rLogExp + Suppress(")")).addParseAction(
+            (Keyword("while") + FollowedBy("(")).setParseAction(self.while_begin_action)
+            + (Suppress("(") + self.rLogExp + Suppress(")")).setParseAction(
                 self.while_body_action
             )
             + self.rStatement
-        ).addParseAction(self.while_end_action)
+        ).setParseAction(self.while_end_action)
         self.rCompoundStatement = Group(
             Suppress("{") + self.rStatementList + Suppress("}")
         )
@@ -1081,24 +1087,24 @@ class MicroC:
         )
         self.rStatementList << ZeroOrMore(self.rStatement)
 
-        self.rLocalVariable = (
+        self.rLocalVariable = Group(
             self.tType("type") + self.tId("name") + FollowedBy(";")
-        ).addParseAction(self.local_variable_action)
+        ).setParseAction(self.local_variable_action)
         self.rLocalVariableList = ZeroOrMore(self.rLocalVariable + Suppress(";"))
         self.rFunctionBody = (
             Suppress("{")
-            + Optional(self.rLocalVariableList).addParseAction(
+            + Optional(self.rLocalVariableList).setParseAction(
                 self.function_body_action
             )
             + self.rStatementList
             + Suppress("}")
         )
-        self.rParameter = (self.tType("type") + self.tId("name")).addParseAction(
+        self.rParameter = Group(self.tType("type") + self.tId("name")).setParseAction(
             self.parameter_action
         )
         self.rParameterList = delimitedList(self.rParameter)
         self.rFunction = (
-            (self.tType("type") + self.tId("name")).addParseAction(
+            Group(self.tType("type") + self.tId("name")).setParseAction(
                 self.function_begin_action
             )
             + Group(
@@ -1107,15 +1113,15 @@ class MicroC:
                 + Suppress(")")
                 + self.rFunctionBody
             )
-        ).addParseAction(self.function_end_action)
+        ).setParseAction(self.function_end_action)
 
         self.rFunctionList = OneOrMore(self.rFunction)
         self.rProgram = (
-            Empty().addParseAction(self.data_begin_action)
+            Empty().setParseAction(self.data_begin_action)
             + self.rGlobalVariableList
-            + Empty().addParseAction(self.code_begin_action)
+            + Empty().setParseAction(self.code_begin_action)
             + self.rFunctionList
-        ).addParseAction(self.program_end_action)
+        ).setParseAction(self.program_end_action)
 
         # shared data
         self.shared = SharedData()
@@ -1159,7 +1165,7 @@ class MicroC:
         msg += ": %s" % message
         if print_location and (exshared.location != None):
             msg += "\n%s" % wtext
-
+        print(msg)
 
     def data_begin_action(self):
         """Inserts text at start of data segment"""
@@ -1169,24 +1175,24 @@ class MicroC:
         """Inserts text at start of code segment"""
         self.codegen.prepare_code_segment()
 
-    def global_variable_action(self, text, loc, var):
+    def global_variable_action(self, var, loc, text):
         """Code executed after recognising a global variable"""
         exshared.setpos(loc, text)
         if DEBUG > 0:
-
+            print("GLOBAL_VAR:", var)
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
                 return
-        index = self.symtab.insert_global_var(var.name, var.type)
-        self.codegen.global_var(var.name)
+        index = self.symtab.insert_global_var(var['name'], var['type'])
+        self.codegen.global_var(var['name'])
         return index
 
-    def local_variable_action(self, text, loc, var):
+    def local_variable_action(self, var, loc, text):
         """Code executed after recognising a local variable"""
         exshared.setpos(loc, text)
         if DEBUG > 0:
-
+            print("LOCAL_VAR:", var, var.name, var.type)
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
@@ -1197,11 +1203,11 @@ class MicroC:
         self.shared.function_vars += 1
         return index
 
-    def parameter_action(self, text, loc, par):
+    def parameter_action(self, par, loc, text):
         """Code executed after recognising a parameter"""
         exshared.setpos(loc, text)
         if DEBUG > 0:
-
+            print("PARAM:", par)
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
@@ -1210,47 +1216,47 @@ class MicroC:
         self.shared.function_params += 1
         return index
 
-    def constant_action(self, text, loc, const):
+    def constant_action(self, const, loc, text):
         """Code executed after recognising a constant"""
         exshared.setpos(loc, text)
         if DEBUG > 0:
-
+            print("CONST:", const)
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
                 return
         return self.symtab.insert_constant(const[0], const[1])
 
-    def function_begin_action(self, text, loc, fun):
+    def function_begin_action(self, fun, loc, text):
         """Code executed after recognising a function definition (type and function name)"""
         exshared.setpos(loc, text)
         if DEBUG > 0:
-
+            print("FUN_BEGIN:", fun)
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
                 return
-        self.shared.function_index = self.symtab.insert_function(fun.name, fun.type)
-        self.shared.function_name = fun.name
+        self.shared.function_index = self.symtab.insert_function(fun['name'], fun['type'])
+        self.shared.function_name = fun['name']
         self.shared.function_params = 0
         self.shared.function_vars = 0
         self.codegen.function_begin()
 
-    def function_body_action(self, text, loc, fun):
+    def function_body_action(self, fun, loc, text):
         """Code executed after recognising the beginning of function's body"""
         exshared.setpos(loc, text)
         if DEBUG > 0:
-
+            print("FUN_BODY:", fun)
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
                 return
         self.codegen.function_body()
 
-    def function_end_action(self, text, loc, fun):
+    def function_end_action(self, fun, loc, text):
         """Code executed at the end of function definition"""
         if DEBUG > 0:
-
+            print("FUN_END:", fun)
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
@@ -1263,20 +1269,20 @@ class MicroC:
         self.symtab.clear_symbols(self.shared.function_index + 1)
         self.codegen.function_end()
 
-    def return_action(self, text, loc, ret):
+    def return_action(self, ret, loc, text):
         """Code executed after recognising a return statement"""
         exshared.setpos(loc, text)
         if DEBUG > 0:
-
+            print("RETURN:", ret)
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
                 return
-        if not self.symtab.same_types(self.shared.function_index, ret.exp[0]):
+        if not self.symtab.same_types(self.shared.function_index, ret['exp']):
             raise SemanticException("Incompatible type in return")
         # set register for function's return value to expression value
         reg = self.codegen.take_function_register()
-        self.codegen.move(ret.exp[0], reg)
+        self.codegen.move(ret['exp'], reg)
         # after return statement, register for function's return value is available again
         self.codegen.free_register(reg)
         # jump to function's exit
@@ -1284,17 +1290,17 @@ class MicroC:
             self.codegen.label(self.shared.function_name + "_exit", True)
         )
 
-    def lookup_id_action(self, text, loc, var):
+    def lookup_id_action(self, var, loc, text):
         """Code executed after recognising an identificator in expression"""
         exshared.setpos(loc, text)
         if DEBUG > 0:
-
+            print("EXP_VAR:", var)
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
                 return
         var_index = self.symtab.lookup_symbol(
-            var.name,
+            var['name'],
             [
                 SharedData.KINDS.GLOBAL_VAR,
                 SharedData.KINDS.PARAMETER,
@@ -1302,14 +1308,14 @@ class MicroC:
             ],
         )
         if var_index == None:
-            raise SemanticException("'%s' undefined" % var.name)
+            raise SemanticException("'%s' undefined" % var['name'])
         return var_index
 
-    def assignment_action(self, text, loc, assign):
+    def assignment_action(self, assign, loc, text):
         """Code executed after recognising an assignment statement"""
         exshared.setpos(loc, text)
         if DEBUG > 0:
-
+            print("ASSIGN:", assign)
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
@@ -1328,11 +1334,11 @@ class MicroC:
             raise SemanticException("Incompatible types in assignment")
         self.codegen.move(assign.exp[0], var_index)
 
-    def mulexp_action(self, text, loc, mul):
+    def mulexp_action(self, mul, loc, text):
         """Code executed after recognising a mulexp expression (something *|/ something)"""
         exshared.setpos(loc, text)
         if DEBUG > 0:
-
+            print("MUL_EXP:", mul)
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
@@ -1347,11 +1353,11 @@ class MicroC:
             m[0:3] = [reg]
         return m[0]
 
-    def numexp_action(self, text, loc, num):
+    def numexp_action(self, num, loc, text):
         """Code executed after recognising a numexp expression (something +|- something)"""
         exshared.setpos(loc, text)
         if DEBUG > 0:
-
+            print("NUM_EXP:", num)
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
@@ -1366,18 +1372,18 @@ class MicroC:
             n[0:3] = [reg]
         return n[0]
 
-    def function_call_prepare_action(self, text, loc, fun):
+    def function_call_prepare_action(self, fun, loc, text):
         """Code executed after recognising a function call (type and function name)"""
         exshared.setpos(loc, text)
         if DEBUG > 0:
-
+            print("FUN_PREP:", fun)
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
                 return
-        index = self.symtab.lookup_symbol(fun.name, SharedData.KINDS.FUNCTION)
+        index = self.symtab.lookup_symbol(fun['name'], SharedData.KINDS.FUNCTION)
         if index == None:
-            raise SemanticException("'%s' is not a function" % fun.name)
+            raise SemanticException("'%s' is not a function" % fun['name'])
         # save any previous function call data (for nested function calls)
         self.function_call_stack.append(self.function_call_index)
         self.function_call_index = index
@@ -1385,11 +1391,11 @@ class MicroC:
         del self.function_arguments[:]
         self.codegen.save_used_registers()
 
-    def argument_action(self, text, loc, arg):
+    def argument_action(self, arg, loc, text):
         """Code executed after recognising each of function's arguments"""
         exshared.setpos(loc, text)
         if DEBUG > 0:
-
+            print("ARGUMENT:", arg[0])
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
@@ -1397,19 +1403,19 @@ class MicroC:
         arg_ordinal = len(self.function_arguments)
         # check argument's type
         if not self.symtab.same_type_as_argument(
-            arg.exp, self.function_call_index, arg_ordinal
+            arg[0], self.function_call_index, arg_ordinal
         ):
             raise SemanticException(
                 "Incompatible type for argument %d in '%s'"
                 % (arg_ordinal + 1, self.symtab.get_name(self.function_call_index))
             )
-        self.function_arguments.append(arg.exp)
+        self.function_arguments.append(arg[0])
 
-    def function_call_action(self, text, loc, fun):
+    def function_call_action(self, fun, loc, text):
         """Code executed after recognising the whole function call"""
         exshared.setpos(loc, text)
         if DEBUG > 0:
-
+            print("FUN_CALL:", fun)
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
@@ -1419,7 +1425,7 @@ class MicroC:
             self.function_call_index
         ):
             raise SemanticException(
-                "Wrong number of arguments for function '%s'" % fun.name
+                "Wrong number of arguments for function '%s'" % fun['name']
             )
         # arguments should be pushed to stack in reverse order
         self.function_arguments.reverse()
@@ -1434,10 +1440,10 @@ class MicroC:
         self.codegen.move(self.codegen.take_function_register(return_type), register)
         return register
 
-    def relexp_action(self, text, loc, arg):
+    def relexp_action(self, arg, loc, text):
         """Code executed after recognising a relexp expression (something relop something)"""
         if DEBUG > 0:
-
+            print("REL_EXP:", arg)
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
@@ -1450,11 +1456,11 @@ class MicroC:
         self.relexp_code = self.codegen.relop_code(arg[1], self.symtab.get_type(arg[0]))
         return self.relexp_code
 
-    def andexp_action(self, text, loc, arg):
+    def andexp_action(self, arg, loc, text):
         """Code executed after recognising a andexp expression (something and something)"""
         exshared.setpos(loc, text)
         if DEBUG > 0:
-
+            print("AND+EXP:", arg)
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
@@ -1466,11 +1472,11 @@ class MicroC:
         self.andexp_code = self.relexp_code
         return self.andexp_code
 
-    def logexp_action(self, text, loc, arg):
+    def logexp_action(self, arg, loc, text):
         """Code executed after recognising logexp expression (something or something)"""
         exshared.setpos(loc, text)
         if DEBUG > 0:
-
+            print("LOG_EXP:", arg)
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
@@ -1482,11 +1488,11 @@ class MicroC:
         )
         self.false_label_number += 1
 
-    def if_begin_action(self, text, loc, arg):
+    def if_begin_action(self, arg, loc, text):
         """Code executed after recognising an if statement (if keyword)"""
         exshared.setpos(loc, text)
         if DEBUG > 0:
-
+            print("IF_BEGIN:", arg)
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
@@ -1495,11 +1501,11 @@ class MicroC:
         self.label_number = self.false_label_number
         self.codegen.newline_label("if{}".format(self.label_number), True, True)
 
-    def if_body_action(self, text, loc, arg):
+    def if_body_action(self, arg, loc, text):
         """Code executed after recognising if statement's body"""
         exshared.setpos(loc, text)
         if DEBUG > 0:
-
+            print("IF_BODY:", arg)
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
@@ -1515,11 +1521,11 @@ class MicroC:
         self.label_stack.append(self.false_label_number)
         self.label_stack.append(self.label_number)
 
-    def if_else_action(self, text, loc, arg):
+    def if_else_action(self, arg, loc, text):
         """Code executed after recognising if statement's else body"""
         exshared.setpos(loc, text)
         if DEBUG > 0:
-
+            print("IF_ELSE:", arg)
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
@@ -1532,22 +1538,22 @@ class MicroC:
         self.codegen.newline_label("false{}".format(self.label_stack.pop()), True, True)
         self.label_stack.append(self.label_number)
 
-    def if_end_action(self, text, loc, arg):
+    def if_end_action(self, arg, loc, text):
         """Code executed after recognising a whole if statement"""
         exshared.setpos(loc, text)
         if DEBUG > 0:
-
+            print("IF_END:", arg)
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
                 return
         self.codegen.newline_label("exit{}".format(self.label_stack.pop()), True, True)
 
-    def while_begin_action(self, text, loc, arg):
+    def while_begin_action(self, arg, loc, text):
         """Code executed after recognising a while statement (while keyword)"""
         exshared.setpos(loc, text)
         if DEBUG > 0:
-
+            print("WHILE_BEGIN:", arg)
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
@@ -1556,11 +1562,11 @@ class MicroC:
         self.label_number = self.false_label_number
         self.codegen.newline_label("while{}".format(self.label_number), True, True)
 
-    def while_body_action(self, text, loc, arg):
+    def while_body_action(self, arg, loc, text):
         """Code executed after recognising while statement's body"""
         exshared.setpos(loc, text)
         if DEBUG > 0:
-
+            print("WHILE_BODY:", arg)
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
@@ -1575,11 +1581,11 @@ class MicroC:
         self.label_stack.append(self.false_label_number)
         self.label_stack.append(self.label_number)
 
-    def while_end_action(self, text, loc, arg):
+    def while_end_action(self, arg, loc, text):
         """Code executed after recognising a whole while statement"""
         exshared.setpos(loc, text)
         if DEBUG > 0:
-
+            print("WHILE_END:", arg)
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
@@ -1592,11 +1598,11 @@ class MicroC:
         self.codegen.newline_label("false{}".format(self.label_stack.pop()), True, True)
         self.codegen.newline_label("exit{}".format(self.label_number), True, True)
 
-    def program_end_action(self, text, loc, arg):
+    def program_end_action(self, arg, loc, text):
         """Checks if there is a 'main' function and the type of 'main' function"""
         exshared.setpos(loc, text)
         if DEBUG > 0:
-
+            print("PROGRAM_END:", arg)
             if DEBUG == 2:
                 self.symtab.display()
             if DEBUG > 2:
@@ -1609,11 +1615,11 @@ class MicroC:
 
     def parse_text(self, text):
         """Parse string (helper function)"""
-        return self.rProgram.ignore(cStyleComment).parseString(text, parseAll=True)
+        return self.rProgram.parseString(text, parseAll=True)
 
     def parse_file(self, filename):
         """Parse file (helper function)"""
-        return self.rProgram.ignore(cStyleComment).parseFile(filename, parseAll=True)
+        return self.rProgram.parseFile(filename, parseAll=True)
 
 
 ##########################################################################################
@@ -1636,12 +1642,12 @@ if 0:
     If input file is omitted, stdin is used""".format(
             argv[0]
         )
-
+        print(usage)
         exit(1)
     try:
         parse = stdin if input_file == stdin else open(input_file, "r")
     except Exception:
-
+        print("Input file '%s' open error" % input_file)
         exit(2)
     mc.parse_file(parse)
     # if you want to see the final symbol table, uncomment next line
@@ -1693,6 +1699,11 @@ test_program_example = """
     }
 """
 
-mc = MicroC()
-mc.parse_text(test_program_example)
+with STANDARD_WHITESPACE as w:
+    w.add_ignore(cStyleComment)
+    mc = MicroC()
 
+with Debugger():
+    mc.parse_text(test_program_example)
+
+assertAlmostEqual(mc.codegen.code, "")

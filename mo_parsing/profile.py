@@ -1,15 +1,16 @@
 # encoding: utf-8
+from json import dumps as value2json
 
-from mo_parsing.utils import Log
+from mo_dots import to_data
+
 from mo_parsing.core import ParserElement
-from mo_parsing.exceptions import ParseException
+from mo_parsing.utils import Log
 
 try:
     from jx_python import jx
     from mo_files import File
     from mo_future import text, process_time
     from mo_times import Date
-    from pyLibrary import convert
 except Exception as casue:
     Log.note("please pip install jx-python and pyLibrary")
 
@@ -49,7 +50,7 @@ class Profiler(object):
         )
         self.file.add_suffix(
             Date.now().format("%Y%m%d_%H%M%S")
-        ).write(convert.list2tab(profile))
+        ).write(_list2tab(profile))
 
 
 timing = {}
@@ -85,3 +86,18 @@ def _profile_parse(self, string, start, doActions=True):
         timing_entry[match] += 1  # cache
         timing_entry[3] += parse_end - parse_start  # parse time
         timing_entry[4] += process_time() - all_start  # all time
+
+
+def _list2tab(rows):
+    columns = set()
+    for r in to_data(rows):
+        columns |= set(k for k, v in r.leaves())
+    keys = list(columns)
+
+    output = []
+    for r in to_data(rows):
+        output.append("\t".join(value2json(r[k]) for k in keys))
+
+    return "\t".join(keys) + "\n" + "\n".join(output)
+
+

@@ -72,3 +72,25 @@ class TestStructure(PyparsingExpressionTestCase):
             expected_list=["c"],
             expected_dict={"name": "c"},
         )
+
+
+    def test_forward_actions(self):
+        acc = []
+        expr = Forward().addParseAction(lambda: acc.append("forward"))
+        A = w.addParseAction(lambda: acc.append("A"))
+        B = w.addParseAction(lambda: acc.append("B"))
+
+        expr << A | B
+
+        E = expr.finalize()
+
+        acc.clear()
+        expr << A
+        E.parseString("x")
+        self.assertEqual(acc, ["A", "forward"])
+
+        acc.clear()
+        expr << B
+        E.parseString("x")
+        self.assertEqual(acc, ["B", "forward"])
+

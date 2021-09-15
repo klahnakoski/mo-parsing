@@ -18,7 +18,7 @@ from mo_parsing.utils import (
     empty_tuple,
     regex_iso,
     append_config,
-    regex_compile,
+    regex_compile, wrap_parse_action,
 )
 from mo_parsing.utils import MAX_INT, is_forward
 
@@ -636,9 +636,7 @@ class Forward(ParserElement):
         return self
 
     def addParseAction(self, action):
-        if not self.expr:
-            Log.error("not allowed")
-        self.expr = self.expr.addParseAction(action)
+        self.parseAction.append(wrap_parse_action(action))
         return self
 
     def leaveWhitespace(self):
