@@ -10,7 +10,7 @@
     ],
     "description": "Another PEG Parsing Tool",
     "extras_require": {"tests": ["mo-testing", "mo-threads", "mo-logs", "mo-files"]},
-    "install_requires": ["mo-dots==5.22.21182", "mo-future==5.17.21182"],
+    "install_requires": ["mo-dots==5.57.21262", "mo-future==5.17.21182"],
     "license": "MIT",
     "long_description": {
         "$concat": [
@@ -21,8 +21,8 @@
             "",
             "|Branch      |Status   |",
             "|------------|---------|",
-            "|master      | [![Build Status](https://travis-ci.org/klahnakoski/mo-parsing.svg?branch=master)](https://travis-ci.org/klahnakoski/mo-parsing) |",
-            "|dev         | [![Build Status](https://travis-ci.org/klahnakoski/mo-parsing.svg?branch=dev)](https://travis-ci.org/klahnakoski/mo-parsing)    |",
+            "|master      | [![Build Status](https://travis-ci.com/klahnakoski/mo-parsing.svg?branch=master)](https://travis-ci.com/klahnakoski/mo-parsing) |",
+            "|dev         | [![Build Status](https://travis-ci.com/klahnakoski/mo-parsing.svg?branch=dev)](https://travis-ci.com/klahnakoski/mo-parsing)    |",
             "",
             "",
             "## Differences from PyParsing",
@@ -115,5 +115,5 @@
     "name": "mo-parsing",
     "packages": ["mo_parsing"],
     "url": "https://github.com/klahnakoski/mo-parsing",
-    "version": "5.56.21258"
+    "version": "5.57.21262"
 }
