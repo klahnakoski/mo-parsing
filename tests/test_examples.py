@@ -38,6 +38,7 @@ skip_list = [
     "pgn",
     "protobuf_parser",
     "pythonGrammarParser",
+    "pymicko",
     "rangeCheck",
     "removeLineBreaks",
     "scanExamples",
