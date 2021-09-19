@@ -5,8 +5,8 @@ A fork of [pyparsing](https://github.com/pyparsing/pyparsing) for faster parsing
 
 |Branch      |Status   |
 |------------|---------|
-|master      | [![Build Status](https://travis-ci.org/klahnakoski/mo-parsing.svg?branch=master)](https://travis-ci.org/klahnakoski/mo-parsing) |
-|dev         | [![Build Status](https://travis-ci.org/klahnakoski/mo-parsing.svg?branch=dev)](https://travis-ci.org/klahnakoski/mo-parsing)    |
+|master      | [![Build Status](https://travis-ci.com/klahnakoski/mo-parsing.svg?branch=master)](https://travis-ci.com/klahnakoski/mo-parsing) |
+|dev         | [![Build Status](https://travis-ci.com/klahnakoski/mo-parsing.svg?branch=dev)](https://travis-ci.com/klahnakoski/mo-parsing)    |
 
 
 ## Differences from PyParsing
