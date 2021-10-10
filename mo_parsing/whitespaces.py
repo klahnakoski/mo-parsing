@@ -133,7 +133,7 @@ class Whitespace(ParserElement):
 
     def parseImpl(self, string, start, doActions=True):
         end = self.skip(string, start)
-        return ParseResults(self.expr, start, end, [])
+        return ParseResults(self.expr, start, end, [], ["add excpetions for missed whitespace"])
 
     def skip(self, string, start):
         """

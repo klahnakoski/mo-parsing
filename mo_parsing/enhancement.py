@@ -83,7 +83,7 @@ class ParseEnhancement(ParserElement):
 
     def parseImpl(self, string, start, doActions=True):
         result = self.expr._parse(string, start, doActions)
-        return ParseResults(self, result.start, result.end, [result])
+        return ParseResults(self, result.start, result.end, [result], result.failures)
 
     def streamline(self):
         if self.streamlined:
@@ -137,7 +137,7 @@ class FollowedBy(ParseEnhancement):
         result = self.expr._parse(string, start, doActions=doActions)
         result.__class__ = Annotation
 
-        return ParseResults(self, start, start, [result])
+        return ParseResults(self, start, start, [result], result.failures)
 
     def __regex__(self):
         return "*", f"(?={self.expr.__regex__()[1]})"
@@ -177,14 +177,14 @@ class NotAny(LookAhead):
         if regex:
             found = regex.match(string, start)
             if found:
-                return ParseResults(self, start, start, [])
+                return ParseResults(self, start, start, [], [])
             raise ParseException(self, start, string)
         else:
             try:
                 self.expr.parse(string, start, doActions=True)
                 raise ParseException(self, start, string)
             except:
-                return ParseResults(self, start, start, [])
+                return ParseResults(self, start, start, [], [])
 
     def streamline(self):
         output = ParseEnhancement.streamline(self)
@@ -266,6 +266,7 @@ class Many(ParseEnhancement):
         max = self.parser_config.max_match
         stopper = self.parser_config.end
         count = 0
+        failures = []
         try:
             while end < len(string) and count < max:
                 if end > index:
@@ -286,12 +287,12 @@ class Many(ParseEnhancement):
                 if result:
                     acc.append(result)
                     count += 1
-        except ParseException as pe:
+        except ParseException as cause:
             if self.parser_config.min_match <= count <= max:
-                pass
+                failures.append(cause)
             else:
                 raise ParseException(
-                    self, start, string, msg="Not correct amount of matches"
+                    self, start, string, msg="Not correct amount of matches", cause=cause
                 )
         if count:
             if (
@@ -308,10 +309,10 @@ class Many(ParseEnhancement):
                     ),
                 )
             else:
-                return ParseResults(self, acc[0].start, acc[-1].end, acc)
+                return ParseResults(self, acc[0].start, acc[-1].end, acc, failures)
         else:
             if not self.parser_config.min_match:
-                return ParseResults(self, start, start, [])
+                return ParseResults(self, start, start, [], failures)
             else:
                 raise ParseException(
                     self,
@@ -439,8 +440,8 @@ class ZeroOrMore(Many):
     def parseImpl(self, string, start, doActions=True):
         try:
             return super(ZeroOrMore, self).parseImpl(string, start, doActions)
-        except ParseException:
-            return ParseResults(self, start, start, [])
+        except ParseException as pe:
+            return ParseResults(self, start, start, [], [pe])
 
     def __str__(self):
         if self.parser_name:
@@ -467,9 +468,9 @@ class Optional(Many):
     def parseImpl(self, string, start, doActions=True):
         try:
             results = self.expr._parse(string, start, doActions)
-            return ParseResults(self, results.start, results.end, [results])
-        except ParseException:
-            return ParseResults(self, start, start, self.parser_config.defaultValue)
+            return ParseResults(self, results.start, results.end, [results], [])
+        except ParseException as pe:
+            return ParseResults(self, start, start, self.parser_config.defaultValue, [pe])
 
     def __str__(self):
         if self.parser_name:
@@ -558,9 +559,9 @@ class SkipTo(ParseEnhancement):
         if self.parser_config.include:
             end_result = self.expr._parse(string, before_end, doActions)
             skip_result.append(end_result)
-            return ParseResults(self, start, end, skip_result)
+            return ParseResults(self, start, end, skip_result, [])
         else:
-            return ParseResults(self, start, before_end, skip_result)
+            return ParseResults(self, start, before_end, skip_result, [])
 
 
 class Forward(ParserElement):
@@ -686,7 +687,7 @@ class Forward(ParserElement):
     def parseImpl(self, string, loc, doActions=True):
         try:
             result = self.expr._parse(string, loc, doActions)
-            return ParseResults(self, result.start, result.end, [result])
+            return ParseResults(self, result.start, result.end, [result], result.failures)
         except Exception as cause:
             if is_null(self.expr):
                 Log.warning(
@@ -755,6 +756,7 @@ class Combine(TokenConverter):
             start,
             result.end,
             [result.asString(sep=self.parser_config.separator)],
+            result.failures
         )
         return output
 
@@ -868,7 +870,7 @@ class Suppress(TokenConverter):
 
 
 def _suppress_post_parse(tokens, start, string):
-    return ParseResults(tokens.type, tokens.start, tokens.end, [])
+    return ParseResults(tokens.type, tokens.start, tokens.end, [], tokens.failures)
 
 
 class PrecededBy(LookAhead):
@@ -934,7 +936,7 @@ class PrecededBy(LookAhead):
         # return empty list of tokens, but preserve any defined results names
 
         ret.__class__ = Annotation
-        return ParseResults(self, start, start, [ret])
+        return ParseResults(self, start, start, [ret], [])
 
     def __regex__(self):
         if self.parser_config.exact:

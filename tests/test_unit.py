@@ -25,7 +25,6 @@ from examples import fourFn, configParse, idlParse, ebnf
 from examples.jsonParser import jsonObject
 from examples.simpleSQL import simpleSQL
 from mo_parsing import *
-from mo_parsing import whitespaces
 from mo_parsing import helpers
 from mo_parsing.helpers import *
 from mo_parsing.infix import oneOf
@@ -1089,11 +1088,7 @@ class TestParsing(PyparsingExpressionTestCase):
         self.assertParseResultsEquals(
             tokens,
             expected_list=["1", "0x2", "3", "0x4", "aaa"],
-            expected_dict={
-                "base10": ["1", "3"],
-                "hex": ["0x2", "0x4"],
-                "word": "aaa",
-            },
+            expected_dict={"base10": ["1", "3"], "hex": ["0x2", "0x4"], "word": "aaa",},
         )
 
         lbrack = Literal("(").suppress()
@@ -1135,12 +1130,14 @@ class TestParsing(PyparsingExpressionTestCase):
         # This first test works, as the SkipTo expression is immediately following the ignore expression (cStyleComment)
         self.assertEqual(
             testExpr.parseString("some text /* comment with ; in */; working"),
-            ["some text /* comment with ; in */", [";"], "working"]
+            ["some text /* comment with ; in */", [";"], "working"],
         )
         # This second test previously failed, as there is text following the ignore expression, and before the SkipTo expression.
         self.assertEqual(
-            testExpr.parseString("some text /* comment with ; in */some other stuff; working"),
-            ["some text /* comment with ; in */some other stuff", [";"], "working"]
+            testExpr.parseString(
+                "some text /* comment with ; in */some other stuff; working"
+            ),
+            ["some text /* comment with ; in */some other stuff", [";"], "working"],
         )
 
         # tests for optional failOn argument
@@ -2517,13 +2514,21 @@ class TestParsing(PyparsingExpressionTestCase):
             """
         )
 
-    @skip("Please add tracking of right-most error, so these work")
     def testEachWithParseFatalException(self):
         option_expr = Keyword("options") - "(" + integer + ")"
         step_expr1 = Keyword("step") - "(" + integer + ")"
         step_expr2 = Keyword("step") - "(" + integer + "Z" + ")"
         step_expr = step_expr1 ^ step_expr2
         parser = option_expr & step_expr[...]
+
+        with self.assertRaises(
+            'Expecting integer, found "A) options" (at char 5), (line:1, col:6)'
+        ):
+            parser.parseString("step(A) options(100)", parseAll=True)
+
+        with self.assertRaises('Expecting integer, found "A'):
+            parser.parseString("options(100) step(A)", parseAll=True)
+
         tests = [
             (
                 # this test fails because the step_expr[...] means ZeroOrMore
@@ -2531,23 +2536,25 @@ class TestParsing(PyparsingExpressionTestCase):
                 # resulting in an error expecting an early end-of-line
                 # 01234567890123456789
                 "options(100) step(A)",
-                "Expected integer, found 'A'  (at char 18), (line:1, col:19)",
+                'Expecting integer, found "A)" (at char 18), (line:1, col:19)',
             ),
             (
                 "step(A) options(100)",
-                "Expected integer, found 'A'  (at char 5), (line:1, col:6)",
+                'Expecting integer, found "A) options" (at char 5), (line:1, col:6)',
             ),
             (
                 "options(100) step(100A)",
-                """Expected "Z", found 'A'  (at char 21), (line:1, col:22)""",
+                """Expecting {)} | {Z}, found "A)" (at char 21), (line:1, col:22)""",
             ),
             (
                 "options(100) step(22) step(100ZA)",
-                """Expected ")", found 'A'  (at char 31), (line:1, col:32)""",
+                """Expecting ), found "A)" (at char 31), (line:1, col:32)""",
             ),
         ]
 
-        success, output = parser.runTests((t[0] for t in tests), failureTests=True)
+        success, output = parser.runTests(
+            [test_str for test_str, expected in tests], failureTests=True
+        )
         for (_, result), (test_str, expected) in zip(output, tests):
             self.assertEqual(
                 expected,
@@ -3128,11 +3135,7 @@ class TestParsing(PyparsingExpressionTestCase):
             """
         )
         self.assertTrue(success, "error in parsing valid iso8601_date")
-        expected = [
-            ("1997", None, None),
-            ("1997", "07", None),
-            ("1997", "07", "16")
-        ]
+        expected = [("1997", None, None), ("1997", "07", None), ("1997", "07", "16")]
         for r, exp in zip(results, expected):
             self.assertTrue(
                 (r[1]["year"], r[1]["month"], r[1]["day"]) == exp,
@@ -3169,7 +3172,9 @@ class TestParsing(PyparsingExpressionTestCase):
             """)
         )
         self.assertTrue(success, "error in parsing valid iso8601_datetime")
-        self.assertTrue(results[0][1][0] == datetime_datetime(1997, 7, 16, 19, 20, 30, 450000))
+        self.assertTrue(results[0][1][0] == datetime_datetime(
+            1997, 7, 16, 19, 20, 30, 450000
+        ))
 
         success = uuid.runTests(
             """
@@ -3386,8 +3391,10 @@ class TestParsing(PyparsingExpressionTestCase):
         expr = Literal(";") + Empty()
 
         self.assertEqual(
-            list(expr.split('a = "a;b"; return a # this is a comment; it has a semicolon!')),
-            ['a = "a;b"', "return a # this is a comment; it has a semicolon!"]
+            list(expr.split(
+                'a = "a;b"; return a # this is a comment; it has a semicolon!'
+            )),
+            ['a = "a;b"', "return a # this is a comment; it has a semicolon!"],
         )
 
         sample = """
@@ -4261,30 +4268,23 @@ class TestParsing(PyparsingExpressionTestCase):
     def testExplainException(self):
 
         expr = Word(nums).set_parser_name("int") + Word(alphas).set_parser_name("word")
-        try:
+        with self.assertRaises('Expecting word, found "355" (at char 4), (line:1, col:5)'):
             expr.parseString("123 355")
-        except ParseException as pe:
-            pass
 
         expr = Word(nums).set_parser_name("int") - Word(alphas).set_parser_name("word")
-        try:
+        with self.assertRaises('Expecting word, found "355 (test " (at char 4), (line:1, col:5)'):
             expr.parseString("123 355 (test using ErrorStop)")
-        except ParseSyntaxException as pe:
-            pass
 
         integer = Word(nums).set_parser_name("int").addParseAction(lambda t: int(t[0]))
         expr = integer + integer
 
         def divide_args(t):
-            integer.parseString("A")
             return t[0] / t[1]
 
-        expr.addParseAction(divide_args)
+        expr = expr.addParseAction(divide_args)
 
-        try:
+        with self.assertRaises('Expecting int + int, found "123 0", caused by division by zero (at char 0), (line:1, col:1)'):
             expr.parseString("123 0")
-        except ParseException as pe:
-            pass
 
     def testCaselessKeywordVsKeywordCaseless(self):
 

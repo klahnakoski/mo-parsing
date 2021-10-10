@@ -326,7 +326,7 @@ class Regex(ParseEnhancement):
                 n = lookup.get(i)
                 if n:
                     ann.append(Annotation(n, s + start, e + start, [g]))
-            return ParseResults(_plain_group, start, end, ann)
+            return ParseResults(_plain_group, start, end, ann, [])
 
         return self.addParseAction(group_list)
 
@@ -350,7 +350,7 @@ class Regex(ParseEnhancement):
     def parseImpl(self, string, start, doActions=True):
         found = self.regex.match(string, start)
         if found:
-            return ParseResults(self, start, found.end(), [found[0]])
+            return ParseResults(self, start, found.end(), [found[0]], [])
         else:
             raise ParseException(self, start, string)
 

@@ -1,10 +1,12 @@
 # encoding: utf-8
 import json
 from mo_future import text, is_text
-from mo_imports import export
+from mo_imports import export, expect
 
 from mo_parsing.utils import Log, listwrap, quote, indent
 from mo_parsing.utils import col, line, lineno
+
+MatchFirst = expect("MatchFirst")
 
 
 class ParseException(Exception):
@@ -27,10 +29,7 @@ class ParseException(Exception):
     @property
     def causes(self):
         if self._causes is None:
-            self._causes = list(sorted(
-                listwrap(self.unsorted_cause),
-                key=lambda e: -e.start if isinstance(e, ParseException) else 0,
-            ))
+            self._causes = sort_causes(self.unsorted_cause)
         return self._causes
 
     @property
@@ -39,6 +38,34 @@ class ParseException(Exception):
             return self._causes[0]
         else:
             return None
+
+    @property
+    def best_cause(self):
+        if not self.causes:
+            return self
+
+        best = sort_causes([
+            c.best_cause
+            for c in self.causes
+            if isinstance(c, ParseException)
+        ])
+        if not best:
+            return self
+        elif len(best) == 1:
+            return best[0]
+        else:
+            best_0 = best[0]
+            best_loc = best_0.loc
+            return ParseException(
+                MatchFirst([b.expr for b in best if b.loc == best_loc]).streamline(),
+                best_0.start,
+                best_0.string,
+                cause=best,
+            )
+
+    @property
+    def best_message(self):
+        return self.best_cause.message
 
     @property
     def loc(self):
@@ -58,14 +85,18 @@ class ParseException(Exception):
             expecting = f"Expecting {self.expr}"
 
         if self.loc >= len(self.string):
-            found = "end of text"
+            found = ", found end of text"
         else:
-            found = (self.string[self.loc : self.loc + 10]).replace(r"\\", "\\")
+            found = f", found {quote(self.string[self.loc : self.loc + 10])}"
 
-        return (
-            f"{expecting}, found {quote(found)} (at char {self.loc},"
-            f" (line:{self.lineno}, col:{self.column})"
-        )
+        if self.causes and not isinstance(self.causes[0], ParseException):
+            describeCause = f", caused by {self.causes[0]}"
+        else:
+            describeCause = ""
+
+        location = f" (at char {self.loc}), (line:{self.lineno}, col:{self.column})"
+
+        return "".join((expecting, found, describeCause, location))
 
     @message.setter
     def msg(self, value):
@@ -102,11 +133,14 @@ class ParseException(Exception):
         return False
 
     def __str__(self):
-        causes = indent("".join("\n" + str(c) for c in self.causes))
-        return f"{self.message}{causes}"
+        return self.best_message
 
     def __repr__(self):
-        return text(self)
+        if not self.causes:
+            return f"{self.message}"
+
+        causes = indent("".join("\n" + str(c) for c in self.causes))
+        return f"{self.message}\n{causes}"
 
     def markInputline(self, markerString=">!<"):
         """Extracts the exception line from the input string, and marks
@@ -137,20 +171,6 @@ class ParseSyntaxException(ParseException):
     __slots__ = []
 
 
-# ~ class ReparseException(ParseException):
-# ~ """Experimental class - parse actions can raise this exception to cause
-# ~ mo_parsing to reparse the input string:
-# ~ - with a modified input string, and/or
-# ~ - with a modified start location
-# ~ Set the values of the ReparseException in the constructor, and raise the
-# ~ exception in a parse action to cause mo_parsing to use the new string/location.
-# ~ Setting the values as None causes no change to be made.
-# ~ """
-# ~ def __init_( self, newstring, restartLoc ):
-# ~ self.newParseText = newstring
-# ~ self.reparseLoc = restartLoc
-
-
 class RecursiveGrammarException(Exception):
     """exception thrown by `ParserElement.validate` if the
     grammar could be improperly recursive
@@ -165,6 +185,12 @@ class RecursiveGrammarException(Exception):
         return "RecursiveGrammarException: " + json.dumps([
             str(e) for e in self.parseElementTrace
         ])
+
+
+def sort_causes(causes):
+    return list(sorted(
+        listwrap(causes), key=lambda e: -e.loc if isinstance(e, ParseException) else 0,
+    ))
 
 
 export("mo_parsing.utils", ParseException)

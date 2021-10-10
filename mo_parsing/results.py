@@ -24,13 +24,13 @@ Suppress, ParserElement, NO_PARSER, NO_RESULTS, Group, Dict, Token, Empty = expe
 
 
 class ParseResults(object):
-    __slots__ = ["type", "start", "end", "tokens", "timing"]
+    __slots__ = ["type", "start", "end", "tokens", "timing", "failures"]
 
     @property
     def name(self):
         return self.type.token_name
 
-    def __init__(self, result_type, start, end, tokens):
+    def __init__(self, result_type, start, end, tokens, failures):
         if end == -1:
             Log.error("not allowed")
         self.type = result_type
@@ -38,6 +38,7 @@ class ParseResults(object):
         self.end = end
         self.tokens = tokens
         self.timing = None
+        self.failures = failures
 
     def _get_item_by_name(self, name):
         # return open list of (modal, value) pairs
@@ -72,7 +73,7 @@ class ParseResults(object):
             if len(values) == 1:
                 return values[0]
             # ENCAPSULATE IN A ParseResults FOR FURTHER NAVIGATION
-            return ParseResults(NO_PARSER, -1, 0, values)
+            return ParseResults(NO_PARSER, -1, 0, values, [])
         elif isinstance(item, int):
             if item < 0:
                 item = len(self) + item
@@ -337,6 +338,7 @@ class ParseResults(object):
             self.start,
             other.end,
             self.tokens + other.tokens,
+            self.failures+other.failures
         )
 
     def __radd__(self, other):
@@ -423,7 +425,7 @@ class ParseResults(object):
         """
         Returns a new copy of a `ParseResults` object.
         """
-        ret = ParseResults(self.type, self.start, self.end, list(self.tokens))
+        ret = ParseResults(self.type, self.start, self.end, list(self.tokens), self.failures)
         return ret
 
     def getName(self):
@@ -508,7 +510,7 @@ class Annotation(ParseResults):
             Log.error("expecting a name")
         if not isinstance(value, list):
             Log.error("expecting a list")
-        ParseResults.__init__(self, Empty()(name), start, end, value)
+        ParseResults.__init__(self, Empty()(name), start, end, value, [])
 
     def __str__(self):
         return "{" + text(self.name) + ": " + text(self.tokens) + "}"
