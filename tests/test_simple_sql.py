@@ -5,7 +5,8 @@ from unittest import TestCase
 from mo_parsing import (
     CaselessLiteral,
     Group,
-    Word, Regex,
+    Word,
+    Regex,
 )
 from mo_parsing.debug import Debugger
 from mo_parsing.helpers import (
@@ -13,7 +14,9 @@ from mo_parsing.helpers import (
     hex_integer,
     fnumber,
     uuid as helper_uuid,
-    tokenMap, delimitedList, upcaseTokens,
+    tokenMap,
+    delimitedList,
+    upcaseTokens,
 )
 from mo_parsing.utils import alphas, alphanums
 from tests import runTests
@@ -122,7 +125,9 @@ class TestSimpleSQL(TestCase):
         mysql_backtick_ident = Regex(r"\`(\`\`|[^`])*\`")
         sqlserver_ident = Regex(r"\[(\]\]|[^\]])*\]")
 
-        combined_ident = ansi_ident | mysql_backtick_ident | sqlserver_ident | Word(alphanums)
+        combined_ident = (
+            ansi_ident | mysql_backtick_ident | sqlserver_ident | Word(alphanums)
+        )
 
         with Debugger() as d:
             combined_ident.parseString("testing")

@@ -164,7 +164,7 @@ def infixNotation(
             return output
 
         def record_self(tok):
-            ParseResults(tok.type, tok.start, tok.end, [tok.type.parser_name])
+            ParseResults(tok.type, tok.start, tok.end, [tok.type.parser_name], [])
 
         output = whitespaces.CURRENT.normalize(op)
         is_suppressed = isinstance(output, Suppress)
@@ -231,7 +231,7 @@ def infixNotation(
 
     def record_op(op):
         def output(tokens):
-            return ParseResults(NO_PARSER, tokens.start, tokens.end, [(tokens, op)])
+            return ParseResults(NO_PARSER, tokens.start, tokens.end, [(tokens, op)], [])
 
         return output
 
@@ -269,9 +269,9 @@ def infixNotation(
                         if o == op:
                             tok = flat_tokens[i + 1][0]
                             if is_suppressed:
-                                result = ParseResults(expr, tok.start, tok.end, (tok,))
+                                result = ParseResults(expr, tok.start, tok.end, (tok,), [])
                             else:
-                                result = ParseResults(expr, r.start, tok.end, (r, tok))
+                                result = ParseResults(expr, r.start, tok.end, (r, tok), [])
                             break
                     else:
                         op_index += 1
@@ -283,9 +283,9 @@ def infixNotation(
                         if o == op:
                             tok = flat_tokens[i][0]
                             if is_suppressed:
-                                result = ParseResults(expr, tok.start, tok.end, (tok,))
+                                result = ParseResults(expr, tok.start, tok.end, (tok,), [])
                             else:
-                                result = ParseResults(expr, tok.start, r.end, (tok, r,))
+                                result = ParseResults(expr, tok.start, r.end, (tok, r,), [])
                             break
                     else:
                         op_index += 1
@@ -303,6 +303,7 @@ def infixNotation(
                                 flat_tokens[i][0].start,
                                 flat_tokens[i + 2][0].end,
                                 (flat_tokens[i][0], flat_tokens[i + 2][0]),
+                                []
                             )
                         else:
                             result = ParseResults(
@@ -310,6 +311,7 @@ def infixNotation(
                                 flat_tokens[i][0].start,
                                 flat_tokens[i + 2][0].end,
                                 (flat_tokens[i][0], r, flat_tokens[i + 2][0]),
+                                []
                             )
                         break
                 else:
@@ -336,7 +338,7 @@ def infixNotation(
                             if not s0:
                                 seq.insert(1, r0)
 
-                            result = ParseResults(expr, seq[0].start, seq[-1].end, seq)
+                            result = ParseResults(expr, seq[0].start, seq[-1].end, seq, [])
                             break
                 else:
                     op_index += 1
@@ -350,6 +352,7 @@ def infixNotation(
 
         result = flat_tokens[0][0]
         result.end = tokens.end
+        result.failures = tokens.failures
         return result
 
     flat = Forward()

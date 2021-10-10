@@ -136,7 +136,7 @@ def QuotedString(
                 if esc_quote:
                     ret = ret.replace(esc_quote, end_quote_char)
 
-        return ParseResults(tokens.type, tokens.start, tokens.end, [ret])
+        return ParseResults(tokens.type, tokens.start, tokens.end, [ret], [])
 
     return output.addParseAction(post_parse).streamline()
 
@@ -356,7 +356,7 @@ def extractText(tokens, loc, string):
     start, d, end = tokens
     content = string[start:end]
     annotations = [Annotation(k, v[0].start, v[-1].end, v) for k, v in d.items()]
-    return ParseResults(d.type, start, end, [content] + annotations)
+    return ParseResults(d.type, start, end, [content] + annotations, [])
 
 
 def ungroup(expr):

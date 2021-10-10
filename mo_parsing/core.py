@@ -136,15 +136,21 @@ class Parser(object):
 
     def _parseString(self, string, parseAll=False):
         start = self.whitespace.skip(string, 0)
-        tokens = self.element._parse(string, start)
-        if parseAll:
-            end = self.whitespace.skip(string, tokens.end)
-            StringEnd()._parse(string, end)
+        try:
+            tokens = self.element._parse(string, start)
+            if parseAll:
+                end = self.whitespace.skip(string, tokens.end)
+                try:
+                    StringEnd()._parse(string, end)
+                except ParseException as pe:
+                    raise ParseException(self.element, 0, string, cause=tokens.failures+[pe])
 
-        if self.named:
-            return tokens
-        else:
-            return tokens.tokens[0]
+            if self.named:
+                return tokens
+            else:
+                return tokens.tokens[0]
+        except ParseException as cause:
+            raise cause.best_cause
 
     @entrypoint
     def scanString(self, string, maxMatches=MAX_INT, overlap=False):
@@ -235,10 +241,10 @@ class Parser(object):
     def _searchString(self, string, maxMatches=MAX_INT):
         scanned = [t for t, s, e in self._scanString(string, maxMatches)]
         if not scanned:
-            return ParseResults(ZeroOrMore(self.element), -1, 0, [])
+            return ParseResults(ZeroOrMore(self.element), -1, 0, [], [])
         else:
             return ParseResults(
-                ZeroOrMore(self.element), scanned[0].start, scanned[-1].end, scanned
+                ZeroOrMore(self.element), scanned[0].start, scanned[-1].end, scanned, scanned[-1].failures
             )
 
     @entrypoint
@@ -424,7 +430,7 @@ class ParserElement(object):
         return None
 
     def parseImpl(self, string, start, doActions=True):
-        return ParseResults(self, start, start, [])
+        return ParseResults(self, start, start, [], [])
 
     def _parse(self, string, start, doActions=True):
         try:
@@ -748,7 +754,7 @@ class _PendingSkip(ParserElement):
 NO_PARSER = (
     ParserElement().set_parser_name("<nothing>")
 )  # USE THIS WHEN YOU DO NOT CARE ABOUT THE PARSER TYPE
-NO_RESULTS = ParseResults(NO_PARSER, -1, 0, [])
+NO_RESULTS = ParseResults(NO_PARSER, -1, 0, [], [])
 
 
 export("mo_parsing.results", ParserElement)

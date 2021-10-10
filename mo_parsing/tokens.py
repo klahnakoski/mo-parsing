@@ -46,7 +46,7 @@ class Empty(Token):
     def parseImpl(self, string, start, doActions=True):
         end = start
         # end = self.whitespace.skip(string, start)
-        return ParseResults(self, start, end, [])
+        return ParseResults(self, start, end, [], [])
 
     def streamline(self):
         return self
@@ -109,7 +109,7 @@ class AnyChar(Token):
     def parseImpl(self, string, loc, doActions=True):
         if loc >= len(string):
             raise ParseException(self, loc, string)
-        return ParseResults(self, loc, loc + 1, [string[loc]])
+        return ParseResults(self, loc, loc + 1, [string[loc]], [])
 
     def min_length(self):
         return 1
@@ -139,7 +139,7 @@ class Literal(Token):
         match = self.parser_config.match
         if string.startswith(match, start):
             end = start + len(match)
-            return ParseResults(self, start, end, [match])
+            return ParseResults(self, start, end, [match], [])
         raise ParseException(self, start, string)
 
     def expecting(self):
@@ -161,7 +161,7 @@ class SingleCharLiteral(Literal):
     def parseImpl(self, string, start, doActions=True):
         try:
             if string[start] == self.parser_config.match:
-                return ParseResults(self, start, start + 1, [self.parser_config.match])
+                return ParseResults(self, start, start + 1, [self.parser_config.match], [])
         except IndexError:
             pass
 
@@ -204,7 +204,7 @@ class Keyword(Token):
     def parseImpl(self, string, start, doActions=True):
         found = self.parser_config.regex.match(string, start)
         if found:
-            return ParseResults(self, start, found.end(), [self.parser_config.match])
+            return ParseResults(self, start, found.end(), [self.parser_config.match], [])
         raise ParseException(self, start, string)
 
     def expecting(self):
@@ -242,7 +242,7 @@ class CaselessLiteral(Literal):
     def parseImpl(self, string, start, doActions=True):
         found = self.parser_config.regex.match(string, start)
         if found:
-            return ParseResults(self, start, found.end(), [self.parser_config.match],)
+            return ParseResults(self, start, found.end(), [self.parser_config.match], [])
         raise ParseException(self, start, string)
 
 
@@ -296,7 +296,7 @@ class CloseMatch(Token):
                         break
             else:
                 end = match_stringloc + 1
-                results = ParseResults(self, start, end, [string[start:end]])
+                results = ParseResults(self, start, end, [string[start:end]], [])
                 results["original"] = match
                 results["mismatches"] = mismatches
                 return results
@@ -358,7 +358,7 @@ class Word(Token):
     def parseImpl(self, string, start, doActions=True):
         found = self.regex.match(string, start)
         if found:
-            return ParseResults(self, start, found.end(), [found.group()])
+            return ParseResults(self, start, found.end(), [found.group()], [])
         else:
             raise ParseException(self, start, string)
 
@@ -406,7 +406,7 @@ class Char(Token):
     def parseImpl(self, string, start, doActions=True):
         found = self.parser_config.regex.match(string, start)
         if found:
-            return ParseResults(self, start, found.end(), [found.group()])
+            return ParseResults(self, start, found.end(), [found.group()], [])
 
         raise ParseException(self, start, string)
 
@@ -480,7 +480,7 @@ class CharsNotIn(Token):
     def parseImpl(self, string, start, doActions=True):
         found = self.parser_config.regex.match(string, start)
         if found:
-            return ParseResults(self, start, found.end(), [found.group()])
+            return ParseResults(self, start, found.end(), [found.group()], [])
 
         raise ParseException(self, start, string)
 
@@ -558,7 +558,7 @@ class White(Token):
         if end - start < self.parser_config.min_len:
             raise ParseException(self, end, string)
 
-        return ParseResults(self, start, end, string[start:end])
+        return ParseResults(self, start, end, string[start:end], [ParseException(self, end, string)])
 
 
 class LineStart(Token):
@@ -575,7 +575,7 @@ class LineStart(Token):
 
     def parseImpl(self, string, start, doActions=True):
         if col(start, string) == 1:
-            return ParseResults(self, start, start, [])
+            return ParseResults(self, start, start, [], [])
         raise ParseException(self, start, string)
 
     def min_length(self):
@@ -602,7 +602,7 @@ class LineEnd(LookBehind):
     def parseImpl(self, string, start, doActions=True):
         found = self.parser_config.regex.match(string, start)
         if found:
-            return ParseResults(self, start, found.end(), ["\n"])
+            return ParseResults(self, start, found.end(), ["\n"], [])
         raise ParseException(self, start, string)
 
     def min_length(self):
@@ -651,11 +651,11 @@ class StringEnd(Token):
     def parseImpl(self, string, start, doActions=True):
         end = len(string)
         if start >= end:
-            return ParseResults(self, end, end, [])
+            return ParseResults(self, end, end, [], [])
 
         found = self.parser_config.regex.match(string, start)
         if found:
-            return ParseResults(self, start, found.end(), [])
+            return ParseResults(self, start, found.end(), [], [])
         raise ParseException(self, start, string)
 
     def min_length(self):
@@ -691,7 +691,7 @@ class WordStart(Token):
     def parseImpl(self, string, start, doActions=True):
         found = self.parser_config.regex.match(string, start)
         if found:
-            return ParseResults(self, start, start, [])
+            return ParseResults(self, start, start, [], [])
         raise ParseException(self, start, string)
 
     def min_length(self):
@@ -733,7 +733,7 @@ class WordEnd(Token):
     def parseImpl(self, string, start, doActions=True):
         found = self.parser_config.regex.match(string, start)
         if found:
-            return ParseResults(self, start, start, [])
+            return ParseResults(self, start, start, [], [])
         else:
             raise ParseException(self, start, string)
 
