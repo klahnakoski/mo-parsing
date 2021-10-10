@@ -255,6 +255,7 @@ class And(ParseExpression):
         encountered_syntax_error = False
         end = index = start
         acc = []
+        failures = []
         for i, expr in enumerate(self.exprs):
             if end > index:
                 if isinstance(expr, LookBehind):
@@ -267,6 +268,10 @@ class And(ParseExpression):
             try:
                 result = expr._parse(string, index, doActions)
                 end = result.end
+                if end > index:
+                    failures = result.failures
+                else:
+                    failures.extend(result.failures)
                 acc.append(result)
             except ParseException as pe:
                 if encountered_syntax_error:
@@ -274,7 +279,7 @@ class And(ParseExpression):
                 else:
                     raise pe
 
-        return ParseResults(self, start, end, acc, [])
+        return ParseResults(self, start, end, acc, failures)
 
     def __add__(self, other):
         if other is Ellipsis:
