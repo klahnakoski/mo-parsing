@@ -1,9 +1,7 @@
 # encoding: utf-8
-import inspect
 import sys
 
 from mo_future import text
-from mo_logs.exceptions import get_stacktrace
 
 from mo_parsing.core import ParserElement
 from mo_parsing.utils import (
@@ -12,7 +10,6 @@ from mo_parsing.utils import (
     col,
     stack_depth,
     quote as plain_quote,
-    Log,
 )
 
 DEBUGGING = False
