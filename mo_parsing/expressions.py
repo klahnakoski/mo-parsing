@@ -391,7 +391,7 @@ class Or(ParseExpression):
         if len(matches) == 1:
             _, expr = matches[0]
             result = expr._parse(string, start, doActions)
-            return ParseResults(self, result.start, result.end, [result], [])
+            return ParseResults(self, result.start, result.end, [result], result.failures)
 
         if matches:
             # re-evaluate all matches in descending order of length of match, in case attached actions
@@ -485,7 +485,7 @@ class MatchFirst(ParseExpression):
         for e in self.alternate:
             try:
                 result = e._parse(string, start, doActions)
-                return ParseResults(self, result.start, result.end, [result], [])
+                return ParseResults(self, result.start, result.end, [result], result.failures)
             except ParseException as cause:
                 causes.append(cause)
 
