@@ -1,3 +1,4 @@
+# encoding: utf-8
 import re
 
 from mo_parsing import Regex, Char

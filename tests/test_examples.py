@@ -1,4 +1,4 @@
-#
+# encoding: utf-8
 # test_examples.py
 #
 import unittest

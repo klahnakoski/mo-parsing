@@ -22,6 +22,7 @@ from mo_parsing.utils import (
 )
 from mo_parsing.utils import MAX_INT, is_forward
 
+Word: object
 (
     Token,
     NoMatch,

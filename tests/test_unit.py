@@ -1,3 +1,4 @@
+# encoding: utf-8
 #
 # test_unit.py
 #

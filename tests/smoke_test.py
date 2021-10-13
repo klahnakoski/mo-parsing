@@ -1,6 +1,7 @@
 # encoding: utf-8
 from time import time
 
+
 start = time()
 from mo_parsing import *
 end = time()
@@ -11,3 +12,4 @@ from mo_parsing.whitespaces import Whitespace
 
 with Whitespace():
     Regex("[^\\]]")
+
