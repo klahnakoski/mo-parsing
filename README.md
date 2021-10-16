@@ -18,41 +18,30 @@ This is a pypi package
 
 This module allows you to define a PEG parser using predefined patterns and Python operators.  Here is an example 
 
-```python
-from mo_parsing import Word
-from mo_parsing.utils import alphas
-
-greet = Word(alphas)("greeting") + "," + Word(alphas)("person") + "!"
-result = greet.parseString("Hello, World!")
+```
+>>> from mo_parsing import Word
+>>> from mo_parsing.utils import alphas
+>>>
+>>> greet = Word(alphas)("greeting") + "," + Word(alphas)("person") + "!"
+>>> result = greet.parseString("Hello, World!")
 ```
 
-The ParseResults can be accessed as a nested list
-
-```python
-print(result)
-```
-
-resulting in 
+The `result` can be accessed as a nested list
 
 ```
-[Hello, ,, World, !]
+>>> list(result)
+['Hello', ',', 'World', '!']
 ```
 
-The parseResults can also be accessed as a dictionary
-
-```python
-print(f"greeting = {result['greeting']}")
-print(f"person = {result['person']}")
-```
-
-resulting in
+The `result` can also be accessed as a dictionary
 
 ```
-greeting = Hello
-person = World
+>>> dict(result)
+{'greeting': 'Hello', 'person': 'World'}
 ```
 
-[Read the pyparsing documentation for more](https://github.com/pyparsing/pyparsing/#readme)
+Read the [pyparsing documentation](https://github.com/pyparsing/pyparsing/#readme) for more
+
 
 
 ## Differences from PyParsing
@@ -134,6 +123,11 @@ The debugger will print out details of what's happening
 * print out of the ParserElement performing the attempt
 
 This should help to to isolate the exact position your grammar is failing. 
+
+### Regular Expressions
+
+`mo-parsing` can parse and generate regular expressions. `ParserElement` has a `__regex__()` function that returns the regular expression for the given grammar; which works up to a limit, and is used internally to accelerate parsing.  The `Regex` class parses regular expressions into a grammar; it is used to optimize parsing, and you may find it useful to decompose regular expressions that look like line noise.
+
 
 ## Contributing
 

@@ -201,3 +201,10 @@ class TestRegexParsing(PyparsingExpressionTestCase):
         self.assertEqual(sql_server_name.expr.exprs[0].parser_config.match, "[")
         self.assertIsInstance(sql_server_name.expr.exprs[2], SingleCharLiteral)
         self.assertEqual(sql_server_name.expr.exprs[2].parser_config.match, "]")
+
+    def test_parsing_perl(self):
+        # from https://flapenguin.me/xml-regex
+        # Perl regex
+        #                    -----    -------------------------------------    -------  --------------------------
+        # xml = Regex(r"""\s*(?(?=<)<\s*(\w+)(?:\s+[^\s>]+=("|'|)[^\s"'>]+\2)*\s*(\/\s*)?>(?(3)|(?R)<\s*\/\s*\1\s*>)|[^<]*)*\s*""")
+        pass
