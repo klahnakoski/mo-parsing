@@ -1,4 +1,4 @@
-#
+# encoding: utf-8
 # copied from test_unit.py
 #
 import operator

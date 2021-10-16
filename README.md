@@ -8,13 +8,48 @@ A fork of [pyparsing](https://github.com/pyparsing/pyparsing) for faster parsing
 |master      | [![Build Status](https://travis-ci.com/klahnakoski/mo-parsing.svg?branch=master)](https://travis-ci.com/klahnakoski/mo-parsing) |
 |dev         | [![Build Status](https://travis-ci.com/klahnakoski/mo-parsing.svg?branch=dev)](https://travis-ci.com/klahnakoski/mo-parsing)    |
 
+## Installation
+
+This is a pypi package
+
+    pip install mo-parsing
+    
+## Usage
+
+This module allows you to define a PEG parser using predefined patterns and Python operators.  Here is an example 
+
+```
+>>> from mo_parsing import Word
+>>> from mo_parsing.utils import alphas
+>>>
+>>> greet = Word(alphas)("greeting") + "," + Word(alphas)("person") + "!"
+>>> result = greet.parseString("Hello, World!")
+```
+
+The `result` can be accessed as a nested list
+
+```
+>>> list(result)
+['Hello', ',', 'World', '!']
+```
+
+The `result` can also be accessed as a dictionary
+
+```
+>>> dict(result)
+{'greeting': 'Hello', 'person': 'World'}
+```
+
+Read the [pyparsing documentation](https://github.com/pyparsing/pyparsing/#readme) for more
+
+
 
 ## Differences from PyParsing
 
 This fork was originally created to support faster parsing for [mo-sql-parsing](https://github.com/klahnakoski/moz-sql-parser).  Since then it has deviated sufficiently to be it's own collection of parser specification functions.  Here are the differences:
 
 * Added `Whitespace`, which controls parsing context and whitespace.  It replaces the whitespace modifying methods of pyparsing
-* the wildcard ("`*`") could be used to indicate multi-values are expected; this is not allowed: all values are multi-values
+* the wildcard ("`*`") could be used in pyparsing to indicate multi-values are expected; this is not allowed in `mo-parsing`: all values are multi-values
 * all actions are in `f(token, index, string)` form, which is opposite of pyparsing's `f(string, index token)` form
 * ParserElements are static: For example, `expr.addParseAction(action)` creates a new ParserElement, so must be assigned to variable or it is lost. **This is the biggest source of bugs when converting from pyparsing**
 * removed all backward-compatibility settings
@@ -88,6 +123,11 @@ The debugger will print out details of what's happening
 * print out of the ParserElement performing the attempt
 
 This should help to to isolate the exact position your grammar is failing. 
+
+### Regular Expressions
+
+`mo-parsing` can parse and generate regular expressions. `ParserElement` has a `__regex__()` function that returns the regular expression for the given grammar; which works up to a limit, and is used internally to accelerate parsing.  The `Regex` class parses regular expressions into a grammar; it is used to optimize parsing, and you may find it useful to decompose regular expressions that look like line noise.
+
 
 ## Contributing
 

@@ -224,7 +224,9 @@ not_ahead = ("(?!" + regex + ")").addParseAction(lambda t: NotAny(t["value"]))
 behind = ("(?<=" + regex + ")").addParseAction(lambda t: Log.error("not supported"))
 not_behind = ("(?<!" + regex + ")").addParseAction(lambda t: Log.error("not supported"))
 non_capture = ("(?:" + regex + ")").addParseAction(lambda t: t["value"])
-
+# conditional = ("(?" + try_match + "|" + else_match + ")")
+# recursive = ("(?R)")
+# TODO: match previous capture (3)
 
 named = (
     (

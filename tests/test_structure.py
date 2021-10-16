@@ -1,3 +1,5 @@
+# encoding: utf-8
+
 from mo_parsing import Word, Group, Forward
 from mo_parsing.utils import alphas
 from tests.test_simple_unit import PyparsingExpressionTestCase
