@@ -42,10 +42,46 @@ The `result` can also be accessed as a dictionary
 
 Read the [pyparsing documentation](https://github.com/pyparsing/pyparsing/#readme) for more
 
+### The `Whitespace` Skipper
+
+The `mo_parsing.whitespaces.CURRENT` is used during parser creation: It is effectively defines what "whitespace" to skip during parsing, with additional features to simplify the language definition.  You declare "standard" `Whitespace` like so:
+
+    with Whitespace() as whitespace:
+        # PUT YOUR LANGUAGE DEFINITION HERE (space, tab and CR are "whitespace")
+
+If you are declaring a large language, and you want to minimize indentation, and you are careful, you may also use this pattern:
+
+    whitespace = Whitespace().use()
+    # PUT YOUR LANGUAGE DEFINITION HERE
+    whitespace.release()
+
+The whitespace can be used to set global parsing parameters, like
+
+* `set_whitespace()` - set the ignored characters (default: `"\t\n "`)
+* `add_ignore()` - include whole patterns that are ignored (like comments)
+* `set_literal()` - Set the definition for what `Literal()` means
+* `set_keyword_chars()` - For default `Keyword()` (important for defining word boundary)
+
+
+### Navigating ParseResults
+
+The results of parsing are in `ParseResults` and are in the form of an n-ary tree; with the children found in `ParseResults.tokens`.  Each `ParseResult.type` points to the `ParserElement` that made it.  In general, if you want to get fancy with post processing (or in a `parseAction`), you will be required to navigate the raw `tokens` to generate a final result
+
+There are some convenience methods;  
+* `__iter__()` - allows you to iterate through parse results in **depth first search**. Empty results are skipped, and `Group`ed results are treated as atoms (which can be further iterated if required) 
+* `name` is a convenient property for `ParseResults.type.token_name`
+* `__getitem__()` - allows you to jump into the parse tree to the given `name`. This is blocked by any names found inside `Group`ed results (because groups are considered atoms).      
+
 ### Parse Actions
 
-Like pyparsing, you may `addParseAction()` to transform the parsed result into the datastructure you please. This is a powerful feature that can support the majority of the semantic analysis and transformation required by a language after a strict parsing stage.
+Parse actions are methods that are run after a ParserElement found a match. 
 
+* Parameters must be accepted in `(tokens, index, string)` order (the opposite of pyparsing)
+* Parse actions are wrapped to ensure the output is a legitimate ParseResult
+  * If your parse action returns `None` then the result is the original `tokens`
+  * If your parse action returns an object, or list, or tuple, then it will be packaged in a `ParseResult` with same type as `tokens`.
+  * If your parse action returns a `ParseResult` then it is accepted ***even if is belongs to some other pattern***
+  
 #### Simple example:
 
 ```
@@ -54,8 +90,6 @@ result = integer.parseString("42")
 assert (result[0] == 42)
 ```
 
-Please notice all actions are in `f(token, index, string)` form, which is opposite of pyparsing's parameters: `f(string, index token)` 
-
 For slightly shorter specification, you may use the `/` operator and only parameters you need:
 
 ```
@@ -63,6 +97,37 @@ integer = Word("0123456789") / (lambda t: int(t[0]))
 result = integer.parseString("42")
 assert (result[0] == 42)
 ```
+
+### Debugging
+
+The PEG-style of mo-parsing (from pyparsing) makes a very expressible and readable specification, but debugging a parser is still hard.  To look deeper into what the parser is doing use the `Debugger`:
+
+```
+with Debugger():
+    expr.parseString("my new language")
+```
+
+The debugger will print out details of what's happening
+
+* Each attempt, and if it matched or failed
+* A small number of bytes to show you the current position
+* location, line and column for more info about the current position
+* whitespace indicating stack depth
+* print out of the ParserElement performing the attempt
+
+This should help to isolate the exact position your grammar is failing. 
+
+### Regular Expressions
+
+`mo-parsing` can parse and generate regular expressions. `ParserElement` has a `__regex__()` function that returns the regular expression for the given grammar; which works up to a limit, and is used internally to accelerate parsing.  The `Regex` class parses regular expressions into a grammar; it is used to optimize parsing, and you may find it useful to decompose regular expressions that look like line noise.
+
+
+
+
+
+
+
+
 
 
 ## Differences from PyParsing
@@ -83,70 +148,6 @@ Faster Parsing
 * packrat parser is not need
 * less stack used 
 
-
-## Details
-
-### The `Whitespace` Skipper
-
-The `mo_parsing.whitespaces.CURRENT` is used during parser creation: It is effectively defines "whitespace" for skipping, with additional features to simplify the language definition.  You declare "standard" `Whitespace` like so:
-
-    with Whitespace() as whitespace:
-        # PUT YOUR LANGUAGE DEFINITION HERE (space, tab and CR are "whitespace")
-
-If you are declaring a large language, and you want to minimize indentation, and you are careful, you may also use this pattern:
-
-    whitespace = Whitespace().use()
-    # PUT YOUR LANGUAGE DEFINITION HERE
-    whitespace.release()
-
-The whitespace can be used to set global parsing parameters, like
-
-* `set_whitespace()` - set the ignored characters (default: `"\t\n "`)
-* `add_ignore()` - include whole patterns that are ignored (like comments)
-* `set_literal()` - Set the definition for what `Literal()` means
-* `set_keyword_chars()` - For default `Keyword()` (important for defining word boundary)
-
-### Navigating ParseResults
-
-The results off parsing are in `ParseResults` and are in the form of an n-ary tree; with the children found in `ParseResults.tokens`.  Each `ParseResult.type` points to the `ParserElement` that made it.  In general, if you want to get fancy with post processing (or in a `parseAction`), you will be required to navigate the raw `tokens` to generate a final result
-
-There are some convenience methods;  
-* `__iter__()` - allows you to iterate through parse results in **depth first search**. Empty results are skipped, and `Group`ed results are treated as atoms (which can be further iterated if required) 
-* `name` is a convenient property for `ParseResults.type.token_name`
-* `__getitem__()` - allows you to jump into the parse tree to the given `name`. This is blocked by any names found inside `Group`ed results (because groups are considered atoms).      
-
-### addParseAction
-
-Parse actions are methods that are run after a ParserElement found a match. 
-
-* Parameters must be accepted in `(tokens, index, string)` order (the opposite of pyparsing)
-* Parse actions are wrapped to ensure the output is a legitimate ParseResult
-  * If your parse action returns `None` then the result is the original `tokens`
-  * If your parse action returns an object, or list, or tuple, then it will be packaged in a `ParseResult` with same type as `tokens`.
-  * If your parse action returns a `ParseResult` then it is accepted ***even if is belongs to some other pattern***
-  
-### Debugging
-
-The PEG-style of mo-parsing (from pyparsing) makes a very expressible and readable specification, but debugging a parser is still hard.  To look deeper into what the parser is doing use the `Debugger`:
-
-```
-with Debugger():
-    expr.parseString("my new language")
-```
-
-The debugger will print out details of what's happening
-
-* Each attempt, and if it matched or failed
-* A small number of bytes to show you the current position
-* location, line and character for more info about the current position
-* whitespace indicating stack depth
-* print out of the ParserElement performing the attempt
-
-This should help to to isolate the exact position your grammar is failing. 
-
-### Regular Expressions
-
-`mo-parsing` can parse and generate regular expressions. `ParserElement` has a `__regex__()` function that returns the regular expression for the given grammar; which works up to a limit, and is used internally to accelerate parsing.  The `Regex` class parses regular expressions into a grammar; it is used to optimize parsing, and you may find it useful to decompose regular expressions that look like line noise.
 
 
 ## Contributing
