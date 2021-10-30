@@ -99,5 +99,3 @@ def _list2tab(rows):
         output.append("\t".join(value2json(r[k]) for k in keys))
 
     return "\t".join(keys) + "\n" + "\n".join(output)
-
-

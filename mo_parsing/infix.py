@@ -170,7 +170,7 @@ def infixNotation(
         is_suppressed = isinstance(output, Suppress)
         if is_suppressed:
             output = output.expr
-        output = output.addParseAction(record_self)
+        output = output / record_self
         all_op[id(op)] = is_suppressed, output
         return is_suppressed, output
 
@@ -236,17 +236,17 @@ def infixNotation(
         return output
 
     prefix_ops = MatchFirst([
-        op.addParseAction(record_op(op))
+        op / record_op(op)
         for expr, op, is_suppressed, arity, assoc, pa in opList
         if arity == 1 and assoc == RIGHT_ASSOC
     ])
     suffix_ops = MatchFirst([
-        op.addParseAction(record_op(op))
+        op / record_op(op)
         for expr, op, is_suppressed, arity, assoc, pa in opList
         if arity == 1 and assoc == LEFT_ASSOC
     ])
     ops = Or([
-        opPart.addParseAction(record_op(opPart))
+        opPart / record_op(opPart)
         for opPart in set(
             opPart
             for expr, op, is_suppressed, arity, assoc, pa in opList
@@ -269,9 +269,13 @@ def infixNotation(
                         if o == op:
                             tok = flat_tokens[i + 1][0]
                             if is_suppressed:
-                                result = ParseResults(expr, tok.start, tok.end, (tok,), [])
+                                result = ParseResults(
+                                    expr, tok.start, tok.end, (tok,), []
+                                )
                             else:
-                                result = ParseResults(expr, r.start, tok.end, (r, tok), [])
+                                result = ParseResults(
+                                    expr, r.start, tok.end, (r, tok), []
+                                )
                             break
                     else:
                         op_index += 1
@@ -283,9 +287,13 @@ def infixNotation(
                         if o == op:
                             tok = flat_tokens[i][0]
                             if is_suppressed:
-                                result = ParseResults(expr, tok.start, tok.end, (tok,), [])
+                                result = ParseResults(
+                                    expr, tok.start, tok.end, (tok,), []
+                                )
                             else:
-                                result = ParseResults(expr, tok.start, r.end, (tok, r,), [])
+                                result = ParseResults(
+                                    expr, tok.start, r.end, (tok, r,), []
+                                )
                             break
                     else:
                         op_index += 1
@@ -303,7 +311,7 @@ def infixNotation(
                                 flat_tokens[i][0].start,
                                 flat_tokens[i + 2][0].end,
                                 (flat_tokens[i][0], flat_tokens[i + 2][0]),
-                                []
+                                [],
                             )
                         else:
                             result = ParseResults(
@@ -311,7 +319,7 @@ def infixNotation(
                                 flat_tokens[i][0].start,
                                 flat_tokens[i + 2][0].end,
                                 (flat_tokens[i][0], r, flat_tokens[i + 2][0]),
-                                []
+                                [],
                             )
                         break
                 else:
@@ -338,7 +346,9 @@ def infixNotation(
                             if not s0:
                                 seq.insert(1, r0)
 
-                            result = ParseResults(expr, seq[0].start, seq[-1].end, seq, [])
+                            result = ParseResults(
+                                expr, seq[0].start, seq[-1].end, seq, []
+                            )
                             break
                 else:
                     op_index += 1
@@ -357,10 +367,8 @@ def infixNotation(
 
     flat = Forward()
     iso = lpar.suppress() + flat + rpar.suppress()
-    atom = (baseExpr | iso).addParseAction(record_op(baseExpr))
+    atom = (baseExpr | iso) / record_op(baseExpr)
     modified = ZeroOrMore(prefix_ops) + atom + ZeroOrMore(suffix_ops)
-    flat << (
-        modified + ZeroOrMore(ops + modified)
-    ).addParseAction(make_tree).streamline()
+    flat << ((modified + ZeroOrMore(ops + modified)) / make_tree).streamline()
 
     return flat.streamline()

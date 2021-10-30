@@ -138,7 +138,7 @@ def QuotedString(
 
         return ParseResults(tokens.type, tokens.start, tokens.end, [ret], [])
 
-    return output.addParseAction(post_parse).streamline()
+    return (output / post_parse).streamline()
 
 
 dblQuotedString = Combine(
@@ -179,11 +179,11 @@ def countedArray(expr, intExpr=None):
 
         # in this parser, the leading integer value is given in binary,
         # '10' indicating that 2 values are in the array
-        binaryConstant = Word('01').addParseAction(lambda t: int(t[0], 2))
+        binaryConstant = Word('01')/ lambda t: int(t[0], 2)
         countedArray(Word(alphas), intExpr=binaryConstant).parseString('10 ab cd ef')  # -> ['ab', 'cd']
     """
     if intExpr is None:
-        intExpr = Word(nums).addParseAction(lambda t: int(t[0]))
+        intExpr = Word(nums) / (lambda t: int(t[0]))
 
     arrayExpr = Forward()
 
@@ -211,7 +211,8 @@ def _flatten(L):
 
 
 def matchPreviousLiteral(expr):
-    """Helper to define an expression that is indirectly defined from
+    """
+    Helper to define an expression that is indirectly defined from
     the tokens matched in a previous expression, that is, it looks for
     a 'repeat' of a previous expression.  For example::
 
@@ -290,11 +291,11 @@ def dictOf(key, value):
     Example::
 
         text = "shape: SQUARE posn: upper left color: light blue texture: burlap"
-        attr_expr = (label + Suppress(':') + OneOrMore(data_word, stopOn=label).addParseAction(' '.join))
+        attr_expr = (label + Suppress(':') + OneOrMore(data_word, stopOn=label)/ ' '.join)
         print(OneOrMore(attr_expr).parseString(text))
 
         attr_label = label
-        attr_value = Suppress(':') + OneOrMore(data_word, stopOn=label).addParseAction(' '.join)
+        attr_value = Suppress(':') + OneOrMore(data_word, stopOn=label)/ ' '.join
 
         # similar to Dict, but simpler call format
         result = dictOf(attr_label, attr_value).parseString(text)
@@ -346,9 +347,9 @@ def originalTextFor(expr, asString=True):
         ['<b> bold <i>text</i> </b>']
         ['<i>text</i>']
     """
-    locMarker = Empty().addParseAction(lambda t, l, s: l)
+    locMarker = Empty() / (lambda _, l: l)
     matchExpr = locMarker("_original_start") + Group(expr) + locMarker("_original_end")
-    matchExpr = matchExpr.addParseAction(extractText)
+    matchExpr = matchExpr / extractText
     return matchExpr
 
 
@@ -363,7 +364,7 @@ def ungroup(expr):
     """Helper to undo mo_parsing's default grouping of And expressions,
     even if all but one are non-empty.
     """
-    return TokenConverter(expr).addParseAction(lambda t: t[0])
+    return TokenConverter(expr) / (lambda t: t[0])
 
 
 def locatedExpr(expr):
@@ -391,7 +392,7 @@ def locatedExpr(expr):
         [[8, 'lksdjjf', 15]]
         [[18, 'lkkjj', 23]]
     """
-    locator = Empty().addParseAction(lambda t, l, s: l)
+    locator = Empty() / (lambda t, l, s: l)
     return Group(locator("locn_start") + Group(expr)("value") + locator("locn_end"))
 
 
@@ -439,28 +440,39 @@ def nestedExpr(opener="(", closer=")", content=None, ignoreExpr=quotedString):
 
             if len(opener) == 1 and len(closer) == 1:
                 if ignoreExpr is not None:
-                    content = Combine(OneOrMore(
-                        ~ignoreExpr
-                        + CharsNotIn(opener + closer + "".join(ignore_chars), exact=1,)
-                    )).addParseAction(scrub)
+                    content = (
+                        Combine(OneOrMore(
+                            ~ignoreExpr
+                            + CharsNotIn(
+                                opener + closer + "".join(ignore_chars), exact=1,
+                            )
+                        ))
+                        / scrub
+                    )
                 else:
-                    content = Empty + CharsNotIn(
-                        opener + closer + "".join(ignore_chars)
-                    ).addParseAction(scrub)
+                    content = (
+                        Empty + CharsNotIn(opener + closer + "".join(ignore_chars))
+                    ) / scrub
             else:
                 if ignoreExpr is not None:
-                    content = Combine(OneOrMore(
-                        ~ignoreExpr
-                        + ~Literal(opener)
-                        + ~Literal(closer)
-                        + CharsNotIn(ignore_chars, exact=1)
-                    )).addParseAction(scrub)
+                    content = (
+                        Combine(OneOrMore(
+                            ~ignoreExpr
+                            + ~Literal(opener)
+                            + ~Literal(closer)
+                            + CharsNotIn(ignore_chars, exact=1)
+                        ))
+                        / scrub
+                    )
                 else:
-                    content = Combine(OneOrMore(
-                        ~Literal(opener)
-                        + ~Literal(closer)
-                        + CharsNotIn(ignore_chars, exact=1)
-                    )).addParseAction(scrub)
+                    content = (
+                        Combine(OneOrMore(
+                            ~Literal(opener)
+                            + ~Literal(closer)
+                            + CharsNotIn(ignore_chars, exact=1)
+                        ))
+                        / scrub
+                    )
     ret = Forward()
     if ignoreExpr is not None:
         ret <<= Group(
@@ -494,7 +506,7 @@ def removeQuotes(t, l, s):
         quotedString.parseString("'Now is the Winter of our Discontent'") # -> ["'Now is the Winter of our Discontent'"]
 
         # use removeQuotes to strip quotation marks from parsed results
-        quotedString.addParseAction(removeQuotes)
+        quotedString/ removeQuotes
         quotedString.parseString("'Now is the Winter of our Discontent'") # -> ["Now is the Winter of our Discontent"]
     """
     return t[0][1:-1]
@@ -541,9 +553,7 @@ def makeHTMLTags(tagStr, suppress_LT=Suppress("<"), suppress_GT=Suppress(">")):
         resname = tagStr.parser_name
 
     tagAttrName = Word(alphas, alphanums + "_-:")
-    tagAttrValue = quotedString.addParseAction(removeQuotes) | Word(
-        printables, exclude=">"
-    )
+    tagAttrValue = quotedString / removeQuotes | Word(printables, exclude=">")
     simpler_name = "".join(resname.replace(":", " ").title().split())
 
     with STANDARD_WHITESPACE:
@@ -552,12 +562,11 @@ def makeHTMLTags(tagStr, suppress_LT=Suppress("<"), suppress_GT=Suppress(">")):
                 suppress_LT
                 + tagStr("tag")
                 + OpenDict(ZeroOrMore(Group(
-                    tagAttrName.addParseAction(downcaseTokens)
+                    tagAttrName / downcaseTokens
                     + Optional(Suppress("=") + tagAttrValue)
                 )))
-                + Optional(
-                    "/", default=[False]
-                )("empty").addParseAction(lambda t, l, s: t[0] == "/")
+                + Optional("/", default=[False])("empty")
+                / (lambda t, l, s: t[0] == "/")
                 + suppress_GT
             )
             .set_token_name("start" + simpler_name)
@@ -625,13 +634,13 @@ def withClass(classname, namespace=""):
 
         '''
         div,div_end = makeHTMLTags("div")
-        div_grid = div().addParseAction(withClass("grid"))
+        div_grid = div()/ withClass("grid")
 
         grid_expr = div_grid + SkipTo(div | div_end)("body")
         for grid_header in grid_expr.searchString(html):
             print(grid_header.body)
 
-        div_any_type = div().addParseAction(withClass(withAttribute.ANY_VALUE))
+        div_any_type = div()/ withClass(withAttribute.ANY_VALUE)
         div_expr = div_any_type + SkipTo(div | div_end)("body")
         for div_header in div_expr.searchString(html):
             print(div_header.body)
@@ -712,8 +721,8 @@ def indentedBlock(blockStatementExpr, indent=True):
     def indent_stack(t, l, s):
         curCol = col(l, s)
         if curCol > _indent_stack[-1][0]:
-            PEER << Empty().addParseAction(peer_stack(curCol))
-            DEDENT << Empty().addParseAction(dedent_stack(curCol))
+            PEER << Empty() / peer_stack(curCol)
+            DEDENT << Empty() / dedent_stack(curCol)
             _indent_stack.append((curCol, PEER, DEDENT))
         else:
             raise ParseException(t.type, l, s, "not a subentry")
@@ -721,8 +730,8 @@ def indentedBlock(blockStatementExpr, indent=True):
     def nodent_stack(t, l, s):
         curCol = col(l, s)
         if curCol == _indent_stack[-1][0]:
-            PEER << Empty().addParseAction(peer_stack(curCol))
-            DEDENT << Empty().addParseAction(dedent_stack(curCol))
+            PEER << Empty() / peer_stack(curCol)
+            DEDENT << Empty() / dedent_stack(curCol)
             _indent_stack.append((curCol, PEER, DEDENT))
         else:
             raise ParseException(t.type, l, s, "not a subentry")
@@ -732,8 +741,8 @@ def indentedBlock(blockStatementExpr, indent=True):
         e.add_ignore(*ignore_list)
 
         NL = OneOrMore(LineEnd().suppress())
-        INDENT = Empty().addParseAction(indent_stack)
-        NODENT = Empty().addParseAction(nodent_stack)
+        INDENT = Empty() / indent_stack
+        NODENT = Empty() / nodent_stack
 
         if indent:
             smExpr = Group(
@@ -786,14 +795,9 @@ with NO_WHITESPACE:
 
     pythonStyleComment = Regex(r"#[^\n]*").set_parser_name("Python style comment")
 
-_commasepitem = (
-    Combine(OneOrMore(
-        Word(printables, exclude=",")
-        + Optional(Word(" \t") + ~Literal(",") + ~LineEnd())
-    ))
-    .addParseAction(lambda t: text(t).strip())
-    .set_parser_name("commaItem")
-)
+_commasepitem = Combine(OneOrMore(
+    Word(printables, exclude=",") + Optional(Word(" \t") + ~Literal(",") + ~LineEnd())
+)).set_parser_name("commaItem") / (lambda t: text(t).strip())
 commaSeparatedList = delimitedList(Optional(
     quotedString | _commasepitem, default=""
 )).set_parser_name("commaSeparatedList")
@@ -802,52 +806,31 @@ commaSeparatedList = delimitedList(Optional(
 convertToInteger = tokenMap(int)
 convertToFloat = tokenMap(float)
 
-integer = Word(nums).set_parser_name("integer").addParseAction(convertToInteger)
+integer = Word(nums).set_parser_name("integer") / convertToInteger
 
-hex_integer = (
-    Word(hexnums).set_parser_name("hex integer").addParseAction(tokenMap(int, 16))
-)
+hex_integer = Word(hexnums).set_parser_name("hex integer") / tokenMap(int, 16)
 
-signed_integer = (
-    Regex(r"[+-]?\d+")
-    .set_parser_name("signed integer")
-    .addParseAction(convertToInteger)
-)
+signed_integer = Regex(r"[+-]?\d+").set_parser_name("signed integer") / convertToInteger
 
 fraction = (
-    (
-        signed_integer.addParseAction(convertToFloat)
-        + "/"
-        + signed_integer.addParseAction(convertToFloat)
-    )
-    .set_parser_name("fraction")
-    .addParseAction(lambda t: t[0] / t[2])
-)
+    signed_integer / convertToFloat + "/" + signed_integer / convertToFloat
+).set_parser_name("fraction") / (lambda t: t[0] / t[2])
 
 mixed_integer = (
-    (fraction | signed_integer + Optional(Optional("-").suppress() + fraction))
-    .set_parser_name("fraction or mixed integer-fraction")
-    .addParseAction(sum)
-)
+    fraction | signed_integer + Optional(Optional("-").suppress() + fraction)
+).set_parser_name("fraction or mixed integer-fraction") / sum
 
-real = (
-    Regex(r"[+-]?(?:\d+\.\d*|\.\d+)")
-    .set_parser_name("real number")
-    .addParseAction(convertToFloat)
-)
+real = Regex(r"[+-]?(?:\d+\.\d*|\.\d+)").set_parser_name("real number") / convertToFloat
 
 sci_real = (
-    Regex(r"[+-]?(?:\d+(?:[eE][+-]?\d+)|(?:\d+\.\d*|\.\d+)(?:[eE][+-]?\d+)?)")
-    .set_parser_name("real number with scientific notation")
-    .addParseAction(convertToFloat)
+    Regex(r"[+-]?(?:\d+(?:[eE][+-]?\d+)|(?:\d+\.\d*|\.\d+)(?:[eE][+-]?\d+)?)").set_parser_name("real number with scientific notation")
+    / convertToFloat
 )
 
 number = (sci_real | real | signed_integer).streamline()
 
 fnumber = (
-    Regex(r"[+-]?\d+\.?\d*([eE][+-]?\d+)?")
-    .set_parser_name("fnumber")
-    .addParseAction(convertToFloat)
+    Regex(r"[+-]?\d+\.?\d*([eE][+-]?\d+)?").set_parser_name("fnumber") / convertToFloat
 )
 
 identifier = Word(alphas + "_", alphanums + "_").set_parser_name("identifier")
@@ -892,7 +875,7 @@ def convertToDate(fmt="%Y-%m-%d"):
     Example::
 
         date_expr = iso8601_date.copy()
-        date_expr.addParseAction(convertToDate())
+        date_expr/ convertToDate()
         print(date_expr.parseString("1999-12-31"))
 
     prints::
@@ -919,7 +902,7 @@ def convertToDatetime(fmt="%Y-%m-%dT%H:%M:%S.%f"):
     Example::
 
         dt_expr = iso8601_datetime.copy()
-        dt_expr.addParseAction(convertToDatetime())
+        dt_expr/ convertToDatetime()
         print(dt_expr.parseString("1999-12-31T23:59:59.999"))
 
     prints::
@@ -966,7 +949,7 @@ def stripHTMLTags(tokens, l, s):
         # strip HTML links from normal text
         text = '<td>More info at the <a href="https://github.com/mo_parsing/mo_parsing/wiki">mo_parsing</a> wiki page</td>'
         td, td_end = makeHTMLTags("TD")
-        table_text = td + SkipTo(td_end).addParseAction(stripHTMLTags)("body") + td_end
+        table_text = td + SkipTo(td_end)/ stripHTMLTags)("body" + td_end
         print(table_text.parseString(text).body)
 
     Prints::
@@ -981,9 +964,7 @@ def _strip(tok):
 
 
 _commasepitem = (
-    Word(printables + " \t", exclude=",")
-    .set_parser_name("commaItem")
-    .addParseAction(_strip)
+    Word(printables + " \t", exclude=",").set_parser_name("commaItem") / _strip
 )
 comma_separated_list = delimitedList(Optional(
     quotedString | _commasepitem, default=""

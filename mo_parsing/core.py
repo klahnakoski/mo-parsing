@@ -143,7 +143,9 @@ class Parser(object):
                 try:
                     StringEnd()._parse(string, end)
                 except ParseException as pe:
-                    raise ParseException(self.element, 0, string, cause=tokens.failures+[pe])
+                    raise ParseException(
+                        self.element, 0, string, cause=tokens.failures + [pe]
+                    )
 
             if self.named:
                 return tokens
@@ -244,7 +246,11 @@ class Parser(object):
             return ParseResults(ZeroOrMore(self.element), -1, 0, [], [])
         else:
             return ParseResults(
-                ZeroOrMore(self.element), scanned[0].start, scanned[-1].end, scanned, scanned[-1].failures
+                ZeroOrMore(self.element),
+                scanned[0].start,
+                scanned[-1].end,
+                scanned,
+                scanned[-1].failures,
             )
 
     @entrypoint
@@ -352,6 +358,14 @@ class ParserElement(object):
         output.set_config(
             callDuringTry=self.parser_config.callDuringTry or callDuringTry
         )
+        return output
+
+    def __truediv__(self, func):
+        """
+        Shortform for addParseAction
+        """
+        output = self.copy()
+        output.parseAction.append(wrap_parse_action(func))
         return output
 
     def addCondition(self, *fns, message=None, callDuringTry=False, fatal=False):
@@ -500,7 +514,7 @@ class ParserElement(object):
             acc.append(parts[-1])
             return "".join(acc)
 
-        return self.addParseAction(replacer)
+        return self / replacer
 
     sub = replace_with
 
@@ -653,6 +667,9 @@ class ParserElement(object):
         if not name:
             return self
         return self.set_token_name(name)
+
+    def reverse(self):
+        raise NotImplementedError()
 
     def set_token_name(self, name):
         """

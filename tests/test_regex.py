@@ -10,7 +10,7 @@ class TestRegexParsing(PyparsingExpressionTestCase):
     def test_parsing_real_numbers_using_regex_instead_of_combine(self):
         self.runTest(
             desc="Parsing real numbers - using Regex instead of Combine",
-            expr=Regex(r"\d+\.\d+").addParseAction(lambda t: float(t[0]))[...],
+            expr=(Regex(r"\d+\.\d+") / (lambda t: float(t[0])))[...],
             text="1.2 2.3 3.1416 98.6",
             expected_list=[
                 1.2,
@@ -205,6 +205,6 @@ class TestRegexParsing(PyparsingExpressionTestCase):
     def test_parsing_perl(self):
         # from https://flapenguin.me/xml-regex
         # Perl regex
-        #                    -----    -------------------------------------    -------  --------------------------
+        #                      -----    -------------------------------------    -------  --------------------------
         # xml = Regex(r"""\s*(?(?=<)<\s*(\w+)(?:\s+[^\s>]+=("|'|)[^\s"'>]+\2)*\s*(\/\s*)?>(?(3)|(?R)<\s*\/\s*\1\s*>)|[^<]*)*\s*""")
         pass

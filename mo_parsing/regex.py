@@ -137,21 +137,20 @@ def repeat(tokens):
 
 NO_WHITESPACE.use()
 
-
 #########################################################################################
 # SQUARE BRACKETS
 
-any_whitechar = Literal("\\s").addParseAction(lambda: Char(whitespace))
-not_whitechar = Literal("\\S").addParseAction(lambda: Char(exclude=whitespace))
-any_wordchar = Literal("\\w").addParseAction(lambda: Char(alphanums + "_"))
-not_wordchar = Literal("\\W").addParseAction(lambda: Char(exclude=alphanums + "_"))
-any_digitchar = Literal("\\d").addParseAction(lambda: Char(nums))
-not_digitchar = Literal("\\D").addParseAction(lambda: Char(exclude=nums))
-bs_char = Literal("\\\\").addParseAction(lambda: Literal("\\"))
-tab_char = Literal("\\t").addParseAction(lambda: Literal("\t"))
-CR = Literal("\\n").addParseAction(lambda: Literal("\n"))
-LF = Literal("\\r").addParseAction(lambda: Literal("\r"))
-any_char = Literal(".").addParseAction(lambda: AnyChar())
+any_whitechar = Literal("\\s") / (lambda: Char(whitespace))
+not_whitechar = Literal("\\S") / (lambda: Char(exclude=whitespace))
+any_wordchar = Literal("\\w") / (lambda: Char(alphanums + "_"))
+not_wordchar = Literal("\\W") / (lambda: Char(exclude=alphanums + "_"))
+any_digitchar = Literal("\\d") / (lambda: Char(nums))
+not_digitchar = Literal("\\D") / (lambda: Char(exclude=nums))
+bs_char = Literal("\\\\") / (lambda: Literal("\\"))
+tab_char = Literal("\\t") / (lambda: Literal("\t"))
+CR = Literal("\\n") / (lambda: Literal("\n"))
+LF = Literal("\\r") / (lambda: Literal("\r"))
+any_char = Literal(".") / (lambda: AnyChar())
 
 macro = (
     any_whitechar
@@ -166,42 +165,43 @@ macro = (
     | bs_char
     | tab_char
 )
-escapedChar = (
-    ~macro + Combine("\\" + AnyChar())
-).addParseAction(lambda t: Literal(t.value()[1]))
-plainChar = Char(exclude=r"\]").addParseAction(lambda t: Literal(t.value()))
+escapedChar = (~macro + Combine("\\" + AnyChar())) / (lambda t: Literal(t.value()[1]))
+plainChar = Char(exclude=r"\]") / (lambda t: Literal(t.value()))
 
-escapedHexChar = Combine(
-    (Literal("\\0x") | Literal("\\x") | Literal("\\X"))  # lookup literals is faster
-    + OneOrMore(Char(hexnums), NO_WHITESPACE)
-).addParseAction(hex_to_char)
+escapedHexChar = (
+    Combine(
+        (Literal("\\0x") | Literal("\\x") | Literal("\\X"))  # lookup literals is faster
+        + OneOrMore(Char(hexnums), NO_WHITESPACE)
+    )
+    / hex_to_char
+)
 
 escapedOctChar = Combine(
     Literal("\\0") + OneOrMore(Char("01234567"), NO_WHITESPACE)
-).addParseAction(lambda t: Literal(unichr(int(t.value()[2:], 8))))
+) / (lambda t: Literal(unichr(int(t.value()[2:], 8))))
 
 singleChar = escapedHexChar | escapedOctChar | escapedChar | plainChar
 
-charRange = Group(singleChar("min") + "-" + singleChar("max")).addParseAction(to_range)
+charRange = Group(singleChar("min") + "-" + singleChar("max")) / to_range
 
 brackets = (
     "["
     + Optional("^", NO_WHITESPACE)("negate")
     + OneOrMore(Group(charRange | singleChar | macro)("body"), NO_WHITESPACE)
     + "]"
-).addParseAction(to_bracket)
+) / to_bracket
 
 #########################################################################################
 # REGEX
 regex = Forward()
 
-line_start = Literal("^").addParseAction(lambda: LineStart())
-line_end = Literal("$").addParseAction(lambda: LineEnd())
-word_edge = Literal("\\b").addParseAction(lambda: NotAny(any_wordchar))
+line_start = Literal("^") / (lambda: LineStart())
+line_end = Literal("$") / (lambda: LineEnd())
+word_edge = Literal("\\b") / (lambda: NotAny(any_wordchar))
 simple_char = Word(
     printables, exclude=r".^$*+{}[]\|()"
-).addParseAction(lambda t: Literal(t.value()))
-esc_char = ("\\" + AnyChar()).addParseAction(lambda t: Literal(t.value()[1]))
+) / (lambda t: Literal(t.value()))
+esc_char = ("\\" + AnyChar()) / (lambda t: Literal(t.value()[1]))
 
 with Whitespace():
     # ALLOW SPACES IN THE RANGE
@@ -216,34 +216,23 @@ repetition = Group(
     "{" + repetition | (Literal("*?") | Literal("+?") | Char("*+?"))("mode")
 )
 
-
 LB = Char("(")
 
-ahead = ("(?=" + regex + ")").addParseAction(lambda t: FollowedBy(t["value"]))
-not_ahead = ("(?!" + regex + ")").addParseAction(lambda t: NotAny(t["value"]))
-behind = ("(?<=" + regex + ")").addParseAction(lambda t: Log.error("not supported"))
-not_behind = ("(?<!" + regex + ")").addParseAction(lambda t: Log.error("not supported"))
-non_capture = ("(?:" + regex + ")").addParseAction(lambda t: t["value"])
+ahead = ("(?=" + regex + ")") / (lambda t: FollowedBy(t["value"]))
+not_ahead = ("(?!" + regex + ")") / (lambda t: NotAny(t["value"]))
+behind = ("(?<=" + regex + ")") / (lambda t: Log.error("not supported"))
+not_behind = ("(?<!" + regex + ")") / (lambda t: Log.error("not supported"))
+non_capture = ("(?:" + regex + ")") / (lambda t: t["value"])
 # conditional = ("(?" + try_match + "|" + else_match + ")")
 # recursive = ("(?R)")
 # TODO: match previous capture (3)
 
 named = (
-    (
-        Literal("(?P<").addParseAction(INC)
-        + Word(alphanums + "_")("name")
-        + ">"
-        + regex
-        + ")"
-    )
-    .addParseAction(name_token)
-    .addParseAction(DEC)
+    (Literal("(?P<") / INC + Word(alphanums + "_")("name") + ">" + regex + ")")
+    / name_token
+    / DEC
 )
-group = (
-    (LB.addParseAction(INC) + regex + ")")
-    .addParseAction(name_token)
-    .addParseAction(DEC)
-)
+group = ((LB / INC) + regex + ")") / name_token / DEC
 
 term = (
     macro
@@ -260,22 +249,17 @@ term = (
     | group
 )
 
-
-more = (term + Optional(repetition, NO_WHITESPACE)).addParseAction(repeat)
-sequence = OneOrMore(more, NO_WHITESPACE).addParseAction(lambda t: And(
-    t, NO_WHITESPACE
-))
+more = (term + Optional(repetition, NO_WHITESPACE)) / repeat
+sequence = OneOrMore(more, NO_WHITESPACE) / (lambda t: And(t, NO_WHITESPACE))
 regex << (
-    delimitedList(sequence, separator="|")
-    .set_token_name("value")
-    .addParseAction(lambda t: MatchFirst(listwrap(t.value())).streamline())
-    .streamline()
-)
+    delimitedList(sequence, separator="|").set_token_name("value")
+    / (lambda t: MatchFirst(listwrap(t.value())).streamline())
+).streamline()
 regex = regex.finalize()
 
 parameters = (
     "\\" + Char(alphanums)("name") | "\\g<" + Word(alphas, alphanums)("name") + ">"
-).addParseAction(lambda t: t["name"])
+) / (lambda t: t["name"])
 NO_WHITESPACE.release()
 
 
@@ -330,7 +314,7 @@ class Regex(ParseEnhancement):
                     ann.append(Annotation(n, s + start, e + start, [g]))
             return ParseResults(_plain_group, start, end, ann, [])
 
-        return self.addParseAction(group_list)
+        return self / group_list
 
     def sub(self, replacement):
         # MIMIC re.sub
@@ -339,7 +323,7 @@ class Regex(ParseEnhancement):
             def pa(tokens):
                 return tokens.type.regex.sub(replacement, tokens[0])
 
-            output = self.addParseAction(pa)
+            output = self / pa
             return output
         else:
             # A FUNCTION
@@ -347,7 +331,7 @@ class Regex(ParseEnhancement):
                 regex_result = tokens.type.regex.match(tokens.tokens[0])
                 return replacement(regex_result)
 
-            return self.addParseAction(pf)
+            return self / pf
 
     def parseImpl(self, string, start, doActions=True):
         found = self.regex.match(string, start)

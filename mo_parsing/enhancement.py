@@ -18,7 +18,8 @@ from mo_parsing.utils import (
     empty_tuple,
     regex_iso,
     append_config,
-    regex_compile, wrap_parse_action,
+    regex_compile,
+    wrap_parse_action,
 )
 from mo_parsing.utils import MAX_INT, is_forward
 
@@ -293,7 +294,11 @@ class Many(ParseEnhancement):
                 failures.append(cause)
             else:
                 raise ParseException(
-                    self, start, string, msg="Not correct amount of matches", cause=cause
+                    self,
+                    start,
+                    string,
+                    msg="Not correct amount of matches",
+                    cause=cause,
                 )
         if count:
             if (
@@ -471,7 +476,9 @@ class Optional(Many):
             results = self.expr._parse(string, start, doActions)
             return ParseResults(self, results.start, results.end, [results], [])
         except ParseException as pe:
-            return ParseResults(self, start, start, self.parser_config.defaultValue, [pe])
+            return ParseResults(
+                self, start, start, self.parser_config.defaultValue, [pe]
+            )
 
     def __str__(self):
         if self.parser_name:
@@ -688,7 +695,9 @@ class Forward(ParserElement):
     def parseImpl(self, string, loc, doActions=True):
         try:
             result = self.expr._parse(string, loc, doActions)
-            return ParseResults(self, result.start, result.end, [result], result.failures)
+            return ParseResults(
+                self, result.start, result.end, [result], result.failures
+            )
         except Exception as cause:
             if is_null(self.expr):
                 Log.warning(
@@ -757,7 +766,7 @@ class Combine(TokenConverter):
             start,
             result.end,
             [result.asString(sep=self.parser_config.separator)],
-            result.failures
+            result.failures,
         )
         return output
 
