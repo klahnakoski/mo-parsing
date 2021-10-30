@@ -13,6 +13,6 @@ with Whitespace():
     Regex("[^\\]]")
 
 
-integer = Word("0123456789") // int
+integer = Word("0123456789") / (lambda t: int(t[0]))
 result = integer.parseString("42")
 assert (result[0] == 42)
