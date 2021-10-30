@@ -12,7 +12,7 @@ from mo_parsing.helpers import *
 
 
 # This converts DFM character constants into Python string (unicode) values.
-from mo_parsing.infix import oneOf
+from mo_parsing.infix import one_of
 
 
 def to_chr(x):
@@ -50,12 +50,12 @@ object_name = identifier
 object_type = identifier
 
 # Integer and floating point values are converted to Python longs and floats, respectively.
-int_value = Combine(Optional("-") + Word(nums)).addParseAction(
+int_value = Combine(Optional("-") + Word(nums)).add_parse_action(
     lambda t, l, s: [int(t[0])]
 )
 float_value = Combine(
     Optional("-") + Optional(Word(nums)) + "." + Word(nums)
-).addParseAction(lambda t, l, s: [float(t[0])])
+).add_parse_action(lambda t, l, s: [float(t[0])])
 number_value = float_value | int_value
 
 # Base16 constants are left in string form, including the surrounding braces.
@@ -75,7 +75,7 @@ unquoted_sglQuotedString = Combine(
 # The parse action on this production converts repetitions of constants into a single string.
 pound_char = Combine(
     OneOrMore(
-        (Literal("#").suppress() + Word(nums)).addParseAction(
+        (Literal("#").suppress() + Word(nums)).add_parse_action(
             lambda t, l, s: to_chr(int(t[0]))
         )
     )
@@ -86,13 +86,13 @@ pound_char = Combine(
 #     a single matched pair of quotes around it.
 delphi_string = Combine(
     OneOrMore(CONCAT | pound_char | unquoted_sglQuotedString)
-).addParseAction(lambda t, l, s: "'%s'" % t[0])
+).add_parse_action(lambda t, l, s: "'%s'" % t[0])
 
 string_value = delphi_string | base16_value
 
 list_value = (
     LBRACE
-    + Optional(Group(delimitedList(identifier | number_value | string_value)))
+    + Optional(Group(delimited_list(identifier | number_value | string_value)))
     + RBRACE
 )
 paren_list_value = (
@@ -112,13 +112,13 @@ value = (
     | generic_value
 )
 
-category_attribute = CATEGORIES + PERIOD + oneOf("strings itemsvisibles visibles", True)
-event_attribute = oneOf(
+category_attribute = CATEGORIES + PERIOD + one_of("strings itemsvisibles visibles", True)
+event_attribute = one_of(
     "onactivate onclosequery onclose oncreate ondeactivate onhide onshow", True
 )
-font_attribute = FONT + PERIOD + oneOf("charset color height name style", True)
+font_attribute = FONT + PERIOD + one_of("charset color height name style", True)
 hint_attribute = HINT
-layout_attribute = oneOf("left top width height", True)
+layout_attribute = one_of("left top width height", True)
 generic_attribute = identifier
 attribute = (
     category_attribute
@@ -192,7 +192,7 @@ def main(testfiles=None, action=printer):
 
     if action:
         for i in (simple_identifier, value, item_list):
-            i.addParseAction(action)
+            i.add_parse_action(action)
 
     success = 0
     failures = []
@@ -200,7 +200,7 @@ def main(testfiles=None, action=printer):
     retval = {}
     for f in testfiles:
         try:
-            retval[f] = object_definition.parseFile(f)
+            retval[f] = object_definition.parse_file(f)
             success += 1
         except Exception:
             failures.append(f)

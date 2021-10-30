@@ -27,16 +27,16 @@ number = integer
 vert = Literal("|").suppress()
 
 rowDelim = ("+" + ZeroOrMore(underline + "+")).suppress()
-columnHeader = Group(vert + vert + delimitedList(Word(alphas + nums), "|") + vert)
+columnHeader = Group(vert + vert + delimited_list(Word(alphas + nums), "|") + vert)
 
 heading = rowDelim + columnHeader("columns") + rowDelim
-rowData = Group(vert + Word(alphas) + vert + delimitedList(number, "|") + vert)
+rowData = Group(vert + Word(alphas) + vert + delimited_list(number, "|") + vert)
 trailing = rowDelim
 
 datatable = heading + Dict(ZeroOrMore(rowData)) + trailing
 
 # now parse data and print results
-data = datatable.parseString(testData)
+data = datatable.parse_string(testData)
 
 
 

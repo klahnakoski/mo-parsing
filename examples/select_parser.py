@@ -6,7 +6,7 @@
 #
 from mo_parsing import *
 from mo_parsing.helpers import *
-from mo_parsing.infix import oneOf
+from mo_parsing.infix import one_of
 
 comment = "--" + restOfLine
 
@@ -32,8 +32,8 @@ vars().update(keywords)
 any_keyword = MatchFirst(keywords.values())
 
 quoted_identifier = QuotedString('"', esc_quote='""')
-identifier = (~any_keyword + Word(alphas, alphanums + "_")).addParseAction(
-    downcaseTokens
+identifier = (~any_keyword + Word(alphas, alphanums + "_")).add_parse_action(
+    downcase_tokens
 ) | quoted_identifier
 collation_name = identifier.copy()
 column_name = identifier.copy()
@@ -63,15 +63,15 @@ literal_value = (
     | CURRENT_DATE
     | CURRENT_TIMESTAMP
 )
-bind_parameter = Word("?", nums) | Combine(oneOf(": @ $") + parameter_name)
-type_name = oneOf("TEXT REAL INTEGER BLOB NULL")
+bind_parameter = Word("?", nums) | Combine(one_of(": @ $") + parameter_name)
+type_name = one_of("TEXT REAL INTEGER BLOB NULL")
 
 expr_term = (
     CAST + LPAR + expr + AS + type_name + RPAR
     | EXISTS + LPAR + select_stmt + RPAR
     | function_name.set_parser_name("function_name")
     + LPAR
-    + Optional(STAR | delimitedList(expr))
+    + Optional(STAR | delimited_list(expr))
     + RPAR
     | literal_value
     | bind_parameter
@@ -91,18 +91,18 @@ NOT_GLOB = Group(NOT + GLOB)
 NOT_REGEXP = Group(NOT + REGEXP)
 
 UNARY, BINARY, TERNARY = 1, 2, 3
-expr << infixNotation(
+expr << infix_notation(
     expr_term,
     [
-        (oneOf("- + ~") | NOT, UNARY, RIGHT_ASSOC),
+        (one_of("- + ~") | NOT, UNARY, RIGHT_ASSOC),
         (ISNULL | NOTNULL | NOT_NULL, UNARY, LEFT_ASSOC),
         ("||", BINARY, LEFT_ASSOC),
-        (oneOf("* / %"), BINARY, LEFT_ASSOC),
-        (oneOf("+ -"), BINARY, LEFT_ASSOC),
-        (oneOf("<< >> & |"), BINARY, LEFT_ASSOC),
-        (oneOf("< <= > >="), BINARY, LEFT_ASSOC),
+        (one_of("* / %"), BINARY, LEFT_ASSOC),
+        (one_of("+ -"), BINARY, LEFT_ASSOC),
+        (one_of("<< >> & |"), BINARY, LEFT_ASSOC),
+        (one_of("< <= > >="), BINARY, LEFT_ASSOC),
         (
-            oneOf("= == != <>")
+            one_of("= == != <>")
             | IS
             | IN
             | LIKE
@@ -119,7 +119,7 @@ expr << infixNotation(
         ),
         ((BETWEEN | NOT_BETWEEN, AND), TERNARY, LEFT_ASSOC),
         (
-            (IN | NOT_IN) + LPAR + Group(select_stmt | delimitedList(expr)) + RPAR,
+            (IN | NOT_IN) + LPAR + Group(select_stmt | delimited_list(expr)) + RPAR,
             UNARY,
             LEFT_ASSOC,
         ),
@@ -137,7 +137,7 @@ ordering_term = Group(
 )
 
 join_constraint = Group(
-    Optional(ON + expr | USING + LPAR + Group(delimitedList(column_name)) + RPAR)
+    Optional(ON + expr | USING + LPAR + Group(delimited_list(column_name)) + RPAR)
 )
 
 join_op = COMMA | Group(
@@ -168,13 +168,13 @@ result_column = Group(
 select_core = (
     SELECT
     + Optional(DISTINCT | ALL)
-    + Group(delimitedList(result_column))("columns")
+    + Group(delimited_list(result_column))("columns")
     + Optional(FROM + join_source("from*"))
     + Optional(WHERE + expr("where_expr"))
     + Optional(
         GROUP
         + BY
-        + Group(delimitedList(ordering_term))("group_by_terms")
+        + Group(delimited_list(ordering_term))("group_by_terms")
         + Optional(HAVING + expr("having_expr"))
     )
 )
@@ -182,7 +182,7 @@ select_core = (
 select_stmt << (
     select_core
     + ZeroOrMore(compound_operator + select_core)
-    + Optional(ORDER + BY + Group(delimitedList(ordering_term))("order_by_terms"))
+    + Optional(ORDER + BY + Group(delimited_list(ordering_term))("order_by_terms"))
     + Optional(
         LIMIT
         + (Group(expr + OFFSET + expr) | Group(expr + COMMA + expr) | expr)("limit")
@@ -233,6 +233,6 @@ tests = """\
     SELECT * FROM abcd WHERE ff not like 'bob%'
 """
 
-success, _ = select_stmt.streamline().runTests(tests)
+success, _ = select_stmt.streamline().run_tests(tests)
 if not success:
     raise Exception("FAIL")

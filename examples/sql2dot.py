@@ -58,16 +58,16 @@ def field_act(s, loc, tok):
     return ("<" + tok[0] + "> " + " ".join(tok)).replace('"', '\\"')
 
 
-field_def = field_def.addParseAction(field_act)
+field_def = field_def.add_parse_action(field_act)
 
-field_list_def = delimitedList(field_def)
+field_list_def = delimited_list(field_def)
 
 
 def field_list_act(toks):
     return " | ".join(toks)
 
 
-field_list_def = field_list_def.addParseAction(field_list_act)
+field_list_def = field_list_def.add_parse_action(field_list_act)
 
 create_table_def = (
     Literal("CREATE")
@@ -87,7 +87,7 @@ def create_table_act(toks):
     )
 
 
-create_table_def.addParseAction(create_table_act)
+create_table_def.add_parse_action(create_table_act)
 
 add_fkey_def = (
     Literal("ALTER")
@@ -115,18 +115,18 @@ def add_fkey_act(toks):
     return """ "%(fromtable)s":%(fromcolumn)s -> "%(totable)s":%(tocolumn)s """ % toks
 
 
-add_fkey_def.addParseAction(add_fkey_act)
+add_fkey_def.add_parse_action(add_fkey_act)
 
 other_statement_def = OneOrMore(CharsNotIn(";")) + ";"
-other_statement_def.addParseAction(lambda: "")
+other_statement_def.add_parse_action(lambda: "")
 comment_def = "--" + ZeroOrMore(CharsNotIn("\n"))
-comment_def.addParseAction(lambda: "")
+comment_def.add_parse_action(lambda: "")
 
 statement_def = comment_def | create_table_def | add_fkey_def | other_statement_def
 defs = OneOrMore(statement_def)
 
 print("""digraph g { graph [ rankdir = "LR" ]; """)
-for i in defs.parseString(sampleSQL):
+for i in defs.parse_string(sampleSQL):
     if i != "":
         print(i)
 print("}")

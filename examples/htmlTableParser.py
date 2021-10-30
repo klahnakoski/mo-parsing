@@ -20,16 +20,16 @@ td, td_end = makeHTMLTags("td")
 a, a_end = makeHTMLTags("a")
 
 # method to strip HTML tags from a string - will be used to clean up content of table cells
-strip_html = (anyOpenTag | anyCloseTag).suppress().transformString
+strip_html = (anyOpenTag | anyCloseTag).suppress().transform_string
 
 # expression for parsing <a href="url">text</a> links, returning a (text, url) tuple
 link = Group(a + a.tag_body("text") + a_end.suppress())
-link.addParseAction(lambda t: (t[0].text, t[0].href))
+link.add_parse_action(lambda t: (t[0].text, t[0].href))
 
 # method to create table rows of header and data tags
 def table_row(start_tag, end_tag):
     body = start_tag.tag_body
-    body.addParseAction(tokenMap(str.strip), tokenMap(strip_html))
+    body.add_parse_action(token_map(str.strip), token_map(strip_html))
     row = Group(
         tr.suppress()
         + ZeroOrMore(start_tag.suppress() + body + end_tag.suppress())
@@ -58,7 +58,7 @@ with urllib.request.urlopen(
 ) as page:
     page_html = page.read().decode()
 
-tz_table = html_table.searchString(page_html)[0]
+tz_table = html_table.search_string(page_html)[0]
 
 # convert rows to dicts
 rows = [dict(zip(tz_table.headers, row)) for row in tz_table.rows]

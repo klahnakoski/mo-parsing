@@ -29,7 +29,7 @@ genebit = Group(
     + "length="
     + integer("gene_len")
     + LineEnd()
-    + Word("ACGTN")[1, ...].addParseAction("".join)("gene")
+    + Word("ACGTN")[1, ...].add_parse_action("".join)("gene")
 )
 
 # read gene data from .fasta file - takes just a few seconds
@@ -37,7 +37,7 @@ genebit = Group(
 # gene into a single scannable string. Just searching the raw .fasta file could overlook matches
 # if the match is broken up across separate lines. The parse action in the genebit parser does
 # this reassembly work.
-genedata = genebit[1, ...].parseString(fastasrc)
+genedata = genebit[1, ...].parse_string(fastasrc)
 
 # using the genedata extracted above, look for close matches of a gene sequence
 searchseq = CloseMatch("TTAAATCTAGAAGAT", 3)
@@ -45,7 +45,7 @@ searchseq = CloseMatch("TTAAATCTAGAAGAT", 3)
 for g in genedata:
     show_header = True
     # scan for close matches, list out found strings, and mark mismatch locations
-    for t, startLoc, endLoc in searchseq.scanString(g.gene, overlap=True):
+    for t, startLoc, endLoc in searchseq.scan_string(g.gene, overlap=True):
         if show_header:
             # only need to show the header once
 

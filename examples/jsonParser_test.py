@@ -44,7 +44,7 @@ testdata = """
 }
 """
 
-results = jsonObject.parseString(testdata)
+results = jsonObject.parse_string(testdata)
 
 
 

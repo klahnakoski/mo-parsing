@@ -6,39 +6,39 @@
 # Copyright 2019, Paul McGuire
 #
 from mo_parsing import *
-from mo_parsing.helpers import originalTextFor, nestedExpr
+from mo_parsing.helpers import originalTextFor, nested_expr
 
 wiki_markup = Forward()
 
 # a method that will construct and return a parse action that will
 # do the proper wrapping in opening and closing HTML, and recursively call
-# wiki_markup.transformString on the markup body text
+# wiki_markup.transform_string on the markup body text
 def convert_markup_to_html(opening, closing):
     def conversionParseAction(t, l, s):
-        return opening + wiki_markup.transformString(t[1][1:-1]) + closing
+        return opening + wiki_markup.transform_string(t[1][1:-1]) + closing
 
     return conversionParseAction
 
 
-# use a nestedExpr with originalTextFor to parse nested braces, but return the
+# use a nested_expr with originalTextFor to parse nested braces, but return the
 # parsed text as a single string containing the outermost nested braces instead
 # of a nested list of parsed tokens
-markup_body = originalTextFor(nestedExpr("{", "}"))
-italicized = ("ital" + markup_body).addParseAction(
+markup_body = originalTextFor(nested_expr("{", "}"))
+italicized = ("ital" + markup_body).add_parse_action(
     convert_markup_to_html("<I>", "</I>")
 )
-bolded = ("bold" + markup_body).addParseAction(convert_markup_to_html("<B>", "</B>"))
+bolded = ("bold" + markup_body).add_parse_action(convert_markup_to_html("<B>", "</B>"))
 
 # another markup and parse action to parse links - again using transform string
 # to recursively parse any markup in the link text
 def convert_link_to_html(t, l, s):
     link_text, url = t._skipped
-    t["link_text"] = wiki_markup.transformString(link_text)
+    t["link_text"] = wiki_markup.transform_string(link_text)
     t["url"] = url
     return '<A href="{url}">{link_text}</A>'.format_map(t)
 
 
-urlRef = (Keyword("link") + "{" + ... + "->" + ... + "}").addParseAction(
+urlRef = (Keyword("link") + "{" + ... + "->" + ... + "}").add_parse_action(
     convert_link_to_html
 )
 

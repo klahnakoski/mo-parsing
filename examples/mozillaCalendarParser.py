@@ -1,6 +1,6 @@
 from mo_parsing import (
     Optional,
-    oneOf,
+    one_of,
     Literal,
     Word,
     printables,
@@ -37,9 +37,9 @@ ALARM = Literal("VALARM").suppress()
 
 # TOKENS
 
-CALPROP = oneOf("VERSION PRODID METHOD")
-ALMPROP = oneOf("TRIGGER")
-EVTPROP = oneOf(
+CALPROP = one_of("VERSION PRODID METHOD")
+ALMPROP = one_of("TRIGGER")
+EVTPROP = one_of(
     "X-MOZILLA-RECUR-DEFAULT-INTERVAL \
                      X-MOZILLA-RECUR-DEFAULT-UNITS \
                      UID DTSTAMP LAST-MODIFIED X RRULE EXDATE"
@@ -47,7 +47,7 @@ EVTPROP = oneOf(
 
 propval = Word(valstr)
 typeval = Word(valstr)
-typename = oneOf("VALUE MEMBER FREQ UNTIL INTERVAL")
+typename = one_of("VALUE MEMBER FREQ UNTIL INTERVAL")
 
 proptype = Group(SEMI + typename + EQ + typeval).suppress()
 
@@ -85,9 +85,9 @@ def gotEvent(s, loc, toks):
 
 
 
-event.addParseAction(gotEvent)
+event.add_parse_action(gotEvent)
 
 
 # MAIN PROGRAM
 
-calendars.parseFile("examples/mozilla.ics")
+calendars.parse_file("examples/mozilla.ics")

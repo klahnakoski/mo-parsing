@@ -2,11 +2,11 @@
 #  nested.py
 #  Copyright, 2007 - Paul McGuire
 #
-#  Simple example of using nestedExpr to define expressions using
+#  Simple example of using nested_expr to define expressions using
 #  paired delimiters for grouping lists and sublists
 #
 
-from mo_parsing.helpers import nestedExpr
+from mo_parsing.helpers import nested_expr
 
 data = """
 {
@@ -20,9 +20,9 @@ data = """
 """
 
 # use {}'s for nested lists
-nestedItems = nestedExpr("{", "}")
+nestedItems = nested_expr("{", "}")
 
 
 # use default delimiters of ()'s
-mathExpr = nestedExpr()
+math_expr = nested_expr()
 

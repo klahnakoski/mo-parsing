@@ -6,7 +6,7 @@
 # Gutenberg - https://www.gutenberg.org/ - to import to word processing apps
 # that can reformat paragraphs once hard line-breaks are removed.)
 #
-# Uses parse actions and transformString to remove unwanted line breaks,
+# Uses parse actions and transform_string to remove unwanted line breaks,
 # and to double up line breaks between paragraphs.
 #
 # Copyright 2006, by Paul McGuire
@@ -23,15 +23,15 @@ def mustBeNonBlank(t):
     # return bool(t[0])
 
 
-lineBody = SkipTo(line_end).addCondition(
+lineBody = SkipTo(line_end).add_condition(
     mustBeNonBlank, message="line body can't be empty"
 )
 
 # now define a line with a trailing lineEnd, to be replaced with a space character
-textLine = lineBody + line_end().addParseAction(lambda: " ")
+textLine = lineBody + line_end().add_parse_action(lambda: " ")
 
 # define a paragraph, with a separating lineEnd, to be replaced with a double newline
-para = OneOrMore(textLine) + line_end().addParseAction(lambda: "\n\n")
+para = OneOrMore(textLine) + line_end().add_parse_action(lambda: "\n\n")
 
 # run a test
 test = """
@@ -44,7 +44,7 @@ test = """
     the aid of their
     country.
 """
-result = para.transformString(test)
+result = para.transform_string(test)
 expected = "\n    Now is the time for all good men to come to \n\n    the aid of their country. \n\n"
 assert result == expected
 
@@ -57,8 +57,8 @@ if __name__ == "__main__":
     with open("18095-8.txt") as source_file:
         original = source_file.read()
 
-    # use transformString to convert line breaks
-    transformed = para.transformString(original)
+    # use transform_string to convert line breaks
+    transformed = para.transform_string(original)
 
     with open("18095-8_reformatted.txt", "w") as transformed_file:
         transformed_file.write(transformed)

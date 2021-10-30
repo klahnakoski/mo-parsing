@@ -11,9 +11,9 @@ from mo_parsing import (
     alphas,
     alphanums,
     Combine,
-    oneOf,
+    one_of,
     Optional,
-    delimitedList,
+    delimited_list,
     Group,
     Keyword,
 )
@@ -24,12 +24,12 @@ testdata = """
   """
 
 ident = Word(alphas, alphanums + "_")
-vartype = Combine(oneOf("float double int char") + Optional(Word("*")))
-arglist = delimitedList(Group(vartype("type") + ident("name")))
+vartype = Combine(one_of("float double int char") + Optional(Word("*")))
+arglist = delimited_list(Group(vartype("type") + ident("name")))
 
 functionCall = Keyword("int") + ident("name") + "(" + arglist("args") + ")" + ";"
 
-for fn, s, e in functionCall.scanString(testdata):
+for fn, s, e in functionCall.scan_string(testdata):
 
     for a in fn.args:
 

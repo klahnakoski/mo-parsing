@@ -56,10 +56,10 @@ def tallyCommentChars(t, l, s):
 
 
 # ordinarily, these lines wouldn't be necessary, but we are doing extra stuff with the comment expression
-ebnf.ebnfComment = ebnf.ebnfComment.addParseAction(tallyCommentChars)
+ebnf.ebnfComment = ebnf.ebnfComment.add_parse_action(tallyCommentChars)
 ebnf_parser.ignore(ebnf.ebnfComment)
 
-parsed_chars = ebnf_parser.parseString(grammar)
+parsed_chars = ebnf_parser.parse_string(grammar)
 parsed_char_len = len(parsed_chars)
 
 

@@ -84,21 +84,21 @@ string_ = dblQuotedString
 
 TYPE = Group((INT | CHAR) + ZeroOrMore("*"))
 expr = Forward()
-func_call = Group(NAME + LPAR + Group(Optional(delimitedList(expr))) + RPAR)
+func_call = Group(NAME + LPAR + Group(Optional(delimited_list(expr))) + RPAR)
 operand = func_call | NAME | integer | char | string_
-expr <<= infixNotation(
+expr <<= infix_notation(
     operand,
     [
-        (oneOf("! - *"), 1, RIGHT_ASSOC),
-        (oneOf("++ --"), 1, RIGHT_ASSOC),
-        (oneOf("++ --"), 1, LEFT_ASSOC),
-        (oneOf("* / %"), 2, LEFT_ASSOC),
-        (oneOf("+ -"), 2, LEFT_ASSOC),
-        (oneOf("< == > <= >= !="), 2, LEFT_ASSOC),
+        (one_of("! - *"), 1, RIGHT_ASSOC),
+        (one_of("++ --"), 1, RIGHT_ASSOC),
+        (one_of("++ --"), 1, LEFT_ASSOC),
+        (one_of("* / %"), 2, LEFT_ASSOC),
+        (one_of("+ -"), 2, LEFT_ASSOC),
+        (one_of("< == > <= >= !="), 2, LEFT_ASSOC),
         (Regex(r"(?<!=)=(?!=)"), 2, LEFT_ASSOC),
     ],
 ) + Optional(
-    LBRACK + expr + RBRACK | LPAR + Group(Optional(delimitedList(expr))) + RPAR
+    LBRACK + expr + RBRACK | LPAR + Group(Optional(delimited_list(expr))) + RPAR
 )
 
 stmt = Forward()
@@ -126,7 +126,7 @@ fundecl = Group(
     TYPE
     + NAME
     + LPAR
-    + Optional(Group(delimitedList(arg)))
+    + Optional(Group(delimited_list(arg)))
     + RPAR
     + LBRACE
     + Group(body)
@@ -197,5 +197,5 @@ main()
 }
 """
 
-ast = program.parseString(test, parseAll=True)
+ast = program.parse_string(test, parse_all=True)
 

@@ -77,9 +77,9 @@ with NO_WHITESPACE:
     comment = AT + CaselessLiteral("comment") + Regex(r"[\s{(].*")
 
 # The name types with their digiteyness
-not_dig_lower = not_digname.copy().addParseAction(lambda t: t[0].lower())
+not_dig_lower = not_digname.copy().add_parse_action(lambda t: t[0].lower())
 macro_def = not_dig_lower.copy()
-macro_ref = not_dig_lower.copy().addParseAction(lambda t: Macro(t[0].lower()))
+macro_ref = not_dig_lower.copy().add_parse_action(lambda t: Macro(t[0].lower()))
 field_name = not_dig_lower.copy()
 # Spaces in names mean they cannot clash with field names
 entry_type = not_dig_lower("entry_type")
@@ -103,7 +103,7 @@ macro_contents = macro_def + EQUALS + field_value
 macro = AT + CaselessLiteral("string") + bracketed(macro_contents)
 
 # Implicit comments
-icomment = SkipTo("@").addParseAction(lambda t: t.insert(0, "icomment"))
+icomment = SkipTo("@").add_parse_action(lambda t: t.insert(0, "icomment"))
 
 # entries are last in the list (other than the fallback) because they have
 # arbitrary start patterns that would match comments, preamble or macro
@@ -114,7 +114,7 @@ bibfile = ZeroOrMore(definitions)
 
 
 def parse_str(str):
-    return bibfile.parseString(str)
+    return bibfile.parse_string(str)
 
 
 if __name__ == "__main__":

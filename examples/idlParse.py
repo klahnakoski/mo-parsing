@@ -18,7 +18,7 @@ from mo_parsing import (
     Regex,
 )
 from mo_parsing.whitespaces import Whitespace
-from mo_parsing.helpers import restOfLine, cStyleComment, delimitedList, quotedString
+from mo_parsing.helpers import restOfLine, cStyleComment, delimited_list, quoted_string
 from mo_parsing.utils import alphas, alphanums
 
 bnf = None
@@ -105,7 +105,7 @@ def CORBA_IDL_BNF():
             real = Regex(r"[+-]?\d+\.\d*([Ee][+-]?\d+)?").set_parser_name("real")
             integer = Regex(r"0x[0-9a-fA-F]+|[+-]?\d+").set_parser_name("int")
 
-            udTypeName = delimitedList(identifier, "::", combine=True).set_parser_name("udType")
+            udTypeName = delimited_list(identifier, "::", combine=True).set_parser_name("udType")
             typeName = (
                 any_
                 | boolean_
@@ -132,15 +132,15 @@ def CORBA_IDL_BNF():
                 + typeDef
                 + identifier
                 + equals
-                + (real | integer | quotedString)
+                + (real | integer | quoted_string)
                 + semi
-            )  # | quotedString )
+            )  # | quoted_string )
             exceptionItem = Group(typeDef + identifier + semi)
             exceptionDef = (
                 exception_ + identifier + lbrace + ZeroOrMore(exceptionItem) + rbrace + semi
             )
             attributeDef = Optional(readonly_) + attribute_ + typeDef + identifier + semi
-            paramlist = delimitedList(
+            paramlist = delimited_list(
                 Group((inout_ | in_ | out_) + typeName + identifier)
             ).set_parser_name("paramlist")
             operationDef = (
@@ -149,14 +149,14 @@ def CORBA_IDL_BNF():
                 + lparen
                 + Optional(paramlist)
                 + rparen
-                + Optional(raises_ + lparen + Group(delimitedList(typeName)) + rparen)
+                + Optional(raises_ + lparen + Group(delimited_list(typeName)) + rparen)
                 + semi
             )
             interfaceItem = constDef | exceptionDef | attributeDef | operationDef
             interfaceDef = Group(
                 interface_
                 + identifier
-                + Optional(colon + delimitedList(typeName))
+                + Optional(colon + delimited_list(typeName))
                 + lbrace
                 + ZeroOrMore(interfaceItem)
                 + rbrace

@@ -28,8 +28,8 @@ heading = (
     + "+=======+======+======+======+======+======+======+======+======+"
 ).suppress()
 vert = Literal("|").suppress()
-number = Word(nums).addParseAction(float)
-rowData = Group(vert + Word(alphas) + vert + delimitedList(number, "|") + vert)
+number = Word(nums).add_parse_action(float)
+rowData = Group(vert + Word(alphas) + vert + delimited_list(number, "|") + vert)
 trailing = Literal(
     "+-------+------+------+------+------+------+------+------+------+"
 ).suppress()
@@ -39,7 +39,7 @@ datatable = heading + Dict(ZeroOrMore(rowData)) + trailing
 whitespaces.CURRENT.set_debug_actions()
 
 # now parse data and print results
-data = datatable.parseString(testData)
+data = datatable.parse_string(testData)
 
 expected = {
     "min": [7, 43, 7, 15, 82, 98, 1, 37],

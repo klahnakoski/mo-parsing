@@ -108,37 +108,37 @@ class Parser(object):
         self.streamlined = True
 
     @entrypoint
-    def parseString(self, string, parseAll=False):
+    def parse_string(self, string, parse_all=False):
         """
         Parse a string with respect to the parser definition. This function is intended as the primary interface to the
         client code.
 
         :param string: The input string to be parsed.
-        :param parseAll: If set, the entire input string must match the grammar.
-        :raises ParseException: Raised if ``parseAll`` is set and the input string does not match the whole grammar.
+        :param parse_all: If set, the entire input string must match the grammar.
+        :raises ParseException: Raised if ``parse_all`` is set and the input string does not match the whole grammar.
         :returns: the parsed data as a `ParseResults` object, which may be accessed as a `list`, a `dict`, or
           an object with attributes if the given parser includes results names.
 
-        If the input string is required to match the entire grammar, ``parseAll`` flag must be set to True. This
+        If the input string is required to match the entire grammar, ``parse_all`` flag must be set to True. This
         is also equivalent to ending the grammar with ``StringEnd()``.
 
-        To report proper column numbers, ``parseString`` operates on a copy of the input string where all tabs are
+        To report proper column numbers, ``parse_string`` operates on a copy of the input string where all tabs are
         converted to spaces (8 spaces per tab, as per the default in ``string.expandtabs``). If the input string
         contains tabs and the grammar uses parse actions that use the ``loc`` argument to index into the string
         being parsed, one can ensure a consistent view of the input string by doing one of the following:
 
         - define your parse action using the full ``(s,loc,toks)`` signature, and reference the input string using the
           parse action's ``s`` argument, or
-        - explicitly expand the tabs in your input string before calling ``parseString``.
+        - explicitly expand the tabs in your input string before calling ``parse_string``.
 
         """
-        return self._parseString(string, parseAll=parseAll)
+        return self._parseString(string, parse_all=parse_all)
 
-    def _parseString(self, string, parseAll=False):
+    def _parseString(self, string, parse_all=False):
         start = self.whitespace.skip(string, 0)
         try:
             tokens = self.element._parse(string, start)
-            if parseAll:
+            if parse_all:
                 end = self.whitespace.skip(string, tokens.end)
                 try:
                     StringEnd()._parse(string, end)
@@ -155,25 +155,25 @@ class Parser(object):
             raise cause.best_cause
 
     @entrypoint
-    def scanString(self, string, maxMatches=MAX_INT, overlap=False):
+    def scan_string(self, string, max_matches=MAX_INT, overlap=False):
         """
         :param string: TO BE SCANNED
-        :param maxMatches: MAXIMUM NUMBER MATCHES TO RETURN
+        :param max_matches: MAXIMUM NUMBER MATCHES TO RETURN
         :param overlap: IF MATCHES CAN OVERLAP
         :return: SEQUENCE OF ParseResults, start, end
         """
         return (
             (t.tokens[0], s, e)
             for t, s, e in self._scanString(
-                string, maxMatches=maxMatches, overlap=overlap
+                string, max_matches=max_matches, overlap=overlap
             )
         )
 
-    def _scanString(self, string, maxMatches=MAX_INT, overlap=False):
+    def _scanString(self, string, max_matches=MAX_INT, overlap=False):
         instrlen = len(string)
         start = end = 0
         matches = 0
-        while end <= instrlen and matches < maxMatches:
+        while end <= instrlen and matches < max_matches:
             try:
                 start = self.whitespace.skip(string, end)
                 tokens = self.element._parse(string, start)
@@ -188,22 +188,22 @@ class Parser(object):
                     end = tokens.end
 
     @entrypoint
-    def transformString(self, string):
+    def transform_string(self, string):
         """
         Modify matching text with results of a parse action.
 
-        To use ``transformString``, define a grammar and
+        To use ``transform_string``, define a grammar and
         attach a parse action to it that modifies the returned token list.
-        Invoking ``transformString()`` on a target string will then scan for matches,
+        Invoking ``transform_string()`` on a target string will then scan for matches,
         and replace the matched text patterns according to the logic in the parse
-        action.  ``transformString()`` returns the resulting transformed string.
+        action.  ``transform_string()`` returns the resulting transformed string.
 
         Example::
 
             wd = Word(alphas)
-            wd.addParseAction(lambda toks: toks[0].title())
+            wd.add_parse_action(lambda toks: toks[0].title())
 
-            print(wd.transformString("now is the winter of our discontent made glorious summer by this sun of york."))
+            print(wd.transform_string("now is the winter of our discontent made glorious summer by this sun of york."))
 
         prints::
 
@@ -215,7 +215,7 @@ class Parser(object):
         out = []
         end = 0
         # force preservation of <TAB>s, to minimize unwanted transformation of string, and to
-        # keep string locs straight between transformString and scanString
+        # keep string locs straight between transform_string and scan_string
         for t, s, e in self._scanString(string):
             out.append(string[end:s])
             t = t.tokens[0]
@@ -232,16 +232,16 @@ class Parser(object):
         return "".join(map(text, out))
 
     @entrypoint
-    def searchString(self, string, maxMatches=MAX_INT):
+    def search_string(self, string, max_matches=MAX_INT):
         """
         :param string: Content to scan
-        :param maxMatches: Limit number of matches
+        :param max_matches: Limit number of matches
         :return: All the matches, packaged as ParseResults
         """
-        return self._searchString(string, maxMatches=maxMatches)
+        return self._searchString(string, max_matches=max_matches)
 
-    def _searchString(self, string, maxMatches=MAX_INT):
-        scanned = [t for t, s, e in self._scanString(string, maxMatches)]
+    def _searchString(self, string, max_matches=MAX_INT):
+        scanned = [t for t, s, e in self._scanString(string, max_matches)]
         if not scanned:
             return ParseResults(ZeroOrMore(self.element), -1, 0, [], [])
         else:
@@ -254,16 +254,16 @@ class Parser(object):
             )
 
     @entrypoint
-    def split(self, string, maxsplit=MAX_INT, includeSeparators=False):
+    def split(self, string, maxsplit=MAX_INT, include_separators=False):
         """
         Generator method to split a string using the given expression as a separator.
         May be called with optional ``maxsplit`` argument, to limit the number of splits;
-        and the optional ``includeSeparators`` argument (default= ``False``), if the separating
+        and the optional ``include_separators`` argument (default= ``False``), if the separating
         matching text should be included in the split results.
 
         Example::
 
-            punc = oneOf(list(".,;:/-!?"))
+            punc = one_of(list(".,;:/-!?"))
             print(list(punc.split("This, this?, this sentence, is badly punctuated!")))
 
         prints::
@@ -271,14 +271,14 @@ class Parser(object):
             ['This', ' this', '', ' this sentence', ' is badly punctuated', '']
         """
         return self._split(
-            string, maxsplit=maxsplit, includeSeparators=includeSeparators
+            string, maxsplit=maxsplit, include_separators=include_separators
         )
 
-    def _split(self, string, maxsplit=MAX_INT, includeSeparators=False):
+    def _split(self, string, maxsplit=MAX_INT, include_separators=False):
         last = 0
-        for t, s, e in self._scanString(string, maxMatches=maxsplit):
+        for t, s, e in self._scanString(string, max_matches=maxsplit):
             yield string[last:s]
-            if includeSeparators:
+            if include_separators:
                 yield t.tokens[0]
             last = e
         yield string[last:]
@@ -289,24 +289,24 @@ class ParserElement(object):
 
     zero_length = False
     __slots__ = [
-        "parseAction",
+        "parse_action",
         "parser_name",
         "token_name",
         "streamlined",
         "min_length_cache",
         "parser_config",
     ]
-    Config = namedtuple("Config", ["callDuringTry", "failAction"])
+    Config = namedtuple("Config", ["callDuringTry", "fail_action"])
 
     def __init__(self):
-        self.parseAction = list()
+        self.parse_action = list()
         self.parser_name = ""
         self.token_name = ""
         self.streamlined = False
         self.min_length_cache = -1
 
         self.parser_config = self.Config(*([None] * len(self.Config._fields)))
-        self.set_config(callDuringTry=False, failAction=None, lock_engine=None)
+        self.set_config(callDuringTry=False, fail_action=None, lock_engine=None)
 
     def set_config(self, **map):
         data = {
@@ -317,7 +317,7 @@ class ParserElement(object):
 
     def copy(self):
         output = object.__new__(self.__class__)
-        output.parseAction = self.parseAction[:]
+        output.parse_action = self.parse_action[:]
         output.parser_name = self.parser_name
         output.token_name = self.token_name
         output.parser_config = self.parser_config
@@ -331,30 +331,30 @@ class ParserElement(object):
 
         Example::
 
-            Word(nums).parseString("ABC")  # -> Exception: Expected W:(0123...) (at char 0), (line:1, col:1)
-            Word(nums).set_parser_name("integer").parseString("ABC")  # -> Exception: Expected integer (at char 0), (line:1, col:1)
+            Word(nums).parse_string("ABC")  # -> Exception: Expected W:(0123...) (at char 0), (line:1, col:1)
+            Word(nums).set_parser_name("integer").parse_string("ABC")  # -> Exception: Expected integer (at char 0), (line:1, col:1)
         """
         self.parser_name = name
         return self
 
-    def clearParseAction(self):
+    def clear_parse_action(self):
         """
         Add one or more parse actions to expression's list of parse actions. See `setParseAction`.
 
         See examples in `copy`.
         """
         output = self.copy()
-        output.parseAction = []
+        output.parse_action = []
         return output
 
-    def addParseAction(self, *fns, callDuringTry=False):
+    def add_parse_action(self, *fns, callDuringTry=False):
         """
         Add one or more parse actions to expression's list of parse actions. See `setParseAction`.
 
         See examples in `copy`.
         """
         output = self.copy()
-        output.parseAction += list(map(wrap_parse_action, fns))
+        output.parse_action += list(map(wrap_parse_action, fns))
         output.set_config(
             callDuringTry=self.parser_config.callDuringTry or callDuringTry
         )
@@ -362,17 +362,17 @@ class ParserElement(object):
 
     def __truediv__(self, func):
         """
-        Shortform for addParseAction
+        Shortform for add_parse_action
         """
         output = self.copy()
-        output.parseAction.append(wrap_parse_action(func))
+        output.parse_action.append(wrap_parse_action(func))
         return output
 
-    def addCondition(self, *fns, message=None, callDuringTry=False, fatal=False):
+    def add_condition(self, *fns, message=None, callDuringTry=False, fatal=False):
         """
         Add a boolean predicate function to expression's list of parse actions. See
         `setParseAction` for function call signatures. Unlike ``setParseAction``,
-        functions passed to ``addCondition`` need to return boolean success/fail of the condition.
+        functions passed to ``add_condition`` need to return boolean success/fail of the condition.
 
         Optional keyword arguments:
         - message = define a custom message to be used in the raised exception
@@ -398,7 +398,7 @@ class ParserElement(object):
 
         output = self.copy()
         for fn in fns:
-            output.parseAction.append(make_cond(wrap_parse_action(fn)))
+            output.parse_action.append(make_cond(wrap_parse_action(fn)))
 
         output.set_config(
             callDuringTry=self.parser_config.callDuringTry or callDuringTry
@@ -415,11 +415,11 @@ class ParserElement(object):
         - err = the exception thrown
         The function returns no value.  It may throw `ParseFatalException`
         if it is desired to stop parsing immediately."""
-        self.set_config(failAction=fn)
+        self.set_config(fail_action=fn)
         return self
 
     def is_annotated(self):
-        return self.parseAction or self.token_name or self.parser_name
+        return self.parse_action or self.token_name or self.parser_name
 
     def expecting(self):
         """
@@ -443,20 +443,20 @@ class ParserElement(object):
     def whitespace(self):
         return None
 
-    def parseImpl(self, string, start, doActions=True):
+    def parse_impl(self, string, start, do_actions=True):
         return ParseResults(self, start, start, [], [])
 
-    def _parse(self, string, start, doActions=True):
+    def _parse(self, string, start, do_actions=True):
         try:
-            result = self.parseImpl(string, start, doActions)
+            result = self.parse_impl(string, start, do_actions)
         except Exception as cause:
-            self.parser_config.failAction and self.parser_config.failAction(
+            self.parser_config.fail_action and self.parser_config.fail_action(
                 self, start, string, cause
             )
             raise
 
-        if doActions or self.parser_config.callDuringTry:
-            for fn in self.parseAction:
+        if do_actions or self.parser_config.callDuringTry:
+            for fn in self.parse_action:
                 next_result = fn(result, result.start, string)
                 if next_result.end < result.end:
                     Log.error(
@@ -472,25 +472,27 @@ class ParserElement(object):
         """
         return Parser(self)
 
-    def parseString(self, string, parseAll=False):
-        return self.finalize().parseString(string, parseAll)
+    def parse_string(self, string, parse_all=False):
+        return self.finalize().parse_string(string, parse_all)
 
-    def scanString(self, string, maxMatches=MAX_INT, overlap=False):
-        return (
-            self.finalize().scanString(string, maxMatches=maxMatches, overlap=overlap)
-        )
-
-    def transformString(self, string):
-        return self.finalize().transformString(string)
-
-    def searchString(self, string, maxMatches=MAX_INT):
-        return self.finalize().searchString(string, maxMatches=maxMatches)
-
-    def split(self, string, maxsplit=MAX_INT, includeSeparators=False):
+    def scan_string(self, string, max_matches=MAX_INT, overlap=False):
         return (
             self
             .finalize()
-            .split(string, maxsplit=maxsplit, includeSeparators=includeSeparators)
+            .scan_string(string, max_matches=max_matches, overlap=overlap)
+        )
+
+    def transform_string(self, string):
+        return self.finalize().transform_string(string)
+
+    def search_string(self, string, max_matches=MAX_INT):
+        return self.finalize().search_string(string, max_matches=max_matches)
+
+    def split(self, string, maxsplit=MAX_INT, include_separators=False):
+        return (
+            self
+            .finalize()
+            .split(string, maxsplit=maxsplit, include_separators=include_separators)
         )
 
     def replace_with(self, replacement):
@@ -504,7 +506,7 @@ class ParserElement(object):
         """
 
         # FIND NAMES IN replacement
-        parts = list(regex_parameters.split(replacement, includeSeparators=True))
+        parts = list(regex_parameters.split(replacement, include_separators=True))
 
         def replacer(tokens):
             acc = []
@@ -572,27 +574,27 @@ class ParserElement(object):
         ``expr*(None, n) + ~expr``
         """
         if isinstance(other, tuple):
-            minElements, maxElements = (other + (None, None))[:2]
+            min_elements, max_elements = (other + (None, None))[:2]
         else:
-            minElements, maxElements = other, other
+            min_elements, max_elements = other, other
 
-        if minElements == Ellipsis or not minElements:
-            minElements = 0
-        elif not isinstance(minElements, int):
+        if min_elements == Ellipsis or not min_elements:
+            min_elements = 0
+        elif not isinstance(min_elements, int):
             raise TypeError(
                 "cannot multiply 'ParserElement' and ('%s', '%s') objects",
                 type(other[0]),
                 type(other[1]),
             )
-        elif minElements < 0:
+        elif min_elements < 0:
             raise ValueError("cannot multiply ParserElement by negative value")
 
-        if maxElements == Ellipsis or not maxElements:
-            maxElements = MAX_INT
+        if max_elements == Ellipsis or not max_elements:
+            max_elements = MAX_INT
         elif (
-            not isinstance(maxElements, int)
-            or maxElements < minElements
-            or maxElements == 0
+            not isinstance(max_elements, int)
+            or max_elements < min_elements
+            or max_elements == 0
         ):
             raise TypeError(
                 "cannot multiply 'ParserElement' and ('%s', '%s') objects",
@@ -601,7 +603,7 @@ class ParserElement(object):
             )
 
         ret = Many(
-            self, whitespaces.CURRENT, min_match=minElements, max_match=maxElements
+            self, whitespaces.CURRENT, min_match=min_elements, max_match=max_elements
         ).streamline()
         return ret
 
@@ -697,10 +699,10 @@ class ParserElement(object):
         self.streamlined = True
         return self
 
-    def checkRecursion(self, seen=empty_tuple):
+    def check_recursion(self, seen=empty_tuple):
         pass
 
-    def parseFile(self, file_or_filename, parseAll=False):
+    def parse_file(self, file_or_filename, parse_all=False):
         """
         Execute the parse expression on the given file or filename.
         If a filename is specified (instead of a file object),
@@ -711,7 +713,7 @@ class ParserElement(object):
         except AttributeError:
             with open(file_or_filename, "r") as f:
                 file_contents = f.read()
-        return self.parseString(file_contents, parseAll)
+        return self.parse_string(file_contents, parse_all)
 
     def __eq__(self, other):
         return self is other
@@ -728,14 +730,14 @@ class ParserElement(object):
     def __rne__(self, other):
         return not (self == other)
 
-    def matches(self, testString, parseAll=True):
+    def matches(self, test_string, parse_all=True):
         """
         Method for quick testing of a parser against a test string. Good for simple
         inline microtests of sub expressions while building up larger parser.
 
         Parameters:
-         - testString - to test against this expression for a match
-         - parseAll - (default= ``True``) - flag to pass to `parseString` when running tests
+         - test_string - to test against this expression for a match
+         - parse_all - (default= ``True``) - flag to pass to `parse_string` when running tests
 
         Example::
 
@@ -743,7 +745,7 @@ class ParserElement(object):
             assert expr.matches("100")
         """
         try:
-            self.parseString(text(testString), parseAll=parseAll)
+            self.parse_string(text(test_string), parse_all=parse_all)
             return True
         except ParseException:
             return False
@@ -764,7 +766,7 @@ class _PendingSkip(ParserElement):
         skipper = SkipTo(other)("_skipped")
         return self.anchor + skipper + other
 
-    def parseImpl(self, *args):
+    def parse_impl(self, *args):
         Log.error("use of `...` expression without following SkipTo target expression")
 
 

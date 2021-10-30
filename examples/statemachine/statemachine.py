@@ -33,7 +33,7 @@ def no_keywords_allowed(t, l, s):
     return not keyword.iskeyword(wd)
 
 
-ident.addCondition(
+ident.add_condition(
     no_keywords_allowed,
     message="cannot use a Python keyword for state or transition identifier",
 )
@@ -121,7 +121,7 @@ def expand_state_definition(source, loc, tokens):
     return ("\n" + indent).join(statedef) + "\n"
 
 
-stateMachine.addParseAction(expand_state_definition)
+stateMachine.add_parse_action(expand_state_definition)
 
 
 def expand_named_state_definition(source, loc, tokens):
@@ -262,7 +262,7 @@ def expand_named_state_definition(source, loc, tokens):
     return ("\n" + indent).join(statedef) + "\n"
 
 
-namedStateMachine.addParseAction(expand_named_state_definition)
+namedStateMachine.add_parse_action(expand_named_state_definition)
 
 
 # ======================================================================
@@ -352,7 +352,7 @@ class PystateImporter(SuffixImporter):
 
         # convert any statemachine expressions
         stateMachineExpr = stateMachine | namedStateMachine
-        generated_code = stateMachineExpr.transformString(data)
+        generated_code = stateMachineExpr.transform_string(data)
 
         COMPILE_MODE = "exec"
 

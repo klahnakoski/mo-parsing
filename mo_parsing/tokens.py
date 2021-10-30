@@ -38,12 +38,12 @@ class Empty(Token):
         self.parser_name = name
 
     def is_annotated(self):
-        return self.parseAction or self.token_name
+        return self.parse_action or self.token_name
 
     def min_length(self):
         return 0
 
-    def parseImpl(self, string, start, doActions=True):
+    def parse_impl(self, string, start, do_actions=True):
         end = start
         # end = self.whitespace.skip(string, start)
         return ParseResults(self, start, end, [], [])
@@ -71,7 +71,7 @@ class NoMatch(Token):
         super(NoMatch, self).__init__()
         self.parser_name = "NoMatch"
 
-    def parseImpl(self, string, loc, doActions=True):
+    def parse_impl(self, string, loc, do_actions=True):
         raise ParseException(self, loc, string)
 
     def min_length(self):
@@ -93,7 +93,7 @@ class LookBehind(Token):
         self.parser_name = name
 
     def is_annotated(self):
-        return self.parseAction or self.token_name
+        return self.parse_action or self.token_name
 
     def min_length(self):
         return 0
@@ -115,7 +115,7 @@ class AnyChar(Token):
         Token.__init__(self)
         self.parser_name = "AnyChar"
 
-    def parseImpl(self, string, loc, doActions=True):
+    def parse_impl(self, string, loc, do_actions=True):
         if loc >= len(string):
             raise ParseException(self, loc, string)
         return ParseResults(self, loc, loc + 1, [string[loc]], [])
@@ -147,7 +147,7 @@ class Literal(Token):
         elif len(match) == 1:
             self.__class__ = SingleCharLiteral
 
-    def parseImpl(self, string, start, doActions=True):
+    def parse_impl(self, string, start, do_actions=True):
         match = self.parser_config.match
         if string.startswith(match, start):
             end = start + len(match)
@@ -173,7 +173,7 @@ class Literal(Token):
 class SingleCharLiteral(Literal):
     __slots__ = []
 
-    def parseImpl(self, string, start, doActions=True):
+    def parse_impl(self, string, start, do_actions=True):
         try:
             if string[start] == self.parser_config.match:
                 return ParseResults(
@@ -226,7 +226,7 @@ class Keyword(Token):
         if caseless:
             self.__class__ = CaselessKeyword
 
-    def parseImpl(self, string, start, doActions=True):
+    def parse_impl(self, string, start, do_actions=True):
         found = self.parser_config.regex.match(string, start)
         if found:
             return ParseResults(
@@ -277,7 +277,7 @@ class CaselessLiteral(Literal):
         )
         self.parser_name = repr(self.parser_config.regex.pattern)
 
-    def parseImpl(self, string, start, doActions=True):
+    def parse_impl(self, string, start, do_actions=True):
         found = self.parser_config.regex.match(string, start)
         if found:
             return ParseResults(
@@ -296,7 +296,7 @@ class CloseMatch(Token):
     `CloseMatch` takes parameters:
 
      - ``match_string`` - string to be matched
-     - ``maxMismatches`` - (``default=1``) maximum number of
+     - ``max_mismatches`` - (``default=1``) maximum number of
        mismatches allowed to count as a match
 
     The results from a successful parse will contain the matched text
@@ -312,14 +312,14 @@ class CloseMatch(Token):
     """
 
     __slots__ = []
-    Config = append_config(Token, "maxMismatches")
+    Config = append_config(Token, "max_mismatches")
 
-    def __init__(self, match, maxMismatches=1):
+    def __init__(self, match, max_mismatches=1):
         super(CloseMatch, self).__init__()
         self.parser_name = match
-        self.set_config(match=match, maxMismatches=maxMismatches)
+        self.set_config(match=match, max_mismatches=max_mismatches)
 
-    def parseImpl(self, string, start, doActions=True):
+    def parse_impl(self, string, start, do_actions=True):
         end = start
         instrlen = len(string)
         maxloc = start + len(self.parser_config.match)
@@ -328,14 +328,14 @@ class CloseMatch(Token):
             match = self.parser_config.match
             match_stringloc = 0
             mismatches = []
-            maxMismatches = self.parser_config.maxMismatches
+            max_mismatches = self.parser_config.max_mismatches
 
             for match_stringloc, (src, mat) in enumerate(zip(
                 string[end:maxloc], match
             )):
                 if src != mat:
                     mismatches.append(match_stringloc)
-                    if len(mismatches) > maxMismatches:
+                    if len(mismatches) > max_mismatches:
                         break
             else:
                 end = match_stringloc + 1
@@ -348,7 +348,7 @@ class CloseMatch(Token):
 
     def reverse(self):
         return CloseMatch(self.parser_config.match[
-            ::-1, self.parser_config.maxMismatches
+            ::-1, self.parser_config.max_mismatches
         ])
 
 
@@ -403,7 +403,7 @@ class Word(Token):
         output.regex = self.regex
         return output
 
-    def parseImpl(self, string, start, doActions=True):
+    def parse_impl(self, string, start, do_actions=True):
         found = self.regex.match(string, start)
         if found:
             return ParseResults(self, start, found.end(), [found.group()], [])
@@ -437,7 +437,7 @@ class Char(Token):
     __slots__ = []
     Config = append_config(Token, "include", "exclude")
 
-    def __init__(self, include="", asKeyword=False, exclude=""):
+    def __init__(self, include="", as_keyword=False, exclude=""):
         """
         Represent one character in a given include
         """
@@ -452,11 +452,11 @@ class Char(Token):
         else:
             regex = regex_range(include)
 
-        if asKeyword:
+        if as_keyword:
             regex = r"\b%s\b" % self
         self.set_config(regex=regex_compile(regex), include=include, exclude=exclude)
 
-    def parseImpl(self, string, start, doActions=True):
+    def parse_impl(self, string, start, do_actions=True):
         found = self.parser_config.regex.match(string, start)
         if found:
             return ParseResults(self, start, found.end(), [found.group()], [])
@@ -494,9 +494,9 @@ class CharsNotIn(Token):
     __slots__ = []
     Config = append_config(Token, "min_len", "max_len", "not_chars")
 
-    def __init__(self, notChars, min=1, max=0, exact=0):
+    def __init__(self, not_chars, min=1, max=0, exact=0):
         Token.__init__(self)
-        not_chars = "".join(sorted(set(notChars)))
+        not_chars = "".join(sorted(set(not_chars)))
 
         if min < 1:
             raise ValueError(
@@ -509,10 +509,10 @@ class CharsNotIn(Token):
             min = exact
             max = exact
 
-        if len(notChars) == 1:
-            regex = "[^" + regex_range(notChars) + "]"
+        if len(not_chars) == 1:
+            regex = "[^" + regex_range(not_chars) + "]"
         else:
-            regex = "[^" + regex_range(notChars)[1:]
+            regex = "[^" + regex_range(not_chars)[1:]
 
         if not max or max == MAX_INT:
             if min == 0:
@@ -534,7 +534,7 @@ class CharsNotIn(Token):
         )
         self.parser_name = text(self)
 
-    def parseImpl(self, string, start, doActions=True):
+    def parse_impl(self, string, start, do_actions=True):
         found = self.parser_config.regex.match(string, start)
         if found:
             return ParseResults(self, start, found.end(), [found.group()], [])
@@ -565,7 +565,7 @@ class White(Token):
     `Word` class.
     """
 
-    whiteStrs = {
+    white_strs = {
         " ": "<SP>",
         "\t": "<TAB>",
         "\n": "<LF>",
@@ -597,7 +597,7 @@ class White(Token):
     def __init__(self, ws=" \t\r\n", min=1, max=0, exact=0):
         Token.__init__(self)
         white_chars = "".join(sorted(set(ws)))
-        self.parser_name = "|".join(White.whiteStrs[c] for c in white_chars)
+        self.parser_name = "|".join(White.white_strs[c] for c in white_chars)
 
         max = max if max > 0 else MAX_INT
         if exact > 0:
@@ -605,7 +605,7 @@ class White(Token):
             min = exact
         self.set_config(min_len=min, max_len=max, white_chars=white_chars)
 
-    def parseImpl(self, string, start, doActions=True):
+    def parse_impl(self, string, start, do_actions=True):
         if string[start] not in self.parser_config.white_chars:
             raise ParseException(self, start, string)
         end = start
@@ -639,7 +639,7 @@ class LineStart(Token):
         Token.__init__(self)
         self.parser_name = self.__class__.__name__
 
-    def parseImpl(self, string, start, doActions=True):
+    def parse_impl(self, string, start, do_actions=True):
         if col(start, string) == 1:
             return ParseResults(self, start, start, [], [])
         raise ParseException(self, start, string)
@@ -668,7 +668,7 @@ class LineEnd(LookBehind):
             self.parser_name = self.__class__.__name__
             self.set_config(lock_engine=e, regex=regex_compile("\\r?(\\n|$)"))
 
-    def parseImpl(self, string, start, doActions=True):
+    def parse_impl(self, string, start, do_actions=True):
         found = self.parser_config.regex.match(string, start)
         if found:
             return ParseResults(self, start, found.end(), ["\n"], [])
@@ -696,7 +696,7 @@ class StringStart(Token):
         Token.__init__(self)
         self.parser_name = self.__class__.__name__
 
-    def parseImpl(self, string, loc, doActions=True):
+    def parse_impl(self, string, loc, do_actions=True):
         if loc != 0:
             # see if entire string up to here is just whitespace and ignoreables
             # if loc != self.whitespace.skip(string, 0):
@@ -723,7 +723,7 @@ class StringEnd(Token):
         self.parser_name = self.__class__.__name__
         self.set_config(regex=regex_compile("(?:\\r?\\n)*$"))
 
-    def parseImpl(self, string, start, doActions=True):
+    def parse_impl(self, string, start, do_actions=True):
         end = len(string)
         if start >= end:
             return ParseResults(self, end, end, [], [])
@@ -744,7 +744,7 @@ class WordStart(Token):
     """
     Matches if the current position is at the beginning of a Word,
     and is not preceded by any character in a given set of
-    ``wordChars`` (default= ``printables``). To emulate the
+    ``word_chars`` (default= ``printables``). To emulate the
     ``\b`` behavior of regular expressions, use
     ``WordStart(alphanums)``. ``WordStart`` will also match at
     the beginning of the string being parsed, or at the beginning of
@@ -766,7 +766,7 @@ class WordStart(Token):
         )
         self.streamlined = True
 
-    def parseImpl(self, string, start, doActions=True):
+    def parse_impl(self, string, start, do_actions=True):
         found = self.parser_config.regex.match(string, start)
         if found:
             return ParseResults(self, start, start, [], [])
@@ -811,7 +811,7 @@ class WordEnd(Token):
         output = Token.copy(self)
         return output
 
-    def parseImpl(self, string, start, doActions=True):
+    def parse_impl(self, string, start, do_actions=True):
         found = self.parser_config.regex.match(string, start)
         if found:
             return ParseResults(self, start, start, [], [])

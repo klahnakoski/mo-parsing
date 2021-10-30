@@ -195,22 +195,22 @@ ALT_OP = Suppress("|")
 # bnf grammar
 ident = Word(alphanums + "_")
 bnfToken = Word(alphanums + "_") + ~FollowedBy(":")
-repSymbol = oneOf("* +")
-bnfExpr = Forward()
+repSymbol = one_of("* +")
+bnf_expr = Forward()
 optionalTerm = Group(
-    LBRACK + bnfExpr + RBRACK
-).addParseAction(makeGroupObject(OptionalGroup))
+    LBRACK + bnf_expr + RBRACK
+).add_parse_action(makeGroupObject(OptionalGroup))
 bnfTerm = (
-    (bnfToken | quotedString | optionalTerm | (LPAREN + bnfExpr + RPAREN))
+    (bnfToken | quoted_string | optionalTerm | (LPAREN + bnf_expr + RPAREN))
     + Optional(repSymbol)
-).addParseAction(makeGroupObject(Atom))
-andList = Group(bnfTerm + OneOrMore(bnfTerm)).addParseAction(makeGroupObject(AndList))
+).add_parse_action(makeGroupObject(Atom))
+andList = Group(bnfTerm + OneOrMore(bnfTerm)).add_parse_action(makeGroupObject(AndList))
 bnfFactor = andList | bnfTerm
 orList = Group(
     bnfFactor + OneOrMore(ALT_OP + bnfFactor)
-).addParseAction(makeGroupObject(OrList))
-bnfExpr << (orList | bnfFactor)
-bnfLine = ident + COLON + bnfExpr
+).add_parse_action(makeGroupObject(OrList))
+bnf_expr << (orList | bnfFactor)
+bnfLine = ident + COLON + bnf_expr
 
 bnfComment = "#" + restOfLine
 
@@ -219,7 +219,7 @@ bnf = Dict(OneOrMore(Group(bnfLine)))
 bnf.ignore(bnfComment)
 
 # bnf is defined, parse the grammar text
-bnfDefs = bnf.parseString(grammar)
+bnfDefs = bnf.parse_string(grammar)
 
 # correct answer is 78
 expected = 78

@@ -1,4 +1,4 @@
-# excelExpr.py
+# excel_expr.py
 #
 # Copyright 2010, Paul McGuire
 #
@@ -6,7 +6,7 @@
 #
 from mo_parsing import CaselessKeyword
 from mo_parsing.helpers import *
-from mo_parsing.infix import oneOf, infixNotation, LEFT_ASSOC
+from mo_parsing.infix import one_of, infix_notation, LEFT_ASSOC
 
 EQ, LPAR, RPAR, COLON, COMMA = map(Suppress, "=():,")
 EXCL, DOLLAR = map(Literal, "!$")
@@ -25,13 +25,13 @@ cellRange = (
 
 expr = Forward()
 
-COMPARISON_OP = oneOf("< = > >= <= != <>")
-condExpr = expr + COMPARISON_OP + expr
+COMPARISON_OP = one_of("< = > >= <= != <>")
+cond_expr = expr + COMPARISON_OP + expr
 
 ifFunc = (
     CaselessKeyword("if")
     - LPAR
-    + Group(condExpr)("condition")
+    + Group(cond_expr)("condition")
     + COMMA
     + Group(expr)("if_true")
     + COMMA
@@ -40,7 +40,7 @@ ifFunc = (
 )
 
 statFunc = lambda name: Group(
-    CaselessKeyword(name) + Group(LPAR + delimitedList(expr) + RPAR)
+    CaselessKeyword(name) + Group(LPAR + delimited_list(expr) + RPAR)
 )
 sumFunc = statFunc("sum")
 minFunc = statFunc("min")
@@ -48,21 +48,21 @@ maxFunc = statFunc("max")
 aveFunc = statFunc("ave")
 funcCall = ifFunc | sumFunc | minFunc | maxFunc | aveFunc
 
-multOp = oneOf("* /")
-addOp = oneOf("+ -")
+multOp = one_of("* /")
+addOp = one_of("+ -")
 numericLiteral = number
 operand = numericLiteral | funcCall | cellRange | cellRef
-arithExpr = infixNotation(
+arith_expr = infix_notation(
     operand, [(multOp, 2, LEFT_ASSOC), (addOp, 2, LEFT_ASSOC),]
 )
 
 textOperand = dblQuotedString | cellRef
-textExpr = infixNotation(textOperand, [("&", 2, LEFT_ASSOC),])
+text_expr = infix_notation(textOperand, [("&", 2, LEFT_ASSOC), ])
 
-expr << (arithExpr | textExpr)
+expr << (arith_expr | text_expr)
 
 
-(EQ + expr).runTests(
+(EQ + expr).run_tests(
     """\
     =3*A7+5
     =3*Sheet1!$A$7+5

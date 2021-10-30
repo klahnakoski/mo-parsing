@@ -42,13 +42,13 @@ identifier = Word(alphas, alphanums + "_")
 integer = Word(nums)
 enumValue = Group(
     identifier("name")
-    + Optional(EQ + integer("value").addParseAction(lambda t: int(t[0])))
+    + Optional(EQ + integer("value").add_parse_action(lambda t: int(t[0])))
 )
 enumList = Group(enumValue + ZeroOrMore(COMMA + enumValue))
 enum = _enum + identifier("enum") + LBRACE + enumList("names") + RBRACE
 
 assertAlmostEqual(
-    list(t for t, _, _ in enum.scanString(sample)),
+    list(t for t, _, _ in enum.scan_string(sample)),
     [
         {
             "enum": "hello",

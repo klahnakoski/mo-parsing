@@ -4,7 +4,7 @@
 from mo_parsing import *
 
 # usamos las letras en latin1, que incluye las como 'ñ', 'á', 'é', etc.
-from mo_parsing.infix import oneOf
+from mo_parsing.infix import one_of
 from mo_parsing.utils import parsing_unicode, nums
 
 alphas = parsing_unicode.Latin1.alphas
@@ -13,11 +13,11 @@ alphas = parsing_unicode.Latin1.alphas
 # una palabra compuesta de caracteres alfanumericos
 # (Word(alphas)) mas una ',' mas otra palabra alfanumerica,
 # mas '!' y esos seian nuestros tokens
-saludo = Word(alphas) + "," + Word(alphas) + oneOf("! . ?")
-tokens = saludo.parseString("Hola, Mundo !")
+saludo = Word(alphas) + "," + Word(alphas) + one_of("! . ?")
+tokens = saludo.parse_string("Hola, Mundo !")
 
 # Ahora parseamos una cadena, "Hola, Mundo!",
-# el metodo parseString, nos devuelve una lista con los tokens
+# el metodo parse_string, nos devuelve una lista con los tokens
 # encontrados, en caso de no haber errores...
 for i, token in enumerate(tokens):
     print("Token %d -> %s" % (i, token))
@@ -29,14 +29,14 @@ for i, token in enumerate(tokens):
 # Token 3 -> !
 
 # ahora cambia el parseador, aceptando saludos con mas que una sola palabra antes que ','
-saludo = Group(OneOrMore(Word(alphas))) + "," + Word(alphas) + oneOf("! . ?")
-tokens = saludo.parseString("Hasta mañana, Mundo !")
+saludo = Group(OneOrMore(Word(alphas))) + "," + Word(alphas) + one_of("! . ?")
+tokens = saludo.parse_string("Hasta mañana, Mundo !")
 
 for i, token in enumerate(tokens):
     print("Token %d -> %s" % (i, token))
 
-# Ahora parseamos algunas cadenas, usando el metodo runTests
-saludo.runTests(
+# Ahora parseamos algunas cadenas, usando el metodo run_tests
+saludo.run_tests(
     """\
     Hola, Mundo!
     Hasta mañana, Mundo !
@@ -48,10 +48,10 @@ saludo.runTests(
 numimag = Word(nums) + "i"
 numreal = Word(nums)
 numcomplex = numreal + "+" + numimag
-print(numcomplex.parseString("3+5i"))
+print(numcomplex.parse_string("3+5i"))
 
 # Cambiar a complejo numero durante parsear:
-numcomplex = numcomplex.addParseAction(lambda t: complex("".join(t).replace("i", "j")))
-print(numcomplex.parseString("3+5i"))
+numcomplex = numcomplex.add_parse_action(lambda t: complex("".join(t).replace("i", "j")))
+print(numcomplex.parse_string("3+5i"))
 
 # Excelente!!, bueno, los dejo, me voy a seguir tirando código...

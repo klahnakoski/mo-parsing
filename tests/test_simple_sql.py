@@ -14,12 +14,12 @@ from mo_parsing.helpers import (
     hex_integer,
     fnumber,
     uuid as helper_uuid,
-    tokenMap,
-    delimitedList,
-    upcaseTokens,
+    token_map,
+    delimited_list,
+    upcase_tokens,
 )
 from mo_parsing.utils import alphas, alphanums
-from tests import runTests
+from tests import run_tests
 
 
 class TestSimpleSQL(TestCase):
@@ -29,14 +29,16 @@ class TestSimpleSQL(TestCase):
 
         ident = Word(alphas, alphanums + "_$")
 
-        columnName = delimitedList(
+        columnName = delimited_list(
             ident, ".", combine=True
-        ).addParseAction(upcaseTokens)
-        columnNameList = Group(delimitedList(columnName)).set_parser_name("columns")
+        ).add_parse_action(upcase_tokens)
+        columnNameList = Group(delimited_list(columnName)).set_parser_name("columns")
         columnSpec = "*" | columnNameList
 
-        tableName = delimitedList(ident, ".", combine=True).addParseAction(upcaseTokens)
-        tableNameList = Group(delimitedList(tableName)).set_parser_name("tables")
+        tableName = delimited_list(
+            ident, ".", combine=True
+        ).add_parse_action(upcase_tokens)
+        tableNameList = Group(delimited_list(tableName)).set_parser_name("tables")
 
         simpleSQL = (
             selectToken("command")
@@ -45,8 +47,8 @@ class TestSimpleSQL(TestCase):
             + tableNameList("tables")
         )
 
-        # demo runTests method, including embedded comments in test string
-        runTests(
+        # demo run_tests method, including embedded comments in test string
+        run_tests(
             simpleSQL,
             """
             # '*' as column list and dotted table name
@@ -63,7 +65,7 @@ class TestSimpleSQL(TestCase):
         """,
         )
 
-        runTests(
+        run_tests(
             simpleSQL,
             """            
             # invalid SELECT keyword - should fail
@@ -79,7 +81,7 @@ class TestSimpleSQL(TestCase):
             failureTests=True,
         )
 
-        runTests(
+        run_tests(
             number,
             """
             100
@@ -92,7 +94,7 @@ class TestSimpleSQL(TestCase):
         )
 
         # any int or real number, returned as float
-        runTests(
+        run_tests(
             fnumber,
             """
             100
@@ -104,7 +106,7 @@ class TestSimpleSQL(TestCase):
             """,
         )
 
-        runTests(
+        run_tests(
             hex_integer,
             """
             100
@@ -112,8 +114,8 @@ class TestSimpleSQL(TestCase):
             """,
         )
 
-        helper_uuid.addParseAction(tokenMap(uuid.UUID))
-        runTests(
+        helper_uuid.add_parse_action(token_map(uuid.UUID))
+        run_tests(
             helper_uuid,
             """
             12345678-1234-5678-1234-567812345678
@@ -130,7 +132,7 @@ class TestSimpleSQL(TestCase):
         )
 
         with Debugger() as d:
-            combined_ident.parseString("testing")
+            combined_ident.parse_string("testing")
             self.assertLess(d.parse_count, 7)
 
     def test_word_has_expecting(self):

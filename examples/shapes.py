@@ -35,7 +35,7 @@ class Circle(Shape):
 
 from mo_parsing import *
 
-number = Regex(r"-?\d+(\.\d*)?").addParseAction(lambda t: float(t[0]))
+number = Regex(r"-?\d+(\.\d*)?").add_parse_action(lambda t: float(t[0]))
 
 # Shape expressions:
 #   square : S <centerx> <centery> <side>
@@ -48,17 +48,17 @@ rectDefn = (
 )
 circleDefn = "C" + number("centerx") + number("centery") + number("diameter")
 
-squareDefn.addParseAction(Square)
-rectDefn.addParseAction(Rectangle)
+squareDefn.add_parse_action(Square)
+rectDefn.add_parse_action(Rectangle)
 
 
 def computeRadius(tokens):
     tokens["radius"] = tokens.diameter / 2.0
 
 
-circleDefn.addParseAction(computeRadius, Circle)
+circleDefn.add_parse_action(computeRadius, Circle)
 
-shapeExpr = squareDefn | rectDefn | circleDefn
+shape_expr = squareDefn | rectDefn | circleDefn
 
 tests = """\
 C 0 0 100
@@ -66,7 +66,7 @@ R 10 10 20 50
 S -1 5 10""".splitlines()
 
 for t in tests:
-    shape = shapeExpr.parseString(t)[0]
+    shape = shape_expr.parse_string(t)[0]
 
 
 

@@ -13,9 +13,9 @@ from mo_parsing import (
     nums,
     alphas,
     Combine,
-    oneOf,
+    one_of,
     opAssoc,
-    infixNotation,
+    infix_notation,
     Literal,
 )
 
@@ -140,14 +140,14 @@ real = Combine(Word(nums) + "." + Word(nums))
 variable = Word(alphas, exact=1)
 operand = real | integer | variable
 
-signop = oneOf("+ -")
-multop = oneOf("* /")
-plusop = oneOf("+ -")
+signop = one_of("+ -")
+multop = one_of("* /")
+plusop = one_of("+ -")
 expop = Literal("**")
 
 # use parse actions to attach EvalXXX constructors to sub-expressions
-operand.addParseAction(EvalConstant)
-arith_expr = infixNotation(
+operand.add_parse_action(EvalConstant)
+arith_expr = infix_notation(
     operand,
     [
         (signop, 1, RIGHT_ASSOC, EvalSignOp),
@@ -157,8 +157,8 @@ arith_expr = infixNotation(
     ],
 )
 
-comparisonop = oneOf("< <= > >= != = <> LT GT LE GE EQ NE")
-comp_expr = infixNotation(
+comparisonop = one_of("< <= > >= != = <> LT GT LE GE EQ NE")
+comp_expr = infix_notation(
     arith_expr, [(comparisonop, 2, LEFT_ASSOC, EvalComparisonOp)]
 )
 
@@ -246,7 +246,7 @@ def main():
     # copy vars_ to EvalConstant lookup dict
     EvalConstant.vars_ = vars_
     for test, expected in tests:
-        ret = comp_expr.parseString(test)[0]
+        ret = comp_expr.parse_string(test)[0]
         parsedvalue = ret.eval()
 
         if parsedvalue != expected:

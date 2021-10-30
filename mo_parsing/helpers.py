@@ -22,7 +22,7 @@ from mo_parsing.enhancement import (
 )
 from mo_parsing.exceptions import ParseException
 from mo_parsing.expressions import And
-from mo_parsing.infix import delimitedList
+from mo_parsing.infix import delimited_list
 from mo_parsing.regex import Regex
 from mo_parsing.results import ParseResults, Annotation
 from mo_parsing.tokens import (
@@ -69,7 +69,7 @@ def QuotedString(
           (default= ``None``)
         - multiline - boolean indicating whether quotes can span
           multiple lines (default= ``False``)
-        - unquoteResults - boolean indicating whether the matched text
+        - unquote_results - boolean indicating whether the matched text
           should be unquoted (default= ``True``)
         - end_quote_char - string of one or more characters defining the
           end of the quote delimited string (default= ``None``  => same as
@@ -150,16 +150,16 @@ dblQuotedString = Combine(
 sglQuotedString = Combine(
     Regex(r"'(?:[^'\n\r\\]|(?:'')|(?:\\(?:[^x]|x[0-9a-fA-F]+)))*") + "'"
 ).set_parser_name("string enclosed in single quotes")
-quotedString = Combine(
+quoted_string = Combine(
     Regex(r'"(?:[^"\n\r\\]|(?:"")|(?:\\(?:[^x]|x[0-9a-fA-F]+)))*') + '"'
     | Regex(r"'(?:[^'\n\r\\]|(?:'')|(?:\\(?:[^x]|x[0-9a-fA-F]+)))*") + "'"
-).set_parser_name("quotedString using single or double quotes")
-unicodeString = Combine(
-    Literal("u") + quotedString
+).set_parser_name("quoted_string using single or double quotes")
+unicode_string = Combine(
+    Literal("u") + quoted_string
 ).set_parser_name("unicode string literal")
 
 
-def countedArray(expr, intExpr=None):
+def counted_array(expr, int_expr=None):
     """Helper to define a counted list of expressions.
 
     This helper defines a pattern of the form::
@@ -170,34 +170,34 @@ def countedArray(expr, intExpr=None):
     The matched tokens returns the array of expr tokens as a list - the
     leading count token is suppressed.
 
-    If ``intExpr`` is specified, it should be a mo_parsing expression
+    If ``int_expr`` is specified, it should be a mo_parsing expression
     that produces an integer value.
 
     Example::
 
-        countedArray(Word(alphas)).parseString('2 ab cd ef')  # -> ['ab', 'cd']
+        counted_array(Word(alphas)).parse_string('2 ab cd ef')  # -> ['ab', 'cd']
 
         # in this parser, the leading integer value is given in binary,
         # '10' indicating that 2 values are in the array
-        binaryConstant = Word('01')/ lambda t: int(t[0], 2)
-        countedArray(Word(alphas), intExpr=binaryConstant).parseString('10 ab cd ef')  # -> ['ab', 'cd']
+        binary_constant = Word('01')/ lambda t: int(t[0], 2)
+        counted_array(Word(alphas), int_expr=binary_constant).parse_string('10 ab cd ef')  # -> ['ab', 'cd']
     """
-    if intExpr is None:
-        intExpr = Word(nums) / (lambda t: int(t[0]))
+    if int_expr is None:
+        int_expr = Word(nums) / (lambda t: int(t[0]))
 
-    arrayExpr = Forward()
+    array_expr = Forward()
 
     def countFieldParseAction(t, l, s):
         n = t[0]
-        arrayExpr << Group(Many(expr, exact=n, whitespace=whitespaces.CURRENT))
+        array_expr << Group(Many(expr, exact=n, whitespace=whitespaces.CURRENT))
         return []
 
-    intExpr = (
-        intExpr
-        .set_parser_name("arrayLen")
-        .addParseAction(countFieldParseAction, callDuringTry=True)
+    int_expr = (
+        int_expr
+        .set_parser_name("array_len")
+        .add_parse_action(countFieldParseAction, callDuringTry=True)
     )
-    return (intExpr + arrayExpr).set_parser_name("(len) " + text(expr) + "...")
+    return (int_expr + array_expr).set_parser_name("(len) " + text(expr) + "...")
 
 
 def _flatten(L):
@@ -218,7 +218,7 @@ def matchPreviousLiteral(expr):
 
         first = Word(nums)
         second = matchPreviousLiteral(first)
-        matchExpr = first + ":" + second
+        match_expr = first + ":" + second
 
     will match ``"1:1"``, but not ``"1:2"``.  Because this
     matches a previous literal, will also match the leading
@@ -239,7 +239,7 @@ def matchPreviousLiteral(expr):
         else:
             rep << Empty()
 
-    expr.addParseAction(copyTokenToRepeater, callDuringTry=True)
+    expr.add_parse_action(copyTokenToRepeater, callDuringTry=True)
     rep.set_parser_name("(prev) " + text(expr))
     return rep
 
@@ -251,7 +251,7 @@ def matchPreviousExpr(expr):
 
         first = Word(nums)
         second = matchPreviousExpr(first)
-        matchExpr = first + ":" + second
+        match_expr = first + ":" + second
 
     will match ``"1:1"``, but not ``"1:2"``.  Because this
     matches by expressions, will *not* match the leading ``"1:1"``
@@ -264,21 +264,21 @@ def matchPreviousExpr(expr):
     rep <<= e2
 
     def copyTokenToRepeater(t, l, s):
-        matchTokens = _flatten(t)
+        match_tokens = _flatten(t)
 
         def mustMatchTheseTokens(t, l, s):
-            theseTokens = _flatten(t)
-            if theseTokens != matchTokens:
+            these_tokens = _flatten(t)
+            if these_tokens != match_tokens:
                 raise ParseException("", 0, "")
 
-        rep.addParseAction(mustMatchTheseTokens, callDuringTry=True)
+        rep.add_parse_action(mustMatchTheseTokens, callDuringTry=True)
 
-    expr.addParseAction(copyTokenToRepeater, callDuringTry=True)
+    expr.add_parse_action(copyTokenToRepeater, callDuringTry=True)
     rep.set_parser_name("(prev) " + text(expr))
     return rep
 
 
-def dictOf(key, value):
+def dict_of(key, value):
     """Helper to easily and clearly define a dictionary by specifying
     the respective patterns for the key and value.  Takes care of
     defining the `Dict`, `ZeroOrMore`, and
@@ -291,14 +291,14 @@ def dictOf(key, value):
     Example::
 
         text = "shape: SQUARE posn: upper left color: light blue texture: burlap"
-        attr_expr = (label + Suppress(':') + OneOrMore(data_word, stopOn=label)/ ' '.join)
-        print(OneOrMore(attr_expr).parseString(text))
+        attr_expr = (label + Suppress(':') + OneOrMore(data_word, stop_on=label)/ ' '.join)
+        print(OneOrMore(attr_expr).parse_string(text))
 
         attr_label = label
-        attr_value = Suppress(':') + OneOrMore(data_word, stopOn=label)/ ' '.join
+        attr_value = Suppress(':') + OneOrMore(data_word, stop_on=label)/ ' '.join
 
         # similar to Dict, but simpler call format
-        result = dictOf(attr_label, attr_value).parseString(text)
+        result = dict_of(attr_label, attr_value).parse_string(text)
         print(result)
         print(result['shape'])
         print(result.shape)  # object attribute access works too
@@ -318,20 +318,20 @@ def dictOf(key, value):
     return Dict(OneOrMore(Group(key + value)))
 
 
-def originalTextFor(expr, asString=True):
+def originalTextFor(expr, as_string=True):
     """Helper to return the original, untokenized text for a given
     expression.  Useful to restore the parsed fields of an HTML start
     tag into the raw tag text itself, or to revert separate tokens with
     intervening whitespace back to the original matching input text. By
     default, returns astring containing the original parsed text.
 
-    If the optional ``asString`` argument is passed as
+    If the optional ``as_string`` argument is passed as
     ``False``, then the return value is
     a `ParseResults` containing any results names that
     were originally matched, and a single token containing the original
     matched text from the input string.  So if the expression passed to
     `originalTextFor` contains expressions with defined
-    results names, you must set ``asString`` to ``False`` if you
+    results names, you must set ``as_string`` to ``False`` if you
     want to preserve those results name values.
 
     Example::
@@ -340,20 +340,22 @@ def originalTextFor(expr, asString=True):
         for tag in ("b", "i"):
             opener, closer = makeHTMLTags(tag)
             patt = originalTextFor(opener + SkipTo(closer) + closer)
-            print(patt.searchString(src)[0])
+            print(patt.search_string(src)[0])
 
     prints::
 
         ['<b> bold <i>text</i> </b>']
         ['<i>text</i>']
     """
-    locMarker = Empty() / (lambda _, l: l)
-    matchExpr = locMarker("_original_start") + Group(expr) + locMarker("_original_end")
-    matchExpr = matchExpr / extractText
-    return matchExpr
+    loc_marker = Empty() / (lambda _, l: l)
+    match_expr = (
+        loc_marker("_original_start") + Group(expr) + loc_marker("_original_end")
+    )
+    match_expr = match_expr / extract_text
+    return match_expr
 
 
-def extractText(tokens, loc, string):
+def extract_text(tokens, loc, string):
     start, d, end = tokens
     content = string[start:end]
     annotations = [Annotation(k, v[0].start, v[-1].end, v) for k, v in d.items()]
@@ -367,7 +369,7 @@ def ungroup(expr):
     return TokenConverter(expr) / (lambda t: t[0])
 
 
-def locatedExpr(expr):
+def located_expr(expr):
     """Helper to decorate a returned token with its starting and ending
     locations in the input string.
 
@@ -383,7 +385,7 @@ def locatedExpr(expr):
     Example::
 
         wd = Word(alphas)
-        for match in locatedExpr(wd).searchString("ljsdf123lksdjjf123lkkjj1222"):
+        for match in located_expr(wd).search_string("ljsdf123lksdjjf123lkkjj1222"):
             print(match)
 
     prints::
@@ -396,7 +398,7 @@ def locatedExpr(expr):
     return Group(locator("locn_start") + Group(expr)("value") + locator("locn_end"))
 
 
-def nestedExpr(opener="(", closer=")", content=None, ignoreExpr=quotedString):
+def nested_expr(opener="(", closer=")", content=None, ignore_expr=quoted_string):
     """Helper method for defining nested lists enclosed in opening and
     closing delimiters ("(" and ")" are the default).
 
@@ -407,19 +409,19 @@ def nestedExpr(opener="(", closer=")", content=None, ignoreExpr=quotedString):
        (default= ``")"``); can also be a mo_parsing expression
      - content - expression for items within the nested lists
        (default= ``None``)
-     - ignoreExpr - expression for ignoring opening and closing
-       delimiters (default= `quotedString`)
+     - ignore_expr - expression for ignoring opening and closing
+       delimiters (default= `quoted_string`)
 
     If an expression is not provided for the content argument, the
     nested expression will capture all whitespace-delimited content
     between delimiters as a list of separate values.
 
-    Use the ``ignoreExpr`` argument to define expressions that may
+    Use the ``ignore_expr`` argument to define expressions that may
     contain opening or closing characters that should not be treated as
-    opening or closing characters for nesting, such as quotedString or
+    opening or closing characters for nesting, such as quoted_string or
     a comment expression.  Specify multiple expressions using an
     `Or` or `MatchFirst`. The default is
-    `quotedString`, but if no expressions are to be ignored, then
+    `quoted_string`, but if no expressions are to be ignored, then
     pass ``None`` for this argument.
 
     """
@@ -439,10 +441,10 @@ def nestedExpr(opener="(", closer=")", content=None, ignoreExpr=quotedString):
                 return t[0].strip()
 
             if len(opener) == 1 and len(closer) == 1:
-                if ignoreExpr is not None:
+                if ignore_expr is not None:
                     content = (
                         Combine(OneOrMore(
-                            ~ignoreExpr
+                            ~ignore_expr
                             + CharsNotIn(
                                 opener + closer + "".join(ignore_chars), exact=1,
                             )
@@ -454,10 +456,10 @@ def nestedExpr(opener="(", closer=")", content=None, ignoreExpr=quotedString):
                         Empty + CharsNotIn(opener + closer + "".join(ignore_chars))
                     ) / scrub
             else:
-                if ignoreExpr is not None:
+                if ignore_expr is not None:
                     content = (
                         Combine(OneOrMore(
-                            ~ignoreExpr
+                            ~ignore_expr
                             + ~Literal(opener)
                             + ~Literal(closer)
                             + CharsNotIn(ignore_chars, exact=1)
@@ -474,9 +476,11 @@ def nestedExpr(opener="(", closer=")", content=None, ignoreExpr=quotedString):
                         / scrub
                     )
     ret = Forward()
-    if ignoreExpr is not None:
+    if ignore_expr is not None:
         ret <<= Group(
-            Suppress(opener) + ZeroOrMore(ignoreExpr | ret | content) + Suppress(closer)
+            Suppress(opener)
+            + ZeroOrMore(ignore_expr | ret | content)
+            + Suppress(closer)
         )
     else:
         ret <<= Group(Suppress(opener) + ZeroOrMore(ret | content) + Suppress(closer))
@@ -489,30 +493,30 @@ def matchOnlyAtCol(n):
     a specific column in the input text.
     """
 
-    def verifyCol(strg, locn, toks):
+    def verify_col(strg, locn, toks):
         if col(locn, strg) != n:
             raise ParseException(strg, locn, "matched token not at column %d" % n)
 
-    return verifyCol
+    return verify_col
 
 
-def removeQuotes(t, l, s):
+def remove_quotes(t, l, s):
     """Helper parse action for removing quotation marks from parsed
     quoted strings.
 
     Example::
 
         # by default, quotation marks are included in parsed results
-        quotedString.parseString("'Now is the Winter of our Discontent'") # -> ["'Now is the Winter of our Discontent'"]
+        quoted_string.parse_string("'Now is the Winter of our Discontent'") # -> ["'Now is the Winter of our Discontent'"]
 
         # use removeQuotes to strip quotation marks from parsed results
-        quotedString/ removeQuotes
-        quotedString.parseString("'Now is the Winter of our Discontent'") # -> ["Now is the Winter of our Discontent"]
+        quoted_string/ removeQuotes
+        quoted_string.parse_string("'Now is the Winter of our Discontent'") # -> ["Now is the Winter of our Discontent"]
     """
     return t[0][1:-1]
 
 
-def tokenMap(func, *args):
+def token_map(func, *args):
     """
     APPLY func OVER ALL GIVEN TOKENS
     :param func: ACCEPT ParseResults
@@ -532,37 +536,37 @@ def tokenMap(func, *args):
     return pa
 
 
-upcaseTokens = tokenMap(lambda t: text(t).upper())
+upcase_tokens = token_map(lambda t: text(t).upper())
 """(Deprecated) Helper parse action to convert tokens to upper case.
-Deprecated in favor of `upcaseTokens`"""
+Deprecated in favor of `upcase_tokens`"""
 
-downcaseTokens = tokenMap(lambda t: text(t).lower())
+downcase_tokens = token_map(lambda t: text(t).lower())
 """(Deprecated) Helper parse action to convert tokens to lower case.
-Deprecated in favor of `downcaseTokens`"""
+Deprecated in favor of `downcase_tokens`"""
 
 
-def makeHTMLTags(tagStr, suppress_LT=Suppress("<"), suppress_GT=Suppress(">")):
+def makeHTMLTags(tag, suppress_LT=Suppress("<"), suppress_GT=Suppress(">")):
     """Helper to construct opening and closing tag expressions for HTML,
     given a tag name. Matches tags in either upper or lower case,
     attributes with namespaces and with quoted or unquoted values.
     """
-    if isinstance(tagStr, text):
-        resname = tagStr
-        tagStr = Keyword(tagStr, caseless=True)
+    if isinstance(tag, text):
+        resname = tag
+        tag = Keyword(tag, caseless=True)
     else:
-        resname = tagStr.parser_name
+        resname = tag.parser_name
 
     tagAttrName = Word(alphas, alphanums + "_-:")
-    tagAttrValue = quotedString / removeQuotes | Word(printables, exclude=">")
+    tagAttrValue = quoted_string / remove_quotes | Word(printables, exclude=">")
     simpler_name = "".join(resname.replace(":", " ").title().split())
 
     with STANDARD_WHITESPACE:
-        openTag = (
+        open_tag = (
             (
                 suppress_LT
-                + tagStr("tag")
+                + tag("tag")
                 + OpenDict(ZeroOrMore(Group(
-                    tagAttrName / downcaseTokens
+                    tagAttrName / downcase_tokens
                     + Optional(Suppress("=") + tagAttrValue)
                 )))
                 + Optional("/", default=[False])("empty")
@@ -573,8 +577,8 @@ def makeHTMLTags(tagStr, suppress_LT=Suppress("<"), suppress_GT=Suppress(">")):
             .set_parser_name("<%s>" % resname)
         )
 
-        closeTag = (
-            Combine(Literal("</") + tagStr + ">")
+        close_tag = (
+            Combine(Literal("</") + tag + ">")
             .set_token_name("end" + simpler_name)
             .set_parser_name("</%s>" % resname)
         )
@@ -583,12 +587,12 @@ def makeHTMLTags(tagStr, suppress_LT=Suppress("<"), suppress_GT=Suppress(">")):
     # closeTag.tag = resname
     # openTag.tag_body = SkipTo(closeTag)
 
-    return openTag, closeTag
+    return open_tag, close_tag
 
 
-def withAttribute(**attr):
+def with_attribute(**attr):
     """
-    Verify attributes have given value, or at least exists (using withAttribute.ANY_VALUE)
+    Verify attributes have given value, or at least exists (using with_attribute.ANY_VALUE)
     :param attr:  Expecting named parameters set to the expected value
     :return:  Raise an exception if there is no match
     """
@@ -600,7 +604,7 @@ def withAttribute(**attr):
                     tokens.type, loc, string, f"is expecting {name} attribute"
                 )
             if (
-                expected_value != withAttribute.ANY_VALUE
+                expected_value != with_attribute.ANY_VALUE
                 and tokens[name] != expected_value
             ):
                 raise ParseException(
@@ -614,11 +618,11 @@ def withAttribute(**attr):
     return pa
 
 
-withAttribute.ANY_VALUE = object()
+with_attribute.ANY_VALUE = object()
 
 
-def withClass(classname, namespace=""):
-    """Simplified version of `withAttribute` when
+def with_class(classname, namespace=""):
+    """Simplified version of `with_attribute` when
     matching on a div class - made difficult because ``class`` is
     a reserved word in Python.
 
@@ -637,12 +641,12 @@ def withClass(classname, namespace=""):
         div_grid = div()/ withClass("grid")
 
         grid_expr = div_grid + SkipTo(div | div_end)("body")
-        for grid_header in grid_expr.searchString(html):
+        for grid_header in grid_expr.search_string(html):
             print(grid_header.body)
 
-        div_any_type = div()/ withClass(withAttribute.ANY_VALUE)
+        div_any_type = div()/ withClass(with_attribute.ANY_VALUE)
         div_expr = div_any_type + SkipTo(div | div_end)("body")
-        for div_header in div_expr.searchString(html):
+        for div_header in div_expr.search_string(html):
             print(div_header.body)
 
     prints::
@@ -653,7 +657,7 @@ def withClass(classname, namespace=""):
         1,3 2,3 1,1
     """
     classattr = "%s:class" % namespace if namespace else "class"
-    return withAttribute(**{classattr: classname})
+    return with_attribute(**{classattr: classname})
 
 
 _indent_stack = [(1, None, None)]
@@ -667,7 +671,7 @@ def reset_stack():
 add_reset_action(reset_stack)
 
 
-def indentedBlock(blockStatementExpr, indent=True):
+def indented_block(blockStatementExpr, indent=True):
     """Helper method for defining space-delimited indentation blocks,
     such as those used to define block statements in Python source code.
 
@@ -688,51 +692,51 @@ def indentedBlock(blockStatementExpr, indent=True):
     DEDENT = Forward()
 
     def _reset_stack(t=None, i=None, s=None, c=None):
-        oldCol, oldPeer, oldDedent = _indent_stack.pop()
-        PEER << oldPeer
-        DEDENT << oldDedent
+        old_col, old_peer, old_dedent = _indent_stack.pop()
+        PEER << old_peer
+        DEDENT << old_dedent
 
-    def peer_stack(expectedCol):
+    def peer_stack(expected_col):
         def output(t, l, s):
             if l >= len(s):
                 return
-            curCol = col(l, s)
-            if curCol != expectedCol:
-                if curCol > expectedCol:
+            cur_col = col(l, s)
+            if cur_col != expected_col:
+                if cur_col > expected_col:
                     raise ParseException(t.type, l, s, "illegal nesting")
                 raise ParseException(t.type, l, s, "not a peer entry")
 
         return output
 
-    def dedent_stack(expectedCol):
+    def dedent_stack(expected_col):
         def output(t, l, s):
             if l >= len(s):
                 return
-            curCol = col(l, s)
-            if curCol not in (i for i, _, _ in _indent_stack):
+            cur_col = col(l, s)
+            if cur_col not in (i for i, _, _ in _indent_stack):
                 raise ParseException(s, l, "not an unindent")
-            if curCol < _indent_stack[-1][0]:
-                oldCol, oldPeer, oldDedent = _indent_stack.pop()
-                PEER << oldPeer
-                DEDENT << oldDedent
+            if cur_col < _indent_stack[-1][0]:
+                old_col, old_peer, old_dedent = _indent_stack.pop()
+                PEER << old_peer
+                DEDENT << old_dedent
 
         return output
 
     def indent_stack(t, l, s):
-        curCol = col(l, s)
-        if curCol > _indent_stack[-1][0]:
-            PEER << Empty() / peer_stack(curCol)
-            DEDENT << Empty() / dedent_stack(curCol)
-            _indent_stack.append((curCol, PEER, DEDENT))
+        cur_col = col(l, s)
+        if cur_col > _indent_stack[-1][0]:
+            PEER << Empty() / peer_stack(cur_col)
+            DEDENT << Empty() / dedent_stack(cur_col)
+            _indent_stack.append((cur_col, PEER, DEDENT))
         else:
             raise ParseException(t.type, l, s, "not a subentry")
 
     def nodent_stack(t, l, s):
-        curCol = col(l, s)
-        if curCol == _indent_stack[-1][0]:
-            PEER << Empty() / peer_stack(curCol)
-            DEDENT << Empty() / dedent_stack(curCol)
-            _indent_stack.append((curCol, PEER, DEDENT))
+        cur_col = col(l, s)
+        if cur_col == _indent_stack[-1][0]:
+            PEER << Empty() / peer_stack(cur_col)
+            DEDENT << Empty() / dedent_stack(cur_col)
+            _indent_stack.append((cur_col, PEER, DEDENT))
         else:
             raise ParseException(t.type, l, s, "not a subentry")
 
@@ -745,20 +749,20 @@ def indentedBlock(blockStatementExpr, indent=True):
         NODENT = Empty() / nodent_stack
 
         if indent:
-            smExpr = Group(
+            sm_expr = Group(
                 Optional(NL)
                 + INDENT
                 + OneOrMore(PEER + Group(blockStatementExpr) + Optional(NL))
                 + DEDENT
             )
         else:
-            smExpr = Group(
+            sm_expr = Group(
                 Optional(NL)
                 + NODENT
                 + OneOrMore(PEER + Group(blockStatementExpr) + Optional(NL))
                 + DEDENT
             )
-    return smExpr.setFailAction(_reset_stack).set_parser_name("indented block")
+    return sm_expr.setFailAction(_reset_stack).set_parser_name("indented block")
 
 
 anyOpenTag, anyCloseTag = makeHTMLTags(
@@ -780,7 +784,7 @@ cStyleComment = Combine(
     Regex(r"/\*(?:[^*]|\*(?!/))*") + "*/"
 ).set_parser_name("C style comment")
 
-htmlComment = Regex(r"<!--[\s\S]*?-->").set_parser_name("HTML comment")
+html_comment = Regex(r"<!--[\s\S]*?-->").set_parser_name("HTML comment")
 
 with NO_WHITESPACE:
     restOfLine = Regex(r"[^\n]*").set_parser_name("rest of line")
@@ -797,18 +801,18 @@ with NO_WHITESPACE:
 
 _commasepitem = Combine(OneOrMore(
     Word(printables, exclude=",") + Optional(Word(" \t") + ~Literal(",") + ~LineEnd())
-)).set_parser_name("commaItem") / (lambda t: text(t).strip())
-commaSeparatedList = delimitedList(Optional(
-    quotedString | _commasepitem, default=""
+)).set_parser_name("comma_item") / (lambda t: text(t).strip())
+commaSeparatedList = delimited_list(Optional(
+    quoted_string | _commasepitem, default=""
 )).set_parser_name("commaSeparatedList")
 
 
-convertToInteger = tokenMap(int)
-convertToFloat = tokenMap(float)
+convertToInteger = token_map(int)
+convertToFloat = token_map(float)
 
 integer = Word(nums).set_parser_name("integer") / convertToInteger
 
-hex_integer = Word(hexnums).set_parser_name("hex integer") / tokenMap(int, 16)
+hex_integer = Word(hexnums).set_parser_name("hex integer") / token_map(int, 16)
 
 signed_integer = Regex(r"[+-]?\d+").set_parser_name("signed integer") / convertToInteger
 
@@ -848,7 +852,7 @@ _short_ipv6_address = (
     + "::"
     + Optional(_ipv6_part + (":" + _ipv6_part) * (0, 6))
 ).set_parser_name("short IPv6 address")
-_short_ipv6_address.addCondition(lambda t: sum(
+_short_ipv6_address.add_condition(lambda t: sum(
     1 for tt in t if _ipv6_part.matches(tt)
 ) < 8)
 _mixed_ipv6_address = ("::ffff:" + ipv4_address).set_parser_name("mixed IPv6 address")
@@ -876,7 +880,7 @@ def convertToDate(fmt="%Y-%m-%d"):
 
         date_expr = iso8601_date.copy()
         date_expr/ convertToDate()
-        print(date_expr.parseString("1999-12-31"))
+        print(date_expr.parse_string("1999-12-31"))
 
     prints::
 
@@ -903,7 +907,7 @@ def convertToDatetime(fmt="%Y-%m-%dT%H:%M:%S.%f"):
 
         dt_expr = iso8601_datetime.copy()
         dt_expr/ convertToDatetime()
-        print(dt_expr.parseString("1999-12-31T23:59:59.999"))
+        print(dt_expr.parse_string("1999-12-31T23:59:59.999"))
 
     prints::
 
@@ -950,13 +954,13 @@ def stripHTMLTags(tokens, l, s):
         text = '<td>More info at the <a href="https://github.com/mo_parsing/mo_parsing/wiki">mo_parsing</a> wiki page</td>'
         td, td_end = makeHTMLTags("TD")
         table_text = td + SkipTo(td_end)/ stripHTMLTags)("body" + td_end
-        print(table_text.parseString(text).body)
+        print(table_text.parse_string(text).body)
 
     Prints::
 
         More info at the mo_parsing wiki page
     """
-    return _html_stripper.transformString(tokens[0])
+    return _html_stripper.transform_string(tokens[0])
 
 
 def _strip(tok):
@@ -964,8 +968,8 @@ def _strip(tok):
 
 
 _commasepitem = (
-    Word(printables + " \t", exclude=",").set_parser_name("commaItem") / _strip
+    Word(printables + " \t", exclude=",").set_parser_name("comma_item") / _strip
 )
-comma_separated_list = delimitedList(Optional(
-    quotedString | _commasepitem, default=""
+comma_separated_list = delimited_list(Optional(
+    quoted_string | _commasepitem, default=""
 )).set_parser_name("comma separated list")

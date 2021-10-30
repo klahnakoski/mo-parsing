@@ -14,7 +14,7 @@ import math
 import operator
 
 from mo_parsing import *
-from mo_parsing.helpers import delimitedList
+from mo_parsing.helpers import delimited_list
 from mo_parsing.utils import alphas, alphanums
 
 exprStack = []
@@ -52,7 +52,7 @@ pi = CaselessKeyword("PI")
 #                    Optional("." + Optional(Word(nums))) +
 #                    Optional(e + Word("+-"+nums, nums)))
 # or use provided number, but convert back to str:
-# fnumber = number().addParseAction(lambda t: str(t[0]))
+# fnumber = number().add_parse_action(lambda t: str(t[0]))
 fnumber = Regex(r"[+-]?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?")
 ident = Word(alphas, alphanums + "_$")
 
@@ -63,25 +63,25 @@ multop = mult | div
 expop = Literal("^")
 
 expr = Forward()
-expr_list = delimitedList(Group(expr))
+expr_list = delimited_list(Group(expr))
 # add parse action that replaces the function identifier with a (name, number of args) tuple
-fn_call = (ident + lpar - Group(expr_list) + rpar).addParseAction(lambda t: (
+fn_call = (ident + lpar - Group(expr_list) + rpar).add_parse_action(lambda t: (
     (t[0], t[1].length()),
 ))
 atom = (
     addop[...]
     + (
-        (fn_call | pi | e | fnumber | ident).addParseAction(push_first)
+        (fn_call | pi | e | fnumber | ident).add_parse_action(push_first)
         | Group(lpar + expr + rpar)
     )
-).addParseAction(push_unary_minus)
+).add_parse_action(push_unary_minus)
 
 # by defining exponentiation as "atom [ ^ factor ]..." instead of "atom [ ^ atom ]...", we get right-to-left
 # exponents, instead of left-to-right that is, 2^3^2 = 2^(3^2), not (2^3)^2.
 factor = Forward()
-factor <<= atom + (expop + factor).addParseAction(push_first)[...]
-term = factor + (multop + factor).addParseAction(push_first)[...]
-expr <<= term + (addop + term).addParseAction(push_first)[...]
+factor <<= atom + (expop + factor).add_parse_action(push_first)[...]
+term = factor + (multop + factor).add_parse_action(push_first)[...]
+expr <<= term + (addop + term).add_parse_action(push_first)[...]
 bnf = expr
 
 # map operator symbols to corresponding arithmetic operations

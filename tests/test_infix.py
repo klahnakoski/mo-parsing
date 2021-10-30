@@ -5,13 +5,12 @@ import operator
 
 from mo_parsing import *
 from mo_parsing.helpers import *
-from mo_parsing.infix import oneOf
+from mo_parsing.infix import one_of
 from mo_parsing.utils import *
 from tests.test_simple_unit import PyparsingExpressionTestCase
 
 
 class TestParsing(PyparsingExpressionTestCase):
-
     def testInfixNotationGrammarTest1(self):
 
         integer = Word(nums) / (lambda t: int(t[0]))
@@ -19,12 +18,12 @@ class TestParsing(PyparsingExpressionTestCase):
         operand = integer | variable
 
         expop = Literal("^")
-        signop = oneOf("+ -")
-        multop = oneOf("* /")
-        plusop = oneOf("+ -")
+        signop = one_of("+ -")
+        multop = one_of("* /")
+        plusop = one_of("+ -")
         factop = Literal("!")
 
-        expr = infixNotation(
+        expr = infix_notation(
             operand,
             [
                 (factop, 1, LEFT_ASSOC),
@@ -66,13 +65,13 @@ class TestParsing(PyparsingExpressionTestCase):
             [[3, "!"], "!"],
         ]
         for test_str, exp_list in zip(test, expected):
-            result = expr.parseString(test_str)
+            result = expr.parse_string(test_str)
 
             self.assertParseResultsEquals(
                 result,
                 expected_list=exp_list,
                 msg="mismatched results for infixNotation: got %s, expected %s"
-                    % (result, exp_list),
+                % (result, exp_list),
             )
 
     def testInfixNotationGrammarTest2(self):
@@ -129,8 +128,8 @@ class TestParsing(PyparsingExpressionTestCase):
                     v = bool(self.arg)
                 return not v
 
-        boolOperand = Group(oneOf("True False") | Word(alphas, max=1))
-        boolExpr = infixNotation(
+        boolOperand = Group(one_of("True False") | Word(alphas, max=1))
+        bool_expr = infix_notation(
             boolOperand,
             [
                 ("not", 1, RIGHT_ASSOC, BoolNot),
@@ -156,7 +155,7 @@ class TestParsing(PyparsingExpressionTestCase):
         boolVars["r"] = True
 
         for t in test:
-            res = boolExpr.parseString(t)
+            res = bool_expr.parse_string(t)
             value = bool(res[0])
             expected = eval(t, {}, boolVars)
             self.assertEqual(expected, value)
@@ -173,17 +172,17 @@ class TestParsing(PyparsingExpressionTestCase):
             count += 1
             return value
 
-        integer = Word(nums).addParseAction(evaluate_int)
+        integer = Word(nums).add_parse_action(evaluate_int)
         variable = Word(alphas, exact=1)
         operand = integer | variable
 
         expop = Literal("^")
-        signop = oneOf("+ -")
-        multop = oneOf("* /")
-        plusop = oneOf("+ -")
+        signop = one_of("+ -")
+        multop = one_of("* /")
+        plusop = one_of("+ -")
         factop = Literal("!")
 
-        expr = infixNotation(
+        expr = infix_notation(
             operand,
             [
                 ("!", 1, LEFT_ASSOC),
@@ -197,7 +196,7 @@ class TestParsing(PyparsingExpressionTestCase):
         test = ["9"]
         for t in test:
             count = 0
-            expr.parseString(t)
+            expr.parse_string(t)
             self.assertEqual(count, 1, "count evaluated too many times!")
 
     def testInfixNotationGrammarTest4(self):
@@ -208,11 +207,11 @@ class TestParsing(PyparsingExpressionTestCase):
             """Returns the suppressed literal s"""
             return Literal(s).suppress()
 
-        f = infixNotation(
+        f = infix_notation(
             word,
             [
                 (supLiteral("!"), 1, RIGHT_ASSOC, lambda t, l, s: ["!", t[0]]),
-                (oneOf("= !="), 2, LEFT_ASSOC,),
+                (one_of("= !="), 2, LEFT_ASSOC,),
                 (supLiteral("&"), 2, LEFT_ASSOC, lambda t, l, s: ["&", t]),
                 (supLiteral("|"), 2, LEFT_ASSOC, lambda t, l, s: ["|", t]),
             ],
@@ -228,14 +227,14 @@ class TestParsing(PyparsingExpressionTestCase):
             ),
         ]
         for test, expected in tests:
-            results = f.parseString(test)
+            results = f.parse_string(test)
             self.assertParseResultsEquals(results, expected_list=expected)
 
     def testInfixNotationGrammarTest5(self):
         expop = Literal("**")
-        signop = oneOf("+ -")
-        multop = oneOf("* /")
-        plusop = oneOf("+ -")
+        signop = one_of("+ -")
+        multop = one_of("* /")
+        plusop = one_of("+ -")
 
         class ExprNode:
             def __init__(self, tokens):
@@ -269,8 +268,8 @@ class TestParsing(PyparsingExpressionTestCase):
         class AddOp(BinOp):
             opn_map = {"+": operator.add, "-": operator.sub}
 
-        operand = Group(number).addParseAction(NumberNode)
-        expr = infixNotation(
+        operand = Group(number).add_parse_action(NumberNode)
+        expr = infix_notation(
             operand,
             [
                 (expop, 2, RIGHT_ASSOC, (lambda pr: pr[::-1], ExpOp)),
@@ -293,7 +292,7 @@ class TestParsing(PyparsingExpressionTestCase):
             if not t:
                 continue
 
-            parsed = expr.parseString(t)
+            parsed = expr.parse_string(t)
             eval_value = parsed[0].eval()
             self.assertEqual(
                 eval_value,
@@ -305,20 +304,19 @@ class TestParsing(PyparsingExpressionTestCase):
 
     def testChainedTernaryOperator(self):
 
-        TERNARY_INFIX = infixNotation(integer, [(("?", ":"), 3, LEFT_ASSOC),])
+        TERNARY_INFIX = infix_notation(integer, [(("?", ":"), 3, LEFT_ASSOC),])
         self.assertParseResultsEquals(
-            TERNARY_INFIX.parseString("1?1:0?1:0", parseAll=True),
+            TERNARY_INFIX.parse_string("1?1:0?1:0", parse_all=True),
             expected_list=[[1, "?", 1, ":", 0], "?", 1, ":", 0],
         )
 
-        TERNARY_INFIX = infixNotation(integer, [(("?", ":"), 3, RIGHT_ASSOC),])
+        TERNARY_INFIX = infix_notation(integer, [(("?", ":"), 3, RIGHT_ASSOC),])
         self.assertParseResultsEquals(
-            TERNARY_INFIX.parseString("1?1:0?1:0", parseAll=True),
+            TERNARY_INFIX.parse_string("1?1:0?1:0", parse_all=True),
             expected_list=[1, "?", 1, ":", [0, "?", 1, ":", 0]],
         )
 
     def test_default_operator(self):
-
         def parser(tokens):
             left, op, right = tokens
             return {str(op): [left, right]}
@@ -329,22 +327,23 @@ class TestParsing(PyparsingExpressionTestCase):
 
         word = Word(alphas)
 
-        expr = infixNotation(
-            word, [
+        expr = infix_notation(
+            word,
+            [
                 (None, 2, LEFT_ASSOC, mul),
                 (Literal("*") | "/", 2, LEFT_ASSOC, parser),
-                ("+", 2, LEFT_ASSOC, parser)
-            ]
+                ("+", 2, LEFT_ASSOC, parser),
+            ],
         )
 
-        result = expr.parseString("a b + c")
-        self.assertEqual(result, [{"+": [[{"*": ['a', 'b']}], "c"]}])
+        result = expr.parse_string("a b + c")
+        self.assertEqual(result, [{"+": [[{"*": ["a", "b"]}], "c"]}])
 
-        result = expr.parseString("a * b c")
-        self.assertEqual(result, [{"*": ["a", [{"*": ['b', 'c']}]]}])
+        result = expr.parse_string("a * b c")
+        self.assertEqual(result, [{"*": ["a", [{"*": ["b", "c"]}]]}])
 
-        result = expr.parseString("a b c")
-        self.assertEqual(result, [{"*": [[{"*": ['a', 'b']}], "c"]}])
+        result = expr.parse_string("a b c")
+        self.assertEqual(result, [{"*": [[{"*": ["a", "b"]}], "c"]}])
 
-        result = expr.parseString("a / b c")
-        self.assertEqual(result, [{"/": ["a", [{"*": ['b', 'c']}]]}])
+        result = expr.parse_string("a / b c")
+        self.assertEqual(result, [{"/": ["a", [{"*": ["b", "c"]}]]}])

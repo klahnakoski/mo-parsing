@@ -78,6 +78,6 @@ def post_test(test, parsed):
         all_passed = all_passed and this_test_passed
 
 
-equation.runTests([t[1] for t in testcases], postParse=post_test)
+equation.run_tests([t[1] for t in testcases], postParse=post_test)
 
 assert all_passed

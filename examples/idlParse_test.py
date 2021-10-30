@@ -17,7 +17,7 @@ def test(strng):
 
     try:
         bnf = CORBA_IDL_BNF()
-        tokens = bnf.parseString(strng)
+        tokens = bnf.parse_string(strng)
         imgname = "idlParse%02d.bmp" % testnum
         testnum += 1
     except ParseException as err:

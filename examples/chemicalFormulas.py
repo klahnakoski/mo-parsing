@@ -29,7 +29,7 @@ formula = elementRef[...]
 
 fn = lambda elemList: sum(atomicWeight[elem] * int(qty) for elem, qty in elemList)
 import tests
-formula.runTests(
+formula.run_tests(
     """\
     H2O
     C6H5OH
@@ -49,7 +49,7 @@ formula = elementRef[...]
 fn = lambda elemList: sum(
     atomicWeight[elem['symbol']] * int(elem['qty']) for elem in elemList
 )
-formula.runTests(
+formula.run_tests(
     """\
     H2O
     C6H5OH
@@ -61,12 +61,12 @@ formula.runTests(
 
 
 # Version 3 - convert integers during parsing process
-integer = Word(digits).addParseAction(lambda t: int(t[0]))
+integer = Word(digits).add_parse_action(lambda t: int(t[0]))
 elementRef = Group(element("symbol") + Optional(integer, default=1)("qty"))
 formula = elementRef[...]
 
 fn = lambda elemList: sum(atomicWeight[elem['symbol']] * elem['qty'] for elem in elemList)
-formula.runTests(
+formula.run_tests(
     """\
     H2O
     C6H5OH
@@ -89,11 +89,11 @@ def cvt_subscript_int(s):
     return ret
 
 
-subscript_int = Word(subscript_digits).addParseAction(cvt_subscript_int)
+subscript_int = Word(subscript_digits).add_parse_action(cvt_subscript_int)
 
 elementRef = Group(element("symbol") + Optional(subscript_int, default=1)("qty"))
 formula = elementRef[...]
-formula.runTests(
+formula.run_tests(
     """\
     H₂O
     C₆H₅OH

@@ -18,12 +18,12 @@
 #    A copy of the GNU General Public License can be found at <https://www.gnu.org/licenses/>.
 from mo_parsing import *
 from mo_parsing.debug import Debugger
-from mo_parsing.helpers import delimitedList, cStyleComment
-from mo_parsing.infix import oneOf
+from mo_parsing.helpers import delimited_list, cStyleComment
+from mo_parsing.infix import one_of
 from mo_parsing.utils import lineno, col, line, alphas, alphanums, nums
 from mo_parsing.whitespaces import STANDARD_WHITESPACE
 
-ParserElement.setParseAction = ParserElement.addParseAction
+ParserElement.setParseAction = ParserElement.add_parse_action
 
 # defines debug level
 # 0 - no debug
@@ -990,9 +990,9 @@ class MicroC:
         self.tType = Keyword("int").setParseAction(
             lambda x: SharedData.TYPES.INT
         ) | Keyword("unsigned").setParseAction(lambda x: SharedData.TYPES.UNSIGNED)
-        self.tRelOp = oneOf(SharedData.RELATIONAL_OPERATORS)
-        self.tMulOp = oneOf("* /")
-        self.tAddOp = oneOf("+ -")
+        self.tRelOp = one_of(SharedData.RELATIONAL_OPERATORS)
+        self.tMulOp = one_of("* /")
+        self.tAddOp = one_of("+ -")
 
         # Definitions of rules for global variables
         self.rGlobalVariable = Group(
@@ -1004,7 +1004,7 @@ class MicroC:
         self.rExp = Forward()
         self.rMulExp = Forward()
         self.rNumExp = Forward()
-        self.rArguments = delimitedList(
+        self.rArguments = delimited_list(
             self.rNumExp.setParseAction(self.argument_action)
         )
         self.rFunctionCall = (
@@ -1102,7 +1102,7 @@ class MicroC:
         self.rParameter = Group(self.tType("type") + self.tId("name")).setParseAction(
             self.parameter_action
         )
-        self.rParameterList = delimitedList(self.rParameter)
+        self.rParameterList = delimited_list(self.rParameter)
         self.rFunction = (
             Group(self.tType("type") + self.tId("name")).setParseAction(
                 self.function_begin_action
@@ -1615,11 +1615,11 @@ class MicroC:
 
     def parse_text(self, text):
         """Parse string (helper function)"""
-        return self.rProgram.parseString(text, parseAll=True)
+        return self.rProgram.parse_string(text, parse_all=True)
 
     def parse_file(self, filename):
         """Parse file (helper function)"""
-        return self.rProgram.parseFile(filename, parseAll=True)
+        return self.rProgram.parse_file(filename, parse_all=True)
 
 
 ##########################################################################################

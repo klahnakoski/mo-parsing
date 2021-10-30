@@ -22,7 +22,7 @@ from mo_parsing import (
     Group,
 )
 from mo_parsing.whitespaces import Whitespace
-from mo_parsing.helpers import delimitedList
+from mo_parsing.helpers import delimited_list
 from mo_parsing.utils import alphas, alphanums, nums
 
 whitespace = Whitespace().use()
@@ -125,10 +125,10 @@ def do_syntax():
     return symbol_table
 
 
-integer = Word(nums).addParseAction(do_integer).set_parser_name("integer")
+integer = Word(nums).add_parse_action(do_integer).set_parser_name("integer")
 meta_identifier = (
     Word(alphas, alphanums + "_")
-    .addParseAction(do_meta_identifier)
+    .add_parse_action(do_meta_identifier)
     .set_parser_name("meta identifier")
 )
 terminal_string = (
@@ -136,23 +136,23 @@ terminal_string = (
         Suppress("'") + CharsNotIn("'") + Suppress("'")
         ^ Suppress('"') + CharsNotIn('"') + Suppress('"')
     )
-    .addParseAction(do_terminal_string)
+    .add_parse_action(do_terminal_string)
     .set_parser_name("terminal string")
 )
 definitions_list = Forward()
 optional_sequence = (
     (Suppress("[") + definitions_list + Suppress("]"))
-    .addParseAction(do_optional_sequence)
+    .add_parse_action(do_optional_sequence)
     .set_parser_name("optional sequence")
 )
 repeated_sequence = (
     (Suppress("{") + definitions_list + Suppress("}"))
-    .addParseAction(do_repeated_sequence)
+    .add_parse_action(do_repeated_sequence)
     .set_parser_name("repeated sequence")
 )
 grouped_sequence = (
     (Suppress("(") + definitions_list + Suppress(")"))
-    .addParseAction(do_grouped_sequence)
+    .add_parse_action(do_grouped_sequence)
     .set_parser_name("grouped sequence")
 )
 syntactic_primary = (
@@ -163,33 +163,33 @@ syntactic_primary = (
         ^ meta_identifier
         ^ terminal_string
     )
-    .addParseAction(do_syntactic_primary)
+    .add_parse_action(do_syntactic_primary)
     .set_parser_name("syntatic primary")
 )
 syntactic_factor = (
     (Optional(integer + Suppress("*")) + syntactic_primary)
-    .addParseAction(do_syntactic_factor)
+    .add_parse_action(do_syntactic_factor)
     .set_parser_name("syntatic factor")
 )
 syntactic_term = (
     (syntactic_factor + Optional(Suppress("-") + syntactic_factor))
-    .addParseAction(do_syntactic_term)
+    .add_parse_action(do_syntactic_term)
     .set_parser_name("syntatic term")
 )
 single_definition = (
-    delimitedList(syntactic_term, ",")
-    .addParseAction(do_single_definition)
+    delimited_list(syntactic_term, ",")
+    .add_parse_action(do_single_definition)
     .set_parser_name("single definition")
 )
-definitions_list << delimitedList(single_definition, "|").addParseAction(
+definitions_list << delimited_list(single_definition, "|").add_parse_action(
     do_definitions_list
 ).set_parser_name("definitions list")
 syntax_rule = (
     (meta_identifier + Suppress("=") + definitions_list + Suppress(";"))
-    .addParseAction(do_syntax_rule)
+    .add_parse_action(do_syntax_rule)
     .set_parser_name("syntax rule")
 )
-syntax = OneOrMore(syntax_rule).addParseAction(do_syntax)
+syntax = OneOrMore(syntax_rule).add_parse_action(do_syntax)
 
 
 def parse(ebnf, given_table={}):
@@ -198,7 +198,7 @@ def parse(ebnf, given_table={}):
         symbol_table.clear()
         symbol_table.update(given_table)
         forward_count = 0
-        table = syntax.parseString(ebnf)[0]
+        table = syntax.parse_string(ebnf)[0]
         assert forward_count == 0, "Missing definition"
         for name in table:
             expr = table[name]

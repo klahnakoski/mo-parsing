@@ -4,9 +4,9 @@
 # parser.
 #
 # Updates:
-#  November, 2011 - fixed errors in precedence of alternatives in simpleString;
+#  November, 2011 - fixed errors in precedence of alternatives in simple_string;
 #      fixed exception raised in verifyLen to properly signal the input string
-#      and exception location so that markInputline works correctly; fixed
+#      and exception location so that mark_inputline works correctly; fixed
 #      definition of decimal to accept a single '0' and optional leading '-'
 #      sign; updated tests to improve parser coverage
 #
@@ -63,32 +63,32 @@ LPAR, RPAR, LBRK, RBRK, LBRC, RBRC, VBAR, COLON = (
     Suppress(c).set_parser_name(c) for c in "()[]{}|:"
 )
 
-decimal = Regex(r"-?0|[1-9]\d*").addParseAction(lambda t: int(t[0]))
-hexadecimal = ("#" + Word(hexnums)[1, ...] + "#").addParseAction(
+decimal = Regex(r"-?0|[1-9]\d*").add_parse_action(lambda t: int(t[0]))
+hexadecimal = ("#" + Word(hexnums)[1, ...] + "#").add_parse_action(
     lambda t: int("".join(t[1:-1]), 16)
 )
 bytes = Word(printables)
-raw = Group(decimal("len") + COLON + bytes).addParseAction(verify_length)
+raw = Group(decimal("len") + COLON + bytes).add_parse_action(verify_length)
 base64_ = Group(
     Optional(decimal | hexadecimal, default=None)("len")
     + VBAR
-    + Word(alphanums + "+/=")[1, ...].addParseAction(lambda t: b64decode("".join(t)))
+    + Word(alphanums + "+/=")[1, ...].add_parse_action(lambda t: b64decode("".join(t)))
     + VBAR
-).addParseAction(verify_length)
+).add_parse_action(verify_length)
 
-real = Regex(r"[+-]?\d+\.\d*([eE][+-]?\d+)?").addParseAction(
+real = Regex(r"[+-]?\d+\.\d*([eE][+-]?\d+)?").add_parse_action(
     lambda tokens: float(tokens[0])
 )
 token = Word(alphanums + "-./_:*+=!<>")
-qString = Group(
+q_string = Group(
     Optional(decimal, default=None)("len")
-    + dblQuotedString.addParseAction(removeQuotes)
-).addParseAction(verify_length)
+    + dblQuotedString.add_parse_action(removeQuotes)
+).add_parse_action(verify_length)
 
-simpleString = real | base64_ | raw | decimal | token | hexadecimal | qString
+simple_string = real | base64_ | raw | decimal | token | hexadecimal | q_string
 
-display = LBRK + simpleString + RBRK
-string_ = Optional(display) + simpleString
+display = LBRK + simple_string + RBRK
+string_ = Optional(display) + simple_string
 
 sexp = Forward()
 sexpList = Group(LPAR + sexp[...] + RPAR)
@@ -165,4 +165,4 @@ alltests = [
     globals()[testname] for testname in sorted(locals()) if testname.startswith("test")
 ]
 
-sexp.runTests(alltests, fullDump=False)
+sexp.run_tests(alltests, fullDump=False)

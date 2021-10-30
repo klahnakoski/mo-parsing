@@ -5,7 +5,7 @@
 # copyright 2006, Paul McGuire
 #
 
-from mo_parsing import oneOf, OneOrMore, printables, StringEnd
+from mo_parsing import one_of, OneOrMore, printables, StringEnd
 
 test = "The quick brown fox named 'Aloysius' lives at 123 Main Street (and jumps over lazy dogs in his spare time)."
 nonAlphas = [c for c in printables if not c.isalpha()]
@@ -14,12 +14,12 @@ nonAlphas = [c for c in printables if not c.isalpha()]
 
 
 
-vowels = oneOf(list("aeiouy"), caseless=True)("vowels")
-cons = oneOf(list("bcdfghjklmnpqrstvwxz"), caseless=True)("cons")
-other = oneOf(nonAlphas)("others")
+vowels = one_of(list("aeiouy"), caseless=True)("vowels")
+cons = one_of(list("bcdfghjklmnpqrstvwxz"), caseless=True)("cons")
+other = one_of(nonAlphas)("others")
 letters = OneOrMore(cons | vowels | other) + StringEnd()
 
-results = letters.parseString(test)
+results = letters.parse_string(test)
 
 
 
@@ -27,13 +27,13 @@ results = letters.parseString(test)
 
 
 
-vowels = oneOf(list("aeiouy"), caseless=True)("vowels*")
-cons = oneOf(list("bcdfghjklmnpqrstvwxz"), caseless=True)("cons*")
-other = oneOf(nonAlphas)("others*")
+vowels = one_of(list("aeiouy"), caseless=True)("vowels*")
+cons = one_of(list("bcdfghjklmnpqrstvwxz"), caseless=True)("cons*")
+other = one_of(nonAlphas)("others*")
 
 letters = OneOrMore(cons | vowels | other)
 
-results = letters.parseString(test, parseAll=True)
+results = letters.parse_string(test, parse_all=True)
 
 
 

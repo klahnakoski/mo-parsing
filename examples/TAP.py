@@ -54,14 +54,14 @@ OK, NOT_OK = map(Literal, ["ok", "not ok"])
 testStatus = OK | NOT_OK
 
 description = Regex("[^#\n]+")
-description.addParseAction(lambda t: t[0].lstrip("- "))
+description.add_parse_action(lambda t: t[0].lstrip("- "))
 
 TODO, SKIP = map(CaselessLiteral, "TODO SKIP".split())
 directive = Group(
     Suppress("#")
     + (
         TODO + restOfLine
-        | FollowedBy(SKIP) + restOfLine.copy().addParseAction(lambda t: ["SKIP", t[0]])
+        | FollowedBy(SKIP) + restOfLine.copy().add_parse_action(lambda t: ["SKIP", t[0]])
     )
 )
 
@@ -92,7 +92,7 @@ class TAPTest:
 
     @classmethod
     def bailedTest(cls, num):
-        ret = TAPTest(empty.parseString(""))
+        ret = TAPTest(empty.parse_string(""))
         ret.num = num
         ret.skipped = True
         return ret
@@ -167,7 +167,7 @@ class TAPSummary:
 
 # create TAPSummary objects from tapOutput parsed results, by setting
 # class as parse action
-tapOutputParser.addParseAction(TAPSummary)
+tapOutputParser.add_parse_action(TAPSummary)
 
 
 test1 = """\
@@ -238,6 +238,6 @@ test6 = """\
 
 for test in (test1, test2, test3, test4, test5, test6):
 
-    tapResult = tapOutputParser.parseString(test)[0]
+    tapResult = tapOutputParser.parse_string(test)[0]
 
 

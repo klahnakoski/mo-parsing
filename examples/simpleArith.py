@@ -9,14 +9,14 @@
 
 from mo_parsing import *
 
-integer = Word(nums).addParseAction(lambda t: int(t[0]))
+integer = Word(nums).add_parse_action(lambda t: int(t[0]))
 variable = Word(alphas, exact=1)
 operand = integer | variable
 
 expop = Literal("^")
-signop = oneOf("+ -")
-multop = oneOf("* /")
-plusop = oneOf("+ -")
+signop = one_of("+ -")
+multop = one_of("* /")
+plusop = one_of("+ -")
 factop = Literal("!")
 
 # To use the infixNotation helper:
@@ -26,15 +26,15 @@ factop = Literal("!")
 #       to the infixNotation method.
 #   2.  Define a list of tuples for each level of operator
 #       precendence.  Each tuple is of the form
-#       (opExpr, numTerms, rightLeftAssoc, parseAction), where
-#       - opExpr is the mo_parsing expression for the operator;
+#       (op_expr, numTerms, rightLeftAssoc, parse_action), where
+#       - op_expr is the mo_parsing expression for the operator;
 #          may also be a string, which will be converted to a Literal
 #       - numTerms is the number of terms for this operator (must
 #          be 1 or 2)
 #       - rightLeftAssoc is the indicator whether the operator is
 #          right or left associative, using the mo_parsing-defined
 #          constants RIGHT_ASSOC and LEFT_ASSOC.
-#       - parseAction is the parse action to be associated with
+#       - parse_action is the parse action to be associated with
 #          expressions matching this operator expression (the
 #          parse action tuple member may be omitted)
 #   3.  Call infixNotation passing the operand expression and
@@ -43,7 +43,7 @@ factop = Literal("!")
 #       this expression to parse input strings, or incorporate it
 #       into a larger, more complex grammar.
 #
-expr = infixNotation(
+expr = infix_notation(
     operand,
     [
         ("!", 1, LEFT_ASSOC),

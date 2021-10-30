@@ -8,8 +8,8 @@ from mo_parsing.helpers import stripHTMLTags
 linkOpenTag, linkCloseTag = makeHTMLTags("a")
 
 linkBody = linkOpenTag.tag_body
-linkBody.addParseAction(stripHTMLTags)
-linkBody.addParseAction(lambda toks: " ".join(toks[0].strip().split()))
+linkBody.add_parse_action(stripHTMLTags)
+linkBody.add_parse_action(lambda toks: " ".join(toks[0].strip().split()))
 
 link = linkOpenTag + linkBody("body") + linkCloseTag.suppress()
 
@@ -17,10 +17,10 @@ link = linkOpenTag + linkBody("body") + linkCloseTag.suppress()
 with urlopen("https://www.cnn.com/") as serverListPage:
     htmlText = serverListPage.read().decode("UTF-8")
 
-# scanString is a generator that loops through the input htmlText, and for each
+# scan_string is a generator that loops through the input htmlText, and for each
 # match yields the tokens and start and end locations (for this application, we are
 # not interested in the start and end values).
-for toks, strt, end in link.scanString(htmlText):
+for toks, strt, end in link.scan_string(htmlText):
 
 
 # Create dictionary from list comprehension, assembled from each pair of tokens returned
