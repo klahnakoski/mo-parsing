@@ -9,7 +9,7 @@
 #
 
 from mo_parsing import *
-from mo_parsing.helpers import indentedBlock, delimitedList
+from mo_parsing.helpers import indented_block, delimited_list
 from mo_parsing.utils import alphas, alphanums, nums
 
 data = """\
@@ -36,21 +36,21 @@ def spam(x,y):
 
 indentStack = [1]
 stmt = Forward()
-suite = indentedBlock(stmt, indentStack)
+suite = indented_block(stmt, indentStack)
 
 identifier = Word(alphas, alphanums)
 funcDecl = (
-    "def" + identifier + Group("(" + Optional(delimitedList(identifier)) + ")") + ":"
+    "def" + identifier + Group("(" + Optional(delimited_list(identifier)) + ")") + ":"
 )
 funcDef = Group(funcDecl + suite)
 
 rvalue = Forward()
-funcCall = Group(identifier + "(" + Optional(delimitedList(rvalue)) + ")")
+funcCall = Group(identifier + "(" + Optional(delimited_list(rvalue)) + ")")
 rvalue << (funcCall | identifier | Word(nums))
 assignment = Group(identifier + "=" + rvalue)
 stmt << (funcDef | assignment | identifier)
 
 module_body = OneOrMore(stmt)
 
-parseTree = module_body.parseString(data)
+parseTree = module_body.parse_string(data)
 

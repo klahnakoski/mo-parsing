@@ -6,10 +6,10 @@
 # Copyright 2003, 2019 by Paul McGuire
 #
 from mo_parsing.helpers import *
-from mo_parsing.infix import oneOf
+from mo_parsing.infix import one_of
 from mo_parsing.utils import *
 
-greet = Word(alphas) + "," + Word(alphas) + oneOf("! ? .")
+greet = Word(alphas) + "," + Word(alphas) + one_of("! ? .")
 
 # input string
 hello = "Hello, World!"
@@ -18,7 +18,7 @@ hello = "Hello, World!"
 
 
 # parse a bunch of input strings
-greet.runTests(
+greet.run_tests(
     """\
     Hello, World!
     Ahoy, Matey!

@@ -10,12 +10,12 @@ from mo_parsing import (
     Optional,
     Group,
     Forward,
-    infixNotation,
+    infix_notation,
     CaselessKeyword,
 )
 from mo_parsing.whitespaces import Whitespace
-from mo_parsing.helpers import restOfLine, upcaseTokens, real, signed_integer, quotedString
-from mo_parsing.infix import delimitedList, oneOf, RIGHT_ASSOC, LEFT_ASSOC
+from mo_parsing.helpers import restOfLine, upcase_tokens, real, signed_integer, quoted_string
+from mo_parsing.infix import delimited_list, one_of, RIGHT_ASSOC, LEFT_ASSOC
 from mo_parsing.utils import alphas, alphanums
 
 whitespace = Whitespace().use()
@@ -27,28 +27,28 @@ SELECT, FROM, WHERE, AND, OR, IN, IS, NOT, NULL = map(
 NOT_NULL = NOT + NULL
 
 ident = Word(alphas, alphanums + "_$").set_parser_name("identifier")
-columnName = delimitedList(ident, ".", combine=True).set_parser_name("column name")
-columnName.addParseAction(upcaseTokens)
-columnNameList = Group(delimitedList(columnName))
-tableName = delimitedList(ident, ".", combine=True).set_parser_name("table name")
-tableName.addParseAction(upcaseTokens)
-tableNameList = Group(delimitedList(tableName))
+columnName = delimited_list(ident, ".", combine=True).set_parser_name("column name")
+columnName.add_parse_action(upcase_tokens)
+columnNameList = Group(delimited_list(columnName))
+tableName = delimited_list(ident, ".", combine=True).set_parser_name("table name")
+tableName.add_parse_action(upcase_tokens)
+tableNameList = Group(delimited_list(tableName))
 
-binop = oneOf("= != < > >= <= eq ne lt le gt ge", caseless=True)
+binop = one_of("= != < > >= <= eq ne lt le gt ge", caseless=True)
 realNum = real
 intNum = signed_integer
 
 columnRval = (
-    realNum | intNum | quotedString | columnName
+    realNum | intNum | quoted_string | columnName
 )  # need to add support for alg expressions
 whereCondition = Group(
     (columnName + binop + columnRval)
-    | (columnName + IN + Group("(" + delimitedList(columnRval) + ")"))
+    | (columnName + IN + Group("(" + delimited_list(columnRval) + ")"))
     | (columnName + IN + Group("(" + selectStmt + ")"))
     | (columnName + IS + (NULL | NOT_NULL))
 )
 
-whereExpression = infixNotation(
+whereExpression = infix_notation(
     whereCondition,
     [(NOT, 1, RIGHT_ASSOC), (AND, 2, LEFT_ASSOC), (OR, 2, LEFT_ASSOC)],
 )

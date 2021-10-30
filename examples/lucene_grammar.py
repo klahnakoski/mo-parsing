@@ -20,7 +20,7 @@ expression = Forward()
 valid_word = Regex(
     r'([a-zA-Z0-9*_+.-]|\\\\|\\([+\-!(){}\[\]^"~*?:]|\|\||&&))+'
 ).set_parser_name("word")
-valid_word.addParseAction(
+valid_word.add_parse_action(
     lambda t: t[0].replace("\\\\", chr(127)).replace("\\", "").replace(chr(127), "\\")
 )
 
@@ -46,15 +46,15 @@ term << (
     + (word_expr | string_expr | range_search | Group(LPAR + expression + RPAR))
     + Optional(boost)
 )
-term.addParseAction(lambda t: [t] if "field" in t or "boost" in t else None)
+term.add_parse_action(lambda t: [t] if "field" in t or "boost" in t else None)
 
-expression << infixNotation(
+expression << infix_notation(
     term,
     [
         (required_modifier | prohibit_modifier, 1, RIGHT_ASSOC),
-        ((not_ | "!").addParseAction(lambda: "NOT"), 1, RIGHT_ASSOC),
-        ((and_ | "&&").addParseAction(lambda: "AND"), 2, LEFT_ASSOC),
-        (Optional(or_ | "||").addParseAction(lambda: "OR"), 2, LEFT_ASSOC),
+        ((not_ | "!").add_parse_action(lambda: "NOT"), 1, RIGHT_ASSOC),
+        ((and_ | "&&").add_parse_action(lambda: "AND"), 2, LEFT_ASSOC),
+        (Optional(or_ | "||").add_parse_action(lambda: "OR"), 2, LEFT_ASSOC),
     ],
 )
 
@@ -324,10 +324,10 @@ failtests = r"""
     [ a\ TO a* ]
     """
 
-success1, _ = expression.runTests(tests)
+success1, _ = expression.run_tests(tests)
 if not success1:
     raise Exception("All tests: FAIL")
 
-success2, _ = expression.runTests(failtests, failureTests=True)
+success2, _ = expression.run_tests(failtests, failureTests=True)
 if not success2:
     raise Exception("All tests: FAIL")

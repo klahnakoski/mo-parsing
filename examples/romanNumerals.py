@@ -8,8 +8,8 @@ from mo_parsing.whitespaces import Whitespace
 from mo_parsing.utils import Log
 
 
-def romanNumeralLiteral(numeralString, value):
-    return Literal(numeralString).addParseAction(lambda: value)
+def romanNumeralLiteral(numeral_string, value):
+    return Literal(numeral_string).add_parse_action(lambda: value)
 
 
 one = romanNumeralLiteral("I", 1)
@@ -48,7 +48,7 @@ with Whitespace(""):
         | one
     )
 
-    romanNumeral = numeral[1, ...].addParseAction(summer)
+    romanNumeral = numeral[1, ...].add_parse_action(summer)
 
 # unit tests
 def makeRomanNumeral(n):
@@ -80,7 +80,7 @@ tests = " ".join(makeRomanNumeral(i) for i in range(1, 5000 + 1))
 
 # parse each roman numeral, and populate map for validation below
 roman_int_map = {}
-for expected, (t, s, e) in enumerate(romanNumeral.scanString(tests), start=1):
+for expected, (t, s, e) in enumerate(romanNumeral.scan_string(tests), start=1):
     orig = tests[s:e]
     if t != expected:
         Log.error("not matched")
@@ -95,7 +95,7 @@ def verify_value(s, tokens):
         ))
 
 
-romanNumeral.runTests(
+romanNumeral.run_tests(
     """\
     XVI
     XXXIX

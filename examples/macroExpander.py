@@ -21,17 +21,17 @@ identifier = Word(alphas + "_", alphanums + "_")
 macroDef = "#def" + identifier("macro") + Empty + restOfLine("value")
 
 # define a placeholder for defined macros - initially nothing
-macroExpr = Forward()
-macroExpr << NoMatch()
+macro_expr = Forward()
+macro_expr << NoMatch()
 
 # global dictionary for macro definitions
 macros = {}
 
 # parse action for macro definitions
 def processMacroDefn(t, l, s):
-    macroVal = macroExpander.transformString(t.value)
+    macroVal = macroExpander.transform_string(t.value)
     macros[t.macro] = macroVal
-    macroExpr << MatchFirst(map(Keyword, macros.keys()))
+    macro_expr << MatchFirst(map(Keyword, macros.keys()))
     return "#def " + t.macro + " " + macroVal
 
 
@@ -41,15 +41,15 @@ def processMacroRef(t, l, s):
 
 
 # attach parse actions to expressions
-macroExpr.addParseAction(processMacroRef)
-macroDef.addParseAction(processMacroDefn)
+macro_expr.add_parse_action(processMacroRef)
+macroDef.add_parse_action(processMacroDefn)
 
 # define pattern for scanning through the input string
-macroExpander = macroExpr | macroDef
+macroExpander = macro_expr | macroDef
 
 
-# test macro substitution using transformString
-testString = """
+# test macro substitution using transform_string
+test_string = """
     #def A 100
     #def ALEN A+1
 

@@ -24,26 +24,26 @@ def reportLongWords(st, locn, toks):
         )
 
 
-wd = Word(alphas).addParseAction(reportLongWords)
-OneOrMore(wd).parseString(data)
+wd = Word(alphas).add_parse_action(reportLongWords)
+OneOrMore(wd).parse_string(data)
 
 
 # demonstrate returning an object from a parse action, containing more information
 # than just the matching token text
 class Token:
-    def __init__(self, st, locn, tokString):
-        self.tokenString = tokString
+    def __init__(self, st, locn, tok_string):
+        self.token_string = tok_string
         self.locn = locn
         self.sourceLine = line(locn, st)
         self.lineNo = lineno(locn, st)
         self.col = col(locn, st)
 
     def __str__(self):
-        return "%(tokenString)s (line: %(lineNo)d, col: %(col)d)" % self.__dict__
+        return "%(token_string)s (line: %(lineNo)d, col: %(col)d)" % self.__dict__
 
 
 def createTokenObject(st, locn, toks):
     return Token(st, locn, toks[0])
 
 
-wd = Word(alphas).addParseAction(createTokenObject)
+wd = Word(alphas).add_parse_action(createTokenObject)

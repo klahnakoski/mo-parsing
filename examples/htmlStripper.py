@@ -11,12 +11,12 @@ from mo_threads import MAIN_THREAD
 from mo_times import Timer
 
 from mo_parsing import LineEnd
-from mo_parsing.helpers import makeHTMLTags, replaceHTMLEntity, commonHTMLEntity, htmlComment, anyOpenTag, anyCloseTag
+from mo_parsing.helpers import makeHTMLTags, replaceHTMLEntity, commonHTMLEntity, html_comment, anyOpenTag, anyCloseTag
 from mo_parsing.utils import Log
 
 scriptOpen, scriptClose = makeHTMLTags("script")
 scriptBody = scriptOpen + scriptOpen.tag_body + scriptClose
-commonHTMLEntity.addParseAction(replaceHTMLEntity)
+commonHTMLEntity.add_parse_action(replaceHTMLEntity)
 
 
 # get some HTML
@@ -27,15 +27,15 @@ with open("examples/htmlStripper.html", "rb") as f:
 Log.start(cprofile=True)
 with Timer("remove html"):
     firstPass = (
-        (htmlComment | scriptBody | commonHTMLEntity | anyOpenTag | anyCloseTag)
+        (html_comment | scriptBody | commonHTMLEntity | anyOpenTag | anyCloseTag)
         .suppress()
-        .transformString(targetHTML)
+        .transform_string(targetHTML)
     )
 
 # first pass leaves many blank lines, collapse these down
 with Timer("remove extra blank lines"):
-    repeatedNewlines = LineEnd()[2:...].addParseAction(lambda: "\n")
-    secondPass = repeatedNewlines.transformString(firstPass)
+    repeatedNewlines = LineEnd()[2:...].add_parse_action(lambda: "\n")
+    secondPass = repeatedNewlines.transform_string(firstPass)
 
 with open("examples/htmlStripper.out.txt", "wb") as f:
     f.write(secondPass.encode('utf8'))

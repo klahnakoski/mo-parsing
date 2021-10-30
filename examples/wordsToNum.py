@@ -13,7 +13,7 @@ from mo_parsing.helpers import integer
 
 def makeLit(s, val):
     ret = CaselessLiteral(s)
-    return ret.addParseAction(lambda: [val])
+    return ret.add_parse_action(lambda: [val])
 
 
 unitDefinitions = [
@@ -77,18 +77,18 @@ wordprod = lambda t: reduce(mul, t)
 numPart = (
     (
         (
-            (units + Optional(hundreds)).addParseAction(wordprod) + Optional(tens)
-        ).addParseAction(sum)
+                (units + Optional(hundreds)).add_parse_action(wordprod) + Optional(tens)
+        ).add_parse_action(sum)
         ^ tens
     )
     + Optional(units)
-).addParseAction(sum)
+).add_parse_action(sum)
 with Whitespace() as e:
     e.add_ignore(Literal("-"))
     e.add_ignore(CaselessLiteral("and"))
     numWords = (
-        ((numPart + Optional(mag)).addParseAction(wordprod)[1, ...])
-        .addParseAction(sum)
+        ((numPart + Optional(mag)).add_parse_action(wordprod)[1, ...])
+        .add_parse_action(sum)
         .set_parser_name("num word parser")
     )
 
@@ -121,6 +121,6 @@ def verify_result(t):
         t["pass"] = t['result'] == t['expected']
 
 
-test_expr = test_expr.addParseAction(verify_result)
+test_expr = test_expr.add_parse_action(verify_result)
 
-test_expr = test_expr.runTests(tests)
+test_expr = test_expr.run_tests(tests)

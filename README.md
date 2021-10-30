@@ -23,7 +23,7 @@ This module allows you to define a PEG parser using predefined patterns and Pyth
 >>> from mo_parsing.utils import alphas
 >>>
 >>> greet = Word(alphas)("greeting") + "," + Word(alphas)("person") + "!"
->>> result = greet.parseString("Hello, World!")
+>>> result = greet.parse_string("Hello, World!")
 ```
 
 The `result` can be accessed as a nested list
@@ -65,7 +65,7 @@ The whitespace can be used to set global parsing parameters, like
 
 ### Navigating ParseResults
 
-The results of parsing are in `ParseResults` and are in the form of an n-ary tree; with the children found in `ParseResults.tokens`.  Each `ParseResult.type` points to the `ParserElement` that made it.  In general, if you want to get fancy with post processing (or in a `parseAction`), you will be required to navigate the raw `tokens` to generate a final result
+The results of parsing are in `ParseResults` and are in the form of an n-ary tree; with the children found in `ParseResults.tokens`.  Each `ParseResult.type` points to the `ParserElement` that made it.  In general, if you want to get fancy with post processing (or in a `parse_action`), you will be required to navigate the raw `tokens` to generate a final result
 
 There are some convenience methods;  
 * `__iter__()` - allows you to iterate through parse results in **depth first search**. Empty results are skipped, and `Group`ed results are treated as atoms (which can be further iterated if required) 
@@ -85,8 +85,8 @@ Parse actions are methods that are run after a ParserElement found a match.
 #### Simple example:
 
 ```
-integer = Word("0123456789").addParseAction(lambda t, i, s: int(t[0]))
-result = integer.parseString("42")
+integer = Word("0123456789").add_parse_action(lambda t, i, s: int(t[0]))
+result = integer.parse_string("42")
 assert (result[0] == 42)
 ```
 
@@ -94,7 +94,7 @@ For slightly shorter specification, you may use the `/` operator and only parame
 
 ```
 integer = Word("0123456789") / (lambda t: int(t[0]))
-result = integer.parseString("42")
+result = integer.parse_string("42")
 assert (result[0] == 42)
 ```
 
@@ -104,7 +104,7 @@ The PEG-style of mo-parsing (from pyparsing) makes a very expressible and readab
 
 ```
 with Debugger():
-    expr.parseString("my new language")
+    expr.parse_string("my new language")
 ```
 
 The debugger will print out details of what's happening
@@ -136,7 +136,7 @@ This fork was originally created to support faster parsing for [mo-sql-parsing](
 
 * Added `Whitespace`, which controls parsing context and whitespace.  It replaces the whitespace modifying methods of pyparsing
 * the wildcard ("`*`") could be used in pyparsing to indicate multi-values are expected; this is not allowed in `mo-parsing`: all values are multi-values
-* ParserElements are static: For example, `expr.addParseAction(action)` creates a new ParserElement, so must be assigned to variable or it is lost. **This is the biggest source of bugs when converting from pyparsing**
+* ParserElements are static: For example, `expr.add_parse_action(action)` creates a new ParserElement, so must be assigned to variable or it is lost. **This is the biggest source of bugs when converting from pyparsing**
 * removed all backward-compatibility settings
 * no support for binary serialization (no pickle)
 

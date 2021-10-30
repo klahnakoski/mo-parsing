@@ -12,7 +12,7 @@
 # Copyright 2006, by Paul McGuire
 # Updated 2013-Sep-14 - improved Python 2/3 cross-compatibility
 #
-from mo_parsing import infixNotation, RIGHT_ASSOC, LEFT_ASSOC
+from mo_parsing import infix_notation, RIGHT_ASSOC, LEFT_ASSOC
 from mo_parsing.helpers import *
 
 
@@ -73,11 +73,11 @@ class BoolNot:
 TRUE = Keyword("True")
 FALSE = Keyword("False")
 boolOperand = TRUE | FALSE | Word(alphas, max=1)
-boolOperand.addParseAction(BoolOperand)
+boolOperand.add_parse_action(BoolOperand)
 
 # define expression, based on expression operand and
 # list of operations in precedence order
-boolExpr = infixNotation(
+bool_expr = infix_notation(
     boolOperand,
     [
         ("not", 1, RIGHT_ASSOC, BoolNot),
@@ -109,6 +109,6 @@ tests = [
 
 
 for t, expected in tests:
-    res = boolExpr.parseString(t)[0]
+    res = bool_expr.parse_string(t)[0]
     success = "PASS" if bool(res) == expected else "FAIL"
 

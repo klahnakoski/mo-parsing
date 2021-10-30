@@ -11,7 +11,7 @@
 # Updated 9 Aug 2016 - use more current mo_parsing constructs/idioms
 #
 from mo_parsing.whitespaces import Whitespace
-from mo_parsing.helpers import number, dblQuotedString, removeQuotes, delimitedList, cppStyleComment
+from mo_parsing.helpers import number, dblQuotedString, remove_quotes, delimited_list, cppStyleComment
 
 json_bnf = """
 object
@@ -40,7 +40,7 @@ from mo_parsing import *
 
 
 def make_keyword(kwd_str, kwd_value):
-    return Keyword(kwd_str).addParseAction(lambda: kwd_value)
+    return Keyword(kwd_str).add_parse_action(lambda: kwd_value)
 
 
 with Whitespace() as whitespace:
@@ -51,18 +51,18 @@ with Whitespace() as whitespace:
 
     LBRACK, RBRACK, LBRACE, RBRACE, COLON = map(Suppress, "[]{}:")
 
-    jsonString = dblQuotedString.addParseAction(removeQuotes)
+    json_string = dblQuotedString.add_parse_action(remove_quotes)
     jsonNumber = number
 
     jsonObject = Forward()
     jsonValue = Forward()
-    jsonElements = delimitedList(jsonValue)
+    jsonElements = delimited_list(jsonValue)
     jsonArray = Group(LBRACK + Optional(jsonElements, []) + RBRACK)
     jsonValue << (
-        jsonString | jsonNumber | jsonObject | jsonArray | TRUE | FALSE | NULL
+        json_string | jsonNumber | jsonObject | jsonArray | TRUE | FALSE | NULL
     )
-    memberDef = Group(jsonString + COLON + jsonValue)
-    jsonMembers = delimitedList(memberDef)
+    memberDef = Group(json_string + COLON + jsonValue)
+    jsonMembers = delimited_list(memberDef)
     jsonObject << Dict(LBRACE + Optional(jsonMembers) + RBRACE)
     jsonComment = cppStyleComment
     whitespace.add_ignore(jsonComment)

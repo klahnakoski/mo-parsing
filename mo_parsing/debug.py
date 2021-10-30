@@ -37,23 +37,23 @@ class Debugger(object):
 
 
 def _debug_parse(debugger):
-    def debug_parse(self, string, start, doActions=True):
+    def debug_parse(self, string, start, do_actions=True):
         _try(self, start, string)
         loc = start
         try:
             debugger.parse_count += 1
             debugger.max_stack_depth = stackdepth()
-            tokens = self.parseImpl(string, loc, doActions)
+            tokens = self.parse_impl(string, loc, do_actions)
         except Exception as cause:
-            self.parser_config.failAction and self.parser_config.failAction(
+            self.parser_config.fail_action and self.parser_config.fail_action(
                 self, start, string, cause
             )
             fail(self, start, string, cause)
             raise
 
-        if self.parseAction and (doActions or self.parser_config.callDuringTry):
+        if self.parse_action and (do_actions or self.parser_config.callDuringTry):
             try:
-                for fn in self.parseAction:
+                for fn in self.parse_action:
                     tokens = fn(tokens, start, string)
             except Exception as cause:
                 fail(self, start, string, cause)

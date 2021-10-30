@@ -7,7 +7,7 @@
 #
 from examples.simpleSQL import simpleSQL
 
-simpleSQL.runTests(
+simpleSQL.run_tests(
     """\
 
     # multiple tables

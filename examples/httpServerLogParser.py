@@ -26,7 +26,7 @@ Client Software
 from mo_parsing import *
 import string
 
-from mo_parsing.helpers import delimitedList, dblQuotedString, removeQuotes
+from mo_parsing.helpers import delimited_list, dblQuotedString, remove_quotes
 from mo_parsing.utils import nums, alphas
 
 
@@ -42,7 +42,7 @@ def getLogLineBNF():
 
     if logLineBNF is None:
         integer = Word(nums)
-        ipAddress = delimitedList(integer, ".", combine=True)
+        ipAddress = delimited_list(integer, ".", combine=True)
 
         timeZoneOffset = Word("+-", nums)
         month = Word(string.ascii_uppercase, string.ascii_lowercase, exact=3)
@@ -70,11 +70,11 @@ def getLogLineBNF():
             + Suppress("-")
             + ("-" | Word(alphas + nums + "@._")).set_token_name("auth")
             + serverDateTime.set_token_name("timestamp")
-            + dblQuotedString.set_token_name("cmd").addParseAction(getCmdFields)
+            + dblQuotedString.set_token_name("cmd").add_parse_action(getCmdFields)
             + (integer | "-").set_token_name("statusCode")
             + (integer | "-").set_token_name("numBytesSent")
-            + dblQuotedString.set_token_name("referrer").addParseAction(removeQuotes)
-            + dblQuotedString.set_token_name("clientSfw").addParseAction(removeQuotes)
+            + dblQuotedString.set_token_name("referrer").add_parse_action(remove_quotes)
+            + dblQuotedString.set_token_name("clientSfw").add_parse_action(remove_quotes)
         )
     return logLineBNF
 
@@ -88,7 +88,7 @@ testdata = """
 for line in testdata.split("\n"):
     if not line:
         continue
-    fields = getLogLineBNF().parseString(line)
+    fields = getLogLineBNF().parse_string(line)
 
     # ~ print repr(fields)
     # ~ for k in fields.keys():

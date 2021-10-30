@@ -94,13 +94,13 @@ class ToInteger(TokenConverter):
     """Converter to make token into an integer."""
     def __init__(self, expr):
         TokenConverter.__init__(self, expr)
-        self.parseAction.append(int)
+        self.parse_action.append(int)
 
 class ToFloat(TokenConverter):
     """Converter to make token into a float."""
     def __init__(self, expr):
         TokenConverter.__init__(self, expr)
-        self.parseAction.append(float)
+        self.parse_action.append(float)
 
 
 class ParseFileLineByLine:
@@ -181,7 +181,7 @@ class ParseFileLineByLine:
         # be specified is 'parse'.  The 'parse' variable is a list of tuples
         # defining the name, type, and because it is a list, the order of
         # variables on each line in the data file.  The variable name is a
-        # string, the type variable is defined as integer, real, and qString.
+        # string, the type variable is defined as integer, real, and q_string.
 
         # parse = [
         #          ('year', integer),
@@ -203,7 +203,7 @@ class ParseFileLineByLine:
         # Create some handy mo_parsing constructs.  I kept 'decimal_sep' so that
         # could easily change to parse if the decimal separator is a ",".
         decimal_sep = "."
-        sign = oneOf("+ -")
+        sign = one_of("+ -")
         # part of printables without decimal_sep, +, -
         special_chars = string.replace(
             "!\"#$%&'()*,./:;<=>?@[\\]^_`{|}~", decimal_sep, ""
@@ -219,7 +219,7 @@ class ParseFileLineByLine:
                 + Word(nums)
                 + decimal_sep
                 + Optional(Word(nums))
-                + Optional(oneOf("E e") + Word(nums))
+                + Optional(one_of("E e") + Word(nums))
             )
         ).set_parser_name("real")
         positive_real = ToFloat(
@@ -228,7 +228,7 @@ class ParseFileLineByLine:
                 + Word(nums)
                 + decimal_sep
                 + Optional(Word(nums))
-                + Optional(oneOf("E e") + Word(nums))
+                + Optional(one_of("E e") + Word(nums))
             )
         ).set_parser_name("real")
         negative_real = ToFloat(
@@ -237,10 +237,10 @@ class ParseFileLineByLine:
                 + Word(nums)
                 + decimal_sep
                 + Optional(Word(nums))
-                + Optional(oneOf("E e") + Word(nums))
+                + Optional(one_of("E e") + Word(nums))
             )
         ).set_parser_name("real")
-        qString = (sglQuotedString | dblQuotedString).set_parser_name("qString")
+        q_string = (sglQuotedString | dblQuotedString).set_parser_name("q_string")
 
         # add other characters we should skip over between interesting fields
         integer_junk = Optional(
@@ -249,13 +249,13 @@ class ParseFileLineByLine:
         real_junk = Optional(Suppress(Word(alphas + special_chars))).set_parser_name(
             "real_junk"
         )
-        qString_junk = SkipTo(qString).set_parser_name("qString_junk")
+        qString_junk = SkipTo(q_string).set_parser_name("qString_junk")
 
-        # Now that 'integer', 'real', and 'qString' have been assigned I can
+        # Now that 'integer', 'real', and 'q_string' have been assigned I can
         # execute the definition file.
         exec(compile(open(self.parsedef).read(), self.parsedef, "exec"))
 
-        # Build the grammar, combination of the 'integer', 'real, 'qString',
+        # Build the grammar, combination of the 'integer', 'real, 'q_string',
         # and '*_junk' variables assigned above in the order specified in the
         # definition file.
         grammar = []
@@ -280,7 +280,7 @@ class ParseFileLineByLine:
         line = self.file.readline()
         if self.grammar and line:
             try:
-                return self.grammar.parseString(line)
+                return self.grammar.parse_string(line)
             except ParseException:
                 return self.readline()
         else:

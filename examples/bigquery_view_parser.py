@@ -9,8 +9,8 @@
 
 from mo_parsing import *
 from mo_parsing.whitespaces import Whitespace
-from mo_parsing.helpers import restOfLine, cStyleComment, delimitedList, QuotedString
-from mo_parsing.infix import oneOf
+from mo_parsing.helpers import restOfLine, cStyleComment, delimited_list, QuotedString
+from mo_parsing.infix import one_of
 from mo_parsing.utils import Log, alphas, alphanums, nums
 
 
@@ -40,7 +40,7 @@ class BigQueryViewParser:
     def _parse(self, sql_stmt):
         BigQueryViewParser._table_identifiers.clear()
         BigQueryViewParser._with_aliases.clear()
-        BigQueryViewParser._get_parser().parseString(sql_stmt)
+        BigQueryViewParser._get_parser().parse_string(sql_stmt)
 
         return (BigQueryViewParser._table_identifiers, BigQueryViewParser._with_aliases)
 
@@ -58,7 +58,7 @@ class BigQueryViewParser:
             return cls._parser
 
         # define comment format, and ignore them
-        sql_comment = oneOf("-- #") + restOfLine | cStyleComment
+        sql_comment = one_of("-- #") + restOfLine | cStyleComment
         whitespace = Whitespace().use()
         whitespace.add_ignore(sql_comment)
         # whitespace.set_debug_actions()
@@ -362,14 +362,14 @@ class BigQueryViewParser:
             | CURRENT_DATE + Optional(LPAR + Optional(string_literal) + RPAR)
             | CURRENT_TIMESTAMP + Optional(LPAR + Optional(string_literal) + RPAR)
         )
-        bind_parameter = Word("?", nums) | Combine(oneOf(": @ $") + parameter_name)
-        type_name = oneOf(
+        bind_parameter = Word("?", nums) | Combine(one_of(": @ $") + parameter_name)
+        type_name = one_of(
             """TEXT REAL INTEGER BLOB NULL TIMESTAMP STRING DATE
             INT64 NUMERIC FLOAT64 BOOL BYTES DATETIME GEOGRAPHY TIME ARRAY
             STRUCT""",
             caseless=True,
         )
-        date_part = oneOf(
+        date_part = one_of(
             """DAY DAY_HOUR DAY_MICROSECOND DAY_MINUTE DAY_SECOND
             HOUR HOUR_MICROSECOND HOUR_MINUTE HOUR_SECOND MICROSECOND MINUTE
             MINUTE_MICROSECOND MINUTE_SECOND MONTH QUARTER SECOND
@@ -391,7 +391,7 @@ class BigQueryViewParser:
         function_args = Optional(
             "*"
             | Optional(DISTINCT)
-            + delimitedList(function_arg)
+            + delimited_list(function_arg)
             + Optional((RESPECT | IGNORE) + NULLS)
         )("function_args")
         function_call = (
@@ -447,7 +447,7 @@ class BigQueryViewParser:
             | statistical_aggregate_function_name
             | numbering_function_name
         )("analytic_function_name")
-        partition_expression_list = delimitedList(grouping_term)("partition_expression_list")
+        partition_expression_list = delimited_list(grouping_term)("partition_expression_list")
         window_frame_boundary_start = (
             UNBOUNDED + PRECEDING
             | numeric_literal + (PRECEDING | FOLLOWING)
@@ -466,7 +466,7 @@ class BigQueryViewParser:
         window_specification = (
             Optional(window_name)
             + Optional(PARTITION + BY + partition_expression_list)
-            + Optional(ORDER + BY + delimitedList(ordering_term))
+            + Optional(ORDER + BY + delimited_list(ordering_term))
             + Optional(window_frame_clause)("window_specification")
         )
         analytic_function = (
@@ -490,9 +490,9 @@ class BigQueryViewParser:
             + RPAR
         )("string_agg")
         array_literal = (
-            Optional(ARRAY + Optional(LT + delimitedList(type_name) + GT))
+            Optional(ARRAY + Optional(LT + delimited_list(type_name) + GT))
             + LBRACKET
-            + delimitedList(expr)
+            + delimited_list(expr)
             + RBRACKET
         )
         interval = INTERVAL + expr + date_part
@@ -518,9 +518,9 @@ class BigQueryViewParser:
 
         explicit_struct = (
             STRUCT
-            + Optional(LT + delimitedList(type_name) + GT)
+            + Optional(LT + delimited_list(type_name) + GT)
             + LPAR
-            + Optional(delimitedList(expr + Optional(AS + identifier)))
+            + Optional(delimited_list(expr + Optional(AS + identifier)))
             + RPAR
         )
 
@@ -559,19 +559,19 @@ class BigQueryViewParser:
             "offset_ordinal"
         )
 
-        struct_term = LPAR + delimitedList(expr_term) + RPAR
+        struct_term = LPAR + delimited_list(expr_term) + RPAR
 
         UNARY, BINARY, TERNARY = 1, 2, 3
-        expr << infixNotation(
+        expr << infix_notation(
             (expr_term | struct_term),
             [
-                (oneOf("- + ~") | NOT, UNARY, RIGHT_ASSOC),
+                (one_of("- + ~") | NOT, UNARY, RIGHT_ASSOC),
                 (ISNULL | NOTNULL | NOT + NULL, UNARY, LEFT_ASSOC),
                 ("||", BINARY, LEFT_ASSOC),
-                (oneOf("* / %"), BINARY, LEFT_ASSOC),
-                (oneOf("+ -"), BINARY, LEFT_ASSOC),
-                (oneOf("<< >> & |"), BINARY, LEFT_ASSOC),
-                (oneOf("= > < >= <= <> != !< !>"), BINARY, LEFT_ASSOC),
+                (one_of("* / %"), BINARY, LEFT_ASSOC),
+                (one_of("+ -"), BINARY, LEFT_ASSOC),
+                (one_of("<< >> & |"), BINARY, LEFT_ASSOC),
+                (one_of("= > < >= <= <> != !< !>"), BINARY, LEFT_ASSOC),
                 (
                     IS + Optional(NOT)
                     | Optional(NOT) + IN
@@ -587,7 +587,7 @@ class BigQueryViewParser:
                     Optional(NOT)
                     + IN
                     + LPAR
-                    + Group(ungrouped_select_stmt | delimitedList(expr))
+                    + Group(ungrouped_select_stmt | delimited_list(expr))
                     + RPAR,
                     UNARY,
                     LEFT_ASSOC,
@@ -613,7 +613,7 @@ class BigQueryViewParser:
 
         join_constraint = Group(Optional(
             ON + expr
-            | USING + LPAR + Group(delimitedList(qualified_column_name)) + RPAR
+            | USING + LPAR + Group(delimited_list(qualified_column_name)) + RPAR
         ))("join_constraint")
 
         join_op = (
@@ -688,7 +688,7 @@ class BigQueryViewParser:
                 + Optional(Suppress(".") + (quoted_table_part | standard_table_part))
             )
             .set_parser_name("table_identifier")
-            .addParseAction(record_table_identifier)
+            .add_parse_action(record_table_identifier)
         )
 
         def record_quoted_table_identifier(t):
@@ -700,7 +700,7 @@ class BigQueryViewParser:
             Suppress('"') + CharsNotIn('"') + Suppress('"')
             | Suppress("'") + CharsNotIn("'") + Suppress("'")
             | Suppress("`") + CharsNotIn("`") + Suppress("`")
-        ).addParseAction(record_quoted_table_identifier)
+        ).add_parse_action(record_quoted_table_identifier)
 
         table_identifier = (
             quoted_table_parts_identifier | quotable_table_parts_identifier
@@ -722,9 +722,9 @@ class BigQueryViewParser:
         )
 
         over_partition = (
-            PARTITION + BY + delimitedList(partition_expression_list)
+            PARTITION + BY + delimited_list(partition_expression_list)
         )("over_partition")
-        over_order = ORDER + BY + delimitedList(ordering_term)
+        over_order = ORDER + BY + delimited_list(ordering_term)
         over_unsigned_value_specification = expr
         over_window_frame_preceding = (
             UNBOUNDED + PRECEDING
@@ -756,7 +756,7 @@ class BigQueryViewParser:
         )("over")
 
         result_column = Optional(table_name + ".") + "*" + Optional(
-            EXCEPT + LPAR + delimitedList(column_name) + RPAR
+            EXCEPT + LPAR + delimited_list(column_name) + RPAR
         ) | Group(quoted_expr + Optional(over) + Optional(Optional(AS) + column_alias))
 
         window_select_clause = (
@@ -767,17 +767,17 @@ class BigQueryViewParser:
         ungrouped_select_no_with = (
             SELECT
             + Optional(DISTINCT | ALL)
-            + Group(delimitedList(result_column))("columns")
+            + Group(delimited_list(result_column))("columns")
             + Optional(FROM + join_source("from"))
             + Optional(WHERE + expr)
             + Optional(
-                GROUP + BY + Group(delimitedList(grouping_term))("group_by_terms")
+                GROUP + BY + Group(delimited_list(grouping_term))("group_by_terms")
             )
             + Optional(HAVING + expr("having_expr"))
             + Optional(
-                ORDER + BY + Group(delimitedList(ordering_term))("order_by_terms")
+                ORDER + BY + Group(delimited_list(ordering_term))("order_by_terms")
             )
-            + Optional(delimitedList(window_select_clause))
+            + Optional(delimited_list(window_select_clause))
         )
         select_no_with = ungrouped_select_no_with | (
             LPAR + ungrouped_select_no_with + RPAR
@@ -803,13 +803,13 @@ class BigQueryViewParser:
             cls._with_aliases.add(tuple(padded_list))
 
         with_clause = Group(
-            identifier.addParseAction(record_with_alias)
+            identifier.add_parse_action(record_with_alias)
             + AS
             + LPAR
             + select_stmt
             + RPAR
         ).set_parser_name("with clause")
-        with_stmt << (WITH + delimitedList(with_clause))
+        with_stmt << (WITH + delimited_list(with_clause))
 
         whitespace.release()
         cls._parser = select_stmt

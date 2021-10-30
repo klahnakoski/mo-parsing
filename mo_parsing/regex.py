@@ -25,7 +25,7 @@ from mo_parsing.enhancement import (
     ParseEnhancement,
 )
 from mo_parsing.expressions import MatchFirst, And
-from mo_parsing.infix import delimitedList
+from mo_parsing.infix import delimited_list
 from mo_parsing.results import ParseResults, Annotation
 from mo_parsing.tokens import (
     Literal,
@@ -165,10 +165,10 @@ macro = (
     | bs_char
     | tab_char
 )
-escapedChar = (~macro + Combine("\\" + AnyChar())) / (lambda t: Literal(t.value()[1]))
-plainChar = Char(exclude=r"\]") / (lambda t: Literal(t.value()))
+escaped_char = (~macro + Combine("\\" + AnyChar())) / (lambda t: Literal(t.value()[1]))
+plain_char = Char(exclude=r"\]") / (lambda t: Literal(t.value()))
 
-escapedHexChar = (
+escaped_hex = (
     Combine(
         (Literal("\\0x") | Literal("\\x") | Literal("\\X"))  # lookup literals is faster
         + OneOrMore(Char(hexnums), NO_WHITESPACE)
@@ -176,18 +176,18 @@ escapedHexChar = (
     / hex_to_char
 )
 
-escapedOctChar = Combine(
+escaped_oct = Combine(
     Literal("\\0") + OneOrMore(Char("01234567"), NO_WHITESPACE)
 ) / (lambda t: Literal(unichr(int(t.value()[2:], 8))))
 
-singleChar = escapedHexChar | escapedOctChar | escapedChar | plainChar
+single_char = escaped_hex | escaped_oct | escaped_char | plain_char
 
-charRange = Group(singleChar("min") + "-" + singleChar("max")) / to_range
+range_char = Group(single_char("min") + "-" + single_char("max")) / to_range
 
 brackets = (
     "["
     + Optional("^", NO_WHITESPACE)("negate")
-    + OneOrMore(Group(charRange | singleChar | macro)("body"), NO_WHITESPACE)
+    + OneOrMore(Group(range_char | single_char | macro)("body"), NO_WHITESPACE)
     + "]"
 ) / to_bracket
 
@@ -252,7 +252,7 @@ term = (
 more = (term + Optional(repetition, NO_WHITESPACE)) / repeat
 sequence = OneOrMore(more, NO_WHITESPACE) / (lambda t: And(t, NO_WHITESPACE))
 regex << (
-    delimitedList(sequence, separator="|").set_token_name("value")
+    delimited_list(sequence, separator="|").set_token_name("value")
     / (lambda t: MatchFirst(listwrap(t.value())).streamline())
 ).streamline()
 regex = regex.finalize()
@@ -275,7 +275,7 @@ class Regex(ParseEnhancement):
         :param pattern:  THE REGEX PATTERN
         :param asGroupList: RETURN A LIST OF CAPTURED GROUPS /1, /2, /3, ...
         """
-        parsed = regex.parseString(pattern)
+        parsed = regex.parse_string(pattern)
         ParseEnhancement.__init__(self, parsed.value().streamline())
         # WE ASSUME IT IS SAFE TO ASSIGN regex (NO SERIOUS BACKTRACKING PROBLEMS)
         self.streamlined = True
@@ -333,7 +333,7 @@ class Regex(ParseEnhancement):
 
             return self / pf
 
-    def parseImpl(self, string, start, doActions=True):
+    def parse_impl(self, string, start, do_actions=True):
         found = self.regex.match(string, start)
         if found:
             return ParseResults(self, start, found.end(), [found[0]], [])

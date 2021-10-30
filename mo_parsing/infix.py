@@ -29,13 +29,13 @@ from mo_parsing.utils import regex_range, wrap_parse_action
 Regex = delay_import("mo_parsing.regex.Regex")
 
 
-def delimitedList(expr, separator=",", combine=False):
+def delimited_list(expr, separator=",", combine=False):
     """
     PARSE DELIMITED LIST OF expr
     Example::
 
-        delimitedList(Word(alphas)).parseString("aa,bb,cc") # -> ['aa', 'bb', 'cc']
-        delimitedList(Word(hexnums), delim=':', combine=True).parseString("AA:BB:CC:DD:EE") # -> ['AA:BB:CC:DD:EE']
+        delimited_list(Word(alphas)).parse_string("aa,bb,cc") # -> ['aa', 'bb', 'cc']
+        delimited_list(Word(hexnums), delim=':', combine=True).parse_string("AA:BB:CC:DD:EE") # -> ['AA:BB:CC:DD:EE']
     """
     if combine:
         return Combine(expr + ZeroOrMore(separator + expr, whitespaces.CURRENT))
@@ -43,7 +43,7 @@ def delimitedList(expr, separator=",", combine=False):
         return expr + ZeroOrMore(Suppress(separator) + expr, whitespaces.CURRENT)
 
 
-def oneOf(strs, caseless=False, asKeyword=False):
+def one_of(strs, caseless=False, as_keyword=False):
     """
     Helper to quickly define a set of alternative Literals, and makes
     sure to do longest-first testing when there is a conflict,
@@ -55,12 +55,12 @@ def oneOf(strs, caseless=False, asKeyword=False):
      - strs - a string of space-delimited literals, or a collection of
        string literals
      - caseless - (default= ``False``) - treat all literals as caseless
-     - asKeyword - (default=``False``) - enforce Keyword-style matching on the
+     - as_keyword - (default=``False``) - enforce Keyword-style matching on the
        generated expressions
     """
     if isinstance(caseless, text):
         warnings.warn(
-            "More than one string argument passed to oneOf, pass "
+            "More than one string argument passed to one_of, pass "
             "choices as a list or space-delimited string",
             stacklevel=2,
         )
@@ -68,11 +68,11 @@ def oneOf(strs, caseless=False, asKeyword=False):
     if caseless:
         isequal = lambda a, b: a.upper() == b.upper()
         masks = lambda a, b: b.upper().startswith(a.upper())
-        parseElementClass = CaselessKeyword if asKeyword else CaselessLiteral
+        parseElementClass = CaselessKeyword if as_keyword else CaselessLiteral
     else:
         isequal = lambda a, b: a == b
         masks = lambda a, b: b.startswith(a)
-        parseElementClass = Keyword if asKeyword else Literal
+        parseElementClass = Keyword if as_keyword else Literal
 
     symbols = []
     if isinstance(strs, text):
@@ -81,14 +81,14 @@ def oneOf(strs, caseless=False, asKeyword=False):
         symbols = list(strs)
     else:
         warnings.warn(
-            "Invalid argument to oneOf, expected string or iterable",
+            "Invalid argument to one_of, expected string or iterable",
             SyntaxWarning,
             stacklevel=2,
         )
     if not symbols:
         return NoMatch()
 
-    if not asKeyword:
+    if not as_keyword:
         # if not producing keywords, need to reorder to take care to avoid masking
         # longer choices with shorter ones
         i = 0
@@ -105,7 +105,7 @@ def oneOf(strs, caseless=False, asKeyword=False):
             else:
                 i += 1
 
-    if caseless or asKeyword:
+    if caseless or as_keyword:
         return MatchFirst(parseElementClass(sym) for sym in symbols).streamline()
 
     # CONVERT INTO REGEX
@@ -126,26 +126,26 @@ RIGHT_ASSOC = object()
 _no_op = Empty().suppress()
 
 
-def infixNotation(
-    baseExpr, spec, lpar=Suppress(Literal("(")), rpar=Suppress(Literal(")"))
+def infix_notation(
+    base_expr, spec, lpar=Suppress(Literal("(")), rpar=Suppress(Literal(")"))
 ):
     """
-    :param baseExpr: expression representing the most basic element for the
+    :param base_expr: expression representing the most basic element for the
        nested
     :param spec: list of tuples, one for each operator precedence level
-       in the expression grammar; each tuple is of the form ``(opExpr,
-       numTerms, rightLeftAssoc, parseAction)``, where:
+       in the expression grammar; each tuple is of the form ``(op_expr,
+       numTerms, rightLeftAssoc, parse_action)``, where:
 
-       - opExpr is the mo_parsing expression for the operator; may also
+       - op_expr is the mo_parsing expression for the operator; may also
          be a string, which will be converted to a Literal; if numTerms
-         is 3, opExpr is a tuple of two expressions, for the two
+         is 3, op_expr is a tuple of two expressions, for the two
          operators separating the 3 terms
        - numTerms is the number of terms for this operator (must be 1,
          2, or 3)
        - rightLeftAssoc is the indicator whether the operator is right
          or left associative, using the mo_parsing-defined constants
          ``RIGHT_ASSOC`` and ``LEFT_ASSOC``.
-       - parseAction is the parse action to be associated with
+       - parse_action is the parse action to be associated with
          expressions matching this operator expression
     :param lpar: expression for matching left-parentheses
        (default= ``Suppress('(')``)
@@ -174,7 +174,7 @@ def infixNotation(
         all_op[id(op)] = is_suppressed, output
         return is_suppressed, output
 
-    opList = []
+    op_list = []
     """
     SCRUBBED LIST OF OPERATORS
     * expr - used exclusively for ParseResult(expr, [...]), not used to match
@@ -184,14 +184,14 @@ def infixNotation(
     * parse_actions - same
     """
 
-    for operDef in spec:
-        op, arity, assoc, rest = operDef[0], operDef[1], operDef[2], operDef[3:]
+    for oper_def in spec:
+        op, arity, assoc, rest = oper_def[0], oper_def[1], oper_def[2], oper_def[3:]
         parse_actions = list(map(wrap_parse_action, listwrap(rest[0]))) if rest else []
         if arity == 1:
             is_suppressed, op = norm(op)
             if assoc == RIGHT_ASSOC:
-                opList.append((
-                    Group(baseExpr + op),
+                op_list.append((
+                    Group(base_expr + op),
                     op,
                     is_suppressed,
                     arity,
@@ -199,8 +199,8 @@ def infixNotation(
                     parse_actions,
                 ))
             else:
-                opList.append((
-                    Group(op + baseExpr),
+                op_list.append((
+                    Group(op + base_expr),
                     op,
                     is_suppressed,
                     arity,
@@ -209,8 +209,8 @@ def infixNotation(
                 ))
         elif arity == 2:
             is_suppressed, op = norm(op)
-            opList.append((
-                Group(baseExpr + op + baseExpr),
+            op_list.append((
+                Group(base_expr + op + base_expr),
                 op,
                 is_suppressed,
                 arity,
@@ -219,15 +219,15 @@ def infixNotation(
             ))
         elif arity == 3:
             is_suppressed, op = zip(norm(op[0]), norm(op[1]))
-            opList.append((
-                Group(baseExpr + op[0] + baseExpr + op[1] + baseExpr),
+            op_list.append((
+                Group(base_expr + op[0] + base_expr + op[1] + base_expr),
                 op,
                 is_suppressed,
                 arity,
                 assoc,
                 parse_actions,
             ))
-    opList = tuple(opList)
+    op_list = tuple(op_list)
 
     def record_op(op):
         def output(tokens):
@@ -237,30 +237,30 @@ def infixNotation(
 
     prefix_ops = MatchFirst([
         op / record_op(op)
-        for expr, op, is_suppressed, arity, assoc, pa in opList
+        for expr, op, is_suppressed, arity, assoc, pa in op_list
         if arity == 1 and assoc == RIGHT_ASSOC
     ])
     suffix_ops = MatchFirst([
         op / record_op(op)
-        for expr, op, is_suppressed, arity, assoc, pa in opList
+        for expr, op, is_suppressed, arity, assoc, pa in op_list
         if arity == 1 and assoc == LEFT_ASSOC
     ])
     ops = Or([
-        opPart / record_op(opPart)
-        for opPart in set(
-            opPart
-            for expr, op, is_suppressed, arity, assoc, pa in opList
+        op_part / record_op(op_part)
+        for op_part in set(
+            op_part
+            for expr, op, is_suppressed, arity, assoc, pa in op_list
             if arity > 1
-            for opPart in (op if isinstance(op, tuple) else [op])
+            for op_part in (op if isinstance(op, tuple) else [op])
         )
     ])
 
     def make_tree(tokens, loc, string):
         flat_tokens = list(tokens)
-        num = len(opList)
+        num = len(op_list)
         op_index = 0
         while len(flat_tokens) > 1 and op_index < num:
-            expr, op, is_suppressed, arity, assoc, parse_actions = opList[op_index]
+            expr, op, is_suppressed, arity, assoc, parse_actions = op_list[op_index]
             if arity == 1:
                 if assoc == RIGHT_ASSOC:
                     # PREFIX OPERATOR -3
@@ -367,7 +367,7 @@ def infixNotation(
 
     flat = Forward()
     iso = lpar.suppress() + flat + rpar.suppress()
-    atom = (baseExpr | iso) / record_op(baseExpr)
+    atom = (base_expr | iso) / record_op(base_expr)
     modified = ZeroOrMore(prefix_ops) + atom + ZeroOrMore(suffix_ops)
     flat << ((modified + ZeroOrMore(ops + modified)) / make_tree).streamline()
 

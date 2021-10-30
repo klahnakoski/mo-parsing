@@ -317,7 +317,7 @@ def col(loc, string):
 
     Note: the default parsing behavior is to expand tabs in the input string
     before starting the parsing process.  See
-    `ParserElement.parseString` for more
+    `ParserElement.parse_string` for more
     information on parsing strings containing ``<TAB>`` s, and suggested
     methods to maintain a consistent view of the parsed string, the parse
     location, and line and column positions within the parsed string.
@@ -331,7 +331,7 @@ def lineno(loc, string):
     The first line is number 1.
 
     Note - the default parsing behavior is to expand tabs in the input string
-    before starting the parsing process.  See `ParserElement.parseString`
+    before starting the parsing process.  See `ParserElement.parse_string`
     for more information on parsing strings containing ``<TAB>`` s, and
     suggested methods to maintain a consistent view of the parsed string, the
     parse location, and line and column positions within the parsed string.
@@ -421,56 +421,6 @@ def _xml_escape(data):
     for from_, to_ in zip(from_symbols, to_symbols):
         data = data.replace(from_, to_)
     return data
-
-
-def traceParseAction(f):
-    """Decorator for debugging parse actions.
-
-    When the parse action is called, this decorator will print
-    ``">> entering method-name(line:<current_source_line>, <parse_location>, <matched_tokens>)"``.
-    When the parse action completes, the decorator will print
-    ``"<<"`` followed by the returned value, or any exception that the parse action raised.
-
-    Example::
-
-        wd = Word(alphas)
-
-        @traceParseAction
-        def remove_duplicate_chars(tokens):
-            return ''.join(sorted(set(''.join(tokens))))
-
-        wds = OneOrMore(wd) / remove_duplicate_chars
-        print(wds.parseString("slkdjs sld sldd sdlf sdljf"))
-
-    prints::
-
-        >>entering remove_duplicate_chars(line: 'slkdjs sld sldd sdlf sdljf', 0, (['slkdjs', 'sld', 'sldd', 'sdlf', 'sdljf'], {}))
-        <<leaving remove_duplicate_chars (ret: 'dfjkls')
-        ['dfjkls']
-    """
-    f = wrap_parse_action(f)
-
-    def z(*paArgs):
-        thisFunc = f.__name__
-        t, l, s = paArgs[-3:]
-        if len(paArgs) > 3:
-            thisFunc = paArgs[0].__class__.__name__ + "." + thisFunc
-        sys.stderr.write(
-            ">>entering %s(line: '%s', %d, %r)\n" % (thisFunc, line(l, s), l, t)
-        )
-        try:
-            ret = f(*paArgs)
-        except Exception as exc:
-            sys.stderr.write("<<leaving %s (exception: %s)\n" % (thisFunc, exc))
-            raise
-        sys.stderr.write("<<leaving %s (ret: %r)\n" % (thisFunc, ret))
-        return ret
-
-    try:
-        z.__name__ = f.__name__
-    except AttributeError:
-        pass
-    return z
 
 
 class _lazyclassproperty(object):

@@ -17,14 +17,14 @@ link = linkOpenTag + linkOpenTag.tag_body("body") + linkCloseTag.suppress()
 with urlopen("https://www.cnn.com/") as serverListPage:
     htmlText = serverListPage.read()
 
-# scanString is a generator that loops through the input htmlText, and for each
+# scan_string is a generator that loops through the input htmlText, and for each
 # match yields the tokens and start and end locations (for this application, we are
 # not interested in the start and end values).
-for toks, strt, end in link.scanString(htmlText):
+for toks, strt, end in link.scan_string(htmlText):
     print(toks.startA.href, "->", toks.body)
 
 # Create dictionary from list comprehension, assembled from each pair of tokens returned
 # from a matched URL.
 print(
-    {toks.body: toks.startA.href for toks, strt, end in link.scanString(htmlText)}
+    {toks.body: toks.startA.href for toks, strt, end in link.scan_string(htmlText)}
 )

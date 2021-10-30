@@ -45,7 +45,7 @@ def inifile_BNF():
         def stripKey(tokens):
             return [t.strip() for t in tokens]
 
-        keyDef = keyDef.addParseAction(stripKey)
+        keyDef = keyDef.add_parse_action(stripKey)
 
         # using Dict will allow retrieval of named data fields as attributes of the parsed results
         inibnf = Dict(ZeroOrMore(Group(sectionDef + Dict(ZeroOrMore(Group(keyDef)))))).streamline()

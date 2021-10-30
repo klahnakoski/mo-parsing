@@ -1,6 +1,6 @@
 # Examples
 
-> Note: This is a fork of pyparsing's exmaples directory; most examples do not work becasue of differences in the parser.  The main difference being ParseResults attribute access (`tokens.html`) is not allow in mo-parsing, use property access (`tokens['html']`) instead.  Also, `setParseAction()` returns a copy of the ParserElement: Instead of `p.addParseAction(action)` use `p-p.adddParseAction(action)` 
+> Note: This is a fork of pyparsing's exmaples directory; most examples do not work becasue of differences in the parser.  The main difference being ParseResults attribute access (`tokens.html`) is not allow in mo-parsing, use property access (`tokens['html']`) instead.  Also, `setParseAction()` returns a copy of the ParserElement: Instead of `p.add_parse_action(action)` use `p-p.adddParseAction(action)` 
 
 The examples can be run two different ways
 

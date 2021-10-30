@@ -312,17 +312,17 @@ class ParseResults(object):
         del self[index]
         return ret if ret else default
 
-    def get(self, key, defaultValue=None):
+    def get(self, key, default_value=None):
         """
         Returns named result matching the given key, or if there is no
-        such name, then returns the given ``defaultValue``
+        such name, then returns the given ``default_value``
 
         Similar to ``dict.get()``.
         """
         if key in self:
             return self[key]
         else:
-            return defaultValue
+            return default_value
 
     def __contains__(self, item):
         if item is Ellipsis:
@@ -377,22 +377,22 @@ class ParseResults(object):
             else:
                 yield t
 
-    def asString(self, sep=""):
+    def as_string(self, sep=""):
         return sep.join(self._asStringList())
 
-    def asList(self):
+    def as_list(self):
         """
         Returns the parse results as a nested list of matching tokens, all converted to strings.
 
         Example::
 
             patt = OneOrMore(Word(alphas))
-            result = patt.parseString("sldkj lsdkj sldkj")
+            result = patt.parse_string("sldkj lsdkj sldkj")
             # even though the result prints in string-like form, it is actually a mo_parsing ParseResults
             print(type(result), result) # -> <class 'mo_parsing.ParseResults'> ['sldkj', 'lsdkj', 'sldkj']
 
-            # Use asList() to create an actual list
-            result_list = result.asList()
+            # Use as_list() to create an actual list
+            result_list = result.as_list()
             print(type(result_list), result_list) # -> <class 'list'> ['sldkj', 'lsdkj', 'sldkj']
         """
 
@@ -430,7 +430,7 @@ class ParseResults(object):
         )
         return ret
 
-    def getName(self):
+    def get_name(self):
         r"""
         Returns the results name for this token expression. Useful when several
         different expressions might match at a particular location.
@@ -445,9 +445,9 @@ class ParseResults(object):
                         | Group(integer)("age"))
             user_info = OneOrMore(user_data)
 
-            result = user_info.parseString("22 111-22-3333 #221B")
+            result = user_info.parse_string("22 111-22-3333 #221B")
             for item in result:
-                print(item.getName(), ':', item[0])
+                print(item.get_name(), ':', item[0])
 
         prints::
 

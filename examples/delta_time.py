@@ -38,7 +38,7 @@ __all__ = ["time_expression"]
 
 # basic grammar definitions
 def make_integer_word_expr(int_name, int_value):
-    return CaselessKeyword(int_name).addParseAction(lambda: int_value)
+    return CaselessKeyword(int_name).add_parse_action(lambda: int_value)
 
 
 integer_word = MatchFirst(
@@ -60,7 +60,7 @@ today, tomorrow, yesterday, noon, midnight, now = map(
 
 
 def plural(s):
-    return CK(s) | CK(s + "s").addParseAction(lambda: s)
+    return CK(s) | CK(s + "s").add_parse_action(lambda: s)
 
 
 week, day, hour, minute, second = map(plural, "week day hour minute second".split())
@@ -68,23 +68,23 @@ am = CL("am")
 pm = CL("pm")
 COLON = Suppress(":")
 
-in_ = CK("in").addParseAction(lambda: 1)
-from_ = CK("from").addParseAction(lambda: 1)
-before = CK("before").addParseAction(lambda: -1)
-after = CK("after").addParseAction(lambda: 1)
-ago = CK("ago").addParseAction(lambda: -1)
-next_ = CK("next").addParseAction(lambda: 1)
-last_ = CK("last").addParseAction(lambda: -1)
+in_ = CK("in").add_parse_action(lambda: 1)
+from_ = CK("from").add_parse_action(lambda: 1)
+before = CK("before").add_parse_action(lambda: -1)
+after = CK("after").add_parse_action(lambda: 1)
+ago = CK("ago").add_parse_action(lambda: -1)
+next_ = CK("next").add_parse_action(lambda: 1)
+last_ = CK("last").add_parse_action(lambda: -1)
 at_ = CK("at")
 on_ = CK("on")
 
-couple = (Optional(CK("a")) + CK("couple") + Optional(CK("of"))).addParseAction(
+couple = (Optional(CK("a")) + CK("couple") + Optional(CK("of"))).add_parse_action(
     lambda: 2
 )
-a_qty = (CK("a") | CK("an")).addParseAction(lambda: 1)
-the_qty = CK("the").addParseAction(lambda: 1)
+a_qty = (CK("a") | CK("an")).add_parse_action(lambda: 1)
+the_qty = CK("the").add_parse_action(lambda: 1)
 qty = ungroup(integer | couple | a_qty | the_qty)
-time_ref_present = Empty().addParseAction(lambda: True)("time_ref_present")
+time_ref_present = Empty().add_parse_action(lambda: True)("time_ref_present")
 
 
 def fill_24hr_time_fields(t):
@@ -101,9 +101,9 @@ def fill_default_time_fields(t):
 
 
 weekday_name_list = list(calendar.day_name)
-weekday_name = oneOf(weekday_name_list)
+weekday_name = one_of(weekday_name_list)
 
-_24hour_time = Word(nums, exact=4).addParseAction(
+_24hour_time = Word(nums, exact=4).add_parse_action(
     lambda t: [int(t[0][:2]), int(t[0][2:])], fill_24hr_time_fields
 )
 _24hour_time.set_parser_name("0000 time")
@@ -112,7 +112,7 @@ timespec = (
     integer("HH")
     + Optional(CK("o'clock") | COLON + integer("MM") + Optional(COLON + integer("SS")))
     + (am | pm)("ampm")
-).addParseAction(fill_default_time_fields)
+).add_parse_action(fill_default_time_fields)
 absolute_time = _24hour_time | timespec
 
 absolute_time_of_day = noon | midnight | now | absolute_time
@@ -130,7 +130,7 @@ def add_computed_time(t):
         t["computed_time"] = time(hour=t.HH, minute=t.MM, second=t.SS)
 
 
-absolute_time_of_day.addParseAction(add_computed_time)
+absolute_time_of_day.add_parse_action(add_computed_time)
 
 
 #     relative_time_reference ::= qty time_units ('from' | 'before' | 'after') absolute_time_of_day
@@ -156,7 +156,7 @@ def compute_relative_time(t):
     t["time_delta"] = timedelta(seconds=t.dir * delta_seconds)
 
 
-relative_time_reference.addParseAction(compute_relative_time)
+relative_time_reference.add_parse_action(compute_relative_time)
 
 time_reference = absolute_time_of_day | relative_time_reference
 
@@ -166,7 +166,7 @@ def add_default_time_ref_fields(t):
         t["time_delta"] = timedelta()
 
 
-time_reference.addParseAction(add_default_time_ref_fields)
+time_reference.add_parse_action(add_default_time_ref_fields)
 
 #     absolute_day_reference ::= 'today' | 'tomorrow' | 'yesterday' | ('next' | 'last') weekday_name
 #     day_units ::= 'days' | 'weeks'
@@ -203,7 +203,7 @@ def convert_abs_day_reference_to_date(t):
 absolute_day_reference = (
     today | tomorrow | yesterday | now + time_ref_present | weekday_reference
 )
-absolute_day_reference.addParseAction(convert_abs_day_reference_to_date)
+absolute_day_reference.add_parse_action(convert_abs_day_reference_to_date)
 
 
 #     relative_day_reference ::=  'in' qty day_units
@@ -229,7 +229,7 @@ def compute_relative_date(t):
     t["date_delta"] = timedelta(days=day_diff)
 
 
-relative_day_reference.addParseAction(compute_relative_date)
+relative_day_reference.add_parse_action(compute_relative_date)
 
 # combine expressions for absolute and relative day references
 day_reference = relative_day_reference | absolute_day_reference
@@ -240,7 +240,7 @@ def add_default_date_fields(t):
         t["date_delta"] = timedelta()
 
 
-day_reference.addParseAction(add_default_date_fields)
+day_reference.add_parse_action(add_default_date_fields)
 
 # combine date and time expressions into single overall parser
 time_and_day = time_reference + time_ref_present + Optional(
@@ -298,7 +298,7 @@ def remove_temp_keys(t):
             del t[k]
 
 
-time_and_day.addParseAction(save_original_string, compute_timestamp, remove_temp_keys)
+time_and_day.add_parse_action(save_original_string, compute_timestamp, remove_temp_keys)
 
 
 time_expression = time_and_day
@@ -415,4 +415,4 @@ def verify_offset(instring, parsed):
         else:
             parsed["verify_offset"] = "FAIL"
 
-time_expression.runTests(tests, postParse=verify_offset)
+time_expression.run_tests(tests, postParse=verify_offset)

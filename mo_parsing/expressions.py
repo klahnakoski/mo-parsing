@@ -80,12 +80,12 @@ class ParseExpression(ParserElement):
         self.exprs.append(other)
         return self
 
-    def leaveWhitespace(self):
-        """Extends ``leaveWhitespace`` defined in base class, and also invokes ``leaveWhitespace`` on
+    def leave_whitespace(self):
+        """Extends ``leave_whitespace`` defined in base class, and also invokes ``leave_whitespace`` on
         all contained expressions."""
         with whitespaces.NO_WHITESPACE:
             output = self.copy()
-            output.exprs = [e.leaveWhitespace() for e in self.exprs]
+            output.exprs = [e.leave_whitespace() for e in self.exprs]
             return output
 
     def streamline(self):
@@ -249,7 +249,7 @@ class And(ParseExpression):
     def whitespace(self):
         return self.parser_config.whitespace
 
-    def parseImpl(self, string, start, doActions=True):
+    def parse_impl(self, string, start, do_actions=True):
         # pass False as last arg to _parse for first element, since we already
         # pre-parsed the string as part of our And pre-parsing
         encountered_syntax_error = False
@@ -266,7 +266,7 @@ class And(ParseExpression):
                 encountered_syntax_error = True
                 continue
             try:
-                result = expr._parse(string, index, doActions)
+                result = expr._parse(string, index, do_actions)
                 acc.append(result)
 
                 end = result.end
@@ -290,10 +290,10 @@ class And(ParseExpression):
             [self, whitespaces.CURRENT.normalize(other)], whitespaces.CURRENT
         ).streamline()
 
-    def checkRecursion(self, seen=empty_tuple):
+    def check_recursion(self, seen=empty_tuple):
         subRecCheckList = seen + (self,)
         for e in self.exprs:
-            e.checkRecursion(subRecCheckList)
+            e.check_recursion(subRecCheckList)
             if e.min_length():
                 return
 
@@ -360,14 +360,14 @@ class Or(ParseExpression):
         output.alternate = faster(output.exprs)
 
         output.streamlined = True
-        output.checkRecursion()
+        output.check_recursion()
         return output
 
     @property
     def whitespace(self):
         return [e.whitespace for e in self.exprs]
 
-    def parseImpl(self, string, start, doActions=True):
+    def parse_impl(self, string, start, do_actions=True):
         failures = []
         matches = []
 
@@ -396,7 +396,7 @@ class Or(ParseExpression):
             )
         if len(matches) == 1:
             _, expr = matches[0]
-            result = expr._parse(string, start, doActions)
+            result = expr._parse(string, start, do_actions)
             return ParseResults(
                 self, result.start, result.end, [result], result.failures
             )
@@ -406,11 +406,11 @@ class Or(ParseExpression):
             # might change whether or how much they match of the input.
             matches.sort(key=itemgetter(0), reverse=True)
 
-            if not doActions:
+            if not do_actions:
                 # no further conditions or parse actions to change the selection of
                 # alternative, so the first match will be the best match
                 _, expr = matches[0]
-                result = expr._parse(string, start, doActions)
+                result = expr._parse(string, start, do_actions)
                 return ParseResults(
                     self, result.start, result.end, [result], result.failures
                 )
@@ -422,7 +422,7 @@ class Or(ParseExpression):
                     return longest
 
                 try:
-                    result = expr._parse(string, start, doActions)
+                    result = expr._parse(string, start, do_actions)
                 except ParseException as err:
                     failures.append(err)
                 else:
@@ -446,10 +446,10 @@ class Or(ParseExpression):
             if longest != (-1, None):
                 return longest
 
-    def checkRecursion(self, seen=empty_tuple):
+    def check_recursion(self, seen=empty_tuple):
         seen_more = seen + (self,)
         for e in self.exprs:
-            e.checkRecursion(seen_more)
+            e.check_recursion(seen_more)
 
     def __regex__(self):
         return (
@@ -497,12 +497,12 @@ class MatchFirst(ParseExpression):
     def whitespace(self):
         return [e.whitespace for e in self.exprs]
 
-    def parseImpl(self, string, start, doActions=True):
+    def parse_impl(self, string, start, do_actions=True):
         causes = []
 
         for e in self.alternate:
             try:
-                result = e._parse(string, start, doActions)
+                result = e._parse(string, start, do_actions)
                 return ParseResults(
                     self, result.start, result.end, [result], result.failures
                 )
@@ -528,13 +528,13 @@ class MatchFirst(ParseExpression):
         output.alternate = faster(output.exprs)
 
         output.streamlined = True
-        output.checkRecursion()
+        output.check_recursion()
         return output
 
-    def checkRecursion(self, seen=empty_tuple):
+    def check_recursion(self, seen=empty_tuple):
         seen_more = seen + (self,)
         for e in self.exprs:
-            e.checkRecursion(seen_more)
+            e.check_recursion(seen_more)
 
     def __or__(self, other):
         if other is Ellipsis:
@@ -680,7 +680,7 @@ class Fast(ParserElement):
             return self.lookup[index]
         return []
 
-    def parseImpl(self, string, start, doActions=True):
+    def parse_impl(self, string, start, do_actions=True):
         found = self.regex.match(string, start)
         if found:
             index = found.group(0).lower()
@@ -689,7 +689,7 @@ class Fast(ParserElement):
             causes = []
             for e in exprs:
                 try:
-                    return e._parse(string, start, doActions)
+                    return e._parse(string, start, do_actions)
                 except ParseException as cause:
                     causes.append(cause)
 
@@ -740,9 +740,9 @@ class MatchAll(ParseExpression):
     def whitespace(self):
         return [e.whitespace for e in self.exprs]
 
-    def parseImpl(self, string, start, doActions=True):
+    def parse_impl(self, string, start, do_actions=True):
         end = start
-        matchOrder = []
+        match_order = []
         todo = list(zip(
             self.exprs, self.parser_config.min_match, self.parser_config.max_match
         ))
@@ -761,7 +761,7 @@ class MatchAll(ParseExpression):
                     if c2 >= ma:
                         del todo[i]
                         del count[i]
-                    matchOrder.append(e)
+                    match_order.append(e)
                     break
                 except ParseException as pe:
                     failures.append(pe)
@@ -778,7 +778,7 @@ class MatchAll(ParseExpression):
                     cause=failures,
                 )
 
-        found = set(id(m) for m in matchOrder)
+        found = set(id(m) for m in match_order)
         missing = [
             e
             for e, mi in zip(self.exprs, self.parser_config.min_match)
@@ -795,13 +795,13 @@ class MatchAll(ParseExpression):
             )
 
         # add any unmatched Optionals, in case they have default values defined
-        matchOrder += [e for e in self.exprs if id(e) not in found]
+        match_order += [e for e in self.exprs if id(e) not in found]
 
         # TODO: CAN WE AVOID THIS RE-PARSE?
         results = []
         end = start
-        for e in matchOrder:
-            result = e._parse(string, end, doActions)
+        for e in match_order:
+            result = e._parse(string, end, do_actions)
             end = self.parser_config.whitespace.skip(string, result.end)
             results.append(result)
 

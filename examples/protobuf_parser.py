@@ -13,12 +13,12 @@ from mo_parsing import (
     Suppress,
     Forward,
     Group,
-    oneOf,
+    one_of,
     ZeroOrMore,
     Optional,
-    delimitedList,
+    delimited_list,
     restOfLine,
-    quotedString,
+    quoted_string,
     Dict,
     Keyword,
 )
@@ -40,7 +40,7 @@ messageBody = Forward()
 messageDefn = MESSAGE_ - ident("messageId") + LBRACE + messageBody("body") + RBRACE
 
 typespec = (
-    oneOf(
+    one_of(
         """double float int32 int64 uint32 uint64 sint32 sint64
                     fixed32 fixed64 sfixed32 sfixed64 bool string bytes"""
     )
@@ -99,17 +99,17 @@ serviceDefn = (
     SERVICE_ - ident("serviceName") + LBRACE + ZeroOrMore(Group(methodDefn)) + RBRACE
 )
 
-syntaxDefn = SYNTAX_ + EQ - quotedString("syntaxString") + SEMI
+syntaxDefn = SYNTAX_ + EQ - quoted_string("syntax_string") + SEMI
 
 # packageDirective ::= 'package' ident [ '.' ident]* ';'
-packageDirective = Group(PACKAGE_ - delimitedList(ident, ".", combine=True) + SEMI)
+packageDirective = Group(PACKAGE_ - delimited_list(ident, ".", combine=True) + SEMI)
 
 comment = "//" + restOfLine
 
-importDirective = IMPORT_ - quotedString("importFileSpec") + SEMI
+importDirective = IMPORT_ - quoted_string("importFileSpec") + SEMI
 
 optionDirective = (
-    OPTION_ - ident("optionName") + EQ + quotedString("optionValue") + SEMI
+    OPTION_ - ident("optionName") + EQ + quoted_string("optionValue") + SEMI
 )
 
 topLevelStatement = Group(
@@ -169,4 +169,4 @@ message SearchRequest {
 }
 """
 
-parser.runTests([test1, test2, test3])
+parser.run_tests([test1, test2, test3])

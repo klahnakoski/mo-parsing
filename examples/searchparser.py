@@ -66,7 +66,7 @@ from mo_parsing import (
     Forward,
     Suppress,
     OneOrMore,
-    oneOf,
+    one_of,
 )
 
 
@@ -135,7 +135,7 @@ class SearchQueryParser:
                 operatorNot + Suppress(Keyword("and", caseless=True)) + operatorAnd
             ).set_token_name("and")
             | Group(
-                operatorNot + OneOrMore(~oneOf("and or") + operatorAnd)
+                operatorNot + OneOrMore(~one_of("and or") + operatorAnd)
             ).set_token_name("and")
             | operatorNot
         )
@@ -147,7 +147,7 @@ class SearchQueryParser:
             | operatorAnd
         )
 
-        return operatorOr.parseString
+        return operatorOr.parse_string
 
     def evaluateAnd(self, argument):
         return self.evaluate(argument[0]).intersection(self.evaluate(argument[1]))
@@ -185,7 +185,7 @@ class SearchQueryParser:
         return self.GetWordWildcard(argument[0])
 
     def evaluate(self, argument):
-        return self._methods[argument.getName()](argument)
+        return self._methods[argument.get_name()](argument)
 
     def Parse(self, query):
         # print self._parser(query)[0]

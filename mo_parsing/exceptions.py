@@ -88,13 +88,13 @@ class ParseException(Exception):
             found = f", found {quote(self.string[self.loc : self.loc + 10])}"
 
         if self.causes and not isinstance(self.causes[0], ParseException):
-            describeCause = f", caused by {self.causes[0]}"
+            describe_cause = f", caused by {self.causes[0]}"
         else:
-            describeCause = ""
+            describe_cause = ""
 
         location = f" (at char {self.loc}), (line:{self.lineno}, col:{self.column})"
 
-        return "".join((expecting, found, describeCause, location))
+        return "".join((expecting, found, describe_cause, location))
 
     @message.setter
     def msg(self, value):
@@ -140,16 +140,16 @@ class ParseException(Exception):
         causes = indent("".join("\n" + str(c) for c in self.causes))
         return f"{self.message}\n{causes}"
 
-    def markInputline(self, markerString=">!<"):
+    def mark_inputline(self, marker_string=">!<"):
         """Extracts the exception line from the input string, and marks
         the location of the exception with a special symbol.
         """
         line_str = self.line
         line_column = self.column - 1
-        if markerString:
+        if marker_string:
             line_str = "".join((
                 line_str[:line_column],
-                markerString,
+                marker_string,
                 line_str[line_column:],
             ))
         return line_str.strip()

@@ -24,7 +24,7 @@ statemachine VendingMachineState:
 """
 
 # convert state machine text to state classes
-generated = statemachine.namedStateMachine.transformString(
+generated = statemachine.namedStateMachine.transform_string(
     vending_machine_state_description
 )
 # print(generated)

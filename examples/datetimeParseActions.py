@@ -1,4 +1,4 @@
-# parseActions.py
+# parse_actions.py
 #
 #   A sample program a parser to match a date string of the form "YYYY/MM/DD",
 # and return it as a datetime, or raise an exception if not a valid date.
@@ -21,9 +21,9 @@ def convertToInt(tokens):
     return int(tokens[0])
 
 
-integer.addParseAction(convertToInt)
+integer.add_parse_action(convertToInt)
 # or can be written as one line as
-# integer = Word(nums).addParseAction(lambda t: int(t[0]))
+# integer = Word(nums).add_parse_action(lambda t: int(t[0]))
 
 # define a pattern for a year/month/day date
 date_expr = integer("year") + "/" + integer("month") + "/" + integer("day")
@@ -46,10 +46,10 @@ def convertToDatetime(s, loc, tokens):
         raise ParseException(errmsg, loc, s)
 
 
-date_expr.addParseAction(convertToDatetime)
+date_expr.add_parse_action(convertToDatetime)
 
 
-date_expr.runTests(
+date_expr.run_tests(
     """\
     2000/1/1
 
@@ -65,10 +65,10 @@ date_expr.runTests(
 )
 
 
-date_expr = iso8601_date.addParseAction(convertToDate())
+date_expr = iso8601_date.add_parse_action(convertToDate())
 date_expr.ignore(pythonStyleComment)
 
-date_expr.runTests(
+date_expr.run_tests(
     """\
     2000-01-01
 

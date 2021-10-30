@@ -360,25 +360,25 @@ class Parser:
         self.bnf = self.makeBNF()
 
     def makeBNF(self):
-        invVerb = oneOf("INV INVENTORY I", caseless=True)
-        dropVerb = oneOf("DROP LEAVE", caseless=True)
-        takeVerb = oneOf("TAKE PICKUP", caseless=True) | (
+        invVerb = one_of("INV INVENTORY I", caseless=True)
+        dropVerb = one_of("DROP LEAVE", caseless=True)
+        takeVerb = one_of("TAKE PICKUP", caseless=True) | (
             CaselessLiteral("PICK") + CaselessLiteral("UP")
         )
-        moveVerb = oneOf("MOVE GO", caseless=True) | empty
-        useVerb = oneOf("USE U", caseless=True)
-        openVerb = oneOf("OPEN O", caseless=True)
-        closeVerb = oneOf("CLOSE CL", caseless=True)
-        quitVerb = oneOf("QUIT Q", caseless=True)
-        lookVerb = oneOf("LOOK L", caseless=True)
+        moveVerb = one_of("MOVE GO", caseless=True) | empty
+        useVerb = one_of("USE U", caseless=True)
+        openVerb = one_of("OPEN O", caseless=True)
+        closeVerb = one_of("CLOSE CL", caseless=True)
+        quitVerb = one_of("QUIT Q", caseless=True)
+        lookVerb = one_of("LOOK L", caseless=True)
         doorsVerb = CaselessLiteral("DOORS")
-        helpVerb = oneOf("H HELP ?", caseless=True)
+        helpVerb = one_of("H HELP ?", caseless=True)
 
-        itemRef = OneOrMore(Word(alphas)).addParseAction(self.validateItemName)
-        nDir = oneOf("N NORTH", caseless=True).addParseAction(lambda: "N")
-        sDir = oneOf("S SOUTH", caseless=True).addParseAction(lambda: "S")
-        eDir = oneOf("E EAST", caseless=True).addParseAction(lambda: "E")
-        wDir = oneOf("W WEST", caseless=True).addParseAction(lambda: "W")
+        itemRef = OneOrMore(Word(alphas)).add_parse_action(self.validateItemName)
+        nDir = one_of("N NORTH", caseless=True).add_parse_action(lambda: "N")
+        sDir = one_of("S SOUTH", caseless=True).add_parse_action(lambda: "S")
+        eDir = one_of("E EAST", caseless=True).add_parse_action(lambda: "E")
+        wDir = one_of("W WEST", caseless=True).add_parse_action(lambda: "W")
         moveDirection = nDir | sDir | eDir | wDir
 
         invCommand = invVerb
@@ -387,7 +387,7 @@ class Parser:
         useCommand = (
             useVerb
             + itemRef("usedObj")
-            + Optional(oneOf("IN ON", caseless=True))
+            + Optional(one_of("IN ON", caseless=True))
             + Optional(itemRef, default=None)("targetObj")
         )
         openCommand = openVerb + itemRef("item")
@@ -399,17 +399,17 @@ class Parser:
         helpCommand = helpVerb
 
         # attach command classes to expressions
-        invCommand.addParseAction(InventoryCommand)
-        dropCommand.addParseAction(DropCommand)
-        takeCommand.addParseAction(TakeCommand)
-        useCommand.addParseAction(UseCommand)
-        openCommand.addParseAction(OpenCommand)
-        closeCommand.addParseAction(CloseCommand)
-        moveCommand.addParseAction(MoveCommand)
-        quitCommand.addParseAction(QuitCommand)
-        lookCommand.addParseAction(LookCommand)
-        doorsCommand.addParseAction(DoorsCommand)
-        helpCommand.addParseAction(HelpCommand)
+        invCommand.add_parse_action(InventoryCommand)
+        dropCommand.add_parse_action(DropCommand)
+        takeCommand.add_parse_action(TakeCommand)
+        useCommand.add_parse_action(UseCommand)
+        openCommand.add_parse_action(OpenCommand)
+        closeCommand.add_parse_action(CloseCommand)
+        moveCommand.add_parse_action(MoveCommand)
+        quitCommand.add_parse_action(QuitCommand)
+        lookCommand.add_parse_action(LookCommand)
+        doorsCommand.add_parse_action(DoorsCommand)
+        helpCommand.add_parse_action(HelpCommand)
 
         # define parser using all command expressions
         return (
@@ -434,7 +434,7 @@ class Parser:
 
     def parseCmd(self, cmdstr):
         try:
-            ret = self.bnf.parseString(cmdstr)
+            ret = self.bnf.parse_string(cmdstr)
             return ret
         except AppParseException as pe:
             pass

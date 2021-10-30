@@ -32,14 +32,14 @@ from mo_parsing import *
 from mo_parsing.helpers import *
 from mo_testing.fuzzytestcase import assertAlmostEqual
 
-from mo_parsing.infix import oneOf
+from mo_parsing.infix import one_of
 
 MARK, UNMARK, AT, COLON, QUOTE = map(Suppress, "[]@:'")
 
-NUMBER = Word(nums).addParseAction(lambda t: int(t[0]))
+NUMBER = Word(nums).add_parse_action(lambda t: int(t[0]))
 FLOAT = Combine(
-    oneOf("+ -") + Word(nums) + "." + Optional(Word(nums))
-).addParseAction(lambda t: float(t[0]))
+    one_of("+ -") + Word(nums) + "." + Optional(Word(nums))
+).add_parse_action(lambda t: float(t[0]))
 STRING = QuotedString('"', multiline=True)
 WORD = Word(alphas, alphanums + "_:")
 ATTRIBUTE = Combine(AT + WORD)
@@ -53,7 +53,7 @@ def setBodyLength(tokens):
 
 
 BLOB = Combine(
-    QUOTE + Word(nums).addParseAction(setBodyLength) + COLON + strBody + QUOTE
+    QUOTE + Word(nums).add_parse_action(setBodyLength) + COLON + strBody + QUOTE
 )
 
 item = Forward()
@@ -71,33 +71,33 @@ def assignUsing(s):
 GROUP = (
     MARK
     + Group(ZeroOrMore(
-        (item + Optional(ATTRIBUTE)("attr")).addParseAction(assignUsing("attr"))
+        (item + Optional(ATTRIBUTE)("attr")).add_parse_action(assignUsing("attr"))
     ))
     + (WORD("name") | UNMARK)
-).addParseAction(assignUsing("name"))
+).add_parse_action(assignUsing("name"))
 item << (NUMBER | FLOAT | STRING | BLOB | GROUP)
 
-result = item.parseString("[ '10:1234567890' @name 25 @age +0.45 @percentage person:zed")
+result = item.parse_string("[ '10:1234567890' @name 25 @age +0.45 @percentage person:zed")
 expected = {"person:zed": {"name": "1234567890", "age": 25, "percentage": 0.45}}
 assertAlmostEqual(result, expected)
 
-result = item.parseString('[ [ "hello" 1 child root')
+result = item.parse_string('[ [ "hello" 1 child root')
 expected = {"root": {"child": ["hello", 1]}}
 assertAlmostEqual(result, expected)
 
-result = item.parseString("[ \"child\" [ 200 '4:like' \"I\" \"hello\" things root")
+result = item.parse_string("[ \"child\" [ 200 '4:like' \"I\" \"hello\" things root")
 expected = {"root": {"things": [200, "like", "I", "hello"]}}
 assertAlmostEqual(result, expected)
 expected = {"root": ["child"]}
 assertAlmostEqual(result, expected)
 
-result = item.parseString("[ [ \"data\" [ 2 1 ] @numbers child root")
+result = item.parse_string("[ [ \"data\" [ 2 1 ] @numbers child root")
 expected = {"root": {"child": ["data"]}}
 assertAlmostEqual(result, expected)
 expected = {"root": {"child": {"numbers": [2, 1]}}}
 assertAlmostEqual(result, expected)
 
-result = item.parseString("[ [ 1 2 3 ] @test 4 5 6 root")
+result = item.parse_string("[ [ 1 2 3 ] @test 4 5 6 root")
 expected = {"root": {"test": [1, 2, 3]}}
 assertAlmostEqual(result, expected)
 expected = {"root": [[1, 2, 3], 4, 5, 6]}

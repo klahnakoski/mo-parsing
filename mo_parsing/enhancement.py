@@ -83,8 +83,8 @@ class ParseEnhancement(ParserElement):
     def whitespace(self):
         return self.expr.whitespace
 
-    def parseImpl(self, string, start, doActions=True):
-        result = self.expr._parse(string, start, doActions)
+    def parse_impl(self, string, start, do_actions=True):
+        result = self.expr._parse(string, start, do_actions)
         return ParseResults(self, result.start, result.end, [result], result.failures)
 
     def streamline(self):
@@ -104,11 +104,11 @@ class ParseEnhancement(ParserElement):
         output.streamlined = True
         return output
 
-    def checkRecursion(self, seen=empty_tuple):
+    def check_recursion(self, seen=empty_tuple):
         if self in seen:
             raise RecursiveGrammarException(seen + (self,))
         if self.expr != None:
-            self.expr.checkRecursion(seen + (self,))
+            self.expr.check_recursion(seen + (self,))
 
     def __str__(self):
         if self.parser_name:
@@ -133,10 +133,10 @@ class FollowedBy(ParseEnhancement):
     def __init__(self, expr):
         super(FollowedBy, self).__init__(expr)
 
-    def parseImpl(self, string, start, doActions=True):
+    def parse_impl(self, string, start, do_actions=True):
         # by using self._expr.parse and deleting the contents of the returned ParseResults list
         # we keep any named results that were defined in the FollowedBy expression
-        result = self.expr._parse(string, start, doActions=doActions)
+        result = self.expr._parse(string, start, do_actions=do_actions)
         result.__class__ = Annotation
 
         return ParseResults(self, start, start, [result], result.failures)
@@ -174,7 +174,7 @@ class NotAny(LookAhead):
         output.regex = self.regex
         return output
 
-    def parseImpl(self, string, start, doActions=True):
+    def parse_impl(self, string, start, do_actions=True):
         regex = self.regex
         if regex:
             found = regex.match(string, start)
@@ -183,7 +183,7 @@ class NotAny(LookAhead):
             raise ParseException(self, start, string)
         else:
             try:
-                self.expr.parse(string, start, doActions=True)
+                self.expr.parse(string, start, do_actions=True)
                 raise ParseException(self, start, string)
             except:
                 return ParseResults(self, start, start, [], [])
@@ -223,15 +223,15 @@ class Many(ParseEnhancement):
         self,
         expr,
         whitespace=None,
-        stopOn=None,
+        stop_on=None,
         min_match=0,
         max_match=MAX_INT,
         exact=None,
     ):
         """
-        MATCH expr SOME NUMBER OF TIMES (OR UNTIL stopOn IS REACHED
+        MATCH expr SOME NUMBER OF TIMES (OR UNTIL stop_on IS REACHED
         :param expr: THE EXPRESSION TO MATCH
-        :param stopOn: THE PATTERN TO INDICATE STOP MATCHING (NOT REQUIRED IN PATTERN, JUST A QUICK STOP)
+        :param stop_on: THE PATTERN TO INDICATE STOP MATCHING (NOT REQUIRED IN PATTERN, JUST A QUICK STOP)
         :param min_match: MINIMUM MATCHES REQUIRED FOR SUCCESS (-1 IS INVALID)
         :param max_match: MAXIMUM MATCH REQUIRED FOR SUCCESS (-1 IS INVALID)
         """
@@ -245,9 +245,9 @@ class Many(ParseEnhancement):
             min_match=min_match,
             max_match=max_match,
         )
-        self.stopOn(stopOn)
+        self.stop_on(stop_on)
 
-    def stopOn(self, ender):
+    def stop_on(self, ender):
         if ender:
             end = self.parser_config.whitespace.normalize(ender)
             self.set_config(end=regex_compile(end.__regex__()[1]))
@@ -262,7 +262,7 @@ class Many(ParseEnhancement):
     def whitespace(self):
         return self.parser_config.whitespace
 
-    def parseImpl(self, string, start, doActions=True):
+    def parse_impl(self, string, start, do_actions=True):
         acc = []
         end = index = start
         max = self.parser_config.max_match
@@ -284,7 +284,7 @@ class Many(ParseEnhancement):
                             raise ParseException(
                                 self, end, string, msg="found stopper too soon"
                             )
-                result = self.expr._parse(string, index, doActions)
+                result = self.expr._parse(string, index, do_actions)
                 end = result.end
                 if result:
                     acc.append(result)
@@ -408,15 +408,15 @@ class OneOrMore(Many):
 
     Parameters:
      - expr - expression that must match one or more times
-     - stopOn - (default= ``None``) - expression for a terminating sentinel
+     - stop_on - (default= ``None``) - expression for a terminating sentinel
           (only required if the sentinel would ordinarily match the repetition
           expression)
     """
 
     __slots__ = []
 
-    def __init__(self, expr, whitespace=None, stopOn=None):
-        Many.__init__(self, expr, whitespace, stopOn, min_match=1, max_match=MAX_INT)
+    def __init__(self, expr, whitespace=None, stop_on=None):
+        Many.__init__(self, expr, whitespace, stop_on, min_match=1, max_match=MAX_INT)
 
     def __str__(self):
         if self.parser_name:
@@ -429,7 +429,7 @@ class ZeroOrMore(Many):
 
     Parameters:
      - expr - expression that must match zero or more times
-     - stopOn - (default= ``None``) - expression for a terminating sentinel
+     - stop_on - (default= ``None``) - expression for a terminating sentinel
           (only required if the sentinel would ordinarily match the repetition
           expression)
 
@@ -438,14 +438,14 @@ class ZeroOrMore(Many):
 
     __slots__ = []
 
-    def __init__(self, expr, whitespace=None, stopOn=None):
+    def __init__(self, expr, whitespace=None, stop_on=None):
         super(ZeroOrMore, self).__init__(
-            expr, whitespace, stopOn=stopOn, min_match=0, max_match=MAX_INT
+            expr, whitespace, stop_on=stop_on, min_match=0, max_match=MAX_INT
         )
 
-    def parseImpl(self, string, start, doActions=True):
+    def parse_impl(self, string, start, do_actions=True):
         try:
-            return super(ZeroOrMore, self).parseImpl(string, start, doActions)
+            return super(ZeroOrMore, self).parse_impl(string, start, do_actions)
         except ParseException as pe:
             return ParseResults(self, start, start, [], [pe])
 
@@ -465,19 +465,19 @@ class Optional(Many):
     """
 
     __slots__ = []
-    Config = append_config(Many, "defaultValue")
+    Config = append_config(Many, "default_value")
 
     def __init__(self, expr, whitespace=None, default=None):
-        Many.__init__(self, expr, whitespace, stopOn=None, min_match=0, max_match=1)
-        self.set_config(defaultValue=listwrap(default))
+        Many.__init__(self, expr, whitespace, stop_on=None, min_match=0, max_match=1)
+        self.set_config(default_value=listwrap(default))
 
-    def parseImpl(self, string, start, doActions=True):
+    def parse_impl(self, string, start, do_actions=True):
         try:
-            results = self.expr._parse(string, start, doActions)
+            results = self.expr._parse(string, start, do_actions)
             return ParseResults(self, results.start, results.end, [results], [])
         except ParseException as pe:
             return ParseResults(
-                self, start, start, self.parser_config.defaultValue, [pe]
+                self, start, start, self.parser_config.default_value, [pe]
             )
 
     def __str__(self):
@@ -493,14 +493,14 @@ class SkipTo(ParseEnhancement):
     __slots__ = []
     Config = append_config(ParseEnhancement, "include", "fail", "ignore", "whitespace")
 
-    def __init__(self, expr, include=False, ignore=None, failOn=None, engine_=None):
+    def __init__(self, expr, include=False, ignore=None, fail_on=None, engine_=None):
         """
         :param expr: target expression marking the end of the data to be skipped
         :param include: if True, the target expression is also parsed
           (the skipped text and target expression are returned as a 2-element list).
         :param ignore: used to define grammars (typically quoted strings and
           comments) that might contain false matches to the target expression
-        :param failOn: define expressions that are not allowed to be
+        :param fail_on: define expressions that are not allowed to be
           included in the skipped test; if found before the target expression is found,
           the SkipTo is not a match
         """
@@ -508,7 +508,7 @@ class SkipTo(ParseEnhancement):
 
         self.set_config(
             include=include,
-            fail=whitespaces.CURRENT.normalize(failOn),
+            fail=whitespaces.CURRENT.normalize(fail_on),
             ignore=ignore,
             whitespace=engine_ or whitespaces.CURRENT,
         )
@@ -517,7 +517,7 @@ class SkipTo(ParseEnhancement):
     def min_length(self):
         return 0
 
-    def parseImpl(self, string, start, doActions=True):
+    def parse_impl(self, string, start, do_actions=True):
         instrlen = len(string)
         fail = self.parser_config.fail
         ignore = self.parser_config.ignore
@@ -527,7 +527,7 @@ class SkipTo(ParseEnhancement):
             skip_end = loc
             loc = before_end = self.parser_config.whitespace.skip(string, loc)
             if fail:
-                # break if failOn expression matches
+                # break if fail_on expression matches
                 try:
                     fail._parse(string, loc)
                     break
@@ -546,7 +546,7 @@ class SkipTo(ParseEnhancement):
                     except ParseException:
                         break
             try:
-                loc = self.expr._parse(string, loc, doActions=False).end
+                loc = self.expr._parse(string, loc, do_actions=False).end
             except ParseException:
                 # no match, advance loc in string
                 loc += 1
@@ -565,7 +565,7 @@ class SkipTo(ParseEnhancement):
             skip_result.append(skiptext)
 
         if self.parser_config.include:
-            end_result = self.expr._parse(string, before_end, doActions)
+            end_result = self.expr._parse(string, before_end, do_actions)
             skip_result.append(end_result)
             return ParseResults(self, start, end, skip_result, [])
         else:
@@ -583,16 +583,16 @@ class Forward(ParserElement):
 
     Specifically, '|' has a lower precedence than '<<', so that::
 
-        fwdExpr << a | b | c
+        fwd_expr << a | b | c
 
     will actually be evaluated as::
 
-        (fwdExpr << a) | b | c
+        (fwd_expr << a) | b | c
 
     thereby leaving b and c out as parseable alternatives.  It is recommended that you
     explicitly group the values inserted into the ``Forward``::
 
-        fwdExpr << (a | b | c)
+        fwd_expr << (a | b | c)
 
     Converting to use the '<<=' operator instead will avoid this problem.
 
@@ -641,17 +641,17 @@ class Forward(ParserElement):
         if norm is None:
             Log.error("problem")
         self.expr = norm.streamline()
-        self.checkRecursion()
+        self.check_recursion()
         return self
 
-    def addParseAction(self, action):
-        self.parseAction.append(wrap_parse_action(action))
+    def add_parse_action(self, action):
+        self.parse_action.append(wrap_parse_action(action))
         return self
 
-    def leaveWhitespace(self):
+    def leave_whitespace(self):
         with whitespaces.NO_WHITESPACE:
             output = self.copy()
-            output.expr = self.expr.leaveWhitespace()
+            output.expr = self.expr.leave_whitespace()
             return output
 
     def streamline(self):
@@ -659,14 +659,14 @@ class Forward(ParserElement):
             return self
 
         self.expr = self.expr.streamline()
-        self.checkRecursion()
+        self.check_recursion()
         return self
 
-    def checkRecursion(self, seen=empty_tuple):
+    def check_recursion(self, seen=empty_tuple):
         if self in seen:
             raise RecursiveGrammarException(seen + (self,))
         if self.expr != None:
-            self.expr.checkRecursion(seen + (self,))
+            self.expr.check_recursion(seen + (self,))
 
     def min_length(self):
         if self.min_length_cache is None and self.expr:
@@ -692,9 +692,9 @@ class Forward(ParserElement):
         finally:
             self._eng = False
 
-    def parseImpl(self, string, loc, doActions=True):
+    def parse_impl(self, string, loc, do_actions=True):
         try:
-            result = self.expr._parse(string, loc, doActions)
+            result = self.expr._parse(string, loc, do_actions)
             return ParseResults(
                 self, result.start, result.end, [result], result.failures
             )
@@ -723,7 +723,7 @@ class Forward(ParserElement):
         if self._str:
             return self._str
 
-        # Avoid infinite recursion by setting a temporary strRepr
+        # Avoid infinite recursion
         self._str = "Forward: ..."
         try:
             self._str = "Forward: " + text(self.expr)[:1000]
@@ -759,13 +759,13 @@ class Combine(TokenConverter):
         super(Combine, self).__init__(expr.streamline())
         self.set_config(separator=separator)
 
-    def parseImpl(self, string, start, doActions=True):
-        result = self.expr.parseImpl(string, start, doActions=doActions)
+    def parse_impl(self, string, start, do_actions=True):
+        result = self.expr.parse_impl(string, start, do_actions=do_actions)
         output = ParseResults(
             self,
             start,
             result.end,
-            [result.asString(sep=self.parser_config.separator)],
+            [result.as_string(sep=self.parser_config.separator)],
             result.failures,
         )
         return output
@@ -823,7 +823,7 @@ class Dict(Group):
 
     def __init__(self, expr):
         Group.__init__(self, expr)
-        self.parseAction.append(_dict_post_parse)
+        self.parse_action.append(_dict_post_parse)
 
 
 class OpenDict(TokenConverter):
@@ -835,7 +835,7 @@ class OpenDict(TokenConverter):
 
     def __init__(self, expr):
         TokenConverter.__init__(self, expr)
-        self.parseAction.append(_dict_post_parse)
+        self.parse_action.append(_dict_post_parse)
 
 
 def _dict_post_parse(tokens, loc, string):
@@ -865,7 +865,7 @@ class Suppress(TokenConverter):
 
     def __init__(self, expr):
         TokenConverter.__init__(self, expr)
-        self.parseAction.append(_suppress_post_parse)
+        self.parse_action.append(_suppress_post_parse)
 
     def suppress(self):
         return self
@@ -923,7 +923,7 @@ class PrecededBy(LookAhead):
         else:
             self.set_config(retreat=expr.min_length(), exact=False)
 
-    def parseImpl(self, string, start=0, doActions=True):
+    def parse_impl(self, string, start=0, do_actions=True):
         if self.parser_config.exact:
             loc = start - self.parser_config.retreat
             if loc < 0:

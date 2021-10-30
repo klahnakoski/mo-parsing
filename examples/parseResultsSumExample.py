@@ -1,7 +1,7 @@
 #
 # parseResultsSumExample.py
 #
-# Sample script showing the value in merging ParseResults retrieved by searchString,
+# Sample script showing the value in merging ParseResults retrieved by search_string,
 # using Python's builtin sum() method
 #
 
@@ -24,7 +24,7 @@ for test in (
     samplestr3,
     samplestr4,
 ):
-    person = sum(person_data.searchString(test))
+    person = sum(person_data.search_string(test))
 
 
 

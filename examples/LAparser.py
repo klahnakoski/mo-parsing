@@ -130,15 +130,15 @@ expop = Literal("^")
 assignop = Literal("=")
 
 expr = Forward()
-atom = (e | floatnumber | integer | ident).addParseAction(_pushFirst) | (
+atom = (e | floatnumber | integer | ident).add_parse_action(_pushFirst) | (
     lpar + expr.suppress() + rpar
 )
 factor = Forward()
-factor << atom + ZeroOrMore((expop + factor).addParseAction(_pushFirst))
+factor << atom + ZeroOrMore((expop + factor).add_parse_action(_pushFirst))
 
-term = factor + ZeroOrMore((multop + factor).addParseAction(_pushFirst))
-expr << term + ZeroOrMore((addop + term).addParseAction(_pushFirst))
-equation = (ident + assignop).addParseAction(_assignVar) + expr + StringEnd()
+term = factor + ZeroOrMore((multop + factor).add_parse_action(_pushFirst))
+expr << term + ZeroOrMore((addop + term).add_parse_action(_pushFirst))
+equation = (ident + assignop).add_parse_action(_assignVar) + expr + StringEnd()
 
 # End of grammar definition
 # -----------------------------------------------------------------------------
@@ -318,7 +318,7 @@ def parse(input_string):
     if input_string != "":
         # try parsing the input string
         try:
-            L = equation.parseString(input_string)
+            L = equation.parse_string(input_string)
         except ParseException as err:
 
 

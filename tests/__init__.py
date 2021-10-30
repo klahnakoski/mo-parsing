@@ -2,6 +2,7 @@
 from mo_future import text
 
 from mo_parsing.core import ParserElement
+
 # from mo_parsing.debug import Debugger
 from mo_parsing.exceptions import ParseException
 from mo_parsing.results import ParseResults
@@ -9,10 +10,10 @@ from mo_parsing.tokens import Literal
 from mo_parsing.utils import Log
 
 
-def runTests(
+def run_tests(
     self,
     tests,
-    parseAll=True,
+    parse_all=True,
     comment="#",
     fullDump=True,
     printResults=True,
@@ -27,7 +28,7 @@ def runTests(
 
     Parameters:
      - tests - a list of separate test strings, or a multiline string of test strings
-     - parseAll - (default= ``True``) - flag to pass to `parseString` when running tests
+     - parse_all - (default= ``True``) - flag to pass to `parse_string` when running tests
      - comment - (default= ``'#'``) - expression for indicating embedded comments in the test
           string; pass None to disable comment filtering
      - fullDump - (default= ``True``) - dump results as list followed by results names in nested outline;
@@ -47,7 +48,7 @@ def runTests(
 
         number_expr = number.copy()
 
-        result = test.runTests(number_expr, '''
+        result = test.run_tests(number_expr, '''
             # unsigned integer
             100
             # negative integer
@@ -59,7 +60,7 @@ def runTests(
             ''')
 
 
-        result = test.runTests(number_expr, '''
+        result = test.run_tests(number_expr, '''
             # stray character
             100Z
             # missing leading digit before '.'
@@ -120,7 +121,7 @@ def runTests(
         comment = Literal(comment)
 
     allResults = []
-    NL = Literal(r"\n").addParseAction(lambda: "\n")
+    NL = Literal(r"\n").add_parse_action(lambda: "\n")
     BOM = u"\ufeff"
     for i, (t, failureTest) in enumerate(zip(
         tests,
@@ -135,8 +136,8 @@ def runTests(
             continue
         try:
             # convert newline marks to actual newlines, and strip leading BOM if present
-            t = NL.streamline().transformString(t.lstrip(BOM))
-            result = self.parseString(t, parseAll=parseAll)
+            t = NL.streamline().transform_string(t.lstrip(BOM))
+            result = self.parse_string(t, parse_all=parse_all)
         except ParseException as pe:
             if not failureTest:
                 error("can not parse {{sql}}", sql=t, cause=pe)
@@ -174,4 +175,4 @@ def runTests(
     return True, allResults
 
 
-ParserElement.runTests = runTests
+ParserElement.run_tests = run_tests

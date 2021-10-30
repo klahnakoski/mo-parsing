@@ -13,7 +13,7 @@ from mo_parsing.helpers import ipv4_address
 
 integer = Word(nums)
 ipAddress = ipv4_address()
-hostname = delimitedList(Word(alphas, alphanums + "-_"), ".", combine=True)
+hostname = delimited_list(Word(alphas, alphanums + "-_"), ".", combine=True)
 tdStart, tdEnd = makeHTMLTags("td")
 timeServerPattern = (
     tdStart
@@ -33,6 +33,6 @@ with urlopen(nistTimeServerURL) as serverListPage:
     serverListHTML = serverListPage.read().decode("UTF-8")
 
 addrs = {}
-for srvr, startloc, endloc in timeServerPattern.scanString(serverListHTML):
+for srvr, startloc, endloc in timeServerPattern.scan_string(serverListHTML):
 
     addrs[srvr.ipAddr] = srvr.end

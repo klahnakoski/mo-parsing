@@ -10,9 +10,9 @@
 from mo_parsing import Word, ZeroOrMore
 from mo_parsing.utils import nums
 
-aExpr = Word("A", nums)
-bExpr = Word("B", nums)
-cExpr = Word("C", nums)
-grammar = ZeroOrMore(aExpr("A*") | bExpr("B*") | cExpr("C*"))
+a_expr = Word("A", nums)
+b_expr = Word("B", nums)
+c_expr = Word("C", nums)
+grammar = ZeroOrMore(a_expr("A*") | b_expr("B*") | c_expr("C*"))
 
-grammar.runTests("A1 B1 A2 C1 B2 A3")
+grammar.run_tests("A1 B1 A2 C1 B2 A3")

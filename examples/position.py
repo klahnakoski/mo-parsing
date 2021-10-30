@@ -13,7 +13,7 @@ mollit anim id est laborum"""
 vowels = "aeiouAEIOU"
 initialVowelWord = Word(vowels, alphas)
 
-# Unfortunately, searchString will advance character by character through
+# Unfortunately, search_string will advance character by character through
 # the input text, so it will detect that the initial "Lorem" is not an
 # initialVowelWord, but then it will test "orem" and think that it is. So
 # we need to add a do-nothing term that will match the words that start with
@@ -30,21 +30,21 @@ def addLocnToTokens(t, l, s):
     t["word"] = t[0]
 
 
-initialVowelWord.addParseAction(addLocnToTokens)
+initialVowelWord.add_parse_action(addLocnToTokens)
 
-for ivowelInfo in (initialConsWord | initialVowelWord).searchString(text):
+for ivowelInfo in (initialConsWord | initialVowelWord).search_string(text):
     if not ivowelInfo:
         continue
 
 
 # alternative - add an Empty that will save the current location
 def location(name):
-    return Empty().addParseAction(lambda t, l, s: t.__setitem__(name, l))
+    return Empty().add_parse_action(lambda t, l, s: t.__setitem__(name, l))
 
 
 locateInitialVowels = location("locn") + initialVowelWord("word")
 
 # search through the input text
-for ivowelInfo in (initialConsWord | locateInitialVowels).searchString(text):
+for ivowelInfo in (initialConsWord | locateInitialVowels).search_string(text):
     if not ivowelInfo:
         continue

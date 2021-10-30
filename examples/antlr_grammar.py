@@ -30,10 +30,10 @@ from mo_parsing import (
     Forward,
     MatchFirst,
     And,
-    oneOf,
+    one_of,
     alphas,
     alphanums,
-    delimitedList,
+    delimited_list,
     Char,
 )
 
@@ -87,11 +87,11 @@ EOL = Suppress(LineEnd())  # $
 SGL_PRINTABLE = Char(printables)
 singleTextString = originalTextFor(
     ZeroOrMore(~EOL + (White(" \t") | Word(printables)))
-).leaveWhitespace()
+).leave_whitespace()
 XDIGIT = hexnums
 INT = Word(nums)
 ESC = BSLASH + (
-    oneOf(list(r"nrtbf\">" + "'")) | ("u" + Word(hexnums, exact=4)) | SGL_PRINTABLE
+    one_of(list(r"nrtbf\">" + "'")) | ("u" + Word(hexnums, exact=4)) | SGL_PRINTABLE
 )
 LITERAL_CHAR = ESC | ~(APOS | BSLASH) + SGL_PRINTABLE
 CHAR_LITERAL = APOS + LITERAL_CHAR + APOS
@@ -181,13 +181,13 @@ grammarHeading = (
 
 modifier = PROTECTED | PUBLIC | PRIVATE | FRAGMENT
 ruleAction = AT + id + ACTION
-throwsSpec = THROWS.suppress() + delimitedList(id)
+throwsSpec = THROWS.suppress() + delimited_list(id)
 ruleScopeSpec = (
     (SCOPE_.suppress() + ACTION)
-    | (SCOPE_.suppress() + delimitedList(id) + SEMI)
-    | (SCOPE_.suppress() + ACTION + SCOPE_.suppress() + delimitedList(id) + SEMI)
+    | (SCOPE_.suppress() + delimited_list(id) + SEMI)
+    | (SCOPE_.suppress() + ACTION + SCOPE_.suppress() + delimited_list(id) + SEMI)
 )
-unary_op = oneOf("^ !")
+unary_op = one_of("^ !")
 notTerminal = CHAR_LITERAL | TOKEN_REF | STRING_LITERAL
 terminal = (
     CHAR_LITERAL | TOKEN_REF + Optional(ARG_ACTION) | STRING_LITERAL | "."
@@ -203,11 +203,11 @@ atom = Group(
 )
 element = Forward()
 treeSpec = ROOT + LPAR + element * (2,) + RPAR
-ebnfSuffix = oneOf("? * +")
+ebnfSuffix = one_of("? * +")
 ebnf = block + Optional(ebnfSuffix("op") | "=>")
 elementNoOptionSpec = (
-    (id("result_name") + oneOf("= +=")("labelOp") + atom("atom") + Optional(ebnfSuffix))
-    | (id("result_name") + oneOf("= +=")("labelOp") + block + Optional(ebnfSuffix))
+    (id("result_name") + one_of("= +=")("labelOp") + atom("atom") + Optional(ebnfSuffix))
+    | (id("result_name") + one_of("= +=")("labelOp") + block + Optional(ebnfSuffix))
     | atom("atom") + Optional(ebnfSuffix)
     | ebnf
     | ACTION
@@ -322,10 +322,10 @@ def __antlrRuleConverter(mo_parsingRules, antlrRule):
 def antlrConverter(antlrGrammarTree):
     mo_parsingRules = {}
 
-    antlrTokens = {}
+    antlr_tokens = {}
     for antlrToken in antlrGrammarTree.tokens:
-        antlrTokens[antlrToken.token_ref] = antlrToken.lit
-    for antlrTokenName, antlrToken in list(antlrTokens.items()):
+        antlr_tokens[antlrToken.token_ref] = antlrToken.lit
+    for antlrTokenName, antlrToken in list(antlr_tokens.items()):
         mo_parsingRules[antlrTokenName] = Literal(antlrToken)
 
     antlrRules = {}

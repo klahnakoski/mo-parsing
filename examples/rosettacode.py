@@ -7,7 +7,7 @@
 #
 from mo_parsing import whitespaces
 from mo_parsing.helpers import QuotedString, integer, identifier, cppStyleComment
-from mo_parsing.infix import oneOf, delimitedList
+from mo_parsing.infix import one_of, delimited_list
 
 BNF = """
     stmt_list           =   {stmt} ;
@@ -54,20 +54,20 @@ identifier = ~any_keyword + identifier
 string = QuotedString('"', convert_whitespace_escape=False).set_parser_name("quoted string")
 char = Regex(r"'\\?.'")
 
-expr = infixNotation(
+expr = infix_notation(
     identifier | integer | char,
     [
-        (oneOf("+ - !"), 1, RIGHT_ASSOC,),
-        (oneOf("* / %"), 2, LEFT_ASSOC,),
-        (oneOf("+ -"), 2, LEFT_ASSOC,),
-        (oneOf("< <= > >="), 2, LEFT_ASSOC,),
-        (oneOf("== !="), 2, LEFT_ASSOC,),
-        (oneOf("&&"), 2, LEFT_ASSOC,),
-        (oneOf("||"), 2, LEFT_ASSOC,),
+        (one_of("+ - !"), 1, RIGHT_ASSOC,),
+        (one_of("* / %"), 2, LEFT_ASSOC,),
+        (one_of("+ -"), 2, LEFT_ASSOC,),
+        (one_of("< <= > >="), 2, LEFT_ASSOC,),
+        (one_of("== !="), 2, LEFT_ASSOC,),
+        (one_of("&&"), 2, LEFT_ASSOC,),
+        (one_of("||"), 2, LEFT_ASSOC,),
     ],
 )
 
-prt_list = Group(delimitedList(string | expr))
+prt_list = Group(delimited_list(string | expr))
 paren_expr = Group(LPAR + expr + RPAR)
 
 stmt = Forward()
@@ -276,5 +276,5 @@ tests = [
 ]
 
 for test in tests:
-    results = code.parseString(test)
+    results = code.parse_string(test)
 

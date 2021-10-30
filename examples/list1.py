@@ -12,12 +12,12 @@ lbrack = Literal("[")
 rbrack = Literal("]")
 integer = Word(nums).set_parser_name("integer")
 real = Combine(
-    Optional(oneOf("+ -")) + Word(nums) + "." + Optional(Word(nums))
+    Optional(one_of("+ -")) + Word(nums) + "." + Optional(Word(nums))
 ).set_parser_name("real")
 
-listItem = real | integer | quotedString
+listItem = real | integer | quoted_string
 
-listStr = lbrack + delimitedList(listItem) + rbrack
+listStr = lbrack + delimited_list(listItem) + rbrack
 
 test = "['a', 100, 3.14]"
 
@@ -28,15 +28,15 @@ lbrack = Literal("[").suppress()
 rbrack = Literal("]").suppress()
 cvtInt = lambda toks, l, s: int(toks[0])
 cvtReal = lambda toks, l, s: float(toks[0])
-integer = Word(nums).set_parser_name("integer").addParseAction(cvtInt)
+integer = Word(nums).set_parser_name("integer").add_parse_action(cvtInt)
 real = (
-    Combine(Optional(oneOf("+ -")) + Word(nums) + "." + Optional(Word(nums)))
+    Combine(Optional(one_of("+ -")) + Word(nums) + "." + Optional(Word(nums)))
     .set_parser_name("real")
-    .addParseAction(cvtReal)
+    .add_parse_action(cvtReal)
 )
-listItem = real | integer | quotedString.addParseAction(removeQuotes)
+listItem = real | integer | quoted_string.add_parse_action(removeQuotes)
 
-listStr = lbrack + delimitedList(listItem) + rbrack
+listStr = lbrack + delimited_list(listItem) + rbrack
 
 test = "['a', 100, 3.14]"
 
@@ -44,15 +44,15 @@ test = "['a', 100, 3.14]"
 # third pass, add nested list support
 lbrack, rbrack = map(Suppress, "[]")
 
-cvtInt = tokenMap(int)
-cvtReal = tokenMap(float)
+cvtInt = token_map(int)
+cvtReal = token_map(float)
 
-integer = Word(nums).set_parser_name("integer").addParseAction(cvtInt)
-real = Regex(r"[+-]?\d+\.\d*").set_parser_name("real").addParseAction(cvtReal)
+integer = Word(nums).set_parser_name("integer").add_parse_action(cvtInt)
+real = Regex(r"[+-]?\d+\.\d*").set_parser_name("real").add_parse_action(cvtReal)
 
 listStr = Forward()
-listItem = real | integer | quotedString.addParseAction(removeQuotes) | Group(listStr)
-listStr << lbrack + delimitedList(listItem) + rbrack
+listItem = real | integer | quoted_string.add_parse_action(removeQuotes) | Group(listStr)
+listStr << lbrack + delimited_list(listItem) + rbrack
 
 test = "['a', 100, 3.14, [ +2.718, 'xyzzy', -1.414] ]"
 

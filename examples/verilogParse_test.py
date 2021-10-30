@@ -4,7 +4,7 @@ from mo_parsing import ParseException
 
 def test(strng):
     try:
-        tokens = Verilog_BNF().parseString(strng)
+        tokens = Verilog_BNF().parse_string(strng)
     except ParseException as err:
         raise err
 

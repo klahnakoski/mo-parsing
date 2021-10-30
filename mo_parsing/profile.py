@@ -56,26 +56,26 @@ class Profiler(object):
 timing = {}
 
 
-def _profile_parse(self, string, start, doActions=True):
+def _profile_parse(self, string, start, do_actions=True):
     all_start = process_time()
     try:
         try:
             # preloc = self.whitespace.skip(string, start)
             preloc = start
             parse_start = process_time()
-            tokens = self.parseImpl(string, preloc, doActions)
+            tokens = self.parse_impl(string, preloc, do_actions)
             parse_end = process_time()
             match = 1
         except Exception as cause:
             parse_end = process_time()
             match = 2
-            self.parser_config.failAction and self.parser_config.failAction(
+            self.parser_config.fail_action and self.parser_config.fail_action(
                 self, start, string, cause
             )
             raise
 
-        if self.parseAction and (doActions or self.parser_config.callDuringTry):
-            for fn in self.parseAction:
+        if self.parse_action and (do_actions or self.parser_config.callDuringTry):
+            for fn in self.parse_action:
                 tokens = fn(tokens, start, string)
 
         return tokens

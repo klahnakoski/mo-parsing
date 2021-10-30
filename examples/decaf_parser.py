@@ -60,9 +60,9 @@ from mo_parsing.helpers import (
     integer,
     real,
     dblQuotedString,
-    delimitedList,
+    delimited_list,
     infixNotation,
-    oneOf,
+    one_of,
     opAssoc,
 )
 
@@ -101,7 +101,7 @@ keywords = MatchFirst(list(keywords))
 LPAR, RPAR, LBRACE, RBRACE, LBRACK, RBRACK, DOT, EQ, COMMA, SEMI = map(
     Suppress, "(){}[].=,;"
 )
-hexConstant = Regex(r"0[xX][0-9a-fA-F]+").addParseAction(lambda t: int(t[0][2:], 16))
+hexConstant = Regex(r"0[xX][0-9a-fA-F]+").add_parse_action(lambda t: int(t[0][2:], 16))
 intConstant = hexConstant | integer
 doubleConstant = real
 boolConstant = TRUE | FALSE
@@ -116,7 +116,7 @@ variable_decl = variable + SEMI
 
 expr = Forward()
 expr_parens = Group(LPAR + expr + RPAR)
-actuals = Optional(delimitedList(expr))
+actuals = Optional(delimited_list(expr))
 call = Group(
     ident("call_ident") + LPAR + actuals("call_args") + RPAR
     | (expr_parens + ZeroOrMore(DOT + ident))("call_ident_expr")
@@ -139,18 +139,18 @@ arith_expr = infixNotation(
     rvalue,
     [
         ("-", 1, RIGHT_ASSOC,),
-        (oneOf("* / %"), 2, LEFT_ASSOC,),
-        (oneOf("+ -"), 2, LEFT_ASSOC,),
+        (one_of("* / %"), 2, LEFT_ASSOC,),
+        (one_of("+ -"), 2, LEFT_ASSOC,),
     ],
 )
 comparison_expr = infixNotation(
     arith_expr,
     [
         ("!", 1, RIGHT_ASSOC,),
-        (oneOf("< > <= >="), 2, LEFT_ASSOC,),
-        (oneOf("== !="), 2, LEFT_ASSOC,),
-        (oneOf("&&"), 2, LEFT_ASSOC,),
-        (oneOf("||"), 2, LEFT_ASSOC,),
+        (one_of("< > <= >="), 2, LEFT_ASSOC,),
+        (one_of("== !="), 2, LEFT_ASSOC,),
+        (one_of("&&"), 2, LEFT_ASSOC,),
+        (one_of("||"), 2, LEFT_ASSOC,),
     ],
 )
 expr <<= (
@@ -171,7 +171,7 @@ stmt = Forward()
 print_stmt = Group(
     PRINT("statement")
     + LPAR
-    + Group(Optional(delimitedList(expr)))("args")
+    + Group(Optional(delimited_list(expr)))("args")
     + RPAR
     + SEMI
 )
@@ -209,7 +209,7 @@ stmt <<= (
     | Group(expr + SEMI)
 )
 
-formals = Optional(delimitedList(variable))
+formals = Optional(delimited_list(variable))
 prototype = Group(
     (type_ | VOID)("return_type")
     + ident("function_name")
@@ -239,7 +239,7 @@ class_decl = Group(
     CLASS
     + ident("class_name")
     + Optional(EXTENDS + ident)("extends")
-    + Optional(IMPLEMENTS + delimitedList(ident))("implements")
+    + Optional(IMPLEMENTS + delimited_list(ident))("implements")
     + LBRACE
     + ZeroOrMore(field)("fields")
     + RBRACE
@@ -249,7 +249,7 @@ decl = variable_decl | function_decl | class_decl | interface_decl | prototype
 program = OneOrMore(Group(decl))
 decaf_parser = program
 
-stmt.runTests(
+stmt.run_tests(
     """\
     sin(30);
     a = 1;

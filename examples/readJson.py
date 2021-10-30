@@ -1902,7 +1902,7 @@ s = """
 
 from examples.jsonParser import jsonObject
 
-data = jsonObject.parseString(s)
+data = jsonObject.parse_string(s)
 
 expected = [
     {"last_update":"1188037561", "numofapproved":"1", "id":"7425"},

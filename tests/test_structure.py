@@ -9,7 +9,7 @@ w = Word(alphas)
 
 class TestStructure(PyparsingExpressionTestCase):
     def test_and(self):
-        self.runTest(
+        self.run_test(
             expr=Group((w + w)("name")),
             text="a b",
             expected_list=["a", "b"],
@@ -17,14 +17,14 @@ class TestStructure(PyparsingExpressionTestCase):
         )
 
     def test_or(self):
-        self.runTest(
+        self.run_test(
             expr=Group((w | w)("name")),
             text="c",
             expected_list=["c"],
             expected_dict={"name": "c"},
         )
 
-        self.runTest(
+        self.run_test(
             expr=Group(Group(w | w)("name")),
             text="c",
             expected_list=[["c"]],
@@ -32,21 +32,21 @@ class TestStructure(PyparsingExpressionTestCase):
         )
 
     def test_group(self):
-        self.runTest(
+        self.run_test(
             expr=Group((w + w)("name")),
             text="a b",
             expected_list=["a", "b"],
             expected_dict={"name": ["a", "b"]},
         )
 
-        self.runTest(
+        self.run_test(
             expr=Group(Group(w + w)("name")),
             text="a b",
             expected_list=[["a", "b"]],
             expected_dict={"name": ["a", "b"]},
         )
 
-        self.runTest(
+        self.run_test(
             expr=Group(Group(Group(w + w))("name")),
             text="a b",
             expected_list=[[["a", "b"]]],
@@ -54,33 +54,32 @@ class TestStructure(PyparsingExpressionTestCase):
         )
 
     def test_forward(self):
-        self.runTest(
+        self.run_test(
             expr=Group(Forward(w + w)("name")),
             text="a b",
             expected_list=["a", "b"],
             expected_dict={"name": ["a", "b"]},
         )
 
-        self.runTest(
+        self.run_test(
             expr=Group(Forward(w | w)("name")),
             text="c",
             expected_list=["c"],
             expected_dict={"name": "c"},
         )
 
-        self.runTest(
+        self.run_test(
             expr=Group(Forward(Forward(w | w))("name")),
             text="c",
             expected_list=["c"],
             expected_dict={"name": "c"},
         )
 
-
     def test_forward_actions(self):
         acc = []
-        expr = Forward().addParseAction(lambda: acc.append("forward"))
-        A = w.addParseAction(lambda: acc.append("A"))
-        B = w.addParseAction(lambda: acc.append("B"))
+        expr = Forward().add_parse_action(lambda: acc.append("forward"))
+        A = w.add_parse_action(lambda: acc.append("A"))
+        B = w.add_parse_action(lambda: acc.append("B"))
 
         expr << A | B
 
@@ -88,11 +87,10 @@ class TestStructure(PyparsingExpressionTestCase):
 
         acc.clear()
         expr << A
-        E.parseString("x")
+        E.parse_string("x")
         self.assertEqual(acc, ["A", "forward"])
 
         acc.clear()
         expr << B
-        E.parseString("x")
+        E.parse_string("x")
         self.assertEqual(acc, ["B", "forward"])
-

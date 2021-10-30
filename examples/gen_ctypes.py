@@ -10,7 +10,7 @@ from mo_parsing.utils import alphas, alphanums
 from mo_parsing.helpers import cStyleComment, cppStyleComment
 
 from mo_parsing import *
-from mo_parsing.infix import delimitedList, oneOf
+from mo_parsing.infix import delimited_list, one_of
 
 typemap = {
     "byte": "c_byte",
@@ -55,7 +55,7 @@ integer = Regex(r"[+-]?\d+")
 hexinteger = Regex(r"0x[0-9a-fA-F]+")
 
 const = Suppress("const")
-primitiveType = oneOf(t for t in typemap if not t.endswith("*"))
+primitiveType = one_of(t for t in typemap if not t.endswith("*"))
 structType = Suppress("struct") + ident
 vartype = (
     Optional(const) + (primitiveType | structType | ident) + Optional(Word("*")("ptr"))
@@ -69,14 +69,14 @@ def normalizetype(t):
         # ~ return ret
 
 
-vartype.addParseAction(normalizetype)
+vartype.add_parse_action(normalizetype)
 
 arg = Group(vartype("argtype") + Optional(ident("argname")))
 func_def = (
     vartype("fn_type")
     + ident("fn_name")
     + LPAR
-    + Optional(delimitedList(arg | "..."))("fn_args")
+    + Optional(delimited_list(arg | "..."))("fn_args")
     + RPAR
     + SEMI
 )
@@ -87,7 +87,7 @@ def derivefields(t):
         t["varargs"] = True
 
 
-func_def.addParseAction(derivefields)
+func_def.add_parse_action(derivefields)
 
 fn_typedef = "typedef" + func_def
 var_typedef = "typedef" + primitiveType("primType") + ident("name") + SEMI
@@ -95,7 +95,7 @@ var_typedef = "typedef" + primitiveType("primType") + ident("name") + SEMI
 enum_def = (
     Keyword("enum")
     + LBRACE
-    + delimitedList(Group(ident("name") + "=" + (hexinteger | integer)("value")))(
+    + delimited_list(Group(ident("name") + "=" + (hexinteger | integer)("value")))(
         "evalues"
     )
     + Optional(COMMA)
@@ -140,13 +140,13 @@ def typeAsCtypes(typestr):
 
 
 # scan input header text for primitive typedefs
-for td, _, _ in var_typedef.scanString(c_header):
+for td, _, _ in var_typedef.scan_string(c_header):
     typedefs.append((td.name, td.primType))
     # add typedef type to typemap to map to itself
     typemap[td.name] = td.name
 
 # scan input header text for function typedefs
-fn_typedefs = fn_typedef.searchString(c_header)
+fn_typedefs = fn_typedef.search_string(c_header)
 # add each function typedef to typemap to map to itself
 for fntd in fn_typedefs:
     typemap[fntd.fn_name] = fntd.fn_name
@@ -154,7 +154,7 @@ for fntd in fn_typedefs:
 # scan input header text, and keep running list of user-defined types
 for fn, _, _ in (
     cStyleComment.suppress() | fn_typedef.suppress() | func_def
-).scanString(c_header):
+).scan_string(c_header):
     if not fn:
         continue
     getUDType(fn.fn_type)
@@ -166,7 +166,7 @@ for fn, _, _ in (
 
 # scan input header text for enums
 enum_def.ignore(cppStyleComment)
-for en_, _, _ in enum_def.scanString(c_header):
+for en_, _, _ in enum_def.scan_string(c_header):
     for ev in en_.evalues:
         enum_constants.append((ev.name, ev.value))
 

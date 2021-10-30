@@ -89,7 +89,7 @@ from mo_parsing import (
     Forward,
     Suppress,
     OneOrMore,
-    oneOf,
+    one_of,
 )
 import re
 
@@ -188,7 +188,7 @@ class BooleanSearchParser:
                 operatorNot + Suppress(Keyword("and", caseless=True)) + operatorAnd
             ).set_token_name("and")
             | Group(
-                operatorNot + OneOrMore(~oneOf("and or") + operatorAnd)
+                operatorNot + OneOrMore(~one_of("and or") + operatorAnd)
             ).set_token_name("and")
             | operatorNot
         )
@@ -200,7 +200,7 @@ class BooleanSearchParser:
             | operatorAnd
         )
 
-        return operatorOr.parseString
+        return operatorOr.parse_string
 
     def evaluateAnd(self, argument):
         return all(self.evaluate(arg) for arg in argument)
@@ -254,7 +254,7 @@ class BooleanSearchParser:
         return self.GetWordWildcard(argument[0], method="startswith")
 
     def evaluate(self, argument):
-        return self._methods[argument.getName()](argument)
+        return self._methods[argument.get_name()](argument)
 
     def Parse(self, query):
         return self.evaluate(self._parser(query)[0])

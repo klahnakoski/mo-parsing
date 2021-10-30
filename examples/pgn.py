@@ -9,13 +9,13 @@
 #
 # Copyright 2004, by Alberto Santini http://www.albertosantini.it/chess/
 #
-from mo_parsing import alphanums, nums, quotedString
+from mo_parsing import alphanums, nums, quoted_string
 from mo_parsing import (
     Combine,
     Forward,
     Group,
     Literal,
-    oneOf,
+    one_of,
     OneOrMore,
     Optional,
     Suppress,
@@ -28,17 +28,17 @@ from mo_parsing import ParseException
 # define pgn grammar
 #
 
-tag = Suppress("[") + Word(alphanums) + Combine(quotedString) + Suppress("]")
+tag = Suppress("[") + Word(alphanums) + Combine(quoted_string) + Suppress("]")
 comment = Suppress("{") + Word(alphanums + " ") + Suppress("}")
 
 dot = Literal(".")
-piece = oneOf("K Q B N R")
-file_coord = oneOf("a b c d e f g h")
-rank_coord = oneOf("1 2 3 4 5 6 7 8")
-capture = oneOf("x :")
+piece = one_of("K Q B N R")
+file_coord = one_of("a b c d e f g h")
+rank_coord = one_of("1 2 3 4 5 6 7 8")
+capture = one_of("x :")
 promote = Literal("=")
-castle_queenside = oneOf("O-O-O 0-0-0 o-o-o")
-castle_kingside = oneOf("O-O 0-0 o-o")
+castle_queenside = one_of("O-O-O 0-0-0 o-o-o")
+castle_kingside = one_of("O-O 0-0 o-o")
 
 move_number = Optional(comment) + Word(nums) + dot
 m1 = file_coord + rank_coord  # pawn move e.g. d4
@@ -50,7 +50,7 @@ m6 = piece + rank_coord + file_coord + rank_coord  # piece move e.g. R4a7
 m7 = piece + capture + file_coord + rank_coord  # piece capture move e.g. Bxh7
 m8 = castle_queenside | castle_kingside  # castling e.g. o-o
 
-check = oneOf("+ ++")
+check = one_of("+ ++")
 mate = Literal("#")
 annotation = Word("!?", max=2)
 nag = " $" + Word(nums)
@@ -68,7 +68,7 @@ variant << "(" + OneOrMore(move) + ")"
 # suggested by Paul McGuire :)
 move = Group(Suppress(move_number) + half_move + Optional(half_move))
 variant << Group("(" + OneOrMore(move) + ")")
-game_terminator = oneOf("1-0 0-1 1/2-1/2 *")
+game_terminator = one_of("1-0 0-1 1/2-1/2 *")
 
 pgnGrammar = (
     Suppress(ZeroOrMore(tag)) + ZeroOrMore(move) + Optional(Suppress(game_terminator))
@@ -77,7 +77,7 @@ pgnGrammar = (
 
 def parsePGN(pgn, bnf=pgnGrammar, fn=None):
     try:
-        return bnf.parseString(pgn)
+        return bnf.parse_string(pgn)
     except ParseException as err:
 
 

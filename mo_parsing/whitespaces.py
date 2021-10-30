@@ -23,7 +23,7 @@ class Whitespace(ParserElement):
         self.literal = Literal
         self.keyword_chars = alphanums + "_$"
         self.ignore_list = []
-        self.debugActions = DebugActions(noop, noop, noop)
+        self.debug_actions = DebugActions(noop, noop, noop)
         self.all_exceptions = {}
         self.content = None
         self.skips = {}
@@ -39,7 +39,7 @@ class Whitespace(ParserElement):
         output.literal = self.literal
         output.keyword_chars = self.keyword_chars
         output.ignore_list = list(self.ignore_list)
-        output.debugActions = self.debugActions
+        output.debug_actions = self.debug_actions
         output.all_exceptions = self.all_exceptions
         output.content = None
         output.skips = {}
@@ -131,7 +131,7 @@ class Whitespace(ParserElement):
     def backup(self):
         return Backup(self)
 
-    def parseImpl(self, string, start, doActions=True):
+    def parse_impl(self, string, start, do_actions=True):
         end = self.skip(string, start)
         return ParseResults(
             self.expr, start, end, [], ["add exceptions for missed whitespace"]

@@ -8,7 +8,7 @@ from tests.test_simple_unit import PyparsingExpressionTestCase
 
 class TestRegexParsing(PyparsingExpressionTestCase):
     def test_parsing_real_numbers_using_regex_instead_of_combine(self):
-        self.runTest(
+        self.run_test(
             desc="Parsing real numbers - using Regex instead of Combine",
             expr=(Regex(r"\d+\.\d+") / (lambda t: float(t[0])))[...],
             text="1.2 2.3 3.1416 98.6",
@@ -24,17 +24,17 @@ class TestRegexParsing(PyparsingExpressionTestCase):
 
         signedInt = Regex(r"[-+][0-9]+")
         unsignedInt = Regex(r"[0-9]+")
-        simpleString = Regex(r'("[^\"]*")|(\'[^\']*\')')
+        simple_string = Regex(r'("[^\"]*")|(\'[^\']*\')')
         namedGrouping = Regex(r'("(?P<content>[^\"]*)")').capture_groups()
         compiledRE = Regex(re.compile(r"[A-Z]+").pattern)
 
-        def testMatch(expression, instring, shouldPass, expectedString=None):
+        def testMatch(expression, instring, shouldPass, expected_string=None):
             if shouldPass:
-                result = expression.parseString(instring)
-                self.assertEqual(result, expectedString)
+                result = expression.parse_string(instring)
+                self.assertEqual(result, expected_string)
             else:
                 with self.assertRaises(Exception):
-                    expression.parseString(instring)
+                    expression.parse_string(instring)
 
             return True
 
@@ -52,14 +52,14 @@ class TestRegexParsing(PyparsingExpressionTestCase):
             testMatch(unsignedInt, "+123 foo", False), "Re: (4) passed, expected fail"
         )
         self.assertTrue(
-            testMatch(simpleString, "foo", False), "Re: (5) passed, expected fail"
+            testMatch(simple_string, "foo", False), "Re: (5) passed, expected fail"
         )
         self.assertTrue(
-            testMatch(simpleString, "\"foo bar'", False),
+            testMatch(simple_string, "\"foo bar'", False),
             "Re: (6) passed, expected fail",
         )
         self.assertTrue(
-            testMatch(simpleString, "'foo bar\"", False),
+            testMatch(simple_string, "'foo bar\"", False),
             "Re: (7) passed, expected fail",
         )
 
@@ -85,11 +85,11 @@ class TestRegexParsing(PyparsingExpressionTestCase):
             testMatch(unsignedInt, "0 foo", True, "0"), "Re: (13) failed, expected pass"
         )
         self.assertTrue(
-            testMatch(simpleString, '"foo"', True, '"foo"'),
+            testMatch(simple_string, '"foo"', True, '"foo"'),
             "Re: (14) failed, expected pass",
         )
         self.assertTrue(
-            testMatch(simpleString, "'foo bar' baz", True, "'foo bar'"),
+            testMatch(simple_string, "'foo bar' baz", True, "'foo bar'"),
             "Re: (15) failed, expected pass",
         )
 
@@ -105,12 +105,12 @@ class TestRegexParsing(PyparsingExpressionTestCase):
             testMatch(namedGrouping, '"foo bar" baz', True, '"foo bar"'),
             "Re: (16) failed, expected pass",
         )
-        ret = namedGrouping.parseString('"zork" blah')
+        ret = namedGrouping.parse_string('"zork" blah')
 
         self.assertEqual(ret["content"], "zork", "named group lookup failed")
         self.assertEqual(
             ret[0],
-            simpleString.parseString('"zork" blah')[0],
+            simple_string.parse_string('"zork" blah')[0],
             "Regex not properly returning ParseResults for named vs. unnamed groups",
         )
 
@@ -126,7 +126,7 @@ class TestRegexParsing(PyparsingExpressionTestCase):
 
         expr = Regex(r"\w+ (\d+) (\d+) (\w+)").capture_groups()
         expected_group_list = test_str.split()[1:]
-        result = expr.parseString(test_str)
+        result = expr.parse_string(test_str)
 
         self.assertParseResultsEquals(
             result,
@@ -137,7 +137,7 @@ class TestRegexParsing(PyparsingExpressionTestCase):
         expr = (
             Regex(r"\w+ (?P<num1>\d+) (?P<num2>\d+) (?P<last_word>\w+)").capture_groups()
         )
-        result = expr.parseString(test_str)
+        result = expr.parse_string(test_str)
 
         self.assertEqual(
             result,
@@ -153,7 +153,7 @@ class TestRegexParsing(PyparsingExpressionTestCase):
     def testRegexSub(self):
 
         expr = Regex(r"<title>").sub("'Richard III'")
-        result = expr.transformString("This is the title: <title>")
+        result = expr.transform_string("This is the title: <title>")
 
         self.assertEqual(
             result,
@@ -162,7 +162,7 @@ class TestRegexParsing(PyparsingExpressionTestCase):
         )
 
         expr = Regex(r"([Hh]\d):\s*([^\n]*)").sub(r"<\1>\2</\1>")
-        result = expr.transformString(
+        result = expr.transform_string(
             "h1: This is the main heading\nh2: This is the sub-heading"
         )
 
@@ -173,7 +173,7 @@ class TestRegexParsing(PyparsingExpressionTestCase):
         )
 
         expr = Regex(r"([Hh]\d):\s*([^\n]*)").sub(r"<\1>\2</\1>")
-        result = expr.transformString(
+        result = expr.transform_string(
             "h1: This is the main heading\nh2: This is the sub-heading"
         )
 
@@ -184,7 +184,7 @@ class TestRegexParsing(PyparsingExpressionTestCase):
         )
 
         expr = Regex(r"<((?:(?!>).)*)>").sub(lambda m: m.group(1).upper())
-        result = expr.transformString("I want this in upcase: <what? what?>")
+        result = expr.transform_string("I want this in upcase: <what? what?>")
 
         self.assertEqual(
             result,
