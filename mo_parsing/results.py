@@ -338,7 +338,7 @@ class ParseResults(object):
             self.start,
             other.end,
             self.tokens + other.tokens,
-            self.failures+other.failures
+            self.failures + other.failures,
         )
 
     def __radd__(self, other):
@@ -425,7 +425,9 @@ class ParseResults(object):
         """
         Returns a new copy of a `ParseResults` object.
         """
-        ret = ParseResults(self.type, self.start, self.end, list(self.tokens), self.failures)
+        ret = ParseResults(
+            self.type, self.start, self.end, list(self.tokens), self.failures
+        )
         return ret
 
     def getName(self):

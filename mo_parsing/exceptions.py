@@ -45,9 +45,7 @@ class ParseException(Exception):
             return self
 
         best = sort_causes([
-            c.best_cause
-            for c in self.causes
-            if isinstance(c, ParseException)
+            c.best_cause for c in self.causes if isinstance(c, ParseException)
         ])
         if not best:
             return self

@@ -230,6 +230,14 @@ singleArgBuiltins = [
     max,
 ]
 
+singleArgTypes = [
+    int,
+    float,
+    str,
+    bool,
+    complex,
+]
+
 builtin_lookup = {"".join.__name__: ("iterable",)}
 
 
@@ -352,6 +360,8 @@ def wrap_parse_action(func):
         spec = inspect.getfullargspec(func)
     elif func.__class__.__name__ == "builtin_function_or_method":
         spec = inspect.getfullargspec(func)
+    elif func in singleArgTypes:
+        spec = inspect.FullArgSpec(["value"], None, None, None, [], None, {})
     elif isinstance(func, type):
         spec = inspect.getfullargspec(func.__init__)
         func = func.__call__
@@ -367,9 +377,9 @@ def wrap_parse_action(func):
     else:
         num_args = len(spec.args)
 
-    def wrapper(*args):
+    def wrapper(token, index, string):
         try:
-            token, index, string = args
+            args = token, index, string
             result = func(*args[:num_args])
             if result is None:
                 return token
@@ -379,9 +389,13 @@ def wrap_parse_action(func):
                 return result
 
             if isinstance(result, (list, tuple)):
-                return ParseResults(token.type, token.start, token.end, result, token.failures)
+                return ParseResults(
+                    token.type, token.start, token.end, result, token.failures
+                )
             else:
-                return ParseResults(token.type, token.start, token.end, [result], token.failures)
+                return ParseResults(
+                    token.type, token.start, token.end, [result], token.failures
+                )
         except ParseException as pe:
             raise pe
         except Exception as cause:
@@ -425,7 +439,7 @@ def traceParseAction(f):
         def remove_duplicate_chars(tokens):
             return ''.join(sorted(set(''.join(tokens))))
 
-        wds = OneOrMore(wd).addParseAction(remove_duplicate_chars)
+        wds = OneOrMore(wd) / remove_duplicate_chars
         print(wds.parseString("slkdjs sld sldd sdlf sdljf"))
 
     prints::

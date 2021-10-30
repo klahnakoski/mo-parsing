@@ -51,6 +51,9 @@ class Empty(Token):
     def streamline(self):
         return self
 
+    def reverse(self):
+        return self
+
     def __regex__(self):
         return self.whitespace.__regex__()
 
@@ -74,6 +77,9 @@ class NoMatch(Token):
     def min_length(self):
         return 0
 
+    def reverse(self):
+        return self
+
     def __regex__(self):
         return "+", "a^"
 
@@ -95,6 +101,9 @@ class LookBehind(Token):
     def streamline(self):
         return self
 
+    def reverse(self):
+        return self
+
 
 class AnyChar(Token):
     __slots__ = []
@@ -113,6 +122,9 @@ class AnyChar(Token):
 
     def min_length(self):
         return 1
+
+    def reverse(self):
+        return self
 
     def __regex__(self):
         return "*", "."
@@ -148,6 +160,9 @@ class Literal(Token):
     def _min_length(self):
         return len(self.parser_config.match)
 
+    def reverse(self):
+        return Literal(self.parser_config.match[::-1])
+
     def __regex__(self):
         return "+", re.escape(self.parser_config.match)
 
@@ -161,7 +176,9 @@ class SingleCharLiteral(Literal):
     def parseImpl(self, string, start, doActions=True):
         try:
             if string[start] == self.parser_config.match:
-                return ParseResults(self, start, start + 1, [self.parser_config.match], [])
+                return ParseResults(
+                    self, start, start + 1, [self.parser_config.match], []
+                )
         except IndexError:
             pass
 
@@ -169,6 +186,9 @@ class SingleCharLiteral(Literal):
 
     def min_length(self):
         return 1
+
+    def reverse(self):
+        return self
 
     def __regex__(self):
         return "*", re.escape(self.parser_config.match)
@@ -178,7 +198,12 @@ class Keyword(Token):
     __slots__ = []
     Config = append_config(Token, "ident_chars")
 
-    def __init__(self, match, ident_chars=None, caseless=None):
+    def __init__(
+        self,
+        match,
+        ident_chars=None,  # required to identify word boundary
+        caseless=None,
+    ):
         Token.__init__(self)
         if ident_chars is None:
             ident_chars = whitespaces.CURRENT.keyword_chars
@@ -204,7 +229,9 @@ class Keyword(Token):
     def parseImpl(self, string, start, doActions=True):
         found = self.parser_config.regex.match(string, start)
         if found:
-            return ParseResults(self, start, found.end(), [self.parser_config.match], [])
+            return ParseResults(
+                self, start, found.end(), [self.parser_config.match], []
+            )
         raise ParseException(self, start, string)
 
     def expecting(self):
@@ -213,6 +240,9 @@ class Keyword(Token):
     def _min_length(self):
         return len(self.parser_config.match)
 
+    def reverse(self):
+        return Keyword(self.parser_config.match[::-1], self.parser_config.ident_chars)
+
     def __regex__(self):
         return "+", self.parser_config.regex.pattern
 
@@ -220,12 +250,20 @@ class Keyword(Token):
 class CaselessKeyword(Keyword):
     __slots__ = []
 
-    def __init__(self, matchString, ident_chars=None):
-        Keyword.__init__(self, matchString, ident_chars, caseless=True)
+    def __init__(self, match, ident_chars=None):
+        Keyword.__init__(self, match, ident_chars, caseless=True)
+
+    def reverse(self):
+        return Keyword(
+            self.parser_config.match[::-1],
+            self.parser_config.ident_chars,
+            caseless=True,
+        )
 
 
 class CaselessLiteral(Literal):
-    """Token to match a specified string, ignoring case of letters.
+    """
+    Token to match a specified string, ignoring case of letters.
     Note: the matched results will always be in the case of the given
     match string, NOT the case of the input text.
     """
@@ -242,8 +280,13 @@ class CaselessLiteral(Literal):
     def parseImpl(self, string, start, doActions=True):
         found = self.parser_config.regex.match(string, start)
         if found:
-            return ParseResults(self, start, found.end(), [self.parser_config.match], [])
+            return ParseResults(
+                self, start, found.end(), [self.parser_config.match], []
+            )
         raise ParseException(self, start, string)
+
+    def reverse(self):
+        return CaselessLiteral(self.parser_config.match[::-1])
 
 
 class CloseMatch(Token):
@@ -271,10 +314,10 @@ class CloseMatch(Token):
     __slots__ = []
     Config = append_config(Token, "maxMismatches")
 
-    def __init__(self, match_string, maxMismatches=1):
+    def __init__(self, match, maxMismatches=1):
         super(CloseMatch, self).__init__()
-        self.parser_name = match_string
-        self.set_config(match=match_string, maxMismatches=maxMismatches)
+        self.parser_name = match
+        self.set_config(match=match, maxMismatches=maxMismatches)
 
     def parseImpl(self, string, start, doActions=True):
         end = start
@@ -302,6 +345,11 @@ class CloseMatch(Token):
                 return results
 
         raise ParseException(self, start, string)
+
+    def reverse(self):
+        return CloseMatch(self.parser_config.match[
+            ::-1, self.parser_config.maxMismatches
+        ])
 
 
 class Word(Token):
@@ -371,6 +419,11 @@ class Word(Token):
         else:
             return {}
 
+    def reverse(self):
+        if self.parser_config.init_char == self.parser_config.body_chars:
+            return self
+        raise NotImplementedError()
+
     def __regex__(self):
         return "+", self.regex.pattern
 
@@ -416,6 +469,9 @@ class Char(Token):
     def min_length(self):
         return 1
 
+    def reverse(self):
+        return self
+
     def __regex__(self):
         return "*", self.parser_config.regex.pattern
 
@@ -424,7 +480,8 @@ class Char(Token):
 
 
 class CharsNotIn(Token):
-    """Token for matching words composed of characters *not* in a given
+    """
+    Token for matching words composed of characters *not* in a given
     set (will include whitespace in matched characters if not listed in
     the provided exclusion set - see example). Defined with string
     containing all disallowed characters, and an optional minimum,
@@ -486,6 +543,9 @@ class CharsNotIn(Token):
 
     def min_length(self):
         return self.parser_config.min_len
+
+    def reverse(self):
+        return self
 
     def __regex__(self):
         return "*", self.parser_config.regex.pattern
@@ -558,14 +618,20 @@ class White(Token):
         if end - start < self.parser_config.min_len:
             raise ParseException(self, end, string)
 
-        return ParseResults(self, start, end, string[start:end], [ParseException(self, end, string)])
+        return ParseResults(
+            self, start, end, string[start:end], [ParseException(self, end, string)]
+        )
+
+    def reverse(self):
+        return self
 
 
 class LineStart(Token):
-    r"""
+    """
     Matches if current position is at the beginning of a line within
     the parse string
     """
+
     zero_length = True
     __slots__ = []
 
@@ -580,6 +646,9 @@ class LineStart(Token):
 
     def min_length(self):
         return 0
+
+    def reverse(self):
+        return LineEnd()
 
     def __regex__(self):
         return "*", "^"
@@ -608,13 +677,16 @@ class LineEnd(LookBehind):
     def min_length(self):
         return 0
 
+    def reverse(self):
+        return LineStart()
+
     def __regex__(self):
         return "|", self.parser_config.regex.pattern
 
 
 class StringStart(Token):
-    """Matches if current position is at the beginning of the parse
-    string
+    """
+    Matches if current position is at the beginning of the parse string
     """
 
     zero_length = True
@@ -633,6 +705,9 @@ class StringStart(Token):
 
     def min_length(self):
         return 0
+
+    def reverse(self):
+        return StringEnd()
 
 
 class StringEnd(Token):
@@ -661,6 +736,9 @@ class StringEnd(Token):
     def min_length(self):
         return 0
 
+    def reverse(self):
+        return StringStart()
+
 
 class WordStart(Token):
     """
@@ -677,14 +755,14 @@ class WordStart(Token):
     __slots__ = []
     Config = append_config(Token, "word_chars")
 
-    def __init__(self, wordChars=printables):
+    def __init__(self, word_chars=printables):
         Token.__init__(self)
         self.parser_name = self.__class__.__name__
         self.set_config(
             regex=regex_compile(
-                f"(?:(?<={(CharsNotIn(wordChars, exact=1)).__regex__()[1]})|^)(?={Char(wordChars).__regex__()[1]})"
+                f"(?:(?<={(CharsNotIn(word_chars, exact=1)).__regex__()[1]})|^)(?={Char(word_chars).__regex__()[1]})"
             ),
-            word_chars="".join(sorted(set(wordChars))),
+            word_chars="".join(sorted(set(word_chars))),
         )
         self.streamlined = True
 
@@ -697,6 +775,9 @@ class WordStart(Token):
     def min_length(self):
         return 0
 
+    def reverse(self):
+        return WordEnd(self.parser_config.word_chars)
+
     def __regex__(self):
         return "+", self.parser_config.regex.pattern
 
@@ -704,7 +785,7 @@ class WordStart(Token):
 class WordEnd(Token):
     """
     Matches if the current position is at the end of a Word, and is
-    not followed by any character in a given set of ``wordChars``
+    not followed by any character in a given set of ``word_chars``
     (default= ``printables``). To emulate the ``\b`` behavior of
     regular expressions, use ``WordEnd(alphanums)``. ``WordEnd``
     will also match at the end of the string being parsed, or at the end
@@ -739,6 +820,9 @@ class WordEnd(Token):
 
     def min_length(self):
         return 0
+
+    def reverse(self):
+        return WordStart(word_chars=self.parser_config.word_chars)
 
     def __regex__(self):
         return "+", self.parser_config.regex.pattern

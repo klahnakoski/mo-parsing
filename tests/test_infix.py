@@ -14,7 +14,7 @@ class TestParsing(PyparsingExpressionTestCase):
 
     def testInfixNotationGrammarTest1(self):
 
-        integer = Word(nums).addParseAction(lambda t: int(t[0]))
+        integer = Word(nums) / (lambda t: int(t[0]))
         variable = Word(alphas, exact=1)
         operand = integer | variable
 

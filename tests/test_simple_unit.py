@@ -698,6 +698,11 @@ class TestCommonHelperExpressions(PyparsingExpressionTestCase):
             },
         )
 
+    def test_slash_addParseAction(self):
+        integer = Word("0123456789") / (lambda t: int(t[0]))
+        result = integer.parseString("42")
+        self.assertEqual(result[0], 42)
+
 
 def _get_decl_line_no(cls):
     import inspect
