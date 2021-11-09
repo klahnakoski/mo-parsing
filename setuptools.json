@@ -10,7 +10,7 @@
     ],
     "description": "Another PEG Parsing Tool",
     "extras_require": {"tests": ["mo-testing", "mo-threads", "mo-logs", "mo-files"]},
-    "install_requires": ["mo-dots==6.2.21303", "mo-future==6.2.21303"],
+    "install_requires": ["mo-dots==7.4.21313", "mo-future==6.2.21303"],
     "license": "MIT",
     "long_description": {
         "$concat": [
@@ -21,8 +21,8 @@
             "",
             "|Branch      |Status   |",
             "|------------|---------|",
-            "|master      | [![Build Status](https://travis-ci.com/klahnakoski/mo-parsing.svg?branch=master)](https://travis-ci.com/klahnakoski/mo-parsing) |",
-            "|dev         | [![Build Status](https://travis-ci.com/klahnakoski/mo-parsing.svg?branch=dev)](https://travis-ci.com/klahnakoski/mo-parsing)    |",
+            "|master      | [![Build Status](https://app.travis-ci.com/klahnakoski/mo-parsing.svg?branch=master)](https://travis-ci.com/github/klahnakoski/mo-parsing) |",
+            "|dev         | [![Build Status](https://app.travis-ci.com/klahnakoski/mo-parsing.svg?branch=dev)](https://travis-ci.com/github/klahnakoski/mo-parsing)    |",
             "",
             "## Installation",
             "",
@@ -176,5 +176,5 @@
     "name": "mo-parsing",
     "packages": ["mo_parsing"],
     "url": "https://github.com/klahnakoski/mo-parsing",
-    "version": "7.1.21303"
+    "version": "7.4.21313"
 }
