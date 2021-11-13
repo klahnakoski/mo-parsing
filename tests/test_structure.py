@@ -1,7 +1,8 @@
 # encoding: utf-8
 
 from mo_parsing import Word, Group, Forward
-from mo_parsing.utils import alphas
+from mo_parsing.infix import delimited_list
+from mo_parsing.utils import alphas, nums
 from tests.test_simple_unit import PyparsingExpressionTestCase
 
 w = Word(alphas)
@@ -94,3 +95,10 @@ class TestStructure(PyparsingExpressionTestCase):
         expr << B
         E.parse_string("x")
         self.assertEqual(acc, ["B", "forward"])
+
+    def test_forawrd_whitespace(self):
+        c = Forward()
+        c << (("(" + c + ")") | Group(Word(alphas) | Word(nums)))
+        c = c.finalize()
+        result = c.parse_string("(this)")
+        self.assertEqual(result, ["(", ["this"], ")"])
