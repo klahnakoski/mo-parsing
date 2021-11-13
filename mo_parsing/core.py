@@ -81,22 +81,28 @@ def entrypoint(func):
     return output
 
 
+def _verify_whitespace(eng):
+    if eng is None:
+        return None
+    if isinstance(eng, list):
+        engs = [v for e in eng for v in [_verify_whitespace(e)] if v is not None]
+        if not engs:
+            return None
+        whitespace = engs[0]
+        if any(e.id != whitespace.id for e in engs[1:]):
+            Log.error("must dis-ambiguate the whitespace before parsing")
+        return whitespace
+    return eng
+
+
 class Parser(object):
     def __init__(self, element):
         self.element = element = element.streamline()
         try:
-            engs = element.whitespace
-            while isinstance(engs, list):
-                engs = [e for e in engs if e is not None]
-                if not engs:
-                    break
-                whitespace = engs[0]
-                if any(e.id != whitespace.id for e in engs[1:]):
-                    Log.error("must dis-ambiguate the whitespace before parsing")
-                engs = whitespace
-
             self.whitespace = (
-                engs or whitespaces.CURRENT or whitespaces.STANDARD_WHITESPACE
+                _verify_whitespace(element.whitespace)
+                or whitespaces.CURRENT
+                or whitespaces.STANDARD_WHITESPACE
             )
         except Exception as cause:
             Log.error("problem", cause=cause)
