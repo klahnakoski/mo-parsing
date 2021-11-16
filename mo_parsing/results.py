@@ -8,8 +8,6 @@ from mo_imports import expect, export
 from mo_parsing.utils import Log, listwrap
 from mo_parsing.utils import is_forward, forward_type
 
-USE_ATTRIBUTE_ACCESS = False
-
 
 Suppress, ParserElement, NO_PARSER, NO_RESULTS, Group, Dict, Token, Empty = expect(
     "Suppress",
@@ -119,22 +117,6 @@ class ParseResults(object):
             else:
                 tokens.append(Annotation(k, -1, 0, listwrap(v)))
 
-    if USE_ATTRIBUTE_ACCESS:
-
-        def __getattribute__(self, item):
-            try:
-                return object.__getattribute__(self, item)
-            except Exception as e:
-                output = self[item]
-                if not output:
-                    raise e
-                return output
-
-        def __setattr__(self, key, value):
-            if key in ParseResults.__slots__:
-                return object.__setattr__(self, key, value)
-            self[key] = value
-
     def __contains__(self, k):
         return any((r.name) == k for r in self.tokens)
 
@@ -204,29 +186,6 @@ class ParseResults(object):
             else:
                 yield r
 
-    def _del_item_by_index(self, index):
-        for i, t in enumerate(self.tokens):
-            if isinstance(t.type, (Group, Token)):
-                if index < 1:
-                    del self.tokens[i]
-                    name = t.name
-                    if name:
-                        if not isinstance(t.type, Annotation):
-                            self.tokens.append(Annotation(
-                                name, t.start, t.end, t.tokens
-                            ))
-                    return
-                else:
-                    index -= 1
-                continue
-            elif isinstance(t, Annotation):
-                return
-            elif index < len(t):
-                t._del_item_by_index(index)
-                return
-            else:
-                index -= len(t)
-
     def __delitem__(self, key):
         if isinstance(key, (int, slice)):
             Log.error("not allowed")
@@ -291,26 +250,6 @@ class ParseResults(object):
                     add(output, k, v)
         for k, v in output.items():
             yield k, v
-
-    def haskeys(self):
-        """Since keys() returns an iterator, this method is helpful in bypassing
-        code that looks for the existence of any defined results names."""
-        return any((r.name) for r in self.tokens)
-
-    def pop(self, index=-1, default=None):
-        """
-        Removes and returns item at specified index (default= ``last``).
-        Supports both ``list`` and ``dict`` semantics for ``pop()``. If
-        passed no argument or an integer argument, it will use ``list``
-        semantics and pop tokens from the list of parsed tokens. If passed
-        a non-integer argument (most likely a string), it will use ``dict``
-        semantics and pop the corresponding value from any defined results
-        names. A second default return value argument is supported, just as in
-        ``dict.pop()``.
-        """
-        ret = self[index]
-        del self[index]
-        return ret if ret else default
 
     def get(self, key, default_value=None):
         """
@@ -461,16 +400,6 @@ class ParseResults(object):
             return self.tokens[0].name
         else:
             return ""
-
-    def __getnewargs__(self):
-        old_parser = self.type
-        parser_type = globals().get(old_parser.__class__.__name__, ParserElement)
-        new_parser = parser_type(None)
-        new_parser.token_name = old_parser.token_name
-        return new_parser, self.tokens
-
-    def __dir__(self):
-        return dir(type(self))
 
 
 def _flatten(token):
