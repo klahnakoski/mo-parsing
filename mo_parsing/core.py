@@ -114,7 +114,7 @@ class Parser(object):
         self.streamlined = True
 
     @entrypoint
-    def parse_string(self, string, parse_all=False):
+    def parse(self, string, parse_all=False):
         """
         Parse a string with respect to the parser definition. This function is intended as the primary interface to the
         client code.
@@ -139,6 +139,8 @@ class Parser(object):
 
         """
         return self._parseString(string, parse_all=parse_all)
+
+    parse_string = parse
 
     def _parseString(self, string, parse_all=False):
         start = self.whitespace.skip(string, 0)
@@ -478,8 +480,10 @@ class ParserElement(object):
         """
         return Parser(self)
 
-    def parse_string(self, string, parse_all=False):
-        return self.finalize().parse_string(string, parse_all)
+    def parse(self, string, parse_all=False):
+        return self.finalize().parse(string, parse_all)
+
+    parse_string = parse
 
     def scan_string(self, string, max_matches=MAX_INT, overlap=False):
         return (

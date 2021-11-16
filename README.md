@@ -1,12 +1,10 @@
 # More Parsing!
 
+[![Build Status](https://app.travis-ci.com/klahnakoski/mo-parsing.svg?branch=master)](https://travis-ci.com/github/klahnakoski/mo-parsing)
+[![Coverage Status](https://coveralls.io/repos/github/klahnakoski/mo-parsing/badge.svg?branch=master)](https://coveralls.io/github/klahnakoski/mo-parsing?branch=master)
+
 A fork of [pyparsing](https://github.com/pyparsing/pyparsing) for faster parsing
 
-
-|Branch      |Status   |
-|------------|---------|
-|master      | [![Build Status](https://app.travis-ci.com/klahnakoski/mo-parsing.svg?branch=master)](https://travis-ci.com/github/klahnakoski/mo-parsing) |
-|dev         | [![Build Status](https://app.travis-ci.com/klahnakoski/mo-parsing.svg?branch=dev)](https://travis-ci.com/github/klahnakoski/mo-parsing)    |
 
 ## Installation
 
