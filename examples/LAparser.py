@@ -57,7 +57,9 @@ Usage: To process LA equations embedded in source files, import this module and
 
 """
 
-import re, sys
+import re
+import sys
+
 from mo_parsing import (
     Word,
     ParseException,
@@ -69,7 +71,6 @@ from mo_parsing import (
     ZeroOrMore,
     StringEnd,
 )
-
 # Debugging flag can be set to either "debug_flag=True" or "debug_flag=False"
 from mo_parsing.utils import nums, alphas, alphanums
 

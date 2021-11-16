@@ -15,11 +15,11 @@ from mo_parsing import (
     Group,
     Optional,
     Keyword,
-    Regex,
+    Regex, Combine,
 )
-from mo_parsing.whitespaces import Whitespace
 from mo_parsing.helpers import restOfLine, cStyleComment, delimited_list, quoted_string
 from mo_parsing.utils import alphas, alphanums
+from mo_parsing.whitespaces import Whitespace
 
 bnf = None
 

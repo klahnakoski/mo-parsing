@@ -12,9 +12,8 @@
 #
 import math
 
-from mo_parsing.utils import Log
-
 from examples.fourFn import exprStack, bnf, evaluate_stack
+from mo_parsing.utils import Log
 
 
 def test(s, expected):

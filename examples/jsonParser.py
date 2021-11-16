@@ -10,8 +10,8 @@
 #
 # Updated 9 Aug 2016 - use more current mo_parsing constructs/idioms
 #
-from mo_parsing.whitespaces import Whitespace
 from mo_parsing.helpers import number, dblQuotedString, remove_quotes, delimited_list, cppStyleComment
+from mo_parsing.whitespaces import Whitespace
 
 json_bnf = """
 object

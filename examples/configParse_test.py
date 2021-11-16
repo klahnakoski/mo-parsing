@@ -5,7 +5,6 @@
 #
 # Copyright (c) 2003, Paul McGuire
 #
-import pprint
 
 from examples.configParse import inifile_BNF
 

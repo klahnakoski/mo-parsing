@@ -3,12 +3,12 @@
 #
 # Sample parser grammar to read a number given in words, and return the numeric value.
 #
-from mo_parsing import *
-from operator import mul
 from functools import reduce
+from operator import mul
 
-from mo_parsing.whitespaces import Whitespace
+from mo_parsing import *
 from mo_parsing.helpers import integer
+from mo_parsing.whitespaces import Whitespace
 
 
 def makeLit(s, val):

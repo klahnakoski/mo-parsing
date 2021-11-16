@@ -4,9 +4,12 @@
 # Updated 2012 - latest mo_parsing API
 #
 
-from mo_parsing import *
 import random
 import string
+
+from mo_dots import Null as print
+
+from mo_parsing import *
 
 
 def aOrAn(item):
@@ -64,13 +67,16 @@ class Room:
         self.inv.remove(it)
 
     def describe(self):
-
+        print(self.desc)
         visibleItems = [it for it in self.inv if it.isVisible]
         if random.random() > 0.5:
             if len(visibleItems) > 1:
                 is_form = "are"
             else:
                 is_form = "is"
+            print("There {} {} here.".format(is_form, enumerateItems(visibleItems)))
+        else:
+            print("You see %s." % (enumerateItems(visibleItems)))
 
 
 class Exit(Room):
@@ -124,7 +130,9 @@ class OpenableItem(Item):
         self.isOpened = False
         if contents is not None:
             if isinstance(contents, Item):
-                self.contents = [contents]
+                self.contents = [
+                    contents,
+                ]
             else:
                 self.contents = contents
         else:
@@ -161,7 +169,7 @@ class Command:
         pass
 
     def __call__(self, player):
-
+        print(self.verbProg.capitalize() + "...")
         self._doCommand(player)
 
 
@@ -177,9 +185,11 @@ class MoveCommand(Command):
 
     def _doCommand(self, player):
         rm = player.room
-        nextRoom = rm.doors[{"N": 0, "S": 1, "E": 2, "W": 3}[self.direction]]
+        nextRoom = rm.doors[{"N": 0, "S": 1, "E": 2, "W": 3,}[self.direction]]
         if nextRoom:
             player.moveTo(nextRoom)
+        else:
+            print("Can't go that way.")
 
 
 class TakeCommand(Command):

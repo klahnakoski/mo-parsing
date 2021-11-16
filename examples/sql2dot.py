@@ -8,6 +8,8 @@
 #  Adapted from a post at https://energyblog.blogspot.com/2006/04/blog-post_20.html.
 #
 
+from mo_dots import Null as print
+
 from mo_parsing.helpers import *
 
 sampleSQL = """

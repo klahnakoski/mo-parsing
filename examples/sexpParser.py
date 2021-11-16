@@ -43,8 +43,9 @@ BNF reference: http://theory.lcs.mit.edu/~rivest/sexp.txt
 <null>        	:: "" ;
 """
 
-from mo_parsing import *
 from base64 import b64decode
+
+from mo_parsing import *
 
 
 def verify_length(t, l, s):

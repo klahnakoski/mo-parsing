@@ -5,9 +5,9 @@
 #
 # Copyright 2019, Paul McGuire
 #
-from mo_parsing import *
 from pathlib import Path
 
+from mo_parsing import *
 # parser elements to be used to assemble into #include parser
 from mo_parsing.helpers import quoted_string, remove_quotes
 from mo_parsing.utils import printables, line, col

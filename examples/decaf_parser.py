@@ -63,7 +63,6 @@ from mo_parsing.helpers import (
     delimited_list,
     infixNotation,
     one_of,
-    opAssoc,
 )
 
 keywords = (

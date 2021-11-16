@@ -3,12 +3,13 @@
 # module to define .pystate import handler
 #
 # import imputil
-import keyword
-import sys
-import os
-import types
 import importlib
+import keyword
+import os
+import sys
+import types
 from urllib.parse import urlparse
+
 from mo_parsing import *
 from mo_parsing.whitespaces import Whitespace
 

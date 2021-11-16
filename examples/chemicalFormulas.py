@@ -28,7 +28,6 @@ elementRef = Group(element + Optional(Word(digits), default="1"))
 formula = elementRef[...]
 
 fn = lambda elemList: sum(atomicWeight[elem] * int(qty) for elem, qty in elemList)
-import tests
 formula.run_tests(
     """\
     H2O

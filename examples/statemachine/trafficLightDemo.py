@@ -4,7 +4,6 @@
 # Example of a simple state machine modeling the state of a traffic light
 #
 
-import statemachine
 import trafficlightstate
 
 

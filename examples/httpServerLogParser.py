@@ -23,9 +23,9 @@ Referer
 Client Software
 """
 
-from mo_parsing import *
 import string
 
+from mo_parsing import *
 from mo_parsing.helpers import delimited_list, dblQuotedString, remove_quotes
 from mo_parsing.utils import nums, alphas
 

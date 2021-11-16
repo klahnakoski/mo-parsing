@@ -43,8 +43,10 @@ lease 192.168.0.239 {
 }
 """
 
+import datetime
+import time
+
 from mo_parsing import *
-import datetime, time
 
 LBRACE, RBRACE, SEMI, QUOTE = map(Suppress, '{};"')
 ipAddress = Combine(Word(nums) + ("." + Word(nums)) * 3)

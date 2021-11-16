@@ -9,7 +9,6 @@
 #
 # Copyright 2004, by Alberto Santini http://www.albertosantini.it/chess/
 #
-from mo_parsing import alphanums, nums, quoted_string
 from mo_parsing import (
     Combine,
     Forward,
@@ -23,6 +22,7 @@ from mo_parsing import (
     Word,
 )
 from mo_parsing import ParseException
+from mo_parsing import alphanums, nums, quoted_string
 
 #
 # define pgn grammar
