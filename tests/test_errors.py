@@ -12,9 +12,8 @@ class TestErrors(FuzzyTestCase):
         options = Group(Word("a") | Word("b")).set_parser_name("a or b")
         stream = delimited_list(options)
         content = "a, b, b, c"
-        with self.assertRaises():
+        with self.assertRaises("Expecting a or b, found \"c\" (at char 9), (line:1, col:10)"):
             try:
-                with Debugger():
-                    stream.parse(content, parse_all=True)
+                stream.parse(content, parse_all=True)
             except Exception as e:
                 raise e

@@ -9,7 +9,7 @@ from mo_parsing.utils import (
     lineno,
     col,
     stack_depth,
-    quote as plain_quote,
+    quote as plain_quote, ParseException,
 )
 
 DEBUGGING = False
@@ -49,7 +49,7 @@ def _debug_parse(debugger):
                 self, start, string, cause
             )
             fail(self, start, string, cause)
-            raise
+            raise ParseException(self, start, string, cause=cause)
 
         if self.parse_action and (do_actions or self.parser_config.callDuringTry):
             try:

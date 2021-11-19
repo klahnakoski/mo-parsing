@@ -919,7 +919,7 @@ class TestParsing(PyparsingExpressionTestCase):
         ]:
             expr.parse_string(test_string + test_string[0])
             try:
-                with Timer("testing catastrophic RE backtracking"):
+                with Timer("testing catastrophic RE backtracking", silent=True):
                     expr.parse_string(test_string)
             except Exception:
                 continue
