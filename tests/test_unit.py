@@ -17,9 +17,9 @@ from datetime import datetime as datetime_datetime
 from io import StringIO
 from itertools import product
 from textwrap import dedent
-from unittest import TestCase, skip
+from unittest import TestCase
 
-from mo_dots import coalesce
+from mo_dots import coalesce, Null as print
 from mo_times import Timer
 
 from examples import fourFn, configParse, idlParse, ebnf
@@ -919,7 +919,7 @@ class TestParsing(PyparsingExpressionTestCase):
         ]:
             expr.parse_string(test_string + test_string[0])
             try:
-                with Timer("testing catastrophic RE backtracking"):
+                with Timer("testing catastrophic RE backtracking", silent=True):
                     expr.parse_string(test_string)
             except Exception:
                 continue
@@ -2480,7 +2480,6 @@ class TestParsing(PyparsingExpressionTestCase):
                 "with foo=bar bing=baz using id-deadbeef using id-feedfeed",
                 parse_all=True,
             )
-            Log.note("hi")
 
     def testOptionalEachTest3(self):
 
@@ -2997,19 +2996,36 @@ class TestParsing(PyparsingExpressionTestCase):
             return "eval: {}".format(result["numerator"] / result["denominator"])
 
         success = fraction.run_tests(
-            """\
-            1/2
-            1/0
-        """,
+            """
+                1/2
+                3/10
+            """,
             postParse=eval_fraction,
         )[0]
 
         self.assertTrue(success, "failed to parse fractions in RunTestsPostParse")
 
-        expected_accum = [("1/2", [1, "/", 2]), ("1/0", [1, "/", 0])]
+        expected_accum = [("1/2", [1, "/", 2]), ("3/10", [3, "/", 10])]
         self.assertEqual(
             accum, expected_accum, "failed to call postParse method during run_tests"
         )
+
+    def testRunTestsPostException(self):
+        fraction = integer("numerator") + "/" + integer("denominator")
+        accum = []
+
+        def eval_fraction(test, result):
+            accum.append((test, result))
+            return "eval: {}".format(result["numerator"] / result["denominator"])
+
+        with self.assertRaises(Exception):
+            fraction.run_tests(
+                """
+                    1/2
+                    1/0
+                """,
+                postParse=eval_fraction,
+            )
 
     def testCommonExpressions(self):
 
@@ -4281,8 +4297,7 @@ class TestParsing(PyparsingExpressionTestCase):
         expr = expr.add_parse_action(divide_args)
 
         with self.assertRaises(
-            'Expecting int + int, found "123 0", caused by division by zero (at char'
-            " 0), (line:1, col:1)"
+            """Expecting int + int, found "123 0", caused by division by zero (at char 0), (line:1, col:1)"""
         ):
             expr.parse_string("123 0")
 

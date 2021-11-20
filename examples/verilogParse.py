@@ -68,6 +68,7 @@ import time
 
 __version__ = "1.0.11"
 
+from mo_dots import Null as print
 from mo_parsing.helpers import *
 
 

@@ -8,8 +8,9 @@
 # Copyright 2011,2015 Paul T. McGuire
 #
 
-from mo_parsing import Word, nums, Suppress, Optional
 from datetime import datetime
+
+from mo_parsing import Word, nums, Suppress, Optional
 
 
 def ranged_value(expr, minval=None, maxval=None):

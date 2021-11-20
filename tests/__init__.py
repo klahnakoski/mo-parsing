@@ -3,7 +3,6 @@ from mo_future import text
 
 from mo_parsing.core import ParserElement
 
-# from mo_parsing.debug import Debugger
 from mo_parsing.exceptions import ParseException
 from mo_parsing.results import ParseResults
 from mo_parsing.tokens import Literal
@@ -130,7 +129,6 @@ def run_tests(
         else failureTests,
     )):
         if comment is not None and comment.matches(t, False):
-            Log.note(t)
             continue
         if not t:
             continue
@@ -153,22 +151,13 @@ def run_tests(
 
             if postParse:
                 try:
-                    pp_value = postParse(t, result)
-                    if pp_value is not None:
-                        if isinstance(pp_value, ParseResults):
-                            Log.note(pp_value)
-                        else:
-                            Log.note(str(pp_value))
-                    else:
-                        Log.note("{{result}}", result=result)
+                    postParse(t, result)
                 except Exception as cause:
-                    Log.warning(
+                    Log.error(
                         "postParse {{name}} failed",
                         name=postParse.__name__,
                         cause=cause,
                     )
-            else:
-                Log.note("{{result}}", result=result)
 
         allResults.append((t, result))
 

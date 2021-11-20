@@ -8,10 +8,10 @@
 #
 
 from mo_parsing import *
-from mo_parsing.whitespaces import Whitespace
 from mo_parsing.helpers import restOfLine, cStyleComment, delimited_list, QuotedString
 from mo_parsing.infix import one_of
 from mo_parsing.utils import Log, alphas, alphanums, nums
+from mo_parsing.whitespaces import Whitespace
 
 
 class BigQueryViewParser:

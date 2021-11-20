@@ -22,8 +22,9 @@
 # Copyright 2008, by Paul McGuire
 #
 
+from mo_parsing.white import setDefaultWhitespaceChars
+
 from mo_parsing import (
-    ParserElement,
     LineEnd,
     Optional,
     Word,
@@ -38,7 +39,6 @@ from mo_parsing import (
     FollowedBy,
     empty,
 )
-from mo_parsing.white import setDefaultWhitespaceChars
 
 __all__ = ["tapOutputParser", "TAPTest", "TAPSummary"]
 

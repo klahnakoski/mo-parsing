@@ -11,12 +11,12 @@ from mo_parsing import (
     Group,
     Forward,
     infix_notation,
-    CaselessKeyword,
+    CaselessKeyword, Combine,
 )
-from mo_parsing.whitespaces import Whitespace
 from mo_parsing.helpers import restOfLine, upcase_tokens, real, signed_integer, quoted_string
 from mo_parsing.infix import delimited_list, one_of, RIGHT_ASSOC, LEFT_ASSOC
 from mo_parsing.utils import alphas, alphanums
+from mo_parsing.whitespaces import Whitespace
 
 whitespace = Whitespace().use()
 

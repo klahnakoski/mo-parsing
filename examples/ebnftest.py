@@ -6,9 +6,8 @@
 # Submitted 2004 by Seo Sanghyeon
 #
 
-from mo_parsing import *
 from examples import ebnf
-
+from mo_parsing import *
 
 grammar = """
 syntax = (syntax_rule), {(syntax_rule)};

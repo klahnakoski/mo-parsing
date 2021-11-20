@@ -5,12 +5,12 @@
 #
 # Copyright 2004-2016, by Paul McGuire
 #
-from mo_parsing.utils import alphas, alphanums
-
-from mo_parsing.helpers import cStyleComment, cppStyleComment
+from mo_dots import Null as print
 
 from mo_parsing import *
+from mo_parsing.helpers import cStyleComment, cppStyleComment
 from mo_parsing.infix import delimited_list, one_of
+from mo_parsing.utils import alphas, alphanums
 
 typemap = {
     "byte": "c_byte",

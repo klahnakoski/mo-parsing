@@ -4,8 +4,8 @@
 # Example of a state machine modeling the state of a document in a document
 # control system, using named state transitions
 #
-import statemachine
 import documentsignoffstate
+from mo_dots import Null as print
 
 print(
     "\n".join(

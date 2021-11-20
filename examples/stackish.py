@@ -28,10 +28,9 @@ SPACE White space is basically ignored. This is interesting because since
     separation character and perform reasonable diffs on two structures.
 """
 
-from mo_parsing import *
-from mo_parsing.helpers import *
 from mo_testing.fuzzytestcase import assertAlmostEqual
 
+from mo_parsing.helpers import *
 from mo_parsing.infix import one_of
 
 MARK, UNMARK, AT, COLON, QUOTE = map(Suppress, "[]@:'")

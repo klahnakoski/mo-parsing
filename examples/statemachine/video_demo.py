@@ -4,8 +4,8 @@
 # Simple statemachine demo, based on the state transitions given in videostate.pystate
 #
 
-import statemachine
 import videostate
+from mo_dots import Null as print
 
 
 class Video(videostate.VideoStateMixin):

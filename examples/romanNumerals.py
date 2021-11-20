@@ -4,8 +4,8 @@
 #
 
 from mo_parsing import *
-from mo_parsing.whitespaces import Whitespace
 from mo_parsing.utils import Log
+from mo_parsing.whitespaces import Whitespace
 
 
 def romanNumeralLiteral(numeral_string, value):

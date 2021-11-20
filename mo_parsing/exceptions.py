@@ -49,6 +49,8 @@ class ParseException(Exception):
         ])
         if not best:
             return self
+        elif self.expr.parser_name and self.start >= best[0].start:
+            return self
         elif len(best) == 1:
             return best[0]
         else:

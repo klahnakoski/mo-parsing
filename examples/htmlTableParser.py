@@ -6,9 +6,9 @@
 # Copyright 2019, Paul McGuire
 #
 
-from mo_parsing import *
 import urllib.request
 
+from mo_parsing import *
 
 # define basic HTML tags, and compose into a Table
 table, table_end = makeHTMLTags("table")
@@ -65,6 +65,4 @@ rows = [dict(zip(tz_table.headers, row)) for row in tz_table.rows]
 
 # make a dict keyed by TZ database name
 tz_db = {row["TZ database name"]: row for row in rows}
-
-from pprint import pprint
 

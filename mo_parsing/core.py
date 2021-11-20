@@ -114,7 +114,7 @@ class Parser(object):
         self.streamlined = True
 
     @entrypoint
-    def parse_string(self, string, parse_all=False):
+    def parse(self, string, parse_all=False):
         """
         Parse a string with respect to the parser definition. This function is intended as the primary interface to the
         client code.
@@ -139,6 +139,8 @@ class Parser(object):
 
         """
         return self._parseString(string, parse_all=parse_all)
+
+    parse_string = parse
 
     def _parseString(self, string, parse_all=False):
         start = self.whitespace.skip(string, 0)
@@ -170,12 +172,12 @@ class Parser(object):
         """
         return (
             (t.tokens[0], s, e)
-            for t, s, e in self._scanString(
+            for t, s, e in self._scan_string(
                 string, max_matches=max_matches, overlap=overlap
             )
         )
 
-    def _scanString(self, string, max_matches=MAX_INT, overlap=False):
+    def _scan_string(self, string, max_matches=MAX_INT, overlap=False):
         instrlen = len(string)
         start = end = 0
         matches = 0
@@ -222,7 +224,7 @@ class Parser(object):
         end = 0
         # force preservation of <TAB>s, to minimize unwanted transformation of string, and to
         # keep string locs straight between transform_string and scan_string
-        for t, s, e in self._scanString(string):
+        for t, s, e in self._scan_string(string):
             out.append(string[end:s])
             t = t.tokens[0]
             if t:
@@ -244,10 +246,10 @@ class Parser(object):
         :param max_matches: Limit number of matches
         :return: All the matches, packaged as ParseResults
         """
-        return self._searchString(string, max_matches=max_matches)
+        return self._search_string(string, max_matches=max_matches)
 
-    def _searchString(self, string, max_matches=MAX_INT):
-        scanned = [t for t, s, e in self._scanString(string, max_matches)]
+    def _search_string(self, string, max_matches=MAX_INT):
+        scanned = [t for t, s, e in self._scan_string(string, max_matches)]
         if not scanned:
             return ParseResults(ZeroOrMore(self.element), -1, 0, [], [])
         else:
@@ -282,7 +284,7 @@ class Parser(object):
 
     def _split(self, string, maxsplit=MAX_INT, include_separators=False):
         last = 0
-        for t, s, e in self._scanString(string, max_matches=maxsplit):
+        for t, s, e in self._scan_string(string, max_matches=maxsplit):
             yield string[last:s]
             if include_separators:
                 yield t.tokens[0]
@@ -390,14 +392,10 @@ class ParserElement(object):
             def cond(token, index, string):
                 result = fn(token, index, string)
                 if not bool(result.tokens[0]):
+                    error = ParseException(token.type, index, string, msg=message)
                     if fatal:
-                        Log.error(
-                            "fatal error",
-                            casue=ParseException(
-                                token.type, index, string, msg=message
-                            ),
-                        )
-                    raise ParseException(token.type, index, string, msg=message)
+                        Log.error("fatal error", cause=error)
+                    raise error
                 return token
 
             return cond
@@ -455,11 +453,11 @@ class ParserElement(object):
     def _parse(self, string, start, do_actions=True):
         try:
             result = self.parse_impl(string, start, do_actions)
-        except Exception as cause:
+        except ParseException as cause:
             self.parser_config.fail_action and self.parser_config.fail_action(
                 self, start, string, cause
             )
-            raise
+            raise ParseException(self, start, string, cause=cause)
 
         if do_actions or self.parser_config.callDuringTry:
             for fn in self.parse_action:
@@ -478,8 +476,10 @@ class ParserElement(object):
         """
         return Parser(self)
 
-    def parse_string(self, string, parse_all=False):
-        return self.finalize().parse_string(string, parse_all)
+    def parse(self, string, parse_all=False):
+        return self.finalize().parse(string, parse_all)
+
+    parse_string = parse
 
     def scan_string(self, string, max_matches=MAX_INT, overlap=False):
         return (

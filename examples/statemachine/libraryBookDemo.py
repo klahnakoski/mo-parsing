@@ -4,8 +4,6 @@
 # Simple statemachine demo, based on the state transitions given in librarybookstate.pystate
 #
 
-from examples import statemachine
-
 
 class Book(librarybookstate.BookStateMixin):
     def __init__(self):

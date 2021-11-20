@@ -30,9 +30,10 @@
 # Copyright 2010, 2019 by Paul McGuire
 #
 
-from datetime import datetime, time, timedelta
-from mo_parsing import *
 import calendar
+from datetime import datetime, time, timedelta
+
+from mo_parsing import *
 
 __all__ = ["time_expression"]
 

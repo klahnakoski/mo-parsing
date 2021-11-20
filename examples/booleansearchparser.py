@@ -81,6 +81,8 @@ TODO:
 - add more kinds of wildcards ('*' at the beginning and '*' inside a word)?
 
 """
+import re
+
 from mo_parsing import (
     Word,
     alphanums,
@@ -91,8 +93,6 @@ from mo_parsing import (
     OneOrMore,
     one_of,
 )
-import re
-
 
 alphabet_ranges = [
     ##CYRILIC: https://en.wikipedia.org/wiki/Cyrillic_(Unicode_block)

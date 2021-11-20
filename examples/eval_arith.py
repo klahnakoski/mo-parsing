@@ -14,7 +14,6 @@ from mo_parsing import (
     alphas,
     Combine,
     one_of,
-    opAssoc,
     infix_notation,
     Literal,
 )

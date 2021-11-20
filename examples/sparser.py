@@ -43,10 +43,10 @@ EXAMPLES:
 #    675 Mass Ave, Cambridge, MA 02139, USA.
 """
 
+import getopt
+import os
 # ===imports======================
 import sys
-import os
-import getopt
 
 from mo_parsing import *
 

@@ -439,9 +439,7 @@ class ZeroOrMore(Many):
     __slots__ = []
 
     def __init__(self, expr, whitespace=None, stop_on=None):
-        super(ZeroOrMore, self).__init__(
-            expr, whitespace, stop_on=stop_on, min_match=0, max_match=MAX_INT
-        )
+        Many.__init__(self, expr, whitespace, stop_on=stop_on, min_match=0, max_match=MAX_INT)
 
     def parse_impl(self, string, start, do_actions=True):
         try:
