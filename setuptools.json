@@ -16,13 +16,12 @@
         "$concat": [
             "# More Parsing!",
             "",
+            "[![PyPI Latest Release](https://img.shields.io/pypi/v/mo-parsing.svg)](https://pypi.org/project/mo-parsing/)",
+            "[![Build Status](https://app.travis-ci.com/klahnakoski/mo-parsing.svg?branch=master)](https://travis-ci.com/github/klahnakoski/mo-parsing)",
+            "[![Coverage Status](https://coveralls.io/repos/github/klahnakoski/mo-parsing/badge.svg?branch=master)](https://coveralls.io/github/klahnakoski/mo-parsing?branch=master)",
+            "",
             "A fork of [pyparsing](https://github.com/pyparsing/pyparsing) for faster parsing",
             "",
-            "",
-            "|Branch      |Status   |",
-            "|------------|---------|",
-            "|master      | [![Build Status](https://app.travis-ci.com/klahnakoski/mo-parsing.svg?branch=master)](https://travis-ci.com/github/klahnakoski/mo-parsing) |",
-            "|dev         | [![Build Status](https://app.travis-ci.com/klahnakoski/mo-parsing.svg?branch=dev)](https://travis-ci.com/github/klahnakoski/mo-parsing)    |",
             "",
             "## Installation",
             "",
@@ -176,5 +175,5 @@
     "name": "mo-parsing",
     "packages": ["mo_parsing"],
     "url": "https://github.com/klahnakoski/mo-parsing",
-    "version": "8.1.21317"
+    "version": "8.3.21324"
 }
