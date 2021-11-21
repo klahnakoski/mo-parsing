@@ -399,7 +399,7 @@ def wrap_parse_action(func):
         except ParseException as pe:
             raise pe
         except Exception as cause:
-            raise ParseException(token.type, token.start, string, cause=cause)
+            Log.error("parse action should not raise exception", cause=cause)
 
     # copy func name to wrapper for sensible debug output
     try:
