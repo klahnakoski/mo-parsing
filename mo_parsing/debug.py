@@ -44,12 +44,12 @@ def _debug_parse(debugger):
             debugger.parse_count += 1
             debugger.max_stack_depth = stackdepth()
             tokens = self.parse_impl(string, loc, do_actions)
-        except Exception as cause:
+        except ParseException as cause:
             self.parser_config.fail_action and self.parser_config.fail_action(
                 self, start, string, cause
             )
             fail(self, start, string, cause)
-            raise ParseException(self, start, string, cause=cause)
+            raise ParseException(self, start, string, cause=cause) from None
 
         if self.parse_action and (do_actions or self.parser_config.callDuringTry):
             try:

@@ -4297,7 +4297,7 @@ class TestParsing(PyparsingExpressionTestCase):
         expr = expr.add_parse_action(divide_args)
 
         with self.assertRaises(
-            """Expecting int + int, found "123 0", caused by division by zero (at char 0), (line:1, col:1)"""
+            """division by zero"""
         ):
             expr.parse_string("123 0")
 
