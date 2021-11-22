@@ -8,13 +8,13 @@ from mo_imports import export
 
 from mo_parsing import whitespaces
 from mo_parsing.core import ParserElement, _PendingSkip
-from mo_parsing.enhancement import Optional, SkipTo, Many
+from mo_parsing.enhancement import Optional, SkipTo, Many, LookBehind
 from mo_parsing.exceptions import (
     ParseException,
     ParseSyntaxException,
 )
 from mo_parsing.results import ParseResults
-from mo_parsing.tokens import Empty, LookBehind
+from mo_parsing.tokens import Empty
 from mo_parsing.utils import (
     empty_tuple,
     is_forward,
@@ -276,9 +276,9 @@ class And(ParseExpression):
                     failures.extend(result.failures)
             except ParseException as pe:
                 if encountered_syntax_error:
-                    raise ParseSyntaxException(pe.expr, pe.loc, pe.string, cause=pe)
+                    raise ParseSyntaxException(pe.expr, pe.loc, pe.string, cause=pe) from None
                 else:
-                    raise pe
+                    raise pe from None
 
         return ParseResults(self, start, end, acc, failures)
 

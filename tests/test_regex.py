@@ -1,8 +1,8 @@
 # encoding: utf-8
 import re
 
-from mo_parsing import Regex, Char
-from mo_parsing.tokens import SingleCharLiteral
+from mo_parsing import Regex, Char, LookAhead
+from mo_parsing.tokens import SingleCharLiteral, LookBehind
 from tests.test_simple_unit import PyparsingExpressionTestCase
 
 
@@ -208,3 +208,25 @@ class TestRegexParsing(PyparsingExpressionTestCase):
         #                      -----    -------------------------------------    -------  --------------------------
         # xml = Regex(r"""\s*(?(?=<)<\s*(\w+)(?:\s+[^\s>]+=("|'|)[^\s"'>]+\2)*\s*(\/\s*)?>(?(3)|(?R)<\s*\/\s*\1\s*>)|[^<]*)*\s*""")
         pass
+
+    def test_make_complex_ident(self):
+        IDENT_CHAR = Regex("[@_$0-9A-Za-zÀ-ÖØ-öø-ƿ]").expr.parser_config.include
+        FIRST_IDENT_CHAR = "".join(set(IDENT_CHAR) - set("0123456789"))
+        digit = Char('0123456789')
+        simple_ident = Char(FIRST_IDENT_CHAR) + ((Regex("(?<=[^0-9])") + "-" + LookAhead(~digit)) | Char(IDENT_CHAR))[...]
+
+        regex = simple_ident.__regex__()[1]
+
+        self.assertEqual(regex, '[\\$@-Z_a-zÀ-ÖØ-öø-ƿ](?:(?:(?<=[^0-9]))\\-(?=(?![0-9]))|[\\$0-9@-Z_a-zÀ-ÖØ-öø-ƿ])*')
+
+        faster = Regex(regex)
+        self.assertEqual(
+            faster.parse("this-is-a-test", parse_all=True),
+            "this-is-a-test"
+        )
+
+        try:
+            result = faster.parse("thi2-is-a-test", parse_all=True)
+            raise Exception("expecting parse error")
+        except Exception:
+            pass

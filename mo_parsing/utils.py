@@ -164,7 +164,7 @@ def indent(value, prefix="\t", indent=None):
     except Exception as e:
         raise Exception(
             "Problem with indent of value (" + e.message + ")\n" + text(value)
-        )
+        ) from None
 
 
 def quote(value):
@@ -397,9 +397,9 @@ def wrap_parse_action(func):
                     token.type, token.start, token.end, [result], token.failures
                 )
         except ParseException as pe:
-            raise pe
+            raise
         except Exception as cause:
-            raise ParseException(token.type, token.start, string, cause=cause)
+            Log.error("parse action should not raise exception", cause=cause)
 
     # copy func name to wrapper for sensible debug output
     try:

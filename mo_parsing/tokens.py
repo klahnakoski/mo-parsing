@@ -3,7 +3,7 @@
 from mo_future import is_text
 from mo_imports import export
 
-from mo_parsing import whitespaces
+from mo_parsing import whitespaces, LookBehind
 from mo_parsing.core import ParserElement
 from mo_parsing.whitespaces import Whitespace
 from mo_parsing.exceptions import ParseException
@@ -82,27 +82,6 @@ class NoMatch(Token):
 
     def __regex__(self):
         return "+", "a^"
-
-
-class LookBehind(Token):
-    zero_length = True
-    __slots__ = []
-
-    def __init__(self, name=None):
-        Token.__init__(self)
-        self.parser_name = name
-
-    def is_annotated(self):
-        return self.parse_action or self.token_name
-
-    def min_length(self):
-        return 0
-
-    def streamline(self):
-        return self
-
-    def reverse(self):
-        return self
 
 
 class AnyChar(Token):
@@ -654,19 +633,20 @@ class LineStart(Token):
         return "*", "^"
 
 
-class LineEnd(LookBehind):
+class LineEnd(Token):
     """
     Matches if current position is at the end of a line
     """
 
     zero_length = True
     __slots__ = []
+    # Config = append_config(Token, "regex")
 
     def __init__(self):
-        with Whitespace(" \t") as e:
+        with Whitespace(" \t"):
             Token.__init__(self)
             self.parser_name = self.__class__.__name__
-            self.set_config(lock_engine=e, regex=regex_compile("\\r?(\\n|$)"))
+            self.set_config(regex=regex_compile("\\r?(\\n|$)"))
 
     def parse_impl(self, string, start, do_actions=True):
         found = self.parser_config.regex.match(string, start)
@@ -848,4 +828,3 @@ export("mo_parsing.enhancement", CharsNotIn)
 export("mo_parsing.enhancement", StringEnd)
 export("mo_parsing.enhancement", Empty)
 export("mo_parsing.enhancement", Char)
-export("mo_parsing.enhancement", LookBehind)

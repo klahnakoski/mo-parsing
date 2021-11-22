@@ -1,4 +1,5 @@
 # encoding: utf-8
+import re
 from collections import OrderedDict
 
 from mo_dots import Null, is_null
@@ -34,7 +35,6 @@ Word: object
     StringEnd,
     Empty,
     Char,
-    LookBehind,
 ) = expect(
     "Token",
     "NoMatch",
@@ -45,7 +45,6 @@ Word: object
     "StringEnd",
     "Empty",
     "Char",
-    "LookBehind",
 )
 
 _get = object.__getattribute__
@@ -116,12 +115,12 @@ class ParseEnhancement(ParserElement):
         return f"{self.__class__.__name__}:({self.expr})"
 
 
-class FollowedBy(ParseEnhancement):
+class LookAhead(ParseEnhancement):
     """
     Lookahead matching of the given parse expression.
-    ``FollowedBy`` does *not* advance the parsing position within
+    `LookAhead` does *not* advance the parsing position within
     the input string, it only verifies that the specified parse
-    expression matches at the current position.  ``FollowedBy``
+    expression matches at the current position.  `LookAhead`
     always returns a null token list. If any results names are defined
     in the lookahead expression, those *will* be returned for access by
     name.
@@ -131,7 +130,7 @@ class FollowedBy(ParseEnhancement):
     __slots__ = []
 
     def __init__(self, expr):
-        super(FollowedBy, self).__init__(expr)
+        ParseEnhancement.__init__(self, expr)
 
     def parse_impl(self, string, start, do_actions=True):
         # by using self._expr.parse and deleting the contents of the returned ParseResults list
@@ -145,11 +144,7 @@ class FollowedBy(ParseEnhancement):
         return "*", f"(?={self.expr.__regex__()[1]})"
 
 
-class LookAhead(ParseEnhancement):
-    """
-    Does *not* advance the parsing position within the
-    input string, it only verifies that the specified parse expression
-    """
+FollowedBy = LookAhead
 
 
 class NotAny(LookAhead):
@@ -220,13 +215,13 @@ class Many(ParseEnhancement):
     )
 
     def __init__(
-        self,
-        expr,
-        whitespace=None,
-        stop_on=None,
-        min_match=0,
-        max_match=MAX_INT,
-        exact=None,
+            self,
+            expr,
+            whitespace=None,
+            stop_on=None,
+            min_match=0,
+            max_match=MAX_INT,
+            exact=None,
     ):
         """
         MATCH expr SOME NUMBER OF TIMES (OR UNTIL stop_on IS REACHED
@@ -299,11 +294,11 @@ class Many(ParseEnhancement):
                     string,
                     msg="Not correct amount of matches",
                     cause=cause,
-                )
+                ) from None
         if count:
             if (
-                count < self.parser_config.min_match
-                or self.parser_config.max_match < count
+                    count < self.parser_config.min_match
+                    or self.parser_config.max_match < count
             ):
                 raise ParseException(
                     self,
@@ -335,8 +330,8 @@ class Many(ParseEnhancement):
         except Exception as e:
             print(e)
         if (
-            self.parser_config.min_match == self.parser_config.max_match
-            and not self.is_annotated()
+                self.parser_config.min_match == self.parser_config.max_match
+                and not self.is_annotated()
         ):
             if self.parser_config.min_match == 0:
                 return Empty()
@@ -372,11 +367,11 @@ class Many(ParseEnhancement):
                 suffix = "{" + text(self.parser_config.min_match) + "}"
         else:
             suffix = (
-                "{"
-                + text(self.parser_config.min_match)
-                + ","
-                + text(self.parser_config.max_match)
-                + "}"
+                    "{"
+                    + text(self.parser_config.min_match)
+                    + ","
+                    + text(self.parser_config.max_match)
+                    + "}"
             )
 
         if end:
@@ -702,7 +697,7 @@ class Forward(ParserElement):
                     "Ensure you have assigned a ParserElement (<<) to this Forward",
                     cause=cause,
                 )
-            raise cause
+            raise cause from None
 
     def __regex__(self):
         if self._reg or not self.expr:
@@ -950,6 +945,9 @@ class PrecededBy(LookAhead):
         if self.parser_config.exact:
             return "*", f"(?<={self.expr.__regex__()[1]})"
         raise NotImplemented()
+
+
+LookBehind = PrecededBy
 
 
 export("mo_parsing.core", SkipTo)

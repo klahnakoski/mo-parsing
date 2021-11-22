@@ -153,14 +153,14 @@ class Parser(object):
                 except ParseException as pe:
                     raise ParseException(
                         self.element, 0, string, cause=tokens.failures + [pe]
-                    )
+                    ) from None
 
             if self.named:
                 return tokens
             else:
                 return tokens.tokens[0]
         except ParseException as cause:
-            raise cause.best_cause
+            raise cause.best_cause from None
 
     @entrypoint
     def scan_string(self, string, max_matches=MAX_INT, overlap=False):
@@ -314,7 +314,7 @@ class ParserElement(object):
         self.min_length_cache = -1
 
         self.parser_config = self.Config(*([None] * len(self.Config._fields)))
-        self.set_config(callDuringTry=False, fail_action=None, lock_engine=None)
+        self.set_config(callDuringTry=False, fail_action=None)
 
     def set_config(self, **map):
         data = {
@@ -457,7 +457,7 @@ class ParserElement(object):
             self.parser_config.fail_action and self.parser_config.fail_action(
                 self, start, string, cause
             )
-            raise ParseException(self, start, string, cause=cause)
+            raise ParseException(self, start, string, cause=cause) from None
 
         if do_actions or self.parser_config.callDuringTry:
             for fn in self.parse_action:

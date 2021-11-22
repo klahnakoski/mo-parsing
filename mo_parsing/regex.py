@@ -21,8 +21,8 @@ from mo_parsing.enhancement import (
     Combine,
     Group,
     Forward,
-    FollowedBy,
-    ParseEnhancement,
+    LookAhead,
+    ParseEnhancement, LookBehind,
 )
 from mo_parsing.expressions import MatchFirst, And
 from mo_parsing.infix import delimited_list
@@ -218,9 +218,9 @@ repetition = Group(
 
 LB = Char("(")
 
-ahead = ("(?=" + regex + ")") / (lambda t: FollowedBy(t["value"]))
+ahead = ("(?=" + regex + ")") / (lambda t: LookAhead(t["value"]))
 not_ahead = ("(?!" + regex + ")") / (lambda t: NotAny(t["value"]))
-behind = ("(?<=" + regex + ")") / (lambda t: Log.error("not supported"))
+behind = ("(?<=" + regex + ")") / (lambda t: LookBehind(t["value"]))
 not_behind = ("(?<!" + regex + ")") / (lambda t: Log.error("not supported"))
 non_capture = ("(?:" + regex + ")") / (lambda t: t["value"])
 # conditional = ("(?" + try_match + "|" + else_match + ")")
