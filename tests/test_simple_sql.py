@@ -131,9 +131,8 @@ class TestSimpleSQL(TestCase):
             ansi_ident | mysql_backtick_ident | sqlserver_ident | Word(alphanums)
         )
 
-        with Debugger() as d:
-            combined_ident.parse_string("testing")
-            self.assertLess(d.parse_count, 7)
+        combined_ident.parse_string("testing")
+        self.assertLess(d.parse_count, 7)
 
     def test_word_has_expecting(self):
         expect = Word(alphanums).expecting()
