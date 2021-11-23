@@ -16,11 +16,12 @@ DEBUGGING = False
 
 
 class Debugger(object):
-    def __init__(self):
+    def __init__(self, silent=False):
         self.previous_parse = None
         self.was_debugging = False
         self.parse_count = 0
         self.max_stack_depth = 0
+        self.silent = silent
 
     def __enter__(self):
         global DEBUGGING
@@ -38,7 +39,8 @@ class Debugger(object):
 
 def _debug_parse(debugger):
     def debug_parse(self, string, start, do_actions=True):
-        _try(self, start, string)
+        if not debugger.silent:
+            _try(self, start, string)
         loc = start
         try:
             debugger.parse_count += 1
@@ -48,7 +50,8 @@ def _debug_parse(debugger):
             self.parser_config.fail_action and self.parser_config.fail_action(
                 self, start, string, cause
             )
-            fail(self, start, string, cause)
+            if not debugger.silent:
+                fail(self, start, string, cause)
             raise ParseException(self, start, string, cause=cause) from None
 
         if self.parse_action and (do_actions or self.parser_config.callDuringTry):
@@ -58,7 +61,8 @@ def _debug_parse(debugger):
             except Exception as cause:
                 fail(self, start, string, cause)
                 raise
-        match(self, loc, tokens.end, string, tokens)
+        if not debugger.silent:
+            match(self, loc, tokens.end, string, tokens)
 
         return tokens
 
