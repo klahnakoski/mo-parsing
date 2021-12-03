@@ -27,6 +27,7 @@ from examples.jsonParser import jsonObject
 from examples.simpleSQL import simpleSQL
 from mo_parsing import *
 from mo_parsing import helpers
+from mo_parsing.debug import Debugger
 from mo_parsing.helpers import *
 from mo_parsing.infix import one_of
 from mo_parsing.utils import *

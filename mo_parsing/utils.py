@@ -55,6 +55,11 @@ empty_tuple = tuple()
 many_types = (list, tuple, set) + generator_types
 
 
+def register_type(t):
+    global many_types
+    many_types = many_types + (t,)
+
+
 def extend(cls):
     """
     DECORATOR TO ADD METHODS TO CLASSES

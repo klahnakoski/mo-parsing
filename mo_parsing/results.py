@@ -5,9 +5,7 @@ from mo_dots import is_many, is_null
 from mo_future import is_text, text, NEXT, zip_longest, MutableMapping
 from mo_imports import expect, export
 
-from mo_parsing.utils import Log, listwrap
-from mo_parsing.utils import is_forward, forward_type
-
+from mo_parsing.utils import Log, listwrap, is_forward, forward_type
 
 Suppress, ParserElement, NO_PARSER, NO_RESULTS, Group, Dict, Token, Empty = expect(
     "Suppress",
@@ -165,9 +163,7 @@ class ParseResults(object):
             if len(self.tokens) != 1:
                 Log.error("not expected")
 
-            output = list(self.tokens[0])
-            for i in output:
-                yield i
+            yield from self.tokens[0]
             return
 
         for r in self.tokens:
@@ -180,9 +176,14 @@ class ParseResults(object):
                     yield r
                 elif is_forward(r.type) and isinstance(forward_type(r), Group):
                     yield r
+                # elif is_forward(r.type):
+                #     r = self.tokens[0]
+                #     if isinstance(r.type, Group):
+                #         yield r
+                #     else:
+                #         yield from r
                 elif not isinstance(r.type, Group):
-                    for mm in r:
-                        yield mm
+                    yield from r
             else:
                 yield r
 
@@ -451,5 +452,8 @@ class Annotation(ParseResults):
 
 
 MutableMapping.register(ParseResults)
+
+from mo_parsing import utils
+utils.register_type(ParseResults)
 
 export("mo_parsing.utils", ParseResults)
