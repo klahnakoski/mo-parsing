@@ -5,6 +5,7 @@
 # Contact: kyle@lahnakoski.com
 from collections import OrderedDict
 from string import whitespace
+import re
 
 from mo_future import unichr, is_text
 from mo_imports import export

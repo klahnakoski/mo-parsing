@@ -857,6 +857,8 @@ class Suppress(TokenConverter):
     __slots__ = []
 
     def __init__(self, expr):
+        if isinstance(expr, text):
+            expr = Literal(expr)
         TokenConverter.__init__(self, expr)
         self.parse_action.append(_suppress_post_parse)
 
