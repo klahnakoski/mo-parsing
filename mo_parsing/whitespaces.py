@@ -84,10 +84,7 @@ class Whitespace(ParserElement):
         if expr == None:
             return None
         if is_text(expr):
-            if issubclass(self.literal, Token):
-                return self.literal(expr)
-            else:
-                return self.literal(Literal(expr))
+            return self.literal(expr)
         if isinstance(expr, type) and issubclass(expr, ParserElement):
             return expr()  # ALLOW Empty WHEN Empty() WAS INTENDED
         if not isinstance(expr, ParserElement):

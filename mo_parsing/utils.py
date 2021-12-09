@@ -241,6 +241,7 @@ singleArgTypes = [
     str,
     bool,
     complex,
+    dict,
 ]
 
 builtin_lookup = {"".join.__name__: ("iterable",)}
