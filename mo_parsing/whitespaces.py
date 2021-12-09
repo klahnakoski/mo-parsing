@@ -4,7 +4,6 @@ from collections import namedtuple
 
 from mo_future import is_text
 from mo_imports import expect, Expecting
-from mo_logs.exceptions import get_stacktrace
 
 from mo_parsing.core import ParserElement
 from mo_parsing.results import ParseResults
