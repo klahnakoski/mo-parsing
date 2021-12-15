@@ -1,6 +1,7 @@
 # encoding: utf-8
 import json
-from mo_future import text, is_text
+
+from mo_future import text, is_text, sort_using_cmp
 from mo_imports import export, expect
 
 from mo_parsing.utils import Log, listwrap, quote, indent
@@ -60,6 +61,7 @@ class ParseException(Exception):
                 MatchFirst([b.expr for b in best if b.loc == best_loc]).streamline(),
                 best_0.start,
                 best_0.string,
+                msg=best_0._msg,
                 cause=best,
             )
 
@@ -187,9 +189,30 @@ class RecursiveGrammarException(Exception):
         ])
 
 
+def compare_causes(a, b):
+    if isinstance(a, ParseException):
+        if isinstance(b, ParseException):
+            if a.loc < b.loc:
+                return 1
+            elif a.loc > b.loc:
+                return -1
+            elif b._msg:
+                return 1
+            elif a._msg:
+                return -1
+            else:
+                return 0
+        else:
+            return 1
+    elif isinstance(b, ParseException):
+        return -1
+    else:
+        return 0
+
+
 def sort_causes(causes):
-    return list(sorted(
-        listwrap(causes), key=lambda e: -e.loc if isinstance(e, ParseException) else 0,
+    return list(sort_using_cmp(
+        listwrap(causes), cmp=compare_causes,
     ))
 
 
