@@ -716,7 +716,7 @@ class MatchAll(ParseExpression):
         :param exprs: The expressions to be matched
         :param mins: list of integers indincating any minimums
         """
-        super(MatchAll, self).__init__(exprs)
+        ParseExpression.__init__(self, exprs)
         self.set_config(
             whitespace=whitespace,
             min_match=[
@@ -730,7 +730,16 @@ class MatchAll(ParseExpression):
     def streamline(self):
         if self.streamlined:
             return self
-        return super(MatchAll, self).streamline()
+        output = ParseExpression.streamline(self)
+        output.set_config(
+            min_match=[
+                e.parser_config.min_match if isinstance(e, Many) else 1 for e in output.exprs
+            ],
+            max_match=[
+                e.parser_config.max_match if isinstance(e, Many) else 1 for e in output.exprs
+            ],
+        )
+        return output
 
     def _min_length(self):
         # TODO: MAY BE TOO CONSERVATIVE, WE MAY BE ABLE TO PROVE self CAN CONSUME A CHARACTER
@@ -796,6 +805,9 @@ class MatchAll(ParseExpression):
 
         # add any unmatched Optionals, in case they have default values defined
         match_order += [e for e in self.exprs if id(e) not in found]
+
+        if not match_order:
+            return ParseResults(self, start, start, [], failures)
 
         # TODO: CAN WE AVOID THIS RE-PARSE?
         results = []
