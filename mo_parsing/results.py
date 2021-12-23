@@ -91,8 +91,6 @@ class ParseResults(object):
                     v = NO_RESULTS  # ERASE ALL OTHERS
                 elif isinstance(tok.type, Group):
                     continue
-                elif is_forward(tok.type) and isinstance(tok.tokens[0].type, Group):
-                    continue
                 elif tok.name:
                     continue
 
@@ -162,8 +160,6 @@ class ParseResults(object):
                 if isinstance(r, Annotation):
                     return
                 elif isinstance(r.type, Group):
-                    yield r
-                elif is_forward(r.type) and isinstance(forward_type(r), Group):
                     yield r
                 elif not isinstance(r.type, Group):
                     yield from r
@@ -368,7 +364,7 @@ class ForwardResults(ParseResults):
 
     @property
     def type(self):
-        return self.tokens[0]._type
+        return self.tokens[0].type
 
     def __getitem__(self, item):
         return self.tokens[0][item]
