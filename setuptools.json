@@ -10,7 +10,7 @@
     ],
     "description": "Another PEG Parsing Tool",
     "extras_require": {"tests": ["mo-testing", "mo-threads", "mo-logs", "mo-files"]},
-    "install_requires": ["mo-dots==8.4.21326", "mo-future==6.2.21303"],
+    "install_requires": ["mo-dots==8.20.21357", "mo-future==6.2.21303"],
     "license": "MIT",
     "long_description": {
         "$concat": [
@@ -175,5 +175,5 @@
     "name": "mo-parsing",
     "packages": ["mo_parsing"],
     "url": "https://github.com/klahnakoski/mo-parsing",
-    "version": "8.17.21356"
+    "version": "8.23.21357"
 }

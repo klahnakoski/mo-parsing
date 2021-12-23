@@ -1,5 +1,4 @@
 # encoding: utf-8
-import re
 from collections import OrderedDict
 
 from mo_dots import Null, is_null
@@ -12,7 +11,7 @@ from mo_parsing.exceptions import (
     ParseException,
     RecursiveGrammarException,
 )
-from mo_parsing.results import ParseResults, Annotation
+from mo_parsing.results import ParseResults, ForwardResults, Annotation
 from mo_parsing.utils import (
     Log,
     listwrap,
@@ -25,17 +24,7 @@ from mo_parsing.utils import (
 from mo_parsing.utils import MAX_INT, is_forward
 
 Word: object
-(
-    Token,
-    NoMatch,
-    Literal,
-    Keyword,
-    Word,
-    CharsNotIn,
-    StringEnd,
-    Empty,
-    Char,
-) = expect(
+(Token, NoMatch, Literal, Keyword, Word, CharsNotIn, StringEnd, Empty, Char,) = expect(
     "Token",
     "NoMatch",
     "Literal",
@@ -215,13 +204,13 @@ class Many(ParseEnhancement):
     )
 
     def __init__(
-            self,
-            expr,
-            whitespace=None,
-            stop_on=None,
-            min_match=0,
-            max_match=MAX_INT,
-            exact=None,
+        self,
+        expr,
+        whitespace=None,
+        stop_on=None,
+        min_match=0,
+        max_match=MAX_INT,
+        exact=None,
     ):
         """
         MATCH expr SOME NUMBER OF TIMES (OR UNTIL stop_on IS REACHED
@@ -297,8 +286,8 @@ class Many(ParseEnhancement):
                 ) from None
         if count:
             if (
-                    count < self.parser_config.min_match
-                    or self.parser_config.max_match < count
+                count < self.parser_config.min_match
+                or self.parser_config.max_match < count
             ):
                 raise ParseException(
                     self,
@@ -330,8 +319,8 @@ class Many(ParseEnhancement):
         except Exception as e:
             print(e)
         if (
-                self.parser_config.min_match == self.parser_config.max_match
-                and not self.is_annotated()
+            self.parser_config.min_match == self.parser_config.max_match
+            and not self.is_annotated()
         ):
             if self.parser_config.min_match == 0:
                 return Empty()
@@ -367,11 +356,11 @@ class Many(ParseEnhancement):
                 suffix = "{" + text(self.parser_config.min_match) + "}"
         else:
             suffix = (
-                    "{"
-                    + text(self.parser_config.min_match)
-                    + ","
-                    + text(self.parser_config.max_match)
-                    + "}"
+                "{"
+                + text(self.parser_config.min_match)
+                + ","
+                + text(self.parser_config.max_match)
+                + "}"
             )
 
         if end:
@@ -434,7 +423,9 @@ class ZeroOrMore(Many):
     __slots__ = []
 
     def __init__(self, expr, whitespace=None, stop_on=None):
-        Many.__init__(self, expr, whitespace, stop_on=stop_on, min_match=0, max_match=MAX_INT)
+        Many.__init__(
+            self, expr, whitespace, stop_on=stop_on, min_match=0, max_match=MAX_INT
+        )
 
     def parse_impl(self, string, start, do_actions=True):
         try:
@@ -631,8 +622,6 @@ class Forward(ParserElement):
         while is_forward(other):
             other = other.expr
         norm = whitespaces.CURRENT.normalize(other)
-        if norm is None:
-            Log.error("problem")
         self.expr = norm.streamline()
         self.check_recursion()
         return self
@@ -688,7 +677,7 @@ class Forward(ParserElement):
     def parse_impl(self, string, loc, do_actions=True):
         try:
             result = self.expr._parse(string, loc, do_actions)
-            return ParseResults(
+            return ForwardResults(
                 self, result.start, result.end, [result], result.failures
             )
         except Exception as cause:
@@ -950,7 +939,6 @@ class PrecededBy(LookAhead):
 
 
 LookBehind = PrecededBy
-
 
 export("mo_parsing.core", SkipTo)
 export("mo_parsing.core", Many)

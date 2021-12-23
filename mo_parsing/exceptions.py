@@ -89,7 +89,7 @@ class ParseException(Exception):
         if self.loc >= len(self.string):
             found = ", found end of text"
         else:
-            found = f", found {quote(self.string[self.loc : self.loc + 10])}"
+            found = f", found {quote(self.string[self.loc: self.loc + 10])}"
 
         if self.causes and not isinstance(self.causes[0], ParseException):
             describe_cause = f", caused by {self.causes[0]}"
@@ -211,9 +211,7 @@ def compare_causes(a, b):
 
 
 def sort_causes(causes):
-    return list(sort_using_cmp(
-        listwrap(causes), cmp=compare_causes,
-    ))
+    return list(sort_using_cmp(listwrap(causes), cmp=compare_causes,))
 
 
 export("mo_parsing.utils", ParseException)

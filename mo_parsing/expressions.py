@@ -276,7 +276,9 @@ class And(ParseExpression):
                     failures.extend(result.failures)
             except ParseException as pe:
                 if encountered_syntax_error:
-                    raise ParseSyntaxException(pe.expr, pe.loc, pe.string, cause=pe) from None
+                    raise ParseSyntaxException(
+                        pe.expr, pe.loc, pe.string, cause=pe
+                    ) from None
                 else:
                     raise pe from None
 
@@ -733,10 +735,12 @@ class MatchAll(ParseExpression):
         output = ParseExpression.streamline(self)
         output.set_config(
             min_match=[
-                e.parser_config.min_match if isinstance(e, Many) else 1 for e in output.exprs
+                e.parser_config.min_match if isinstance(e, Many) else 1
+                for e in output.exprs
             ],
             max_match=[
-                e.parser_config.max_match if isinstance(e, Many) else 1 for e in output.exprs
+                e.parser_config.max_match if isinstance(e, Many) else 1
+                for e in output.exprs
             ],
         )
         return output

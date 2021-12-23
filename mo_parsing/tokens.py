@@ -3,12 +3,12 @@
 from mo_future import is_text
 from mo_imports import export
 
-from mo_parsing import whitespaces, LookBehind
+from mo_parsing import whitespaces
 from mo_parsing.core import ParserElement
-from mo_parsing.whitespaces import Whitespace
 from mo_parsing.exceptions import ParseException
 from mo_parsing.results import ParseResults
 from mo_parsing.utils import *
+from mo_parsing.whitespaces import Whitespace
 
 
 class Token(ParserElement):
@@ -640,6 +640,7 @@ class LineEnd(Token):
 
     zero_length = True
     __slots__ = []
+
     # Config = append_config(Token, "regex")
 
     def __init__(self):

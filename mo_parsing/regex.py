@@ -5,13 +5,11 @@
 # Contact: kyle@lahnakoski.com
 from collections import OrderedDict
 from string import whitespace
-import re
 
 from mo_future import unichr, is_text
 from mo_imports import export
 
 from mo_parsing.core import add_reset_action
-from mo_parsing.whitespaces import Whitespace, NO_WHITESPACE
 from mo_parsing.enhancement import (
     Char,
     NotAny,
@@ -23,7 +21,8 @@ from mo_parsing.enhancement import (
     Group,
     Forward,
     LookAhead,
-    ParseEnhancement, LookBehind,
+    ParseEnhancement,
+    LookBehind,
 )
 from mo_parsing.expressions import MatchFirst, And
 from mo_parsing.infix import delimited_list
@@ -47,6 +46,7 @@ from mo_parsing.utils import (
     regex_compile,
     ParseException,
 )
+from mo_parsing.whitespaces import Whitespace, NO_WHITESPACE
 
 __all__ = ["Regex"]
 
