@@ -3,9 +3,27 @@ import ast
 from unittest import TestCase, skip
 
 from mo_dots import unwraplist
+from mo_files import File
+from mo_http import http
+from mo_threads import stop_main_thread
+from mo_threads.profiles import CProfiler, write_profiles
+from mo_times import Timer
 
-from mo_parsing import Whitespace, Literal, Regex, Word, Dict, Group, Forward, Log, ParseException, Optional, OneOrMore, \
-    Suppress, SkipTo
+from mo_parsing import (
+    Whitespace,
+    Literal,
+    Regex,
+    Word,
+    Group,
+    Forward,
+    Log,
+    ParseException,
+    Optional,
+    OneOrMore,
+    Suppress,
+    SkipTo,
+    OpenDict,
+)
 
 tag_stack = []
 
@@ -30,7 +48,7 @@ def unquote(tokens):
     return ast.literal_eval(tokens[0])
 
 
-class XMLParser(object):
+class XmlParser(object):
     def __init__(self):
         with Whitespace() as white:
             white.set_literal(lambda v: Literal(v).suppress())
@@ -50,21 +68,30 @@ class XMLParser(object):
             attr = Group(
                 name / (lambda t: t[0])
                 + "="
-                + (Regex('"[^"]*"') / unquote)
+                + ((Regex('"[^"]*"') | Regex("'[^']*'")) / unquote)
             )
 
             text = Regex("[^<]+")
-            tag = Forward()
             cdata = "<![CDATA[" + SkipTo("]]>") / (lambda t: t[0])
 
+            tag = Forward()
             tag << (
                 "<"
                 + (name("name") / push_name)
-                + Optional(Dict(OneOrMore(attr))("attributes")/dict)
-                + (Suppress("/>")/pop | (">" + Optional(OneOrMore(tag|cdata|text)("children")) + "</" + (name / pop_name) + ">"))
+                + Optional((OpenDict(OneOrMore(attr)) / dict)("attributes"))
+                + (
+                    Suppress("/>") / pop
+                    | (
+                        ">"
+                        + Optional(Group(OneOrMore(tag | cdata | text))("children"))
+                        + "</"
+                        + (name / pop_name)
+                        + ">"
+                    )
+                )
             ) / dict
 
-            self.tag = OneOrMore(tag|cdata|text).finalize()
+            self.tag = OneOrMore(tag | cdata | text).finalize()
 
     def parse(self, content):
         tag_stack.clear()
@@ -72,10 +99,13 @@ class XMLParser(object):
             return self.tag.parse(content)[0]
         finally:
             if tag_stack:
-                Log.error("expecting closing tags: {{tags}}", tags=unwraplist(list(reversed(tag_stack))))
+                Log.error(
+                    "expecting closing tags: {{tags}}",
+                    tags=unwraplist(list(reversed(tag_stack))),
+                )
 
 
-parse = XMLParser().parse
+parse = XmlParser().parse
 
 
 class TestXmlParser(TestCase):
@@ -105,11 +135,17 @@ class TestXmlParser(TestCase):
         result = parse("""<a href="234"/>""")
         self.assertEqual(result, {"name": "a", "attributes":{"href":"234"}})
 
-
-
-    @skip
+    @skip("not a fancy parser")
     def test_header(self):
         xml = """<?xml version="1.0"?>
         <greeting>Hello, world!</greeting> """
         result = parse(xml)
         self.assertEqual(result, {"name": "simple", "children": ["Hello, world!"]})
+
+    def test_speed(self):
+        http.default_headers["Referer"]='https://github.com/klahnakoski/mo-parsing'
+        xml = http.get("http://www.quickfixengine.org/FIX44.xml").content.decode('utf8')
+
+        with CProfiler() as profile:
+            parse(xml)
+        write_profiles()

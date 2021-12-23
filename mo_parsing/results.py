@@ -144,17 +144,26 @@ class ParseResults(object):
             Log.error("do not know how to handle")
 
     def __bool__(self):
-        try:
-            NEXT(self.items())()
-            return True
-        except Exception:
-            pass
-
-        try:
-            NEXT(self.__iter__())()
-            return True
-        except Exception:
+        if not self.tokens:
             return False
+
+        if is_forward(self.type):
+            return self.tokens[0].__bool__()
+
+        for r in self.tokens:
+            if not isinstance(r, ParseResults):
+                return True
+            elif r.name:
+                return True
+            elif isinstance(r.type, Group):
+                return True
+            elif is_forward(r.type) and isinstance(forward_type(r), Group):
+                return True
+            else:
+                if r.__bool__():
+                    return True
+
+        return False
 
     __nonzero__ = __bool__
 
