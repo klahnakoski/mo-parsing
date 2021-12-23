@@ -158,6 +158,6 @@ class TestXmlParser(TestCase):
         http.default_headers["Referer"] = "https://github.com/klahnakoski/mo-parsing"
         xml = http.get("http://www.quickfixengine.org/FIX44.xml").content.decode("utf8")
 
-        with CProfiler() as profile:
+        with CProfiler():
             parse(xml)
         write_profiles()
