@@ -12,7 +12,7 @@ from mo_parsing.exceptions import (
     ParseException,
     RecursiveGrammarException,
 )
-from mo_parsing.results import ParseResults, Annotation
+from mo_parsing.results import ParseResults, ForwardResults, Annotation
 from mo_parsing.utils import (
     Log,
     listwrap,
@@ -688,7 +688,7 @@ class Forward(ParserElement):
     def parse_impl(self, string, loc, do_actions=True):
         try:
             result = self.expr._parse(string, loc, do_actions)
-            return ParseResults(
+            return ForwardResults(
                 self, result.start, result.end, [result], result.failures
             )
         except Exception as cause:

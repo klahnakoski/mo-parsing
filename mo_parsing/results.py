@@ -37,8 +37,7 @@ class ParseResults(object):
         self.failures = failures
 
     def _get_item_by_name(self, name):
-        # return open list of (modal, value) pairs
-        # modal==True means only the last value is relevant
+        # return open list of values for given name
         for tok in self.tokens:
             if isinstance(tok, ParseResults):
                 if tok.name == name:
@@ -185,12 +184,6 @@ class ParseResults(object):
                     yield r
                 elif is_forward(r.type) and isinstance(forward_type(r), Group):
                     yield r
-                # elif is_forward(r.type):
-                #     r = self.tokens[0]
-                #     if isinstance(r.type, Group):
-                #         yield r
-                #     else:
-                #         yield from r
                 elif not isinstance(r.type, Group):
                     yield from r
             else:
@@ -204,21 +197,6 @@ class ParseResults(object):
 
     def __reversed__(self):
         return reversed(self.tokens)
-
-    # def __getattr__(self, item):
-    #     """
-    #     IF THERE IS ONLY ONE VALUE, THEN DEFER TO IT
-    #     """
-    #     iter = self.__iter__()
-    #     try:
-    #         v1 = iter.__next__()
-    #         try:
-    #             iter.__next__()
-    #             raise Log.error("No attribute {{item}} for mutiple tokens", item=item)
-    #         except Exception:
-    #             return getattr(v1, item)
-    #     except Exception as cause:
-    #         raise AttributeError(f"No attribute {item}")
 
     def value(self):
         """
@@ -410,6 +388,32 @@ class ParseResults(object):
             return self.tokens[0].name
         else:
             return ""
+
+
+class ForwardResults(ParseResults):
+    __slots__ = []
+
+    # @property
+    # def type(self):
+    #     return self.tokens[0]._type
+
+    def __getitem__(self, item):
+        return self.tokens[0][item]
+
+    def __setitem__(self, k, v):
+        self.tokens[0][k] = v
+
+    def __bool__(self):
+        return self.tokens[0].__bool__()
+
+    def __iter__(self):
+        if len(self.tokens) != 1:
+            Log.error("not expected")
+
+        yield from self.tokens[0]
+
+    def items(self):
+        yield from self.tokens[0].items()
 
 
 def _flatten(token):
