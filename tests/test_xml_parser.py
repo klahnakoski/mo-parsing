@@ -4,6 +4,7 @@ from unittest import TestCase, skip
 
 from mo_dots import unwraplist
 from mo_files import File
+from mo_future import is_text, text
 from mo_http import http
 from mo_threads import stop_main_thread
 from mo_threads.profiles import CProfiler, write_profiles
@@ -22,7 +23,7 @@ from mo_parsing import (
     OneOrMore,
     Suppress,
     SkipTo,
-    OpenDict,
+    OpenDict, Annotation,
 )
 
 tag_stack = []
@@ -46,6 +47,15 @@ def pop():
 
 def unquote(tokens):
     return ast.literal_eval(tokens[0])
+
+
+def to_dict(tokens):
+    output = {}
+    for a in tokens.tokens:
+        key, value = list(a)
+        output[key] = value
+
+    return output
 
 
 class XmlParser(object):
@@ -78,7 +88,7 @@ class XmlParser(object):
             tag << (
                 "<"
                 + (name("name") / push_name)
-                + Optional((OpenDict(OneOrMore(attr)) / dict)("attributes"))
+                + Optional(OneOrMore(attr) / to_dict)("attributes")
                 + (
                     Suppress("/>") / pop
                     | (
