@@ -156,15 +156,12 @@ class ParseResults(object):
         for r in self.tokens:
             if isinstance(r, Annotation):
                 continue
-            elif isinstance(r, ParseResults):
-                if isinstance(r, Annotation):
-                    return
-                elif isinstance(r.type, Group):
-                    yield r
-                elif not isinstance(r.type, Group):
-                    yield from r
-            else:
+            elif not isinstance(r, ParseResults):
                 yield r
+            elif isinstance(r.type, Group):
+                yield r
+            else:
+                yield from r
 
     def __delitem__(self, key):
         if isinstance(key, (int, slice)):
