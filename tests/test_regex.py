@@ -2,7 +2,7 @@
 import re
 
 from mo_parsing import Regex, Char, LookAhead
-from mo_parsing.tokens import SingleCharLiteral, LookBehind
+from mo_parsing.tokens import SingleCharLiteral
 from tests.test_simple_unit import PyparsingExpressionTestCase
 
 
