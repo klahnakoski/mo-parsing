@@ -55,8 +55,6 @@ class ParseResults(object):
                     continue
                 elif isinstance(tok.type, Group):
                     continue
-                elif is_forward(tok.type) and isinstance(tok.tokens[0].type, Group):
-                    continue
                 yield from tok._get_item_by_name(name)
 
     def __getitem__(self, item):
@@ -148,8 +146,6 @@ class ParseResults(object):
                 return True
             elif isinstance(r.type, Group):
                 return True
-            elif is_forward(r.type) and isinstance(forward_type(r), Group):
-                return True
             else:
                 if r.__bool__():
                     return True
@@ -211,8 +207,6 @@ class ParseResults(object):
                     add(output, tok.name, [tok])
                     continue
                 if isinstance(tok.type, Group):
-                    continue
-                if is_forward(tok.type) and isinstance(tok.tokens[0].type, Group):
                     continue
                 for k, v in tok.items():
                     add(output, k, v)
