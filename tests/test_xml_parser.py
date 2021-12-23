@@ -3,10 +3,6 @@ import ast
 from unittest import TestCase, skip
 
 from mo_dots import unwraplist
-from mo_files import File
-from mo_future import is_text, text
-from mo_http import http
-from mo_threads import stop_main_thread
 from mo_threads.profiles import CProfiler, write_profiles
 from mo_times import Timer
 
@@ -23,8 +19,6 @@ from mo_parsing import (
     OneOrMore,
     Suppress,
     SkipTo,
-    OpenDict,
-    Annotation,
 )
 
 tag_stack = []
@@ -156,6 +150,7 @@ class TestXmlParser(TestCase):
 
     @skip("enable me")
     def test_speed(self):
+        from mo_http import http
         http.default_headers["Referer"] = "https://github.com/klahnakoski/mo-parsing"
         xml = http.get("http://www.quickfixengine.org/FIX44.xml").content.decode("utf8")
 
