@@ -23,7 +23,8 @@ from mo_parsing import (
     OneOrMore,
     Suppress,
     SkipTo,
-    OpenDict, Annotation,
+    OpenDict,
+    Annotation,
 )
 
 tag_stack = []
@@ -54,7 +55,6 @@ def to_dict(tokens):
     for a in tokens.tokens:
         key, value = list(a)
         output[key] = value
-
     return output
 
 
@@ -88,7 +88,7 @@ class XmlParser(object):
             tag << (
                 "<"
                 + (name("name") / push_name)
-                + Optional(OneOrMore(attr) / to_dict)("attributes")
+                + Optional((OneOrMore(attr) / to_dict)("attributes"))
                 + (
                     Suppress("/>") / pop
                     | (
@@ -124,14 +124,16 @@ class TestXmlParser(TestCase):
         self.assertEqual(result, {"name": "simple"})
 
     def test_content(self):
-        xml="""<greeting>Hello, world!</greeting>"""
+        xml = """<greeting>Hello, world!</greeting>"""
         result = parse(xml)
-        self.assertEqual(result, {"name": "greeting", "children":"Hello, world!"})
+        self.assertEqual(result, {"name": "greeting", "children": "Hello, world!"})
 
     def test_contents(self):
-        xml="""<greeting>Hello, world!<cr/></greeting>"""
+        xml = """<greeting>Hello, world!<cr/></greeting>"""
         result = parse(xml)
-        self.assertEqual(result, {"name": "greeting", "children":["Hello, world!", {"name":"cr"}]})
+        self.assertEqual(
+            result, {"name": "greeting", "children": ["Hello, world!", {"name": "cr"}]}
+        )
 
     def test_cdata(self):
         result = parse("""<![CDATA[<greeting>Hello, world!</greeting>]]>""")
@@ -143,7 +145,7 @@ class TestXmlParser(TestCase):
 
     def test_attributes(self):
         result = parse("""<a href="234"/>""")
-        self.assertEqual(result, {"name": "a", "attributes":{"href":"234"}})
+        self.assertEqual(result, {"name": "a", "attributes": {"href": "234"}})
 
     @skip("not a fancy parser")
     def test_header(self):
@@ -153,8 +155,8 @@ class TestXmlParser(TestCase):
         self.assertEqual(result, {"name": "simple", "children": ["Hello, world!"]})
 
     def test_speed(self):
-        http.default_headers["Referer"]='https://github.com/klahnakoski/mo-parsing'
-        xml = http.get("http://www.quickfixengine.org/FIX44.xml").content.decode('utf8')
+        http.default_headers["Referer"] = "https://github.com/klahnakoski/mo-parsing"
+        xml = http.get("http://www.quickfixengine.org/FIX44.xml").content.decode("utf8")
 
         with CProfiler() as profile:
             parse(xml)
