@@ -41,7 +41,7 @@ The `result` can also be accessed as a dictionary
 
 Read the [pyparsing documentation](https://github.com/pyparsing/pyparsing/#readme) for more
 
-### The `Whitespace` Skipper
+### The `Whitespace` Context
 
 The `mo_parsing.whitespaces.CURRENT` is used during parser creation: It is effectively defines what "whitespace" to skip during parsing, with additional features to simplify the language definition.  You declare "standard" `Whitespace` like so:
 
@@ -73,7 +73,7 @@ There are some convenience methods;
 
 ### Parse Actions
 
-Parse actions are methods that are run after a ParserElement found a match. 
+Parse actions are methods that run after a ParserElement found a match. 
 
 * Parameters must be accepted in `(tokens, index, string)` order (the opposite of pyparsing)
 * Parse actions are wrapped to ensure the output is a legitimate ParseResult

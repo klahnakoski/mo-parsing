@@ -327,26 +327,6 @@ class ParseResults(object):
         r"""
         Returns the results name for this token expression. Useful when several
         different expressions might match at a particular location.
-
-        Example::
-
-            integer = Word(nums)
-            ssn_expr = Regex(r"\d\d\d-\d\d-\d\d\d\d")
-            house_number_expr = Suppress('#') + Word(nums, alphanums)
-            user_data = (Group(house_number_expr)("house_number")
-                        | Group(ssn_expr)("ssn")
-                        | Group(integer)("age"))
-            user_info = OneOrMore(user_data)
-
-            result = user_info.parse_string("22 111-22-3333 #221B")
-            for item in result:
-                print(item.get_name(), ':', item[0])
-
-        prints::
-
-            age : 22
-            ssn : 111-22-3333
-            house_number : 221B
         """
         if self.name:
             return self.name
