@@ -154,6 +154,7 @@ class TestXmlParser(TestCase):
         result = parse(xml)
         self.assertEqual(result, {"name": "simple", "children": ["Hello, world!"]})
 
+    @skip("enable me")
     def test_speed(self):
         http.default_headers["Referer"] = "https://github.com/klahnakoski/mo-parsing"
         xml = http.get("http://www.quickfixengine.org/FIX44.xml").content.decode("utf8")
