@@ -2,10 +2,10 @@
 import inspect
 
 from mo_dots import is_many, is_null
-from mo_future import is_text, text, NEXT, zip_longest, MutableMapping
+from mo_future import is_text, text, zip_longest, MutableMapping
 from mo_imports import expect, export
 
-from mo_parsing.utils import Log, listwrap, is_forward, forward_type
+from mo_parsing.utils import Log, listwrap, is_forward
 
 Suppress, ParserElement, NO_PARSER, NO_RESULTS, Group, Dict, Token, Empty = expect(
     "Suppress",
@@ -98,7 +98,7 @@ class ParseResults(object):
 
         if v is not NO_RESULTS:
             tokens = self.tokens
-            if is_forward(self.type):
+            if isinstance(self, ForwardResults):
                 tokens = tokens[0].tokens
             if isinstance(v, ParseResults):
                 tokens.append(Annotation(k, v.start, v.end, v.tokens))
