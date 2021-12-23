@@ -20,16 +20,20 @@ Suppress, ParserElement, NO_PARSER, NO_RESULTS, Group, Dict, Token, Empty = expe
 
 
 class ParseResults(object):
-    __slots__ = ["type", "start", "end", "tokens", "timing", "failures"]
+    __slots__ = ["_type", "start", "end", "tokens", "timing", "failures"]
 
     @property
     def name(self):
-        return self.type.token_name
+        return self._type.token_name
+
+    @property
+    def type(self):
+        return self._type
 
     def __init__(self, result_type, start, end, tokens, failures):
         if end == -1:
             Log.error("not allowed")
-        self.type = result_type
+        self._type = result_type
         self.start = start
         self.end = end
         self.tokens = tokens
@@ -45,8 +49,7 @@ class ParseResults(object):
                         yield tok
                     else:
                         for t in tok.tokens:
-                            for tt in _flatten(t):
-                                yield tt
+                            yield from _flatten(t)
                     continue
                 elif tok.name:
                     continue
@@ -54,13 +57,9 @@ class ParseResults(object):
                     continue
                 elif is_forward(tok.type) and isinstance(tok.tokens[0].type, Group):
                     continue
-                for f in tok._get_item_by_name(name):
-                    yield f
+                yield from tok._get_item_by_name(name)
 
     def __getitem__(self, item):
-        if is_forward(self.type):
-            return self.tokens[0][item]
-
         if is_text(item):
             values = list(self._get_item_by_name(item))
             if len(values) == 0:
@@ -86,10 +85,6 @@ class ParseResults(object):
 
         if v is None:
             v = NO_RESULTS
-
-        if is_forward(self.type):
-            self.tokens[0][k] = v
-            return
 
         for i, tok in enumerate(self.tokens):
             if isinstance(tok, ParseResults):
@@ -146,9 +141,6 @@ class ParseResults(object):
         if not self.tokens:
             return False
 
-        if is_forward(self.type):
-            return self.tokens[0].__bool__()
-
         for r in self.tokens:
             if not isinstance(r, ParseResults):
                 return True
@@ -167,13 +159,6 @@ class ParseResults(object):
     __nonzero__ = __bool__
 
     def __iter__(self):
-        if is_forward(self.type):
-            if len(self.tokens) != 1:
-                Log.error("not expected")
-
-            yield from self.tokens[0]
-            return
-
         for r in self.tokens:
             if isinstance(r, Annotation):
                 continue
@@ -219,11 +204,6 @@ class ParseResults(object):
             yield v
 
     def items(self):
-        if is_forward(self.type):
-            for k, v in self.tokens[0].items():
-                yield k, v
-            return
-
         output = {}
         for tok in self.tokens:
             if isinstance(tok, ParseResults):
@@ -236,8 +216,7 @@ class ParseResults(object):
                     continue
                 for k, v in tok.items():
                     add(output, k, v)
-        for k, v in output.items():
-            yield k, v
+        yield from output.items()
 
     def get(self, key, default_value=None):
         """
@@ -393,9 +372,9 @@ class ParseResults(object):
 class ForwardResults(ParseResults):
     __slots__ = []
 
-    # @property
-    # def type(self):
-    #     return self.tokens[0]._type
+    @property
+    def type(self):
+        return self.tokens[0]._type
 
     def __getitem__(self, item):
         return self.tokens[0][item]

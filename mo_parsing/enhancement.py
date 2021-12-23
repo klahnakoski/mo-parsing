@@ -1,5 +1,4 @@
 # encoding: utf-8
-import re
 from collections import OrderedDict
 
 from mo_dots import Null, is_null
@@ -631,8 +630,6 @@ class Forward(ParserElement):
         while is_forward(other):
             other = other.expr
         norm = whitespaces.CURRENT.normalize(other)
-        if norm is None:
-            Log.error("problem")
         self.expr = norm.streamline()
         self.check_recursion()
         return self
