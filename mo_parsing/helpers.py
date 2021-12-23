@@ -6,7 +6,6 @@ from mo_future import text
 
 from mo_parsing import whitespaces
 from mo_parsing.core import add_reset_action
-from mo_parsing.whitespaces import Whitespace, STANDARD_WHITESPACE, NO_WHITESPACE
 from mo_parsing.enhancement import (
     Combine,
     Dict,
@@ -44,6 +43,7 @@ from mo_parsing.utils import (
     printables,
     Log,
 )
+from mo_parsing.whitespaces import Whitespace, STANDARD_WHITESPACE, NO_WHITESPACE
 
 
 def QuotedString(
@@ -805,7 +805,6 @@ _commasepitem = Combine(OneOrMore(
 commaSeparatedList = delimited_list(Optional(
     quoted_string | _commasepitem, default=""
 )).set_parser_name("commaSeparatedList")
-
 
 convertToInteger = token_map(int)
 convertToFloat = token_map(float)

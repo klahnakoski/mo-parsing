@@ -24,17 +24,7 @@ from mo_parsing.utils import (
 from mo_parsing.utils import MAX_INT, is_forward
 
 Word: object
-(
-    Token,
-    NoMatch,
-    Literal,
-    Keyword,
-    Word,
-    CharsNotIn,
-    StringEnd,
-    Empty,
-    Char,
-) = expect(
+(Token, NoMatch, Literal, Keyword, Word, CharsNotIn, StringEnd, Empty, Char,) = expect(
     "Token",
     "NoMatch",
     "Literal",
@@ -214,13 +204,13 @@ class Many(ParseEnhancement):
     )
 
     def __init__(
-            self,
-            expr,
-            whitespace=None,
-            stop_on=None,
-            min_match=0,
-            max_match=MAX_INT,
-            exact=None,
+        self,
+        expr,
+        whitespace=None,
+        stop_on=None,
+        min_match=0,
+        max_match=MAX_INT,
+        exact=None,
     ):
         """
         MATCH expr SOME NUMBER OF TIMES (OR UNTIL stop_on IS REACHED
@@ -296,8 +286,8 @@ class Many(ParseEnhancement):
                 ) from None
         if count:
             if (
-                    count < self.parser_config.min_match
-                    or self.parser_config.max_match < count
+                count < self.parser_config.min_match
+                or self.parser_config.max_match < count
             ):
                 raise ParseException(
                     self,
@@ -329,8 +319,8 @@ class Many(ParseEnhancement):
         except Exception as e:
             print(e)
         if (
-                self.parser_config.min_match == self.parser_config.max_match
-                and not self.is_annotated()
+            self.parser_config.min_match == self.parser_config.max_match
+            and not self.is_annotated()
         ):
             if self.parser_config.min_match == 0:
                 return Empty()
@@ -366,11 +356,11 @@ class Many(ParseEnhancement):
                 suffix = "{" + text(self.parser_config.min_match) + "}"
         else:
             suffix = (
-                    "{"
-                    + text(self.parser_config.min_match)
-                    + ","
-                    + text(self.parser_config.max_match)
-                    + "}"
+                "{"
+                + text(self.parser_config.min_match)
+                + ","
+                + text(self.parser_config.max_match)
+                + "}"
             )
 
         if end:
@@ -433,7 +423,9 @@ class ZeroOrMore(Many):
     __slots__ = []
 
     def __init__(self, expr, whitespace=None, stop_on=None):
-        Many.__init__(self, expr, whitespace, stop_on=stop_on, min_match=0, max_match=MAX_INT)
+        Many.__init__(
+            self, expr, whitespace, stop_on=stop_on, min_match=0, max_match=MAX_INT
+        )
 
     def parse_impl(self, string, start, do_actions=True):
         try:
@@ -947,7 +939,6 @@ class PrecededBy(LookAhead):
 
 
 LookBehind = PrecededBy
-
 
 export("mo_parsing.core", SkipTo)
 export("mo_parsing.core", Many)

@@ -50,7 +50,6 @@ from mo_parsing.utils import Log, MAX_INT, wrap_parse_action, empty_tuple
 
 DEBUG = False
 
-
 # TODO: Replace with a stack of parse state
 _reset_actions = []
 
@@ -780,7 +779,6 @@ NO_PARSER = (
     ParserElement().set_parser_name("<nothing>")
 )  # USE THIS WHEN YOU DO NOT CARE ABOUT THE PARSER TYPE
 NO_RESULTS = ParseResults(NO_PARSER, -1, 0, [], [])
-
 
 export("mo_parsing.results", ParserElement)
 export("mo_parsing.results", NO_PARSER)

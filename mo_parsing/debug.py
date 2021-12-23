@@ -9,7 +9,8 @@ from mo_parsing.utils import (
     lineno,
     col,
     stack_depth,
-    quote as plain_quote, ParseException,
+    quote as plain_quote,
+    ParseException,
 )
 
 DEBUGGING = False

@@ -5,7 +5,7 @@ from mo_dots import is_many, is_null
 from mo_future import is_text, text, zip_longest, MutableMapping
 from mo_imports import expect, export
 
-from mo_parsing.utils import Log, listwrap, is_forward
+from mo_parsing.utils import Log, listwrap
 
 Suppress, ParserElement, NO_PARSER, NO_RESULTS, Group, Dict, Token, Empty = expect(
     "Suppress",
@@ -432,7 +432,8 @@ class Annotation(ParseResults):
 
 MutableMapping.register(ParseResults)
 
-from mo_parsing import utils
+from mo_parsing import utils, whitespaces
+
 utils.register_type(ParseResults)
 
 export("mo_parsing.utils", ParseResults)
