@@ -236,13 +236,11 @@ class TestRegexParsing(PyparsingExpressionTestCase):
         with Whitespace() as white:
             white.add_ignore(Literal("/*") + SkipTo("*/", include=True))
             parser = Keyword("select")+Keyword("true")
-
             parser = parser.finalize()
 
-        with Debugger():
-            result = parser.parse_string('/* \nfoo\n\n */\nselect true')
+        result = parser.parse_string('/* \nfoo\n\n */\nselect true')
 
-            self.assertEqual(
-                list(result),
-                ["select", "true"]
-            )
+        self.assertEqual(
+            list(result),
+            ["select", "true"]
+        )
