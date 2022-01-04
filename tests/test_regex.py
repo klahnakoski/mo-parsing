@@ -1,9 +1,10 @@
 # encoding: utf-8
 import re
 
-from mo_parsing import Regex, Char, LookAhead
-from mo_parsing.tokens import SingleCharLiteral
-from tests.test_simple_unit import PyparsingExpressionTestCase
+from mo_parsing import Regex, Char, LookAhead, Whitespace
+from mo_parsing.debug import Debugger
+from mo_parsing.tokens import SingleCharLiteral, Literal, Keyword
+from tests.test_simple_unit import PyparsingExpressionTestCase, SkipTo
 
 
 class TestRegexParsing(PyparsingExpressionTestCase):
@@ -230,3 +231,16 @@ class TestRegexParsing(PyparsingExpressionTestCase):
             raise Exception("expecting parse error")
         except Exception:
             pass
+
+    def test_comment(self):
+        with Whitespace() as white:
+            white.add_ignore(Literal("/*") + SkipTo("*/", include=True))
+            parser = Keyword("select")+Keyword("true")
+            parser = parser.finalize()
+
+        result = parser.parse_string('/* \nfoo\n\n */\nselect true')
+
+        self.assertEqual(
+            list(result),
+            ["select", "true"]
+        )

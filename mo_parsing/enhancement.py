@@ -501,6 +501,14 @@ class SkipTo(ParseEnhancement):
     def min_length(self):
         return 0
 
+    def __regex__(self):
+        prec, pattern = self.expr.__regex__()
+        pattern = regex_iso(prec, pattern, "+")
+        if self.parser_config.include:
+            return "*", f"(.*?{pattern})"
+        else:
+            return "+", f"(.*?){pattern}"
+
     def parse_impl(self, string, start, do_actions=True):
         instrlen = len(string)
         fail = self.parser_config.fail

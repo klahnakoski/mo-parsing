@@ -109,7 +109,7 @@ class Whitespace(ParserElement):
         self.white_chars = "".join(sorted(set(chars)))
         self.content = None
         self.expr = None if isinstance(Empty, Expecting) else Empty()
-        self.regex = re.compile(self.__regex__()[1])
+        self.regex = re.compile(self.__regex__()[1], re.DOTALL)
 
     def add_ignore(self, *ignore_exprs):
         """
@@ -122,7 +122,7 @@ class Whitespace(ParserElement):
             self.ignore_list.append(ignore_expr)
             self.content = None
             self.expr = None if isinstance(Empty, Expecting) else Empty()
-            self.regex = re.compile(self.__regex__()[1])
+            self.regex = re.compile(self.__regex__()[1], re.DOTALL)
             return self
 
     def backup(self):
