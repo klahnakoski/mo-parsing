@@ -213,17 +213,22 @@ class TestRegexParsing(PyparsingExpressionTestCase):
     def test_make_complex_ident(self):
         IDENT_CHAR = Regex("[@_$0-9A-Za-zÀ-ÖØ-öø-ƿ]").expr.parser_config.include
         FIRST_IDENT_CHAR = "".join(set(IDENT_CHAR) - set("0123456789"))
-        digit = Char('0123456789')
-        simple_ident = Char(FIRST_IDENT_CHAR) + ((Regex("(?<=[^0-9])") + "-" + LookAhead(~digit)) | Char(IDENT_CHAR))[...]
+        digit = Char("0123456789")
+        simple_ident = (
+            Char(FIRST_IDENT_CHAR)
+            + ((Regex("(?<=[^0-9])") + "-" + LookAhead(~digit)) | Char(IDENT_CHAR))[...]
+        )
 
         regex = simple_ident.__regex__()[1]
 
-        self.assertEqual(regex, '[\\$@-Z_a-zÀ-ÖØ-öø-ƿ](?:(?:(?<=[^0-9]))\\-(?=(?![0-9]))|[\\$0-9@-Z_a-zÀ-ÖØ-öø-ƿ])*')
+        self.assertEqual(
+            regex,
+            "[\\$@-Z_a-zÀ-ÖØ-öø-ƿ](?:(?:(?<=[^0-9]))\\-(?=(?![0-9]))|[\\$0-9@-Z_a-zÀ-ÖØ-öø-ƿ])*",
+        )
 
         faster = Regex(regex)
         self.assertEqual(
-            faster.parse("this-is-a-test", parse_all=True),
-            "this-is-a-test"
+            faster.parse("this-is-a-test", parse_all=True), "this-is-a-test"
         )
 
         try:
@@ -235,12 +240,9 @@ class TestRegexParsing(PyparsingExpressionTestCase):
     def test_comment(self):
         with Whitespace() as white:
             white.add_ignore(Literal("/*") + SkipTo("*/", include=True))
-            parser = Keyword("select")+Keyword("true")
+            parser = Keyword("select") + Keyword("true")
             parser = parser.finalize()
 
-        result = parser.parse_string('/* \nfoo\n\n */\nselect true')
+        result = parser.parse_string("/* \nfoo\n\n */\nselect true")
 
-        self.assertEqual(
-            list(result),
-            ["select", "true"]
-        )
+        self.assertEqual(list(result), ["select", "true"])

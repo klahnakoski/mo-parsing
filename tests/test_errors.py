@@ -11,7 +11,9 @@ class TestErrors(FuzzyTestCase):
         options = Group(Word("a") | Word("b")).set_parser_name("a or b")
         stream = delimited_list(options)
         content = "a, b, b, c"
-        with self.assertRaises("Expecting a or b, found \"c\" (at char 9), (line:1, col:10)"):
+        with self.assertRaises(
+            'Expecting a or b, found "c" (at char 9), (line:1, col:10)'
+        ):
             stream.parse(content, parse_all=True)
 
     def test_message_is_priority(self):
@@ -28,8 +30,8 @@ class TestErrors(FuzzyTestCase):
         IDENT_CHAR = Regex("[@_$0-9A-Za-zÀ-ÖØ-öø-ƿ]").expr.parser_config.include
         FIRST_IDENT_CHAR = "".join(set(IDENT_CHAR) - set("0123456789"))
         simple_ident = (
-                Char(FIRST_IDENT_CHAR)
-                + (Regex("(?<=[^ 0-9])\\-(?=[^ 0-9])") | Char(IDENT_CHAR))[...]
+            Char(FIRST_IDENT_CHAR)
+            + (Regex("(?<=[^ 0-9])\\-(?=[^ 0-9])") | Char(IDENT_CHAR))[...]
         )
         simple_ident = Regex(simple_ident.__regex__()[1]) / no_dashes
 
