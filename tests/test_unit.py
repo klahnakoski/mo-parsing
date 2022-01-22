@@ -4297,9 +4297,7 @@ class TestParsing(PyparsingExpressionTestCase):
 
         expr = expr.add_parse_action(divide_args)
 
-        with self.assertRaises(
-            """division by zero"""
-        ):
+        with self.assertRaises("""division by zero"""):
             expr.parse_string("123 0")
 
     def testCaselessKeywordVsKeywordCaseless(self):

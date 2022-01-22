@@ -151,6 +151,7 @@ class TestXmlParser(TestCase):
     @skip("enable me")
     def test_speed(self):
         from mo_http import http
+
         http.default_headers["Referer"] = "https://github.com/klahnakoski/mo-parsing"
         xml = http.get("http://www.quickfixengine.org/FIX44.xml").content.decode("utf8")
 
