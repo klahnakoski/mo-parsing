@@ -272,6 +272,7 @@ class Many(ParseEnhancement):
                 end = result.end
                 if result:
                     acc.append(result)
+                    failures.extend(result.failures)
                     count += 1
         except ParseException as cause:
             if self.parser_config.min_match <= count <= max:
