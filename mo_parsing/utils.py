@@ -382,6 +382,7 @@ def wrap_parse_action(func):
             elif isinstance(result, ParseResults):
                 if (result.start < token.start) or (token.end < result.end):
                     Log.error("Tokens must be ordered")
+                result.failures.extend(token.failures)
                 return result
 
             if isinstance(result, (list, tuple)):

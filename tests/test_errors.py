@@ -46,12 +46,14 @@ class TestErrors(FuzzyTestCase):
             self.assertIn("Use backticks (``) around identifiers", cause.message)
 
     def test_report_after_as(self):
-        ansi_ident = Word(Regex("[a-z]")).set_parser_name("identifier")
+        ansi_ident = (Word(Regex("[a-z]")) | "123").set_parser_name("identifier")
         columns = delimited_list(quoted_string + Optional("AS" + ansi_ident))
         simple = "SELECT" + columns
         with self.assertRaises("Expecting identifier, found \"'T'"):
-            simple.parse("SELECT 'b' AS b, 'a' AS 'T'", parse_all=True)
-
+            try:
+                simple.parse("SELECT 'b' AS b, 'a' AS 'T'", parse_all=True)
+            except Exception as cause:
+                raise cause from None
 
 def double_column(tokens):
     global emit_warning_for_double_quotes
