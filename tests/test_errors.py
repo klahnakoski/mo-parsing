@@ -5,7 +5,7 @@ import sys
 from mo_dots import literal_field
 from mo_testing.fuzzytestcase import FuzzyTestCase
 
-from mo_parsing import Word, Group, ParseException, Char, Optional, delimited_list, Regex
+from mo_parsing import Word, Group, ParseException, Char, Optional, delimited_list, Regex, Combine
 from mo_parsing.infix import delimited_list, Regex
 from mo_parsing.helpers import quoted_string
 
@@ -50,10 +50,14 @@ class TestErrors(FuzzyTestCase):
         columns = delimited_list(quoted_string + Optional("AS" + ansi_ident))
         simple = "SELECT" + columns
         with self.assertRaises("Expecting identifier, found \"'T'"):
-            try:
-                simple.parse("SELECT 'b' AS b, 'a' AS 'T'", parse_all=True)
-            except Exception as cause:
-                raise cause from None
+            simple.parse("SELECT 'b' AS b, 'a' AS 'T'", parse_all=True)
+
+    def test_combine_error(self):
+        ansi_ident = Combine(Word(Regex("[a-z]")) | "123").set_parser_name("combine")
+        columns = delimited_list(quoted_string + Optional("AS" + ansi_ident))
+        with self.assertRaises("Expecting combine, found \"'T'"):
+            columns.parse("'b' AS b, 'a' AS 'T'", parse_all=True)
+
 
 def double_column(tokens):
     global emit_warning_for_double_quotes
