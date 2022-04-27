@@ -1,9 +1,13 @@
 # encoding: utf-8
+import ast
+import sys
 
+from mo_dots import literal_field
 from mo_testing.fuzzytestcase import FuzzyTestCase
 
-from mo_parsing import Word, Group, ParseException, Char, Log
+from mo_parsing import Word, Group, ParseException, Char, Optional, delimited_list, Regex, Combine
 from mo_parsing.infix import delimited_list, Regex
+from mo_parsing.helpers import quoted_string
 
 
 class TestErrors(FuzzyTestCase):
@@ -40,3 +44,30 @@ class TestErrors(FuzzyTestCase):
             self.assertTrue(False)
         except Exception as cause:
             self.assertIn("Use backticks (``) around identifiers", cause.message)
+
+    def test_report_after_as(self):
+        ansi_ident = (Word(Regex("[a-z]")) | "123").set_parser_name("identifier")
+        columns = delimited_list(quoted_string + Optional("AS" + ansi_ident))
+        simple = "SELECT" + columns
+        with self.assertRaises("Expecting identifier, found \"'T'"):
+            simple.parse("SELECT 'b' AS b, 'a' AS 'T'", parse_all=True)
+
+    def test_combine_error(self):
+        ansi_ident = Combine(Word(Regex("[a-z]")) | "123").set_parser_name("combine")
+        columns = delimited_list(quoted_string + Optional("AS" + ansi_ident))
+        with self.assertRaises("Expecting combine, found \"'T'"):
+            columns.parse("'b' AS b, 'a' AS 'T'", parse_all=True)
+
+
+def double_column(tokens):
+    global emit_warning_for_double_quotes
+    if emit_warning_for_double_quotes:
+        emit_warning_for_double_quotes = False
+        sys.stderr.write(
+            """Double quotes are used to quote column names, not literal strings.  To hide this message: mo_sql_parsing.utils.emit_warning_for_double_quotes = False"""
+        )
+
+    val = tokens[0]
+    val = '"' + val[1:-1].replace('""', '\\"') + '"'
+    un = literal_field(ast.literal_eval(val))
+    return un

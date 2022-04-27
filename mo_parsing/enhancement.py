@@ -272,6 +272,7 @@ class Many(ParseEnhancement):
                 end = result.end
                 if result:
                     acc.append(result)
+                    failures.extend(result.failures)
                     count += 1
         except ParseException as cause:
             if self.parser_config.min_match <= count <= max:
@@ -750,15 +751,17 @@ class Combine(TokenConverter):
         self.set_config(separator=separator)
 
     def parse_impl(self, string, start, do_actions=True):
-        result = self.expr.parse_impl(string, start, do_actions=do_actions)
-        output = ParseResults(
-            self,
-            start,
-            result.end,
-            [result.as_string(sep=self.parser_config.separator)],
-            result.failures,
-        )
-        return output
+        try:
+            result = self.expr.parse_impl(string, start, do_actions=do_actions)
+            return ParseResults(
+                self,
+                start,
+                result.end,
+                [result.as_string(sep=self.parser_config.separator)],
+                result.failures,
+            )
+        except Exception as cause:
+            raise ParseException(self, start, string, cause=cause)
 
     def streamline(self):
         if self.streamlined:
@@ -768,7 +771,7 @@ class Combine(TokenConverter):
         if expr is self.expr:
             self.streamlined = True
             return self
-        return Combine(expr, self.parser_config.separator)
+        return Combine(expr, self.parser_config.separator).set_parser_name(self.parser_name)
 
     def expecting(self):
         return OrderedDict((k, [self]) for k in self.expr.expecting().keys())
@@ -780,6 +783,8 @@ class Combine(TokenConverter):
         return self.expr.__regex__()
 
     def __str__(self):
+        if self.parser_name:
+            return self.parser_name
         return text(self.expr)
 
 

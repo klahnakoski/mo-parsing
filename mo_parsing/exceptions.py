@@ -30,35 +30,30 @@ class ParseException(Exception):
     @property
     def causes(self):
         if self._causes is None:
-            self._causes = sort_causes(self.unsorted_cause)
+            self._causes = sort_causes(listwrap(self.unsorted_cause))
         return self._causes
 
     @property
     def __cause__(self):
-        if self.causes:
-            return self._causes[0]
-        else:
-            return None
+        return None
 
     @property
     def best_cause(self):
         if not self.causes:
             return self
 
-        best = sort_causes([
-            c.best_cause for c in self.causes if isinstance(c, ParseException)
-        ])
+        best = [c.best_cause for c in self.causes if isinstance(c, ParseException)]
         if not best:
             return self
-        elif self.expr.parser_name and self.start >= best[0].start:
+
+        best_0 = best[0]
+        if self.expr.parser_name and self.start >= best_0.start:
             return self
         elif len(best) == 1:
-            return best[0]
+            return best_0
         else:
-            best_0 = best[0]
-            best_loc = best_0.loc
             return ParseException(
-                MatchFirst([b.expr for b in best if b.loc == best_loc]).streamline(),
+                MatchFirst([b.expr for b in best if compare_causes(b, best_0) == 0]).streamline(),
                 best_0.start,
                 best_0.string,
                 msg=best_0._msg,
@@ -196,6 +191,13 @@ def compare_causes(a, b):
                 return 1
             elif a.loc > b.loc:
                 return -1
+            elif b.expr.parser_name:
+                if a.expr.parser_name:
+                    return 0
+                else:
+                    return 1
+            elif a.expr.parser_name:
+                return -1
             elif b._msg:
                 return 1
             elif a._msg:
@@ -211,7 +213,7 @@ def compare_causes(a, b):
 
 
 def sort_causes(causes):
-    return list(sort_using_cmp(listwrap(causes), cmp=compare_causes,))
+    return list(sort_using_cmp(causes, cmp=compare_causes))
 
 
 export("mo_parsing.utils", ParseException)

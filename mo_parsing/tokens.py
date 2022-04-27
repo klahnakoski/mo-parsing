@@ -347,6 +347,7 @@ class Word(Token):
     ):
         Token.__init__(self)
 
+        # TODO: REPLACE body_chars AND init_chars WITH ANY PATTERN?
         if body_chars is None:
             body_chars = init_chars
         if exact:
@@ -359,6 +360,8 @@ class Word(Token):
             )
 
         if body_chars == init_chars:
+            if init_chars.__class__.__name__ == "Regex":
+                init_chars = init_chars.expecting().keys()
             prec, regexp = Char(init_chars, exclude=exclude)[min:max].__regex__()
         elif max is None or max == MAX_INT:
             prec, regexp = (
