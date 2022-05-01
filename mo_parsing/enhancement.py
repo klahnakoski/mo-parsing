@@ -75,7 +75,7 @@ class ParseEnhancement(ParserElement):
         try:
             result = self.expr._parse(string, start, do_actions)
             return ParseResults(self, result.start, result.end, [result], result.failures)
-        except Exception as cause:
+        except ParseException as cause:
             raise ParseException(self, start, string, cause=cause) from None
 
     def streamline(self):
@@ -763,7 +763,7 @@ class Combine(TokenConverter):
                 [result.as_string(sep=self.parser_config.separator)],
                 result.failures,
             )
-        except Exception as cause:
+        except ParseException as cause:
             raise ParseException(self, start, string, cause=cause)
 
     def streamline(self):

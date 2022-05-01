@@ -40,7 +40,7 @@ from mo_parsing.whitespaces import Whitespace
 whitespaces.NO_WHITESPACE = Whitespace("").use()
 whitespaces.STANDARD_WHITESPACE = Whitespace().use()
 
-from mo_parsing.infix import LEFT_ASSOC, RIGHT_ASSOC, infix_notation, delimited_list
+from mo_parsing.infix import LEFT_ASSOC, RIGHT_ASSOC, infix_notation, delimited_list, one_of
 from mo_parsing.regex import Regex
 from mo_parsing.tokens import *
 
@@ -58,7 +58,9 @@ __all__ = [
     "FollowedBy",
     "Forward",
     "Group",
+    "infix_notation",
     "Keyword",
+    "LEFT_ASSOC",
     "LineEnd",
     "LineStart",
     "Literal",
@@ -69,6 +71,7 @@ __all__ = [
     "MatchFirst",
     "NoMatch",
     "NotAny",
+    "one_of",
     "OneOrMore",
     "Optional",
     "Or",
@@ -79,6 +82,7 @@ __all__ = [
     "ParseResults",
     "ParseSyntaxException",
     "ParserElement",
+    "RIGHT_ASSOC",
     "RecursiveGrammarException",
     "Regex",
     "SkipTo",
