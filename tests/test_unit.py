@@ -8,7 +8,9 @@
 #
 #
 import ast
+import json
 import math
+import sys
 import textwrap
 import traceback
 import unittest
@@ -27,10 +29,9 @@ from examples.jsonParser import jsonObject
 from examples.simpleSQL import simpleSQL
 from mo_parsing import *
 from mo_parsing import helpers
-from mo_parsing.debug import Debugger
+from mo_parsing.utils import parsing_unicode, line, lineno
 from mo_parsing.helpers import *
-from mo_parsing.infix import one_of
-from mo_parsing.utils import *
+
 from tests.json_parser_tests import test1, test2, test3, test4, test5
 from tests.test_simple_unit import PyparsingExpressionTestCase
 
@@ -2675,8 +2676,11 @@ class TestParsing(PyparsingExpressionTestCase):
         )
 
         rangeParser = numParser("from_") + Suppress("-") + numParser("to")
+        def check(t):
+            return t["to"] > t["from_"]
+
         rangeParser = rangeParser.add_condition(
-            lambda t: t["to"] > t["from_"], message="from must be <= to", fatal=True
+            check, message="from must be <= to", fatal=True
         )
         with TestCase.assertRaises(self, Exception):
             rangeParser.search_string("1-4 2-4 4-3 5 6 7 8 9 10")

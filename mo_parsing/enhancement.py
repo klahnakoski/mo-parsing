@@ -72,8 +72,11 @@ class ParseEnhancement(ParserElement):
         return self.expr.whitespace
 
     def parse_impl(self, string, start, do_actions=True):
-        result = self.expr._parse(string, start, do_actions)
-        return ParseResults(self, result.start, result.end, [result], result.failures)
+        try:
+            result = self.expr._parse(string, start, do_actions)
+            return ParseResults(self, result.start, result.end, [result], result.failures)
+        except ParseException as cause:
+            raise ParseException(self, start, string, cause=cause) from None
 
     def streamline(self):
         if self.streamlined:
@@ -164,11 +167,11 @@ class NotAny(LookAhead):
             found = regex.match(string, start)
             if found:
                 return ParseResults(self, start, start, [], [])
-            raise ParseException(self, start, string)
+            raise ParseException(self, start, string) from None
         else:
             try:
                 self.expr.parse(string, start, do_actions=True)
-                raise ParseException(self, start, string)
+                raise ParseException(self, start, string) from None
             except:
                 return ParseResults(self, start, start, [], [])
 
@@ -548,7 +551,7 @@ class SkipTo(ParseEnhancement):
                 break
         else:
             # ran off the end of the input string without matching skipto expr, fail
-            raise ParseException(self, start, string)
+            raise ParseException(self, start, string) from None
 
         # build up return values
         end = loc
@@ -760,7 +763,7 @@ class Combine(TokenConverter):
                 [result.as_string(sep=self.parser_config.separator)],
                 result.failures,
             )
-        except Exception as cause:
+        except ParseException as cause:
             raise ParseException(self, start, string, cause=cause)
 
     def streamline(self):

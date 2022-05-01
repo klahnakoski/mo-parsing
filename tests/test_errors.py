@@ -5,8 +5,7 @@ import sys
 from mo_dots import literal_field
 from mo_testing.fuzzytestcase import FuzzyTestCase
 
-from mo_parsing import Word, Group, ParseException, Char, Optional, delimited_list, Regex, Combine
-from mo_parsing.infix import delimited_list, Regex
+from mo_parsing import *
 from mo_parsing.helpers import quoted_string
 
 
