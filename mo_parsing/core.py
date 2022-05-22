@@ -790,7 +790,6 @@ def set_parser_names():
             pass
 
 
-
 NO_PARSER = (
     ParserElement().set_parser_name("<nothing>")
 )  # USE THIS WHEN YOU DO NOT CARE ABOUT THE PARSER TYPE
