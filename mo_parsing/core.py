@@ -783,8 +783,12 @@ def set_parser_names():
     frame = sys._getframe(1)
     items = list(frame.f_locals.items())
     for k, v in items:
-        if isinstance(v, ParserElement) and not v.parser_name:
-            v.parser_name = k
+        try:
+            if isinstance(v, ParserElement) and not v.parser_name:
+                v.parser_name = k
+        except Exception:
+            pass
+
 
 
 NO_PARSER = (
