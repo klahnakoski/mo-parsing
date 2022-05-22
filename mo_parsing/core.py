@@ -1,4 +1,5 @@
 # encoding: utf-8
+import sys
 from collections import namedtuple
 from threading import RLock
 
@@ -773,6 +774,17 @@ class _PendingSkip(ParserElement):
 
     def parse_impl(self, *args):
         Log.error("use of `...` expression without following SkipTo target expression")
+
+
+def set_parser_names():
+    """
+    ASSIGN parser_name FOR All ParserElements FOUND IN CALLER
+    """
+    frame = sys._getframe(1)
+    items = list(frame.f_locals.items())
+    for k, v in items:
+        if isinstance(v, ParserElement) and not v.parser_name:
+            v.parser_name = k
 
 
 NO_PARSER = (
