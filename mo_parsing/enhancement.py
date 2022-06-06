@@ -462,7 +462,7 @@ class Optional(Many):
     def parse_impl(self, string, start, do_actions=True):
         try:
             results = self.expr._parse(string, start, do_actions)
-            return ParseResults(self, results.start, results.end, [results], [])
+            return ParseResults(self, results.start, results.end, [results], results.failures)
         except ParseException as pe:
             return ParseResults(
                 self, start, start, self.parser_config.default_value, [pe]

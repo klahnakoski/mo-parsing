@@ -713,14 +713,14 @@ class MatchAll(ParseExpression):
     __slots__ = []
     Config = append_config(ParseExpression, "min_match", "max_match", "whitespace")
 
-    def __init__(self, exprs, whitespace):
+    def __init__(self, exprs):
         """
         :param exprs: The expressions to be matched
         :param mins: list of integers indincating any minimums
         """
         ParseExpression.__init__(self, exprs)
         self.set_config(
-            whitespace=whitespace,
+            whitespace=whitespaces.CURRENT,
             min_match=[
                 e.parser_config.min_match if isinstance(e, Many) else 1 for e in exprs
             ],
