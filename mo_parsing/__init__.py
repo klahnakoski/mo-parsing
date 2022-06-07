@@ -26,7 +26,7 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 from mo_parsing import whitespaces
-from mo_parsing.core import ParserElement, _PendingSkip
+from mo_parsing.core import ParserElement, _PendingSkip, set_parser_names
 from mo_parsing.enhancement import *
 from mo_parsing.exceptions import (
     ParseException,
@@ -85,6 +85,7 @@ __all__ = [
     "RIGHT_ASSOC",
     "RecursiveGrammarException",
     "Regex",
+    "set_parser_names",
     "SkipTo",
     "StringEnd",
     "StringStart",
