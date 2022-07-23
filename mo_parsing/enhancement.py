@@ -318,10 +318,7 @@ class Many(ParseEnhancement):
     def streamline(self):
         if self.streamlined:
             return self
-        try:
-            expr = self.expr.streamline()
-        except Exception as e:
-            print(e)
+        expr = self.expr.streamline()
         if (
             self.parser_config.min_match == self.parser_config.max_match
             and not self.is_annotated()
