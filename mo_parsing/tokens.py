@@ -364,15 +364,17 @@ class Word(Token):
                 init_chars = init_chars.expecting().keys()
             prec, regexp = Char(init_chars, exclude=exclude)[min:max].__regex__()
         elif max is None or max == MAX_INT:
-            prec, regexp = (
-                Char(init_chars, exclude=exclude)
-                + Char(body_chars, exclude=exclude)[min - 1 :]
-            ).__regex__()
+            with whitespaces.NO_WHITESPACE:
+                prec, regexp = (
+                    Char(init_chars, exclude=exclude)
+                    + Char(body_chars, exclude=exclude)[min - 1 :]
+                ).__regex__()
         else:
-            prec, regexp = (
-                Char(init_chars, exclude=exclude)
-                + Char(body_chars, exclude=exclude)[min - 1 : max - 1]
-            ).__regex__()
+            with whitespaces.NO_WHITESPACE:
+                prec, regexp = (
+                    Char(init_chars, exclude=exclude)
+                    + Char(body_chars, exclude=exclude)[min - 1 : max - 1]
+                ).__regex__()
 
         if as_keyword:
             regexp = r"\b" + regexp + r"\b"

@@ -5,6 +5,7 @@ from operator import itemgetter
 
 from mo_future import Iterable, text, generator_types
 from mo_imports import export
+from mo_logs.exceptions import get_stacktrace
 
 from mo_parsing import whitespaces
 from mo_parsing.core import ParserElement, _PendingSkip
@@ -305,7 +306,19 @@ class And(ParseExpression):
         )
 
     def __regex__(self):
-        return "+", "".join(regex_iso(*self.whitespace.__regex__(), "+")+regex_iso(*e.__regex__(), "+") for e in self.exprs)
+        if self.whitespace is whitespaces.NO_WHITESPACE:
+            return "+", "".join(regex_iso(*e.__regex__(), "+") for e in self.exprs)
+
+        if len(get_stacktrace()) > 100:
+            print("hi")
+        return (
+            "+",
+            "".join(
+                regex_iso(*self.whitespace.__regex__(), "+")
+                + regex_iso(*e.__regex__(), "+")
+                for e in self.exprs
+            ),
+        )
 
     def __str__(self):
         if self.parser_name:

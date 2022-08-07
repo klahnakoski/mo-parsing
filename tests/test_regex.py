@@ -1,8 +1,7 @@
 # encoding: utf-8
 import re
 
-from mo_parsing import Regex, Char, LookAhead, Whitespace
-from mo_parsing.debug import Debugger
+from mo_parsing import Regex, Char, LookAhead, Whitespace, whitespaces
 from mo_parsing.tokens import SingleCharLiteral, Literal, Keyword
 from tests.test_simple_unit import PyparsingExpressionTestCase, SkipTo
 
@@ -214,10 +213,11 @@ class TestRegexParsing(PyparsingExpressionTestCase):
         IDENT_CHAR = Regex("[@_$0-9A-Za-zÀ-ÖØ-öø-ƿ]").expr.parser_config.include
         FIRST_IDENT_CHAR = "".join(set(IDENT_CHAR) - set("0123456789"))
         digit = Char("0123456789")
-        simple_ident = (
-            Char(FIRST_IDENT_CHAR)
-            + ((Regex("(?<=[^0-9])") + "-" + LookAhead(~digit)) | Char(IDENT_CHAR))[...]
-        )
+        with whitespaces.NO_WHITESPACE:
+            simple_ident = (
+                Char(FIRST_IDENT_CHAR)
+                + ((Regex("(?<=[^0-9])") + "-" + LookAhead(~digit)) | Char(IDENT_CHAR))[...]
+            )
 
         regex = simple_ident.__regex__()[1]
 

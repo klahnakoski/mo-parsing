@@ -2,6 +2,7 @@
 import sys
 from collections import namedtuple
 from threading import RLock
+from typing import List
 
 from mo_future import text
 from mo_imports import export, expect
@@ -81,18 +82,25 @@ def entrypoint(func):
     return output
 
 
-def _verify_whitespace(eng):
-    if eng is None:
+def _verify_whitespace(whi: List):
+    if whi is None:
         return None
-    if isinstance(eng, list):
-        engs = [v for e in eng for v in [_verify_whitespace(e)] if v is not None]
-        if not engs:
+    if isinstance(whi, list):
+        whis = [
+            v
+            for e in whi
+            for v in [_verify_whitespace(e)]
+            if v is not None and v.regex.pattern  # IGNORE NO_WHITESPACE
+        ]
+        if not whis:
             return None
-        whitespace = engs[0]
-        if any(e.id != whitespace.id for e in engs[1:]):
+        whitespace = whis[0]
+        if any(e.id != whitespace.id for e in whis[1:]):
+            # THE TOP-MOST WHITESPACE RULES ARE DIFFERENT FOR EACH ParserElement,
+            # SO PROGRAM DOES NOT KNOW WHICH IS THE MASTER WHITESPACE
             Log.error("must dis-ambiguate the whitespace before parsing")
         return whitespace
-    return eng
+    return whi
 
 
 class Parser(object):

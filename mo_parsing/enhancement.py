@@ -74,7 +74,9 @@ class ParseEnhancement(ParserElement):
     def parse_impl(self, string, start, do_actions=True):
         try:
             result = self.expr._parse(string, start, do_actions)
-            return ParseResults(self, result.start, result.end, [result], result.failures)
+            return ParseResults(
+                self, result.start, result.end, [result], result.failures
+            )
         except ParseException as cause:
             raise ParseException(self, start, string, cause=cause) from None
 
@@ -459,7 +461,9 @@ class Optional(Many):
     def parse_impl(self, string, start, do_actions=True):
         try:
             results = self.expr._parse(string, start, do_actions)
-            return ParseResults(self, results.start, results.end, [results], results.failures)
+            return ParseResults(
+                self, results.start, results.end, [results], results.failures
+            )
         except ParseException as pe:
             return ParseResults(
                 self, start, start, self.parser_config.default_value, [pe]
