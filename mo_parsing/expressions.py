@@ -5,14 +5,13 @@ from operator import itemgetter
 
 from mo_future import Iterable, text, generator_types
 from mo_imports import export
-from mo_logs.exceptions import get_stacktrace
 
 from mo_parsing import whitespaces
 from mo_parsing.core import ParserElement, _PendingSkip
 from mo_parsing.enhancement import Optional, SkipTo, Many, LookBehind
 from mo_parsing.exceptions import (
     ParseException,
-    ParseSyntaxException,
+    ParseSyntaxException, chain, chain_one,
 )
 from mo_parsing.results import ParseResults
 from mo_parsing.tokens import Empty
@@ -256,7 +255,7 @@ class And(ParseExpression):
         encountered_syntax_error = False
         end = index = start
         acc = []
-        failures = []
+        failures = iter(())
         for i, expr in enumerate(self.exprs):
             if end > index:
                 if isinstance(expr, LookBehind):
@@ -274,7 +273,7 @@ class And(ParseExpression):
                 if end > index:
                     failures = result.failures
                 else:
-                    failures.extend(result.failures)
+                    failures = chain(failures, result.failures)
             except ParseException as pe:
                 if encountered_syntax_error:
                     raise ParseSyntaxException(
@@ -309,13 +308,10 @@ class And(ParseExpression):
         if self.whitespace is whitespaces.NO_WHITESPACE:
             return "+", "".join(regex_iso(*e.__regex__(), "+") for e in self.exprs)
 
-        if len(get_stacktrace()) > 100:
-            print("hi")
         return (
             "+",
-            "".join(
-                regex_iso(*self.whitespace.__regex__(), "+")
-                + regex_iso(*e.__regex__(), "+")
+            regex_iso(*self.whitespace.__regex__(), "+").join(
+                regex_iso(*e.__regex__(), "+")
                 for e in self.exprs
             ),
         )
@@ -383,7 +379,7 @@ class Or(ParseExpression):
         return [e.whitespace for e in self.exprs]
 
     def parse_impl(self, string, start, do_actions=True):
-        failures = []
+        failures = iter(())
         matches = []
 
         for e in self.alternate:
@@ -393,13 +389,13 @@ class Or(ParseExpression):
                         end = ee._parse(string, start).end
                         matches.append((end, ee))
                     except ParseException as err:
-                        failures.append(err)
+                        failures = chain_one(failures, err)
             else:
                 try:
                     end = e._parse(string, start).end
                     matches.append((end, e))
                 except ParseException as err:
-                    failures.append(err)
+                    failures = chain_one(failures, err)
 
         if not matches:
             raise ParseException(
@@ -439,7 +435,7 @@ class Or(ParseExpression):
                 try:
                     result = expr._parse(string, start, do_actions)
                 except ParseException as err:
-                    failures.append(err)
+                    failures = chain_one(failures, err)
                 else:
                     if result.end >= loc:
                         return ParseResults(
@@ -773,12 +769,12 @@ class MatchAll(ParseExpression):
             self.exprs, self.parser_config.min_match, self.parser_config.max_match
         ))
         count = [0] * len(self.exprs)
-        failures = []
+        failures = iter(())
         while todo:
             for i, (c, (e, mi, ma)) in enumerate(zip(count, todo)):
                 try:
                     result = e._parse(string, end)
-                    failures.extend(result.failures)
+                    failures = chain(failures, result.failures)
                     loc = result.end
                     if loc == end:
                         continue
@@ -790,7 +786,7 @@ class MatchAll(ParseExpression):
                     match_order.append(e)
                     break
                 except ParseException as pe:
-                    failures.append(pe)
+                    failures = chain_one(failures, pe)
             else:
                 break
 

@@ -31,7 +31,7 @@ class Whitespace(ParserElement):
         self.expr = None
         self.parent = None
         self.copies = []
-        self.is_regex = False
+        self._in_regex = False
         self.set_whitespace(white)
 
     def copy(self):
@@ -162,9 +162,9 @@ class Whitespace(ParserElement):
         return end
 
     def __regex__(self):
-        if self.is_regex:
+        if self._in_regex:
             return "*", ""
-        self.is_regex = True
+        self._in_regex = True
         try:
             white = regex_range(self.white_chars)
             if not self.ignore_list:
@@ -176,7 +176,7 @@ class Whitespace(ParserElement):
             ignored = "|".join(regex_iso(*i.__regex__(), "|") for i in self.ignore_list)
             return "+", f"(?:{white}*(?:{ignored}))*{white}*"
         finally:
-            self.is_regex = False
+            self._in_regex = False
 
     def __str__(self):
         output = ["{"]

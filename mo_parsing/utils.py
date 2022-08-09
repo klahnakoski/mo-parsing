@@ -15,7 +15,7 @@ from mo_dots import is_null, Null
 from mo_future import unichr, text, generator_types, get_function_name
 from mo_imports import expect
 
-ParseResults, ParseException, Many = expect("ParseResults", "ParseException", "Many")
+ParseResults, ParseException, Many, chain = expect("ParseResults", "ParseException", "Many", "chain")
 
 
 def append_config(base, *slots):
@@ -382,7 +382,7 @@ def wrap_parse_action(func):
             elif isinstance(result, ParseResults):
                 if (result.start < token.start) or (token.end < result.end):
                     Log.error("Tokens must be ordered")
-                result.failures.extend(token.failures)
+                result.failures = chain(result.failures, token.failures)
                 return result
 
             if isinstance(result, (list, tuple)):

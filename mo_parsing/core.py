@@ -8,7 +8,7 @@ from mo_future import text
 from mo_imports import export, expect
 
 from mo_parsing import whitespaces
-from mo_parsing.exceptions import ParseException
+from mo_parsing.exceptions import ParseException, chain_one
 from mo_parsing.results import ParseResults
 from mo_parsing.utils import Log, MAX_INT, wrap_parse_action, empty_tuple
 
@@ -160,7 +160,7 @@ class Parser(object):
                     StringEnd()._parse(string, end)
                 except ParseException as pe:
                     raise ParseException(
-                        self.element, 0, string, cause=tokens.failures + [pe]
+                        self.element, 0, string, cause=chain_one(tokens.failures,  pe)
                     ) from None
 
             if self.named:

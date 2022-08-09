@@ -1,5 +1,6 @@
 # encoding: utf-8
 import json
+from typing import Iterator
 
 from mo_future import text, is_text, sort_using_cmp
 from mo_imports import export, expect
@@ -214,8 +215,23 @@ def compare_causes(a, b):
         return 0
 
 
+def one_failure(failure: ParseException) -> Iterator[ParseException]:
+    yield failure
+
+
+def chain(*iterables: Iterator[ParseException]) -> Iterator[ParseException]:
+    for it in iterables:
+        yield from it
+
+
+def chain_one(failures: Iterator[ParseException], failure: ParseException) -> Iterator[ParseException]:
+    yield from failures
+    yield failure
+
+
 def sort_causes(causes):
     return list(sort_using_cmp(causes, cmp=compare_causes))
 
 
 export("mo_parsing.utils", ParseException)
+export("mo_parsing.utils", chain)

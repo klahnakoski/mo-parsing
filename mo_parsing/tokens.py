@@ -119,7 +119,7 @@ class Literal(Token):
             Log.error("Expecting string for literal")
         Token.__init__(self)
 
-        self.set_config(match=match)
+        self.set_config(match=match, regex=regex_compile(re.escape(match)))
 
         if len(match) == 0:
             Log.error("Literal must be at least one character")
@@ -143,7 +143,7 @@ class Literal(Token):
         return Literal(self.parser_config.match[::-1])
 
     def __regex__(self):
-        return "+", re.escape(self.parser_config.match)
+        return "+", self.parser_config.regex.pattern
 
     def __str__(self):
         return self.parser_config.match
@@ -168,9 +168,6 @@ class SingleCharLiteral(Literal):
 
     def reverse(self):
         return self
-
-    def __regex__(self):
-        return "*", re.escape(self.parser_config.match)
 
 
 class Keyword(Token):
@@ -252,7 +249,8 @@ class CaselessLiteral(Literal):
     def __init__(self, match):
         Literal.__init__(self, match.upper())
         self.set_config(
-            match=match, regex=regex_compile(regex_caseless(match)),
+            match=match,
+            regex=regex_compile(regex_caseless(re.escape(match))),
         )
         self.parser_name = repr(self.parser_config.regex.pattern)
 

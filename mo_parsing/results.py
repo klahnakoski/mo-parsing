@@ -1,9 +1,11 @@
 # encoding: utf-8
 import inspect
+from typing import Iterator
 
 from mo_dots import is_many, is_null
 from mo_future import is_text, text, zip_longest, MutableMapping
 from mo_imports import expect, export
+from mo_parsing.exceptions import ParseException
 
 from mo_parsing.utils import Log, listwrap
 
@@ -30,7 +32,9 @@ class ParseResults(object):
     def type(self):
         return self._type
 
-    def __init__(self, result_type, start, end, tokens, failures):
+    def __init__(
+        self, result_type, start, end, tokens, failures: Iterator[ParseException]
+    ):
         if end == -1:
             Log.error("not allowed")
         self._type = result_type
@@ -38,7 +42,7 @@ class ParseResults(object):
         self.end = end
         self.tokens = tokens
         self.timing = None
-        self.failures = failures
+        self.failures: Iterator[ParseException] = failures
 
     def _get_item_by_name(self, name):
         # return open list of values for given name
