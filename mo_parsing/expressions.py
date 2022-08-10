@@ -305,7 +305,16 @@ class And(ParseExpression):
         )
 
     def __regex__(self):
-        return "+", "".join(regex_iso(*e.__regex__(), "+") for e in self.exprs)
+        if self.whitespace is whitespaces.NO_WHITESPACE:
+            return "+", "".join(regex_iso(*e.__regex__(), "+") for e in self.exprs)
+
+        return (
+            "+",
+            regex_iso(*self.whitespace.__regex__(), "+").join(
+                regex_iso(*e.__regex__(), "+")
+                for e in self.exprs
+            ),
+        )
 
     def __str__(self):
         if self.parser_name:

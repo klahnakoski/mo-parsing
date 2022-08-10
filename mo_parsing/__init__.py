@@ -40,7 +40,13 @@ from mo_parsing.whitespaces import Whitespace
 whitespaces.NO_WHITESPACE = Whitespace("").use()
 whitespaces.STANDARD_WHITESPACE = Whitespace().use()
 
-from mo_parsing.infix import LEFT_ASSOC, RIGHT_ASSOC, infix_notation, delimited_list, one_of
+from mo_parsing.infix import (
+    LEFT_ASSOC,
+    RIGHT_ASSOC,
+    infix_notation,
+    delimited_list,
+    one_of,
+)
 from mo_parsing.regex import Regex
 from mo_parsing.tokens import *
 

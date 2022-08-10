@@ -95,20 +95,21 @@ def QuotedString(
         anychar = Char(exclude="\n")
         excluded |= Char("\r\n")
 
-    included = ~Literal(end_quote_char) + anychar
+    with whitespaces.NO_WHITESPACE:
+        included = ~Literal(end_quote_char) + anychar
 
-    if esc_quote:
-        included = Literal(esc_quote) | included
-    if esc_char:
-        excluded |= Literal(esc_char)
-        included = esc_char + Char(printables) | included
-        esc_char_replace_pattern = re.escape(esc_char) + "(.)"
+        if esc_quote:
+            included = Literal(esc_quote) | included
+        if esc_char:
+            excluded |= Literal(esc_char)
+            included = esc_char + Char(printables) | included
+            esc_char_replace_pattern = re.escape(esc_char) + "(.)"
 
-    prec, pattern = (
-        Literal(quote_char) + ((~excluded + anychar) | included)[0:]
-    ).__regex__()
-    # IMPORTANT: THE end_quote_char IS OUTSIDE THE Regex BECAUSE OF PATHOLOGICAL BACKTRACKING
-    output = Combine(Regex(pattern) + Literal(end_quote_char))
+        prec, pattern = (
+            Literal(quote_char) + ((~excluded + anychar) | included)[0:]
+        ).__regex__()
+        # IMPORTANT: THE end_quote_char IS OUTSIDE THE Regex BECAUSE OF PATHOLOGICAL BACKTRACKING
+        output = Combine(Regex(pattern) + Literal(end_quote_char))
 
     def post_parse(tokens):
         ret = tokens[0]

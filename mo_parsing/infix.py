@@ -22,7 +22,7 @@ from mo_parsing.tokens import (
     Keyword,
     NoMatch,
     Literal,
-    Empty,
+    Empty, Log,
 )
 from mo_parsing.utils import regex_range, wrap_parse_action
 
@@ -58,11 +58,9 @@ def one_of(strs, caseless=False, as_keyword=False):
      - as_keyword - (default=``False``) - enforce Keyword-style matching on the
        generated expressions
     """
-    if isinstance(caseless, text):
-        warnings.warn(
-            "More than one string argument passed to one_of, pass "
-            "choices as a list or space-delimited string",
-            stacklevel=2,
+    if isinstance(caseless, str):
+        Log.error(
+            "More than one string argument passed to one_of, pass choices as a list or space-delimited string"
         )
 
     if caseless:
@@ -368,7 +366,7 @@ def infix_notation(
     flat = Forward()
     iso = lpar.suppress() + flat + rpar.suppress()
     atom = (base_expr | iso) / record_op(base_expr)
-    modified = ZeroOrMore(prefix_ops) + atom + ZeroOrMore(suffix_ops)
-    flat << ((modified + ZeroOrMore(ops + modified)) / make_tree).streamline()
+    decorated = ZeroOrMore(prefix_ops) + atom + ZeroOrMore(suffix_ops)
+    flat << ((decorated + ZeroOrMore(ops + decorated)) / make_tree).streamline()
 
     return flat.streamline()
