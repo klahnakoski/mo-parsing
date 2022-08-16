@@ -46,7 +46,7 @@ except Exception:
 
         @classmethod
         def error(cls, template, cause=None, **params):
-            raise ParseException(Null, -1, -1, "", msg=template, cause=cause)
+            raise ParseException(Null, -1, "", msg=template, cause=cause)
 
 
 MAX_INT = sys.maxsize
