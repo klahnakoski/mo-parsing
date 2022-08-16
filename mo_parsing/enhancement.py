@@ -223,6 +223,9 @@ class Many(ParseEnhancement):
         :param max_match: MAXIMUM MATCH REQUIRED FOR SUCCESS (-1 IS INVALID)
         """
         ParseEnhancement.__init__(self, expr)
+        if isinstance(self.expr, LookBehind):
+            # TODO: support Optional(LookBehind()))
+            Log.error("can only look behind once")
         if exact is not None:
             min_match = exact
             max_match = exact
@@ -251,18 +254,14 @@ class Many(ParseEnhancement):
 
     def parse_impl(self, string, start, do_actions=True):
         acc = []
-        end = index = start
+        end = start
         max = self.parser_config.max_match
         stopper = self.parser_config.end
         count = 0
         failures = []
         try:
-            while end < len(string) and count < max:
-                if end > index:
-                    if isinstance(self.expr, LookBehind):
-                        index = end
-                    else:
-                        index = self.parser_config.whitespace.skip(string, end)
+            while end < len(string):
+                index = self.parser_config.whitespace.skip(string, end)
                 if stopper:
                     if stopper.match(string, index):
                         if self.parser_config.min_match <= count:
@@ -277,6 +276,9 @@ class Many(ParseEnhancement):
                     acc.append(result)
                     failures.extend(result.failures)
                     count += 1
+                    if count >= max:
+                        break
+
         except ParseException as cause:
             if self.parser_config.min_match <= count <= max:
                 failures.append(cause)
@@ -288,40 +290,35 @@ class Many(ParseEnhancement):
                     msg="Not correct amount of matches",
                     cause=cause,
                 ) from None
-        if count:
-            if (
-                count < self.parser_config.min_match
-                or self.parser_config.max_match < count
-            ):
-                raise ParseException(
-                    self,
-                    acc[0].start,
-                    string,
-                    msg=(
-                        f"Expecting between {self.parser_config.min_match} and"
-                        f" {self.parser_config.max_match} of {self.expr}"
-                    ),
-                )
-            else:
+
+        if self.parser_config.min_match <= count <= self.parser_config.max_match:
+            if count:
                 return ParseResults(self, acc[0].start, acc[-1].end, acc, failures)
-        else:
-            if not self.parser_config.min_match:
-                return ParseResults(self, start, start, [], failures)
             else:
-                raise ParseException(
-                    self,
-                    start,
-                    string,
-                    msg=f"Expecting at least {self.parser_config.min_match} of {self}",
-                )
+                return ParseResults(self, start, end, acc, failures)
+
+        elif count < self.parser_config.min_match:
+            raise ParseException(
+                self,
+                start,
+                string,
+                msg=f"Expecting at least {self.parser_config.min_match} of {self}",
+            )
+        else:
+            raise ParseException(
+                self,
+                acc[0].start,
+                string,
+                msg=(
+                    f"Expecting between {self.parser_config.min_match} and"
+                    f" {self.parser_config.max_match} of {self.expr}"
+                ),
+            )
 
     def streamline(self):
         if self.streamlined:
             return self
-        try:
-            expr = self.expr.streamline()
-        except Exception as e:
-            print(e)
+        expr = self.expr.streamline()
         if (
             self.parser_config.min_match == self.parser_config.max_match
             and not self.is_annotated()
@@ -596,7 +593,7 @@ class Forward(ParserElement):
     parser created using ``Forward``.
     """
 
-    __slots__ = ["expr", "used_by", "_str", "_reg", "_eng"]
+    __slots__ = ["expr", "used_by", "_str", "_in_regex", "__in_whitespace"]
 
     def __init__(self, expr=Null):
         ParserElement.__init__(self)
@@ -604,8 +601,8 @@ class Forward(ParserElement):
         self.used_by = []
 
         self._str = None  # avoid recursion
-        self._reg = None  # avoid recursion
-        self._eng = False
+        self._in_regex = None  # avoid recursion
+        self.__in_whitespace = False
         if expr:
             self << whitespaces.CURRENT.normalize(expr)
 
@@ -613,8 +610,8 @@ class Forward(ParserElement):
         output = ParserElement.copy(self)
         output.expr = self
         output._str = None
-        output._reg = None
-        output._eng = False
+        output._in_regex = None
+        output.__in_whitespace = False
 
         output.used_by = []
         return output
@@ -673,18 +670,15 @@ class Forward(ParserElement):
 
     @property
     def whitespace(self):
-        try:
-            if self._eng:
-                return None
-        except Exception as cause:
-            Log.error("", cause=cause)
+        if self.__in_whitespace:
+            return None
 
         # Avoid infinite recursion by setting a temporary
-        self._eng = True
+        self.__in_whitespace = True
         try:
             return self.expr.whitespace
         finally:
-            self._eng = False
+            self.__in_whitespace = False
 
     def parse_impl(self, string, loc, do_actions=True):
         try:
@@ -701,14 +695,17 @@ class Forward(ParserElement):
             raise cause from None
 
     def __regex__(self):
-        if self._reg or not self.expr:
-            return None
+        if self._in_regex:
+            Log.error("recursion not supported")
+
+        if not self.expr:
+            Log.error("Forward is incomplete")
 
         try:
-            self._reg = True
+            self._in_regex = True
             return self.expr.__regex__()
         finally:
-            self._reg = None
+            self._in_regex = None
 
     def __str__(self):
         if self.parser_name:

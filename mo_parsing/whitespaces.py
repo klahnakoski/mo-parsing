@@ -29,9 +29,10 @@ class Whitespace(ParserElement):
         self.skips = {}
         self.regex = None
         self.expr = None
-        self.set_whitespace(white)
         self.parent = None
         self.copies = []
+        self._in_regex = False
+        self.set_whitespace(white)
 
     def copy(self):
         output = Whitespace(self.white_chars)
@@ -62,7 +63,6 @@ class Whitespace(ParserElement):
     def __exit__(self, exc_type, exc_val, exc_tb):
         """
         REMOVE THIS WHITESPACE CONTEXT
-        :return:
         """
         global CURRENT
         if self.copies and self.copies[-1] is CURRENT:
@@ -162,15 +162,21 @@ class Whitespace(ParserElement):
         return end
 
     def __regex__(self):
-        white = regex_range(self.white_chars)
-        if not self.ignore_list:
-            if not white:
-                return "*", ""
-            else:
-                return "*", white + "*"
+        if self._in_regex:
+            return "*", ""
+        self._in_regex = True
+        try:
+            white = regex_range(self.white_chars)
+            if not self.ignore_list:
+                if not white:
+                    return "*", ""
+                else:
+                    return "*", white + "*"
 
-        ignored = "|".join(regex_iso(*i.__regex__(), "|") for i in self.ignore_list)
-        return "+", f"(?:{white}*(?:{ignored}))*{white}*"
+            ignored = "|".join(regex_iso(*i.__regex__(), "|") for i in self.ignore_list)
+            return "+", f"(?:{white}*(?:{ignored}))*{white}*"
+        finally:
+            self._in_regex = False
 
     def __str__(self):
         output = ["{"]
