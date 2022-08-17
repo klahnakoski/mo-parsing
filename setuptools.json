@@ -11,7 +11,7 @@
         "Topic :: Software Development :: Libraries :: Python Modules"
     ],
     "description": "Another PEG Parsing Tool",
-    "description_content_type": "text/markdown",
+    "description_content_type": "text/plain",
     "extras_require": {"tests": ["mo-testing", "mo-threads", "mo-logs", "mo-files"]},
     "install_requires": ["mo-dots==9.189.22201", "mo-future==6.2.21303"],
     "license": "MIT",
