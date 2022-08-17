@@ -277,29 +277,6 @@ def get_function_arguments(func):
         return builtin_lookup.get(func.__name__, ("unknown",))
 
 
-class __config_flags:
-    """Internal class for defining compatibility and debugging flags"""
-
-    _all_names = []
-    _fixed_names = []
-    _type_desc = "configuration"
-
-    @classmethod
-    def _set(cls, dname, value):
-        if dname in cls._fixed_names:
-            warnings.warn("{}.{} {} is {} and cannot be overridden".format(
-                cls.__name__, dname, cls._type_desc, str(getattr(cls, dname)).upper(),
-            ))
-            return
-        if dname in cls._all_names:
-            setattr(cls, dname, value)
-        else:
-            raise ValueError("no such {} {!r}".format(cls._type_desc, dname))
-
-    enable = classmethod(lambda cls, name: cls._set(name, True))
-    disable = classmethod(lambda cls, name: cls._set(name, False))
-
-
 alphas = string.ascii_uppercase + string.ascii_lowercase
 nums = "0123456789"
 hexnums = nums + "ABCDEFabcdef"
