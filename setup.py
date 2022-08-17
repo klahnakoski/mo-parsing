@@ -7,6 +7,7 @@ setup(
     author_email='kyle@lahnakoski.com',
     classifiers=["Development Status :: 4 - Beta","License :: OSI Approved :: MIT License","Programming Language :: Python :: 3.7","Programming Language :: Python :: 3.8","Programming Language :: Python :: 3.9","Topic :: Software Development :: Libraries","Topic :: Software Development :: Libraries :: Python Modules"],
     description='Another PEG Parsing Tool',
+    description-content-type='text/markdown',
     extras_require={"tests":["mo-testing","mo-threads","mo-logs","mo-files"]},
     install_requires=["mo-dots==9.189.22201","mo-future==6.2.21303"],
     license='MIT',
@@ -15,5 +16,5 @@ setup(
     name='mo-parsing',
     packages=["mo_parsing"],
     url='https://github.com/klahnakoski/mo-parsing',
-    version='8.190.22228'
+    version='8.190.22229'
 )
