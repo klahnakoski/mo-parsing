@@ -150,8 +150,8 @@ class NotAny(LookAhead):
 
     def __init__(self, expr):
         super(NotAny, self).__init__(expr)
-        prec, pattern = self.expr.__regex__()
         try:
+            prec, pattern = self.expr.__regex__()
             self.regex = regex_compile(f"(?!{pattern})")
         except Exception as c:
             self.regex = None
