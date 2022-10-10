@@ -593,7 +593,7 @@ class Forward(ParserElement):
     parser created using ``Forward``.
     """
 
-    __slots__ = ["expr", "used_by", "_str", "_in_regex", "__in_whitespace"]
+    __slots__ = ["expr", "used_by", "_str", "_in_regex", "_in_expecting", "__in_whitespace"]
 
     def __init__(self, expr=Null):
         ParserElement.__init__(self)
@@ -602,6 +602,7 @@ class Forward(ParserElement):
 
         self._str = None  # avoid recursion
         self._in_regex = None  # avoid recursion
+        self._in_expecting = None  # avoid recursion
         self.__in_whitespace = False
         if expr:
             self << whitespaces.CURRENT.normalize(expr)
@@ -658,6 +659,17 @@ class Forward(ParserElement):
             raise RecursiveGrammarException(seen + (self,))
         if self.expr != None:
             self.expr.check_recursion(seen + (self,))
+
+    def expecting(self):
+        if self._in_expecting:
+            return {}
+        self._in_expecting = True
+        try:
+            if not self.expr:
+                return {}
+            return self.expr.expecting()
+        finally:
+            self._in_expecting = False
 
     def min_length(self):
         if self.min_length_cache is None and self.expr:
