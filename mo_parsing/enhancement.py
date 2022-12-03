@@ -430,7 +430,7 @@ class ZeroOrMore(Many):
 
     def parse_impl(self, string, start, do_actions=True):
         try:
-            return super(ZeroOrMore, self).parse_impl(string, start, do_actions)
+            return Many.parse_impl(self, string, start, do_actions)
         except ParseException as pe:
             return ParseResults(self, start, start, [], [pe])
 

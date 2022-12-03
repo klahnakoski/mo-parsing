@@ -268,7 +268,6 @@ class And(ParseExpression):
             try:
                 result = expr._parse(string, index, do_actions)
                 acc.append(result)
-
                 end = result.end
                 if end > index:
                     failures = result.failures
@@ -408,8 +407,9 @@ class Or(ParseExpression):
         if len(matches) == 1:
             _, expr = matches[0]
             result = expr._parse(string, start, do_actions)
+            failures.extend(result.failures)
             return ParseResults(
-                self, result.start, result.end, [result], result.failures
+                self, result.start, result.end, [result], failures
             )
 
         if matches:
@@ -422,8 +422,9 @@ class Or(ParseExpression):
                 # alternative, so the first match will be the best match
                 _, expr = matches[0]
                 result = expr._parse(string, start, do_actions)
+                failures.extend(result.failures)
                 return ParseResults(
-                    self, result.start, result.end, [result], result.failures
+                    self, result.start, result.end, [result], failures
                 )
 
             longest = -1, None
@@ -437,9 +438,10 @@ class Or(ParseExpression):
                 except ParseException as err:
                     failures.append(err)
                 else:
+                    failures.extend(result.failures)
                     if result.end >= loc:
                         return ParseResults(
-                            self, result.start, result.end, [result], result.failures
+                            self, result.start, result.end, [result], failures
                         )
                     # didn't match as much as before
                     elif result.end > longest[0]:
@@ -450,7 +452,7 @@ class Or(ParseExpression):
                                 result.start,
                                 result.end,
                                 [result],
-                                result.failures,
+                                failures,
                             ),
                         )
 
@@ -509,18 +511,19 @@ class MatchFirst(ParseExpression):
         return [e.whitespace for e in self.exprs]
 
     def parse_impl(self, string, start, do_actions=True):
-        causes = []
+        failures = []
 
         for e in self.alternate:
             try:
                 result = e._parse(string, start, do_actions)
+                failures.extend(result.failures)
                 return ParseResults(
-                    self, result.start, result.end, [result], result.failures
+                    self, result.start, result.end, [result], failures
                 )
             except ParseException as cause:
-                causes.append(cause)
+                failures.append(cause)
 
-        raise ParseException(self, start, string, cause=causes)
+        raise ParseException(self, start, string, cause=failures)
 
     def streamline(self):
         if self.streamlined:
