@@ -310,8 +310,7 @@ class And(ParseExpression):
         return (
             "+",
             regex_iso(*self.whitespace.__regex__(), "+").join(
-                regex_iso(*e.__regex__(), "+")
-                for e in self.exprs
+                regex_iso(*e.__regex__(), "+") for e in self.exprs
             ),
         )
 
@@ -408,9 +407,7 @@ class Or(ParseExpression):
             _, expr = matches[0]
             result = expr._parse(string, start, do_actions)
             failures.extend(result.failures)
-            return ParseResults(
-                self, result.start, result.end, [result], failures
-            )
+            return ParseResults(self, result.start, result.end, [result], failures)
 
         if matches:
             # re-evaluate all matches in descending order of length of match, in case attached actions
@@ -423,9 +420,7 @@ class Or(ParseExpression):
                 _, expr = matches[0]
                 result = expr._parse(string, start, do_actions)
                 failures.extend(result.failures)
-                return ParseResults(
-                    self, result.start, result.end, [result], failures
-                )
+                return ParseResults(self, result.start, result.end, [result], failures)
 
             longest = -1, None
             for loc, expr in matches:
@@ -448,11 +443,7 @@ class Or(ParseExpression):
                         longest = (
                             result.end,
                             ParseResults(
-                                self,
-                                result.start,
-                                result.end,
-                                [result],
-                                failures,
+                                self, result.start, result.end, [result], failures,
                             ),
                         )
 
@@ -517,9 +508,7 @@ class MatchFirst(ParseExpression):
             try:
                 result = e._parse(string, start, do_actions)
                 failures.extend(result.failures)
-                return ParseResults(
-                    self, result.start, result.end, [result], failures
-                )
+                return ParseResults(self, result.start, result.end, [result], failures)
             except ParseException as cause:
                 failures.append(cause)
 

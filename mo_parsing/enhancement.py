@@ -74,7 +74,9 @@ class ParseEnhancement(ParserElement):
     def parse_impl(self, string, start, do_actions=True):
         try:
             result = self.expr._parse(string, start, do_actions)
-            return ParseResults(self, result.start, result.end, [result], result.failures)
+            return ParseResults(
+                self, result.start, result.end, [result], result.failures
+            )
         except ParseException as cause:
             raise ParseException(self, start, string, cause=cause) from None
 
@@ -285,11 +287,7 @@ class Many(ParseEnhancement):
 
         if count < min:
             raise ParseException(
-                self,
-                start,
-                string,
-                f"Expecting at least {min} of {self}",
-                failures
+                self, start, string, f"Expecting at least {min} of {self}", failures
             )
         elif max < count:
             raise ParseException(
@@ -297,14 +295,13 @@ class Many(ParseEnhancement):
                 acc[0].start,
                 string,
                 f"Expecting less than {max} of {self.expr}",
-                failures
+                failures,
             )
         else:
             if count:
                 return ParseResults(self, acc[0].start, acc[-1].end, acc, failures)
             else:
                 return ParseResults(self, start, end, acc, failures)
-
 
     def streamline(self):
         if self.streamlined:
@@ -450,7 +447,9 @@ class Optional(Many):
     def parse_impl(self, string, start, do_actions=True):
         try:
             results = self.expr._parse(string, start, do_actions)
-            return ParseResults(self, results.start, results.end, [results], results.failures)
+            return ParseResults(
+                self, results.start, results.end, [results], results.failures
+            )
         except ParseException as pe:
             return ParseResults(
                 self, start, start, self.parser_config.default_value, [pe]
@@ -584,7 +583,14 @@ class Forward(ParserElement):
     parser created using ``Forward``.
     """
 
-    __slots__ = ["expr", "used_by", "_str", "_in_regex", "_in_expecting", "__in_whitespace"]
+    __slots__ = [
+        "expr",
+        "used_by",
+        "_str",
+        "_in_regex",
+        "_in_expecting",
+        "__in_whitespace",
+    ]
 
     def __init__(self, expr=Null):
         ParserElement.__init__(self)
@@ -774,7 +780,9 @@ class Combine(TokenConverter):
         if expr is self.expr:
             self.streamlined = True
             return self
-        return Combine(expr, self.parser_config.separator).set_parser_name(self.parser_name)
+        return Combine(
+            expr, self.parser_config.separator
+        ).set_parser_name(self.parser_name)
 
     def expecting(self):
         return OrderedDict((k, [self]) for k in self.expr.expecting().keys())

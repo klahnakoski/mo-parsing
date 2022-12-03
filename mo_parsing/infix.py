@@ -22,7 +22,8 @@ from mo_parsing.tokens import (
     Keyword,
     NoMatch,
     Literal,
-    Empty, Log,
+    Empty,
+    Log,
 )
 from mo_parsing.utils import regex_range, wrap_parse_action
 
@@ -60,7 +61,8 @@ def one_of(strs, caseless=False, as_keyword=False):
     """
     if isinstance(caseless, str):
         Log.error(
-            "More than one string argument passed to one_of, pass choices as a list or space-delimited string"
+            "More than one string argument passed to one_of, pass choices as a list or"
+            " space-delimited string"
         )
 
     if caseless:

@@ -53,7 +53,9 @@ class ParseException(Exception):
             return best_0
         else:
             return ParseException(
-                MatchFirst([b.expr for b in best if compare_causes(b, best_0) == 0]).streamline(),
+                MatchFirst([
+                    b.expr for b in best if compare_causes(b, best_0) == 0
+                ]).streamline(),
                 best_0.start,
                 best_0.string,
                 msg=best_0._msg,
