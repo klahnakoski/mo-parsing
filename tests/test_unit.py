@@ -703,7 +703,7 @@ class TestParsing(PyparsingExpressionTestCase):
               };
             """,
             0,
-            56,
+            142,
         )
         test(
             """

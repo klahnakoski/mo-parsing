@@ -269,17 +269,17 @@ class And(ParseExpression):
                 result = expr._parse(string, index, do_actions)
                 acc.append(result)
                 end = result.end
-                if end > index:
-                    failures = result.failures
-                else:
-                    failures.extend(result.failures)
+                failures.extend(result.failures)
             except ParseException as pe:
+                failures.append(pe)
                 if encountered_syntax_error:
                     raise ParseSyntaxException(
-                        pe.expr, pe.loc, pe.string, cause=pe
+                        pe.expr, pe.loc, pe.string, cause=failures
                     ) from None
                 else:
-                    raise pe from None
+                    raise ParseException(
+                        pe.expr, pe.loc, pe.string, cause=failures
+                    ) from None
 
         return ParseResults(self, start, end, acc, failures)
 
