@@ -256,6 +256,7 @@ class Many(ParseEnhancement):
         acc = []
         end = start
         max = self.parser_config.max_match
+        min = self.parser_config.min_match
         stopper = self.parser_config.end
         count = 0
         failures = []
@@ -264,7 +265,7 @@ class Many(ParseEnhancement):
                 index = self.parser_config.whitespace.skip(string, end)
                 if stopper:
                     if stopper.match(string, index):
-                        if self.parser_config.min_match <= count:
+                        if min <= count:
                             break
                         else:
                             raise ParseException(
@@ -280,40 +281,30 @@ class Many(ParseEnhancement):
                         break
 
         except ParseException as cause:
-            if self.parser_config.min_match <= count <= max:
-                failures.append(cause)
-            else:
-                raise ParseException(
-                    self,
-                    start,
-                    string,
-                    msg="Not correct amount of matches",
-                    cause=cause,
-                ) from None
+            failures.append(cause)
 
-        if self.parser_config.min_match <= count <= self.parser_config.max_match:
+        if count < min:
+            raise ParseException(
+                self,
+                start,
+                string,
+                f"Expecting at least {min} of {self}",
+                failures
+            )
+        elif max < count:
+            raise ParseException(
+                self,
+                acc[0].start,
+                string,
+                f"Expecting less than {max} of {self.expr}",
+                failures
+            )
+        else:
             if count:
                 return ParseResults(self, acc[0].start, acc[-1].end, acc, failures)
             else:
                 return ParseResults(self, start, end, acc, failures)
 
-        elif count < self.parser_config.min_match:
-            raise ParseException(
-                self,
-                start,
-                string,
-                msg=f"Expecting at least {self.parser_config.min_match} of {self}",
-            )
-        else:
-            raise ParseException(
-                self,
-                acc[0].start,
-                string,
-                msg=(
-                    f"Expecting between {self.parser_config.min_match} and"
-                    f" {self.parser_config.max_match} of {self.expr}"
-                ),
-            )
 
     def streamline(self):
         if self.streamlined:
