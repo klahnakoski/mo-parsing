@@ -47,13 +47,15 @@ class ParseException(Exception):
             return self
 
         best_0 = best[0]
-        if self.expr.parser_name and self.start >= best_0.start:
+        if self.expr.parser_name and self.start >= best_0.start and not best_0.expr.parser_name:
             return self
         elif len(best) == 1:
             return best_0
         else:
             return ParseException(
-                MatchFirst([b.expr for b in best if compare_causes(b, best_0) == 0]).streamline(),
+                MatchFirst([
+                    b.expr for b in best if compare_causes(b, best_0) == 0
+                ]).streamline(),
                 best_0.start,
                 best_0.string,
                 msg=best_0._msg,

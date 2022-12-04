@@ -74,7 +74,9 @@ class ParseEnhancement(ParserElement):
     def parse_impl(self, string, start, do_actions=True):
         try:
             result = self.expr._parse(string, start, do_actions)
-            return ParseResults(self, result.start, result.end, [result], result.failures)
+            return ParseResults(
+                self, result.start, result.end, [result], result.failures
+            )
         except ParseException as cause:
             raise ParseException(self, start, string, cause=cause) from None
 
@@ -256,6 +258,7 @@ class Many(ParseEnhancement):
         acc = []
         end = start
         max = self.parser_config.max_match
+        min = self.parser_config.min_match
         stopper = self.parser_config.end
         count = 0
         failures = []
@@ -264,7 +267,7 @@ class Many(ParseEnhancement):
                 index = self.parser_config.whitespace.skip(string, end)
                 if stopper:
                     if stopper.match(string, index):
-                        if self.parser_config.min_match <= count:
+                        if min <= count:
                             break
                         else:
                             raise ParseException(
@@ -280,40 +283,25 @@ class Many(ParseEnhancement):
                         break
 
         except ParseException as cause:
-            if self.parser_config.min_match <= count <= max:
-                failures.append(cause)
-            else:
-                raise ParseException(
-                    self,
-                    start,
-                    string,
-                    msg="Not correct amount of matches",
-                    cause=cause,
-                ) from None
+            failures.append(cause)
 
-        if self.parser_config.min_match <= count <= self.parser_config.max_match:
-            if count:
-                return ParseResults(self, acc[0].start, acc[-1].end, acc, failures)
-            else:
-                return ParseResults(self, start, end, acc, failures)
-
-        elif count < self.parser_config.min_match:
+        if count < min:
             raise ParseException(
-                self,
-                start,
-                string,
-                msg=f"Expecting at least {self.parser_config.min_match} of {self}",
+                self, start, string, f"Expecting at least {min} of {self}", failures
             )
-        else:
+        elif max < count:
             raise ParseException(
                 self,
                 acc[0].start,
                 string,
-                msg=(
-                    f"Expecting between {self.parser_config.min_match} and"
-                    f" {self.parser_config.max_match} of {self.expr}"
-                ),
+                f"Expecting less than {max} of {self.expr}",
+                failures,
             )
+        else:
+            if count:
+                return ParseResults(self, acc[0].start, acc[-1].end, acc, failures)
+            else:
+                return ParseResults(self, start, end, acc, failures)
 
     def streamline(self):
         if self.streamlined:
@@ -430,7 +418,7 @@ class ZeroOrMore(Many):
 
     def parse_impl(self, string, start, do_actions=True):
         try:
-            return super(ZeroOrMore, self).parse_impl(string, start, do_actions)
+            return Many.parse_impl(self, string, start, do_actions)
         except ParseException as pe:
             return ParseResults(self, start, start, [], [pe])
 
@@ -459,7 +447,9 @@ class Optional(Many):
     def parse_impl(self, string, start, do_actions=True):
         try:
             results = self.expr._parse(string, start, do_actions)
-            return ParseResults(self, results.start, results.end, [results], results.failures)
+            return ParseResults(
+                self, results.start, results.end, [results], results.failures
+            )
         except ParseException as pe:
             return ParseResults(
                 self, start, start, self.parser_config.default_value, [pe]
@@ -593,7 +583,14 @@ class Forward(ParserElement):
     parser created using ``Forward``.
     """
 
-    __slots__ = ["expr", "used_by", "_str", "_in_regex", "_in_expecting", "__in_whitespace"]
+    __slots__ = [
+        "expr",
+        "used_by",
+        "_str",
+        "_in_regex",
+        "_in_expecting",
+        "__in_whitespace",
+    ]
 
     def __init__(self, expr=Null):
         ParserElement.__init__(self)
@@ -783,7 +780,9 @@ class Combine(TokenConverter):
         if expr is self.expr:
             self.streamlined = True
             return self
-        return Combine(expr, self.parser_config.separator).set_parser_name(self.parser_name)
+        return Combine(
+            expr, self.parser_config.separator
+        ).set_parser_name(self.parser_name)
 
     def expecting(self):
         return OrderedDict((k, [self]) for k in self.expr.expecting().keys())

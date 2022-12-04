@@ -249,8 +249,7 @@ class CaselessLiteral(Literal):
     def __init__(self, match):
         Literal.__init__(self, match.upper())
         self.set_config(
-            match=match,
-            regex=regex_compile(regex_caseless(re.escape(match))),
+            match=match, regex=regex_compile(regex_caseless(re.escape(match))),
         )
         self.parser_name = repr(self.parser_config.regex.pattern)
 
