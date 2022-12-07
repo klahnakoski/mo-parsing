@@ -54,7 +54,7 @@ skip_list = [
     "LAparser_test",
 ]
 
-modules = [f.name for f in File("examples").children]
+modules = [f.os_name for f in File("examples").children]
 
 
 class TestAllExamples(unittest.TestCase):
