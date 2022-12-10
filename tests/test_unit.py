@@ -2765,18 +2765,8 @@ class TestParsing(PyparsingExpressionTestCase):
     def testTrimArityExceptionMaskingTest2(self):
         # construct deep call tree
         def A():
-
-            traceback.print_stack(limit=2)
-            invalid_message = "<lambda>() missing 1 required positional argument: 't'"
-            try:
+            with self.assertRaises("TypeError:"):
                 Word("a").add_parse_action(lambda t: t[0] + 1).parse_string("aaa")
-            except Exception as e:
-                exc_msg = str(e)
-                self.assertNotEqual(
-                    exc_msg,
-                    invalid_message,
-                    "failed to catch TypeError thrown in wrap_parse_action",
-                )
 
         def B():
             A()

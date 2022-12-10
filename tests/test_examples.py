@@ -54,8 +54,6 @@ skip_list = [
     "LAparser_test",
 ]
 
-modules = [f.name for f in File("examples").children]
-
 
 class TestAllExamples(unittest.TestCase):
     pass
