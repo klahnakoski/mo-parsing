@@ -69,7 +69,7 @@ def _single_test(name):
 
 for f in File("examples").children:
     if f.extension == "py":
-        func = _single_test(f.name)
-        if f.name in skip_list:
-            func = unittest.skip("please fix " + f.name)(func)
-        setattr(TestAllExamples, "test_" + f.name, func)
+        func = _single_test(f.stem)
+        if f.stem in skip_list:
+            func = unittest.skip("please fix " + f.stem)(func)
+        setattr(TestAllExamples, "test_" + f.stem, func)
