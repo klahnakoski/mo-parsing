@@ -146,6 +146,8 @@ class Literal(Token):
         return "+", self.parser_config.regex.pattern
 
     def __str__(self):
+        if self.parser_name:
+            return self.parser_name
         return self.parser_config.match
 
 

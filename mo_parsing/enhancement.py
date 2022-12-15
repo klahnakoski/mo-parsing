@@ -498,7 +498,7 @@ class SkipTo(ParseEnhancement):
         if self.parser_config.include:
             return "*", f"(.*?{pattern})"
         else:
-            return "+", f"(.*?){pattern}"
+            return "+", f"(.*?)(?={pattern})"
 
     def parse_impl(self, string, start, do_actions=True):
         instrlen = len(string)
