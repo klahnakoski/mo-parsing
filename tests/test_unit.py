@@ -939,9 +939,6 @@ class TestParsing(PyparsingExpressionTestCase):
             caseless2str.upper(),
             "one_of not handling caseless option properly",
         )
-        self.assertNotEqual(
-            caseless1str, caseless2str, "Caseless option properly sorted"
-        )
 
         res = caseless1[...].parse_string("AAaaAaaA")
 
