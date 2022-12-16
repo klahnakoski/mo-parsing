@@ -200,7 +200,7 @@ class Keyword(Token):
             regex=regex_compile(pattern + non_word),
         )
 
-        self.parser_name = match
+        self.parser_name = f"/{pattern}/"
         if caseless:
             self.__class__ = CaselessKeyword
 
@@ -253,7 +253,7 @@ class CaselessLiteral(Literal):
         self.set_config(
             match=match, regex=regex_compile(regex_caseless(re.escape(match))),
         )
-        self.parser_name = repr(self.parser_config.regex.pattern)
+        self.parser_name = f"/{self.parser_config.regex.pattern}/"
 
     def parse_impl(self, string, start, do_actions=True):
         found = self.parser_config.regex.match(string, start)
