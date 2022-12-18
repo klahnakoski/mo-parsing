@@ -249,7 +249,11 @@ class CaselessLiteral(Literal):
     __slots__ = []
 
     def __init__(self, match):
-        Literal.__init__(self, match.upper())
+        if not is_text(match):
+            Log.error("Expecting string for literal")
+        if len(match) == 0:
+            Log.error("Literal must be at least one character")
+        Token.__init__(self)
         self.set_config(
             match=match, regex=regex_compile(regex_caseless(re.escape(match))),
         )

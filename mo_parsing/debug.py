@@ -13,29 +13,29 @@ from mo_parsing.utils import (
     ParseException,
 )
 
-DEBUGGING = False
+DEBUGGER = None
 
 
 class Debugger(object):
     def __init__(self, silent=False):
         self.previous_parse = None
-        self.was_debugging = False
+        self.was_debugging = None
         self.parse_count = 0
         self.max_stack_depth = 0
         self.silent = silent
 
     def __enter__(self):
-        global DEBUGGING
-        self.was_debugging = DEBUGGING
-        DEBUGGING = True
+        global DEBUGGER
+        self.was_debugging = DEBUGGER
+        DEBUGGER = self
         self.previous_parse = ParserElement._parse
         ParserElement._parse = _debug_parse(self)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        global DEBUGGING
+        global DEBUGGER
         ParserElement._parse = self.previous_parse
-        DEBUGGING = self.was_debugging
+        DEBUGGER = self.was_debugging
 
 
 def _debug_parse(debugger):
