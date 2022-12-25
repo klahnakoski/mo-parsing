@@ -366,8 +366,7 @@ class ParserElement(object):
     def add_parse_action(self, *fns, callDuringTry=False):
         """
         Add one or more parse actions to expression's list of parse actions. See `setParseAction`.
-
-        See examples in `copy`.
+        Also you can use `/`
         """
         output = self.copy()
         output.parse_action += list(map(wrap_parse_action, fns))
@@ -381,7 +380,11 @@ class ParserElement(object):
         Shortform for add_parse_action
         """
         output = self.copy()
-        output.parse_action.append(wrap_parse_action(func))
+        try:
+            output.parse_action.append(wrap_parse_action(func))
+        except:
+            # REPLACE WITH CONSTANT
+            output.parse_action.append(lambda t, i, s: ParseResults(t.type, t.start, t.end, [func], []))
         return output
 
     def add_condition(self, *fns, message=None, callDuringTry=False, fatal=False):
@@ -472,7 +475,8 @@ class ParserElement(object):
                 next_result = fn(result, result.start, string)
                 if next_result.end < result.end:
                     Log.error(
-                        "parse action not allowed to roll back the end of parsing"
+                        "parse action {{name}} not allowed to roll back the end of parsing",
+                        name=fn.__name__
                     )
                 result = next_result
         return result

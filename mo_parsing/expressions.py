@@ -267,9 +267,11 @@ class And(ParseExpression):
                 continue
             try:
                 result = expr._parse(string, index, do_actions)
+                failures.extend(result.failures)
+                if not result and index == result.end and isinstance(result.type, Many) and result.type.parser_config.min_match == 0:
+                    continue
                 acc.append(result)
                 end = result.end
-                failures.extend(result.failures)
             except ParseException as pe:
                 failures.append(pe)
                 if encountered_syntax_error:
