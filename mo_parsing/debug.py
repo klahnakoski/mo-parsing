@@ -14,6 +14,7 @@ from mo_parsing.utils import (
 )
 
 DEBUGGER = None
+_max_preamble = 60
 
 
 class Debugger(object):
@@ -71,28 +72,30 @@ def _debug_parse(debugger):
 
 
 def _try(expr, start, string):
+    global _max_preamble
+    preamble = f"  Attempt {quote(string, start)} at loc ({lineno(start, string)},{col(start, string)}), index={start}"
+    length = len(preamble)
+    _max_preamble = max(_max_preamble, length)
     print(
-        "  Attempt "
-        + quote(string, start)
-        + " at loc "
-        + text(start)
-        + "(%d,%d)" % (lineno(start, string), col(start, string))
-        + " for "
+        preamble
+        + " " * (_max_preamble - length)
+        + "for"
         + " " * stack_depth()
         + text(expr)[:300]
     )
 
 
 def match(expr, start, end, string, tokens):
+    global _max_preamble
+    preamble = f"> Matched {quote(string[start:end])} at loc ({lineno(start, string)},{col(start, string)}), length={end-start}"
+    length = len(preamble)
+    _max_preamble = max(_max_preamble, length)
     print(
-        "> Matched "
-        + quote(string[start:end])
-        + "between "
-        + f"[{start}, {end}] for"
+        preamble
+        + " " * (_max_preamble - length)
+        + "for"
         + " " * stack_depth()
-        + text(expr)
-        + " -> "
-        + str(tokens)
+        + f"{expr} -> {tokens}"
     )
 
 
