@@ -10,6 +10,8 @@ from mo_parsing.results import ParseResults
 from mo_parsing.utils import *
 from mo_parsing.whitespaces import Whitespace
 
+Regex = expect("Regex")
+
 
 class Token(ParserElement):
     """
@@ -179,14 +181,19 @@ class Keyword(Token):
     def __init__(
         self,
         match,
-        ident_chars=None,  # required to identify word boundary
+        ident_chars = None,  # required to identify word boundary
         caseless=None,
     ):
         Token.__init__(self)
         if ident_chars is None:
             ident_chars = whitespaces.CURRENT.keyword_chars
-        else:
-            ident_chars = "".join(sorted(set(ident_chars)))
+        elif isinstance(ident_chars, Regex):
+            ident_chars = ident_chars.expr.parser_config.include
+
+        if caseless:
+            ident_chars = ident_chars.lower() + ident_chars.upper()
+
+        ident_chars = "".join(sorted(set(ident_chars)))
 
         if caseless:
             pattern = regex_caseless(match)
