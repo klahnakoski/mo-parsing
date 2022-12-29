@@ -1,7 +1,7 @@
 # encoding: utf-8
 import re
 
-from mo_parsing import Regex, Char, LookAhead, Whitespace, whitespaces
+from mo_parsing import Regex, Char, LookAhead, Whitespace, whitespaces, CaselessKeyword
 from mo_parsing.tokens import SingleCharLiteral, Literal, Keyword
 from tests.test_simple_unit import PyparsingExpressionTestCase, SkipTo
 
@@ -246,3 +246,10 @@ class TestRegexParsing(PyparsingExpressionTestCase):
         result = parser.parse_string("/* \nfoo\n\n */\nselect true")
 
         self.assertEqual(list(result), ["select", "true"])
+
+    def test_keyword(self):
+        k = CaselessKeyword("test", ident_chars=Regex("[a-z]"))
+        self.assertEqual(k.parser_config.ident_chars, 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz')
+
+        k = Keyword("test", ident_chars=Regex("[a-z]"))
+        self.assertEqual(k.parser_config.ident_chars, 'abcdefghijklmnopqrstuvwxyz')

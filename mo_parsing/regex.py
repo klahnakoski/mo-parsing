@@ -371,3 +371,4 @@ class Regex(ParseEnhancement):
 _plain_group = Group(None)
 
 export("mo_parsing.core", "regex_parameters", parameters)
+export("mo_parsing.tokens", Regex)

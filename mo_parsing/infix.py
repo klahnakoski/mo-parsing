@@ -4,7 +4,7 @@ import warnings
 
 from mo_dots import listwrap
 from mo_future import text, Iterable
-from mo_imports import delay_import
+from mo_imports import delay_import, export
 
 from mo_parsing import whitespaces
 from mo_parsing.enhancement import (
