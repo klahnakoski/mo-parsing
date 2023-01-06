@@ -7,6 +7,7 @@ env:
   global:
   - PYTHONPATH=.
 install:
+- cp packaging/setup.py .
 - pip install .
 - pip install coverage
 - pip install coveralls
