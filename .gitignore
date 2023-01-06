@@ -10,4 +10,5 @@ __pycache__
 /build
 /mo_parsing.egg-info
 /.coverage
-setup.py
+./setup.py
+
