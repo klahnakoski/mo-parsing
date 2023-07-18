@@ -171,5 +171,5 @@
     "name": "mo-parsing",
     "packages": ["mo_parsing"],
     "url": "https://github.com/klahnakoski/mo-parsing",
-    "version": "8.421.23188"
+    "version": "8.423.23199"
 }
