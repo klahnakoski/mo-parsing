@@ -657,7 +657,7 @@ class ParserElement(object):
 
     def __and__(self, other):
         """
-        Implementation of & operator - returns `Each`
+        Implementation of & operator - returns `MatchAll`
         """
         return MatchAll([self, whitespaces.CURRENT.normalize(other)])
 
