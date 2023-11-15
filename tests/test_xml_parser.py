@@ -3,6 +3,7 @@ import ast
 from unittest import TestCase, skip
 
 from mo_dots import unwraplist
+from mo_threads import stop_main_thread
 from mo_threads.profiles import CProfiler, write_profiles
 from mo_times import Timer
 
@@ -113,6 +114,10 @@ parse = XmlParser().parse
 
 
 class TestXmlParser(TestCase):
+    @classmethod
+    def tearDownClass(cls):
+        stop_main_thread()
+
     def test_tag(self):
         result = parse("<simple></simple>")
         self.assertEqual(result, {"name": "simple"})
