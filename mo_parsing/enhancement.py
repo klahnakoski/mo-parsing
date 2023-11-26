@@ -609,6 +609,7 @@ class Forward(ParserElement):
         output.expr = self
         output._str = None
         output._in_regex = None
+        output._in_expecting = None
         output.__in_whitespace = False
 
         output.used_by = []
