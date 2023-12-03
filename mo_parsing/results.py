@@ -199,7 +199,10 @@ class ParseResults(object):
                 if isinstance(tok.type, Suppress):
                     continue
                 if tok.name:
-                    add(output, tok.name, list(tok.tokens))
+                    if isinstance(tok.type, Group):
+                        add(output, tok.name, list(tok))
+                    else:
+                        add(output, tok.name, [tok])
                     continue
                 if isinstance(tok.type, Group):
                     continue
