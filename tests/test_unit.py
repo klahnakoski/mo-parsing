@@ -2748,6 +2748,8 @@ class TestParsing(PyparsingExpressionTestCase):
 
         self.assertEqual(list(result), ["bar"])
         self.assertEqual(sorted(result.keys()), ["two"])
+        self.assertEqual(list(result.items()), [("two", ["bar"])])
+
 
     def testUnicodeExpression(self):
         z = "a" | Literal("\u1111")
