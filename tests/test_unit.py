@@ -2741,6 +2741,14 @@ class TestParsing(PyparsingExpressionTestCase):
 
         self.assertEqual(sorted(result.keys()), ["one", "two"])
 
+    def testEachWithSuppressedOptionalWithResultsName(self):
+        result = (
+            Suppress(Optional("foo"))("one") & Optional("bar")("two")
+        ).parse_string("bar foo")
+
+        self.assertEqual(list(result), ["bar"])
+        self.assertEqual(sorted(result.keys()), ["two"])
+
     def testUnicodeExpression(self):
         z = "a" | Literal("\u1111")
         z.streamline()

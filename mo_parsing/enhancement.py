@@ -60,7 +60,7 @@ class ParseEnhancement(ParserElement):
 
     def expecting(self):
         if self.expr:
-            return OrderedDict(((k, [self]) for k, e in self.expr.expecting().items()))
+            return {k: [self] for k, e in self.expr.expecting().items()}
         else:
             return {}
 
