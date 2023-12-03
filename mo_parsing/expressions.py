@@ -26,8 +26,6 @@ from mo_parsing.utils import (
 )
 from mo_parsing.whitespaces import Whitespace
 
-LOOKUP_COST = 4
-
 
 class ParseExpression(ParserElement):
     """Abstract subclass of ParserElement, for combining and
@@ -575,7 +573,7 @@ def faster(exprs):
     :return: LESS EXPRESSIONS
     """
 
-    if len(exprs) < LOOKUP_COST:
+    if len(exprs) == 1:
         return exprs
 
     alternating = []
@@ -638,12 +636,13 @@ class Fast(ParserElement):
         lookup = OrderedDict()
         for m in maps:
             for k, ee in m.items():
+                k = k.lower()
                 all_keys.add(k)
                 lookup.setdefault(k, []).extend(ee)
 
         # patterns must be mutually exclusive to work
         items = list(lookup.items())
-        if len(maps) - max(len(v) for k, v in items) < LOOKUP_COST:
+        if len(maps) - max(len(v) for k, v in items) <= 1:
             Log.error("not useful")
 
         compact = []
@@ -661,7 +660,7 @@ class Fast(ParserElement):
                     ee.clear()
             if acc:
                 compact.append((min_k, acc))
-        if len(maps) - max(len(v) for k, v in compact) < LOOKUP_COST:
+        if len(maps) - max(len(v) for k, v in compact) <= 1:
             Log.error("not useful")
 
         # patterns can be shortened so far as they remain exclusive
@@ -689,6 +688,10 @@ class Fast(ParserElement):
         found = self.regex.match(string, start)
         if found:
             index = found.group(0).lower()
+            if index not in self.lookup:
+                raise ParseException(
+                    self, start, string, "expecting one of " + json.dumps(self.all_keys)
+                )
             exprs = self.lookup[index]
 
             causes = []

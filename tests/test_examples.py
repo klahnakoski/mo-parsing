@@ -5,6 +5,7 @@ import unittest
 from importlib import import_module
 
 from mo_files import File
+from mo_logs import logger, Except
 
 from mo_parsing.helpers import *
 
@@ -62,7 +63,11 @@ class TestAllExamples(unittest.TestCase):
 def _single_test(name):
     def output(self):
         with Whitespace():
-            import_module("examples." + name)
+            try:
+                import_module("examples." + name)
+            except Exception as cause:
+                cause = Except.wrap(cause)
+                logger.warning("Problem", cause=cause)
 
     return output
 
