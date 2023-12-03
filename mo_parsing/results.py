@@ -196,6 +196,8 @@ class ParseResults(object):
         output = {}
         for tok in self.tokens:
             if isinstance(tok, ParseResults):
+                if isinstance(tok.type, Suppress):
+                    continue
                 if tok.name:
                     add(output, tok.name, list(tok.tokens))
                     continue
