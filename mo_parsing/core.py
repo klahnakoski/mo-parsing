@@ -795,7 +795,7 @@ def set_parser_names():
     for k, v in items:
         try:
             if isinstance(v, ParserElement) and not v.parser_name:
-                v.parser_name = k
+                v.parser_name = k.lower()
         except Exception:
             pass
 
