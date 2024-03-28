@@ -7,10 +7,7 @@ from mo_imports import export, expect
 
 from mo_parsing import whitespaces
 from mo_parsing.core import ParserElement
-from mo_parsing.exceptions import (
-    ParseException,
-    RecursiveGrammarException,
-)
+from mo_parsing.exceptions import ParseException, RecursiveGrammarException
 from mo_parsing.results import ParseResults, ForwardResults, Annotation
 from mo_parsing.utils import (
     Log,
@@ -25,15 +22,7 @@ from mo_parsing.utils import MAX_INT, is_forward
 
 Word: object
 (Token, NoMatch, Literal, Keyword, Word, CharsNotIn, StringEnd, Empty, Char,) = expect(
-    "Token",
-    "NoMatch",
-    "Literal",
-    "Keyword",
-    "Word",
-    "CharsNotIn",
-    "StringEnd",
-    "Empty",
-    "Char",
+    "Token", "NoMatch", "Literal", "Keyword", "Word", "CharsNotIn", "StringEnd", "Empty", "Char",
 )
 
 _get = object.__getattribute__
@@ -74,9 +63,7 @@ class ParseEnhancement(ParserElement):
     def parse_impl(self, string, start, do_actions=True):
         try:
             result = self.expr._parse(string, start, do_actions)
-            return ParseResults(
-                self, result.start, result.end, [result], result.failures
-            )
+            return ParseResults(self, result.start, result.end, [result], result.failures)
         except ParseException as cause:
             raise ParseException(self, start, string, cause=cause) from None
 
@@ -204,18 +191,10 @@ class NotAny(LookAhead):
 
 class Many(ParseEnhancement):
     __slots__ = []
-    Config = append_config(
-        ParseEnhancement, "whitespace", "min_match", "max_match", "end"
-    )
+    Config = append_config(ParseEnhancement, "whitespace", "min_match", "max_match", "end")
 
     def __init__(
-        self,
-        expr,
-        whitespace=None,
-        stop_on=None,
-        min_match=0,
-        max_match=MAX_INT,
-        exact=None,
+        self, expr, whitespace=None, stop_on=None, min_match=0, max_match=MAX_INT, exact=None,
     ):
         """
         MATCH expr SOME NUMBER OF TIMES (OR UNTIL stop_on IS REACHED
@@ -233,9 +212,7 @@ class Many(ParseEnhancement):
             max_match = exact
 
         self.set_config(
-            whitespace=whitespace or whitespaces.CURRENT,
-            min_match=min_match,
-            max_match=max_match,
+            whitespace=whitespace or whitespaces.CURRENT, min_match=min_match, max_match=max_match,
         )
         self.stop_on(stop_on)
 
@@ -270,9 +247,7 @@ class Many(ParseEnhancement):
                         if min <= count:
                             break
                         else:
-                            raise ParseException(
-                                self, end, string, msg="found stopper too soon"
-                            )
+                            raise ParseException(self, end, string, msg="found stopper too soon")
                 result = self.expr._parse(string, index, do_actions)
                 end = result.end
                 if result.end - result.start:
@@ -286,16 +261,10 @@ class Many(ParseEnhancement):
             failures.append(cause)
 
         if count < min:
-            raise ParseException(
-                self, start, string, f"Expecting at least {min} of {self}", failures
-            )
+            raise ParseException(self, start, string, f"Expecting at least {min} of {self}", failures)
         elif max < count:
             raise ParseException(
-                self,
-                acc[0].start,
-                string,
-                f"Expecting less than {max} of {self.expr}",
-                failures,
+                self, acc[0].start, string, f"Expecting less than {max} of {self.expr}", failures,
             )
         else:
             if count:
@@ -307,10 +276,7 @@ class Many(ParseEnhancement):
         if self.streamlined:
             return self
         expr = self.expr.streamline()
-        if (
-            self.parser_config.min_match == self.parser_config.max_match
-            and not self.is_annotated()
-        ):
+        if self.parser_config.min_match == self.parser_config.max_match and not self.is_annotated():
             if self.parser_config.min_match == 0:
                 return Empty()
             elif self.parser_config.min_match == 1:
@@ -344,13 +310,7 @@ class Many(ParseEnhancement):
             else:
                 suffix = "{" + text(self.parser_config.min_match) + "}"
         else:
-            suffix = (
-                "{"
-                + text(self.parser_config.min_match)
-                + ","
-                + text(self.parser_config.max_match)
-                + "}"
-            )
+            suffix = "{" + text(self.parser_config.min_match) + "," + text(self.parser_config.max_match) + "}"
 
         if end:
             return "+", regex + suffix + end
@@ -363,10 +323,7 @@ class Many(ParseEnhancement):
 
         for e in [self.expr]:
             if isinstance(e, ParserElement) and e.token_name == name:
-                Log.error(
-                    "can not set token name, already set in one of the other"
-                    " expressions"
-                )
+                Log.error("can not set token name, already set in one of the other expressions")
 
         return ParseEnhancement.__call__(self, name)
 
@@ -412,9 +369,7 @@ class ZeroOrMore(Many):
     __slots__ = []
 
     def __init__(self, expr, whitespace=None, stop_on=None):
-        Many.__init__(
-            self, expr, whitespace, stop_on=stop_on, min_match=0, max_match=MAX_INT
-        )
+        Many.__init__(self, expr, whitespace, stop_on=stop_on, min_match=0, max_match=MAX_INT)
 
     def parse_impl(self, string, start, do_actions=True):
         try:
@@ -447,13 +402,9 @@ class Optional(Many):
     def parse_impl(self, string, start, do_actions=True):
         try:
             results = self.expr._parse(string, start, do_actions)
-            return ParseResults(
-                self, results.start, results.end, [results], results.failures
-            )
+            return ParseResults(self, results.start, results.end, [results], results.failures)
         except ParseException as pe:
-            return ParseResults(
-                self, start, start, self.parser_config.default_value, [pe]
-            )
+            return ParseResults(self, start, start, self.parser_config.default_value, [pe])
 
     def __str__(self):
         if self.parser_name:
@@ -523,9 +474,7 @@ class SkipTo(ParseEnhancement):
                     try:
                         loc = ignore._parse(string, loc).end
                         skip_end = loc
-                        loc = before_end = self.parser_config.whitespace.skip(
-                            string, loc
-                        )
+                        loc = before_end = self.parser_config.whitespace.skip(string, loc)
                     except ParseException:
                         break
             try:
@@ -635,6 +584,10 @@ class Forward(ParserElement):
         return self
 
     def add_parse_action(self, action):
+        """
+        Add one or more parse actions to expression's list of parse actions. See `setParseAction`.
+        Also you can use `/` operator
+        """
         self.parse_action.append(wrap_parse_action(action))
         return self
 
@@ -693,14 +646,11 @@ class Forward(ParserElement):
     def parse_impl(self, string, loc, do_actions=True):
         try:
             result = self.expr._parse(string, loc, do_actions)
-            return ForwardResults(
-                self, result.start, result.end, [result], result.failures
-            )
+            return ForwardResults(self, result.start, result.end, [result], result.failures)
         except Exception as cause:
             if is_null(self.expr):
                 Log.warning(
-                    "Ensure you have assigned a ParserElement (<<) to this Forward",
-                    cause=cause,
+                    "Ensure you have assigned a ParserElement (<<) to this Forward", cause=cause,
                 )
             raise cause from None
 
@@ -764,11 +714,7 @@ class Combine(TokenConverter):
         try:
             result = self.expr.parse_impl(string, start, do_actions=do_actions)
             return ParseResults(
-                self,
-                start,
-                result.end,
-                [result.as_string(sep=self.parser_config.separator)],
-                result.failures,
+                self, start, result.end, [result.as_string(sep=self.parser_config.separator)], result.failures,
             )
         except ParseException as cause:
             raise ParseException(self, start, string, cause=cause)
@@ -781,9 +727,7 @@ class Combine(TokenConverter):
         if expr is self.expr:
             self.streamlined = True
             return self
-        return Combine(
-            expr, self.parser_config.separator
-        ).set_parser_name(self.parser_name)
+        return Combine(expr, self.parser_config.separator).set_parser_name(self.parser_name)
 
     def expecting(self):
         return OrderedDict((k, [self]) for k in self.expr.expecting().keys())
@@ -973,6 +917,8 @@ export("mo_parsing.core", Optional)
 export("mo_parsing.core", NotAny)
 export("mo_parsing.core", Suppress)
 export("mo_parsing.core", Group)
+export("mo_parsing.core",_suppress_post_parse)
+
 
 export("mo_parsing.results", Group)
 export("mo_parsing.results", Dict)

@@ -4,7 +4,7 @@ from collections import namedtuple
 from threading import RLock
 from typing import List
 
-from mo_future import text
+from mo_future import text, first
 from mo_imports import export, expect
 
 from mo_parsing import whitespaces
@@ -30,6 +30,7 @@ from mo_parsing.utils import Log, MAX_INT, wrap_parse_action, empty_tuple
     Token,
     Group,
     regex_parameters,
+    _suppress_post_parse
 ) = expect(
     "SkipTo",
     "Many",
@@ -48,6 +49,7 @@ from mo_parsing.utils import Log, MAX_INT, wrap_parse_action, empty_tuple
     "Token",
     "Group",
     "regex_parameters",
+    "_suppress_post_parse"
 )
 
 DEBUG = False
@@ -366,7 +368,7 @@ class ParserElement(object):
     def add_parse_action(self, *fns, callDuringTry=False):
         """
         Add one or more parse actions to expression's list of parse actions. See `setParseAction`.
-        Also you can use `/`
+        Also you can use `/` operator
         """
         output = self.copy()
         output.parse_action += list(map(wrap_parse_action, fns))
@@ -434,7 +436,8 @@ class ParserElement(object):
         return self
 
     def is_annotated(self):
-        return self.parse_action or self.token_name or self.parser_name
+        action = first(a for a in self.parse_action if a is not _suppress_post_parse)
+        return action or self.token_name or self.parser_name
 
     def expecting(self):
         """

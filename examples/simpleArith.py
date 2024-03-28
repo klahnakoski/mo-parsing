@@ -8,6 +8,7 @@
 #
 
 from mo_parsing import *
+from mo_parsing.helpers import *
 
 integer = Word(nums).add_parse_action(lambda t: int(t[0]))
 variable = Word(alphas, exact=1)
@@ -66,6 +67,5 @@ test = [
     "1+2*-3^4*5+-+-6",
 ]
 for t in test:
-
-
+    result = expr.parse(t)
 
