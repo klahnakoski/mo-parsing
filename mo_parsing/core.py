@@ -706,7 +706,7 @@ class ParserElement(object):
         Suppresses the output of this `ParserElement`; useful to keep punctuation from
         cluttering up returned output.
         """
-        return Suppress(self)
+        return self / _suppress_post_parse
 
     def __str__(self):
         return self.parser_name
