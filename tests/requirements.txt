@@ -1,4 +1,4 @@
-mo-testing
-mo-threads
-mo-logs
-mo-files
+mo-testing>=7.562.24075
+mo-threads>=6.562.24075
+mo-logs>=8.562.24075
+mo-files>=6.562.24075
