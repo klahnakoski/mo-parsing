@@ -14,7 +14,10 @@
     ],
     "description": "Another PEG Parsing Tool",
     "description_content_type": "text/plain",
-    "extras_require": {"tests": ["mo-testing", "mo-threads", "mo-logs", "mo-files"]},
+    "extras_require": {"tests": [
+        "mo-testing>=7.562.24075", "mo-threads>=6.562.24075",    "mo-logs>=8.562.24075",
+          "mo-files>=6.562.24075"
+    ]},
     "install_requires": ["mo-dots==9.578.24081", "mo-future==7.546.24057"],
     "license": "MIT",
     "long_description": {
@@ -22,7 +25,7 @@
             "# More Parsing!",
             "",
             "[![PyPI Latest Release](https://img.shields.io/pypi/v/mo-parsing.svg)](https://pypi.org/project/mo-parsing/)",
-            "[![Build Status](https://app.travis-ci.com/klahnakoski/mo-parsing.svg?branch=master)](https://travis-ci.com/github/klahnakoski/mo-parsing)",
+            " [![Build Status](https://github.com/klahnakoski/mo-parsing/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/klahnakoski/mo-parsing/actions/workflows/build.yml)",
             "[![Coverage Status](https://coveralls.io/repos/github/klahnakoski/mo-parsing/badge.svg?branch=master)](https://coveralls.io/github/klahnakoski/mo-parsing?branch=master)",
             "",
             "A fork of [pyparsing](https://github.com/pyparsing/pyparsing) for faster parsing",
@@ -172,5 +175,5 @@
     "name": "mo-parsing",
     "packages": ["mo_parsing"],
     "url": "https://github.com/klahnakoski/mo-parsing",
-    "version": "8.580.24088"
+    "version": "8.581.24094"
 }

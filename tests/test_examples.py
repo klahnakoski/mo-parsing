@@ -46,7 +46,6 @@ skip_list = [
     "searchParserAppDemo",
     "searchparser",
     "sexpParser",
-    "simpleArith",
     "simpleSQL_test",
     "urlExtractor",
     "urlExtractorNew",

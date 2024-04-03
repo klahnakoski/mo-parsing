@@ -28,25 +28,14 @@
 from mo_parsing import whitespaces
 from mo_parsing.core import ParserElement, _PendingSkip, set_parser_names
 from mo_parsing.enhancement import *
-from mo_parsing.exceptions import (
-    ParseException,
-    ParseException,
-    ParseSyntaxException,
-    RecursiveGrammarException,
-)
+from mo_parsing.exceptions import ParseException, ParseException, ParseSyntaxException, RecursiveGrammarException
 from mo_parsing.expressions import And, MatchAll, MatchFirst, Or, ParseExpression
 from mo_parsing.whitespaces import Whitespace
 
-whitespaces.NO_WHITESPACE = Whitespace("").use()
-whitespaces.STANDARD_WHITESPACE = Whitespace().use()
+NO_WHITESPACE = whitespaces.NO_WHITESPACE = Whitespace("").use()
+STANDARD_WHITESPACE = whitespaces.STANDARD_WHITESPACE = Whitespace().use()
 
-from mo_parsing.infix import (
-    LEFT_ASSOC,
-    RIGHT_ASSOC,
-    infix_notation,
-    delimited_list,
-    one_of,
-)
+from mo_parsing.infix import LEFT_ASSOC, RIGHT_ASSOC, infix_notation, delimited_list, one_of
 from mo_parsing.regex import Regex
 from mo_parsing.tokens import *
 
@@ -55,42 +44,49 @@ __all__ = [
     "AnyChar",
     "CaselessKeyword",
     "CaselessLiteral",
+    "Char",
     "CharsNotIn",
+    "CloseMatch",
     "Combine",
-    "Dict",
     "delimited_list",
-    "MatchAll",
+    "delimited_list",
+    "Dict",
     "Empty",
     "FollowedBy",
     "Forward",
     "Group",
     "infix_notation",
+    "infix_notation",
     "Keyword",
+    "LEFT_ASSOC",
     "LEFT_ASSOC",
     "LineEnd",
     "LineStart",
     "Literal",
     "LookAhead",
     "LookBehind",
-    "PrecededBy",
     "Many",
+    "MatchAll",
     "MatchFirst",
+    "NO_WHITESPACE",
     "NoMatch",
     "NotAny",
     "one_of",
     "OneOrMore",
     "Optional",
     "Or",
-    "ParseException",
     "ParseEnhancement",
     "ParseException",
+    "ParseException",
     "ParseExpression",
+    "ParserElement",
     "ParseResults",
     "ParseSyntaxException",
-    "ParserElement",
-    "RIGHT_ASSOC",
+    "PrecededBy",
     "RecursiveGrammarException",
     "Regex",
+    "RIGHT_ASSOC",
+    "RIGHT_ASSOC",
     "set_parser_names",
     "SkipTo",
     "StringEnd",
@@ -99,13 +95,9 @@ __all__ = [
     "Token",
     "TokenConverter",
     "White",
+    "Whitespace",
     "Word",
     "WordEnd",
     "WordStart",
     "ZeroOrMore",
-    "Char",
-    "LEFT_ASSOC",
-    "RIGHT_ASSOC",
-    "infix_notation",
-    "CloseMatch",
 ]
