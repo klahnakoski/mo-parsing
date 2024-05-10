@@ -1,11 +1,11 @@
 # encoding: utf-8
 import inspect
 
-from mo_dots import is_many, is_null
+from mo_dots import is_many, is_null, register_data, register_list
 from mo_future import is_text, text, zip_longest, MutableMapping
 from mo_imports import expect, export
 
-from mo_parsing.utils import Log, listwrap
+from mo_parsing.utils import Log, enlist
 
 Suppress, ParserElement, NO_PARSER, NO_RESULTS, Group, Dict, Token, Empty = expect(
     "Suppress",
@@ -103,7 +103,7 @@ class ParseResults(object):
             if isinstance(v, ParseResults):
                 tokens.append(Annotation(k, v.start, v.end, v.tokens))
             else:
-                tokens.append(Annotation(k, -1, 0, listwrap(v)))
+                tokens.append(Annotation(k, -1, 0, enlist(v)))
 
     def __contains__(self, k):
         return any((r.name) == k for r in self.tokens)
@@ -151,6 +151,9 @@ class ParseResults(object):
         return False
 
     __nonzero__ = __bool__
+
+    def __len__(self):
+        return sum(1 for _ in self)
 
     def __iter__(self):
         for r in self.tokens:
@@ -413,9 +416,8 @@ class Annotation(ParseResults):
 
 
 MutableMapping.register(ParseResults)
+register_data(ParseResults)
+register_list(ParseResults)
 
-from mo_parsing import utils, whitespaces
-
-utils.register_type(ParseResults)
-
+from mo_parsing import whitespaces
 export("mo_parsing.utils", ParseResults)

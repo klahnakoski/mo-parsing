@@ -42,7 +42,7 @@ from mo_parsing.utils import (
     nums,
     hexnums,
     Log,
-    listwrap,
+    enlist,
     regex_compile,
     ParseException,
 )
@@ -63,7 +63,7 @@ def to_range(tokens):
 
 def to_bracket(tokens):
     acc = []
-    for e in listwrap(tokens["body"].value()):
+    for e in enlist(tokens["body"].value()):
         if isinstance(e, SingleCharLiteral):
             acc.append(e.parser_config.match)
         elif isinstance(e, Char):
@@ -254,7 +254,7 @@ more = (term + Optional(repetition, NO_WHITESPACE)) / repeat
 sequence = OneOrMore(more, NO_WHITESPACE) / (lambda t: And(t, NO_WHITESPACE))
 regex << (
     delimited_list(sequence, separator="|").set_token_name("value")
-    / (lambda t: MatchFirst(listwrap(t.value())).streamline())
+    / (lambda t: MatchFirst(enlist(t.value())).streamline())
 ).streamline()
 regex = regex.finalize()
 

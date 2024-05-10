@@ -4,7 +4,7 @@ import json
 from mo_future import text, is_text, sort_using_cmp
 from mo_imports import export, expect
 
-from mo_parsing.utils import Log, listwrap, quote, indent
+from mo_parsing.utils import Log, enlist, quote, indent
 from mo_parsing.utils import col, line, lineno
 
 MatchFirst = expect("MatchFirst")
@@ -30,7 +30,7 @@ class ParseException(Exception):
     @property
     def causes(self):
         if self._causes is None:
-            self._causes = sort_causes(listwrap(self.unsorted_cause))
+            self._causes = sort_causes(enlist(self.unsorted_cause))
         return self._causes
 
     @property

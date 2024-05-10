@@ -2,9 +2,8 @@
 import re
 import warnings
 
-from mo_dots import listwrap
 from mo_future import text, Iterable
-from mo_imports import delay_import, export
+from mo_imports import delay_import
 
 from mo_parsing import whitespaces
 from mo_parsing.enhancement import (
@@ -25,7 +24,7 @@ from mo_parsing.tokens import (
     Empty,
     Log,
 )
-from mo_parsing.utils import regex_range, wrap_parse_action
+from mo_parsing.utils import regex_range, wrap_parse_action, enlist
 
 Regex = delay_import("mo_parsing.regex.Regex")
 
@@ -186,7 +185,7 @@ def infix_notation(
 
     for oper_def in spec:
         op, arity, assoc, rest = oper_def[0], oper_def[1], oper_def[2], oper_def[3:]
-        parse_actions = list(map(wrap_parse_action, listwrap(rest[0]))) if rest else []
+        parse_actions = list(map(wrap_parse_action, enlist(rest[0]))) if rest else []
         if arity == 1:
             is_suppressed, op = norm(op)
             if assoc == RIGHT_ASSOC:
