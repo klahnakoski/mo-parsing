@@ -1,2 +1,2 @@
-mo-future
+mo-future==7.546.24057
 mo-dots==9.578.24081
