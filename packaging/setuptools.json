@@ -18,7 +18,7 @@
         "mo-testing>=7.562.24075", "mo-threads>=6.562.24075",    "mo-logs>=8.562.24075",
           "mo-files>=6.562.24075"
     ]},
-    "install_requires": ["mo-dots==9.578.24081", "mo-future==7.584.24095"],
+    "install_requires": ["mo-dots==9.578.24081", "mo-future==7.546.24057"],
     "license": "MIT",
     "long_description": {
         "$concat": [
