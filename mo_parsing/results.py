@@ -1,7 +1,7 @@
 # encoding: utf-8
 import inspect
 
-from mo_dots import is_many, is_null, register_data, register_list
+from mo_dots import is_many, is_null, register_data, register_list, exists
 from mo_future import is_text, text, zip_longest, MutableMapping
 from mo_imports import expect, export
 
@@ -225,7 +225,7 @@ class ParseResults(object):
     def __contains__(self, item):
         if item is Ellipsis:
             return False
-        return bool(self[item])
+        return exists(self[item])
 
     def __add__(self, other):
         # if not isinstance(other, ParseResults):
