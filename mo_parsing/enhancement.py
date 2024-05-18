@@ -11,7 +11,7 @@ from mo_parsing.exceptions import ParseException, RecursiveGrammarException
 from mo_parsing.results import ParseResults, ForwardResults, Annotation
 from mo_parsing.utils import (
     Log,
-    listwrap,
+    enlist,
     empty_tuple,
     regex_iso,
     append_config,
@@ -397,7 +397,7 @@ class Optional(Many):
 
     def __init__(self, expr, whitespace=None, default=None):
         Many.__init__(self, expr, whitespace, stop_on=None, min_match=0, max_match=1)
-        self.set_config(default_value=listwrap(default))
+        self.set_config(default_value=enlist(default))
 
     def parse_impl(self, string, start, do_actions=True):
         try:

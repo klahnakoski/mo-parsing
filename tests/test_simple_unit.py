@@ -13,7 +13,7 @@ from __future__ import division
 from contextlib import contextmanager
 from unittest import TestCase
 
-from mo_testing.fuzzytestcase import FuzzyTestCase
+from mo_testing.fuzzytestcase import FuzzyTestCase, add_error_reporting
 
 from mo_parsing import *
 from mo_parsing.helpers import *
@@ -45,8 +45,8 @@ class PyparsingExpressionTestCase(FuzzyTestCase):
         Unit test assertion to compare a ParseResults object with an optional expected_list,
         and compare any defined results names with an optional expected_dict.
         """
-        self.assertEqual(result, expected_list, msg=msg)
-        self.assertEqual(result, expected_dict, msg=msg)
+        self.assertAlmostEqual(result, expected_list, msg=msg)
+        self.assertAlmostEqual(result, expected_dict, msg=msg)
 
     def assertRunTestResults(
         self, run_tests_report, expected_parse_results=None, msg=None
@@ -135,8 +135,8 @@ class PyparsingExpressionTestCase(FuzzyTestCase):
             # expect success
             result = parsefn(text)
             if parse_fn == "parse_string":
-                self.assertEqual(result, expected_list)
-                self.assertEqual(result, expected_dict)
+                self.assertAlmostEqual(result, expected_list)
+                self.assertAlmostEqual(result, expected_dict)
             elif parse_fn == "transform_string":
                 self.assertEqual([result], expected_list)
             elif parse_fn == "search_string":
@@ -153,7 +153,7 @@ class PyparsingExpressionTestCase(FuzzyTestCase):
 
 # =========== TEST DEFINITIONS START HERE ==============
 
-
+@add_error_reporting
 class TestLiteral(PyparsingExpressionTestCase):
     def test_simple_match(self):
         self.run_test(
@@ -220,6 +220,7 @@ class TestCaselessLiteral(PyparsingExpressionTestCase):
         )
 
 
+@add_error_reporting
 class TestWord(PyparsingExpressionTestCase):
     def test_Simple_Word_match(self):
         self.run_test(
