@@ -22,6 +22,7 @@ from textwrap import dedent
 from unittest import TestCase
 
 from mo_dots import coalesce, Null as print
+from mo_testing import add_error_reporting
 from mo_times import Timer
 
 from examples import fourFn, configParse, idlParse, ebnf
@@ -74,6 +75,7 @@ class resetting:
             setattr(self.ob, attr, value)
 
 
+@add_error_reporting
 class TestParsing(PyparsingExpressionTestCase):
     def testParseFourFn(self):
         def test(s, ans):
@@ -3729,7 +3731,6 @@ class TestParsing(PyparsingExpressionTestCase):
         line1 = nameScore("Rider")
 
         result1 = line1.parse_string("Mauney 46.5")
-
         before_pa_dict = result1
 
         line1.add_parse_action(lambda t: t)

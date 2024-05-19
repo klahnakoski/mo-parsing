@@ -1,13 +1,14 @@
 # encoding: utf-8
+from mo_testing.fuzzytestcase import add_error_reporting
 
 from mo_parsing import Word, Group, Forward
-from mo_parsing.infix import delimited_list
 from mo_parsing.utils import alphas, nums
 from tests.test_simple_unit import PyparsingExpressionTestCase
 
 w = Word(alphas)
 
 
+@add_error_reporting
 class TestStructure(PyparsingExpressionTestCase):
     def test_and(self):
         self.run_test(

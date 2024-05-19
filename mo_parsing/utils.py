@@ -11,7 +11,7 @@ from collections import namedtuple
 from math import isnan
 from types import FunctionType
 
-from mo_dots import is_null, Null
+from mo_dots import is_null, Null, is_many
 from mo_future import unichr, text, generator_types, get_function_name
 from mo_imports import expect
 
@@ -52,28 +52,6 @@ except Exception:
 MAX_INT = sys.maxsize
 empty_list = []
 empty_tuple = tuple()
-many_types = (list, tuple, set) + generator_types
-
-
-def register_type(t):
-    global many_types
-    many_types = many_types + (t,)
-
-
-def extend(cls):
-    """
-    DECORATOR TO ADD METHODS TO CLASSES
-    :param cls: THE CLASS TO ADD THE METHOD TO
-    :return:
-    """
-
-    def extender(func):
-        setattr(cls, get_function_name(func), func)
-        return func
-
-    return extender
-
-
 _prec = {"|": 0, "+": 1, "*": 2}
 
 
@@ -196,7 +174,7 @@ def is_number(s):
         return False
 
 
-def listwrap(value):
+def enlist(value):
     """
     PERFORMS THE FOLLOWING TRANSLATION
     None -> []
@@ -205,10 +183,11 @@ def listwrap(value):
     """
     if is_null(value):
         return []
-    elif isinstance(value, many_types):
+    elif is_many(value):
         return value
     else:
         return [value]
+listwrap = enlist
 
 
 def coalesce(*args):
