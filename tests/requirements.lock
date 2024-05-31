@@ -1,8 +1,8 @@
-# Tests pass with python 3.8 on 2024-05-19 and with these versions
+# Tests pass with python 3.8 on 2024-05-31 and with these versions
 # pip install --no-deps -r tests/requirements.lock
 hjson==3.1.0
 mo-collections==5.562.24075
-mo-dots==10.632.24139
+mo-dots==10.645.24152
 mo-files==6.638.24140
 mo-future==7.584.24095
 mo-imports==7.584.24095
@@ -10,7 +10,7 @@ mo-json==6.637.24140
 mo-kwargs==7.632.24139
 mo-logs==8.632.24139
 mo-math==7.632.24139
-mo-testing==8.633.24139
+mo-testing==8.644.24152
 mo-threads==6.634.24139
 mo-times==5.632.24139
 pytz==2024.1
