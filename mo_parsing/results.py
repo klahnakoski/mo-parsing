@@ -39,8 +39,10 @@ class ParseResults(object):
         self.end = end
         self.tokens = tokens
         self.timing = None
-        if len(failures)>1:
-            self.failures = sort_causes(failures)[:1]
+        if len(failures) > 30:
+            failures = sort_causes(failures)
+            best_index = failures[0].start
+            self.failures = [f for f in failures if f.start == best_index]
         else:
             self.failures = failures
 
