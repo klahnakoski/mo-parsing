@@ -4,6 +4,7 @@ import inspect
 from mo_dots import is_many, is_null, register_data, register_list, exists
 from mo_future import is_text, text, zip_longest, MutableMapping
 from mo_imports import expect, export
+from mo_parsing.exceptions import sort_causes
 
 from mo_parsing.utils import Log, enlist
 
@@ -38,7 +39,10 @@ class ParseResults(object):
         self.end = end
         self.tokens = tokens
         self.timing = None
-        self.failures = failures
+        if len(failures)>1:
+            self.failures = sort_causes(failures)[:1]
+        else:
+            self.failures = failures
 
     def _get_item_by_name(self, name):
         # return open list of values for given name
