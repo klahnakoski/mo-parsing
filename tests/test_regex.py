@@ -253,3 +253,12 @@ class TestRegexParsing(PyparsingExpressionTestCase):
 
         k = Keyword("test", ident_chars=Regex("[a-z]"))
         self.assertEqual(k.parser_config.ident_chars, 'abcdefghijklmnopqrstuvwxyz')
+
+    def test_regex_or(self):
+        parser = re.compile(r"(a)|(b)")
+
+        self.assertEqual(parser.match("a").group(1), "a")
+        self.assertEqual(parser.match("a").group(2), None)
+        self.assertEqual(parser.match("b").group(1), None)
+        self.assertEqual(parser.match("b").group(2), "b")
+        self.assertEqual(parser.match("c"), None)
