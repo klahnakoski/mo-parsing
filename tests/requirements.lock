@@ -1,4 +1,4 @@
-# Tests pass with python 3.8 on 2024-06-20 and with these versions
+# Tests pass with python 3.8 on 2024-09-07 and with these versions
 # pip install --no-deps -r tests/requirements.lock
 hjson==3.1.0
 mo-collections==5.562.24075

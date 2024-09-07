@@ -127,6 +127,12 @@ class ParseExpression(ParserElement):
         output.streamlined = True
         return output
 
+    def __regex__(self):
+        """
+        RETURN TUPLE (operator, pattern) WHERE operator REPRESENTS PRECEDENCE
+        """
+        raise NotImplementedError
+
     def __call__(self, name):
         if not name:
             return self
@@ -226,6 +232,13 @@ class And(ParseExpression):
         return output
 
     def expecting(self):
+        """
+        RETURN A DICTIONARY OF ORDERED {regex: [patterns, ...]}
+        WHERE
+           regex IS a LIST OF (SEQUENCE OF NON-OVERLAPPING PATTERNS)
+           patterns IS A LIST OF ParserElement
+        :return:
+        """
         if not self.exprs:
             return {}
 
