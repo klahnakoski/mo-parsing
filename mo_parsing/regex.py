@@ -3,7 +3,6 @@
 # UNDER THE MIT LICENSE
 #
 # Contact: kyle@lahnakoski.com
-from collections import OrderedDict
 from string import whitespace
 
 from mo_future import unichr, is_text
@@ -356,7 +355,7 @@ class Regex(ParseEnhancement):
         return output
 
     def expecting(self):
-        return OrderedDict((k, [self]) for k in self.expr.expecting().keys())
+        return {k: [self] for k in self.expr.expecting().keys()}
 
     def min_length(self):
         return self.expr.min_length()

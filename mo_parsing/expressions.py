@@ -1,6 +1,5 @@
 # encoding: utf-8
 import json
-from collections import OrderedDict
 from operator import itemgetter
 
 from mo_future import Iterable, text, generator_types
@@ -50,7 +49,7 @@ class ParseExpression(ParserElement):
                 e.track(self)
 
     def expecting(self):
-        output = OrderedDict()
+        output = {}
         if not self.is_annotated():
             for e in self.exprs:
                 expect = e.expecting()
@@ -242,7 +241,7 @@ class And(ParseExpression):
         if not self.exprs:
             return {}
 
-        acc = OrderedDict()
+        acc = {}
         for e in self.exprs:
             expect = e.expecting()
             if not expect:
@@ -646,7 +645,7 @@ class Fast(ParserElement):
         ParserElement.__init__(self)
 
         all_keys = set()
-        lookup = OrderedDict()
+        lookup = {}
         for m in maps:
             for k, ee in m.items():
                 k = k.lower()

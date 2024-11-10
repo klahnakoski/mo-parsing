@@ -49,7 +49,7 @@ class ParseEnhancement(ParserElement):
 
     def expecting(self):
         if self.expr:
-            return OrderedDict(((k, [self]) for k, e in self.expr.expecting().items()))
+            return {k: [self] for k, e in self.expr.expecting().items()}
         else:
             return {}
 
@@ -730,7 +730,7 @@ class Combine(TokenConverter):
         return Combine(expr, self.parser_config.separator).set_parser_name(self.parser_name)
 
     def expecting(self):
-        return OrderedDict((k, [self]) for k in self.expr.expecting().keys())
+        return {k: [self] for k in self.expr.expecting().keys()}
 
     def min_length(self):
         return self.expr.min_length()
