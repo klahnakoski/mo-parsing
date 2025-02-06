@@ -1,4 +1,4 @@
-mo-testing>=8.644.24152
-mo-threads>=6.634.24139
-mo-logs>=8.632.24139
-mo-files>=6.638.24140
+mo-testing>=8.674.25037
+mo-threads>=6.672.25036
+mo-logs>=8.672.25036
+mo-files>=6.672.25036
