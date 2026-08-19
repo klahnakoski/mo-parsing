@@ -1,7 +1,7 @@
 # encoding: utf-8
 import re
 
-from mo_parsing import Regex, Char, LookAhead, Whitespace, whitespaces, CaselessKeyword
+from mo_parsing import Regex, Char, LookAhead, MatchFirst, Whitespace, whitespaces, CaselessKeyword
 from mo_parsing.tokens import SingleCharLiteral, Literal, Keyword
 from tests.test_simple_unit import PyparsingExpressionTestCase, SkipTo
 
@@ -262,3 +262,27 @@ class TestRegexParsing(PyparsingExpressionTestCase):
         self.assertEqual(parser.match("b").group(1), None)
         self.assertEqual(parser.match("b").group(2), "b")
         self.assertEqual(parser.match("c"), None)
+
+    def test_optional_prefix_does_not_hide_alternative(self):
+        # A LEADING `-?` MUST NOT HIDE THE DIGITS THAT CAN ALSO START THE MATCH
+        number = Regex(r"-?\d+(?:\.\d+)?")
+        self.assertEqual("".join(sorted(number.expecting().keys())), "-0123456789")
+
+        # ENOUGH ALTERNATIVES THAT MatchFirst BUILDS ITS LOOKUP
+        grammar = MatchFirst([
+            Literal("!"), Literal("$"), Regex(r"[A-Za-z]+"), number
+        ]).streamline()
+        self.assertEqual(grammar.parse_string("42"), "42")
+        self.assertEqual(grammar.parse_string("-42"), "-42")
+        self.assertEqual(grammar.parse_string("3.14"), "3.14")
+
+    def test_repetition_binds_last_character(self):
+        # `abc*` IS `ab` FOLLOWED BY `c*`, NOT `abc` REPEATED
+        self.assertEqual("".join(Regex(r"abc*").expecting().keys()), "ab")
+        self.assertEqual(Regex(r"abc*").min_length(), 2)
+        self.assertEqual("".join(Regex(r"ab?c").expecting().keys()), "a")
+        self.assertEqual(Regex(r"ab?c").min_length(), 2)
+        self.assertEqual("".join(Regex(r"colou?r").expecting().keys()), "colo")
+        self.assertEqual(Regex(r"colou?r").min_length(), 5)
+        for pattern, text in [(r"abc*", "ab"), (r"ab?c", "ac"), (r"colou?r", "color")]:
+            self.assertEqual(Regex(pattern).parse_string(text), text)
