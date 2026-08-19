@@ -199,9 +199,6 @@ regex = Forward()
 line_start = Literal("^") / (lambda: LineStart())
 line_end = Literal("$") / (lambda: LineEnd())
 word_edge = Literal("\\b") / (lambda: NotAny(any_wordchar))
-simple_char = Word(
-    printables, exclude=r".^$*+{}[]\|()"
-) / (lambda t: Literal(t.value()))
 esc_char = ("\\" + AnyChar()) / (lambda t: Literal(t.value()[1]))
 
 with Whitespace():
@@ -216,6 +213,14 @@ with Whitespace():
 repetition = Group(
     "{" + repetition | (Literal("*?") | Literal("+?") | Char("*+?"))("mode")
 )
+
+# A LEADING `?` IS NOT A REPETITION, AS IN THE UNMODELLED `(?P=name)`
+lead_char = Char(printables, exclude=r".^$*+{}[]\|()")
+tail_char = Char(printables, exclude=r".^$*+?{}[]\|()")
+# A REPETITION BINDS THE LAST CHARACTER ONLY, SO THE RUN STOPS BEFORE IT
+simple_char = Combine(
+    lead_char + ZeroOrMore(~(tail_char + repetition) + tail_char, NO_WHITESPACE)
+) / (lambda t: Literal(t.value()))
 
 LB = Char("(")
 
