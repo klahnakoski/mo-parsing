@@ -327,6 +327,15 @@ class TestRegexParsing(PyparsingExpressionTestCase):
         self.assertEqual(Regex(r"ab(?#note)cd").min_length(), 4)
         self.assertEqual(Regex(r"a\Zb").min_length(), 2)
 
+    def test_word_edge_is_a_word_boundary(self):
+        # `\b` IS A ZERO-WIDTH WORD/NON-WORD TRANSITION
+        tree = Regex(r"\bcat\b").expr
+        self.assertEqual(
+            [(s, e) for _, s, e in tree.scan_string("a cat sat")], [(2, 5)]
+        )
+        self.assertEqual([(s, e) for _, s, e in tree.scan_string("concatenate")], [])
+        self.assertEqual(Regex(r"\bcat\b").min_length(), 3)
+
     def test_overestimated_min_length_does_not_hide_match(self):
         # ENOUGH ALTERNATIVES THAT MatchFirst BUILDS ITS LOOKUP
         grammar = MatchFirst([
