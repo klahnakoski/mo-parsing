@@ -1,7 +1,5 @@
 # mo_parsing — known defects
 
-sync check: this line verifies BUGS.md round-trips to the other repo.
-
 The three defects found writing the PowerShell grammar are fixed and tested
 (`tests/test_regex.py`): the literal run swallowing `?`, `repeat()`'s unreachable
 `Optional`/non-greedy-read-as-greedy, and the unanchored pattern parse. `(?#…)` and `\Z` now
