@@ -43,3 +43,4 @@ Class hierarchy, all rooted at `ParserElement` (`core.py`):
 - `pyparsing/` holds upstream pyparsing's tests and examples for reference/compat checking; not part of the package and not run by CI.
 - `mo_parsing/` and `tests/` are also SVN working copies (`.svn/` inside each); the `svn` git branch mirrors SVN state. Sync is done with the `/svn-sync` skill, not by hand.
 - `tests/README.md` covers contributor setup; `README.md` documents the pyparsing differences (immutability, whitespace context, no `*` wildcard, no pickle).
+- `TODO.md` — live work queue; `SESSION_LOG.md` — dated per-session history; `mo_parsing/BUGS.md` — known module defects (flows to SVN).
