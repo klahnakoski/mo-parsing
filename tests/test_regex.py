@@ -1,7 +1,7 @@
 # encoding: utf-8
 import re
 
-from mo_parsing import Regex, Char, LookAhead, MatchFirst, Whitespace, whitespaces, CaselessKeyword
+from mo_parsing import Regex, Char, LookAhead, MatchFirst, Optional, Whitespace, whitespaces, CaselessKeyword
 from mo_parsing.tokens import SingleCharLiteral, Literal, Keyword
 from tests.test_simple_unit import PyparsingExpressionTestCase, SkipTo
 
@@ -286,3 +286,31 @@ class TestRegexParsing(PyparsingExpressionTestCase):
         self.assertEqual(Regex(r"colou?r").min_length(), 5)
         for pattern, text in [(r"abc*", "ab"), (r"ab?c", "ac"), (r"colou?r", "color")]:
             self.assertEqual(Regex(pattern).parse_string(text), text)
+        self.assertEqual("".join(sorted(Regex(r"-?\d+").expecting().keys())), "-0123456789")
+        self.assertEqual(Regex(r"-?\d+").min_length(), 1)
+        self.assertEqual("".join(Regex(r"ab?").expecting().keys()), "a")
+        self.assertEqual(Regex(r"ab?").min_length(), 1)
+
+    def test_leading_question_mark_still_parses(self):
+        # A BARE `?` IN LEAD POSITION IS TOLERATED, AS IN THE UNMODELLED `(?P=name)`
+        Regex(r"(?P<name>a)(?P=name)")
+
+    def test_question_mark_builds_optional(self):
+        self.assertIsInstance(Regex(r"ab?").expr.exprs[1], Optional)
+
+    def test_non_greedy_is_not_greedy(self):
+        # THE TREE FOR A NON-GREEDY REPETITION MUST NOT CONSUME LIKE ITS GREEDY FORM
+        self.assertEqual(Regex(r"ab*?").expr.parse_string("abbb").end, 1)
+        self.assertEqual(Regex(r"ab+?").expr.parse_string("abbb").end, 2)
+
+    def test_zero_width_constructs_min_length(self):
+        # `(?#note)` AND `\Z` MATCH NO CHARACTERS
+        self.assertEqual(Regex(r"ab(?#note)cd").min_length(), 4)
+        self.assertEqual(Regex(r"a\Zb").min_length(), 2)
+
+    def test_overestimated_min_length_does_not_hide_match(self):
+        # ENOUGH ALTERNATIVES THAT MatchFirst BUILDS ITS LOOKUP
+        grammar = MatchFirst([
+            Literal("!"), Literal("$"), Regex(r"[0-9]+"), Regex(r"ab(?#note)cd")
+        ]).streamline()
+        self.assertEqual(grammar.parse_string("abcd"), "abcd")
