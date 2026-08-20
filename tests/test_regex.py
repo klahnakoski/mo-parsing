@@ -1,7 +1,16 @@
 # encoding: utf-8
 import re
 
-from mo_parsing import Regex, Char, LookAhead, MatchFirst, Optional, Whitespace, whitespaces, CaselessKeyword
+from mo_parsing import (
+    Regex,
+    Char,
+    LookAhead,
+    MatchFirst,
+    Optional,
+    Whitespace,
+    whitespaces,
+    CaselessKeyword,
+)
 from mo_parsing.tokens import SingleCharLiteral, Literal, Keyword
 from tests.test_simple_unit import PyparsingExpressionTestCase, SkipTo
 
@@ -216,7 +225,9 @@ class TestRegexParsing(PyparsingExpressionTestCase):
         with whitespaces.NO_WHITESPACE:
             simple_ident = (
                 Char(FIRST_IDENT_CHAR)
-                + ((Regex("(?<=[^0-9])") + "-" + LookAhead(~digit)) | Char(IDENT_CHAR))[...]
+                + (
+                    (Regex("(?<=[^0-9])") + "-" + LookAhead(~digit)) | Char(IDENT_CHAR)
+                )[...]
             )
 
         regex = simple_ident.__regex__()[1]
@@ -249,10 +260,13 @@ class TestRegexParsing(PyparsingExpressionTestCase):
 
     def test_keyword(self):
         k = CaselessKeyword("test", ident_chars=Regex("[a-z]"))
-        self.assertEqual(k.parser_config.ident_chars, 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz')
+        self.assertEqual(
+            k.parser_config.ident_chars,
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
+        )
 
         k = Keyword("test", ident_chars=Regex("[a-z]"))
-        self.assertEqual(k.parser_config.ident_chars, 'abcdefghijklmnopqrstuvwxyz')
+        self.assertEqual(k.parser_config.ident_chars, "abcdefghijklmnopqrstuvwxyz")
 
     def test_regex_or(self):
         parser = re.compile(r"(a)|(b)")
@@ -270,7 +284,10 @@ class TestRegexParsing(PyparsingExpressionTestCase):
 
         # ENOUGH ALTERNATIVES THAT MatchFirst BUILDS ITS LOOKUP
         grammar = MatchFirst([
-            Literal("!"), Literal("$"), Regex(r"[A-Za-z]+"), number
+            Literal("!"),
+            Literal("$"),
+            Regex(r"[A-Za-z]+"),
+            number,
         ]).streamline()
         self.assertEqual(grammar.parse_string("42"), "42")
         self.assertEqual(grammar.parse_string("-42"), "-42")
@@ -286,7 +303,9 @@ class TestRegexParsing(PyparsingExpressionTestCase):
         self.assertEqual(Regex(r"colou?r").min_length(), 5)
         for pattern, text in [(r"abc*", "ab"), (r"ab?c", "ac"), (r"colou?r", "color")]:
             self.assertEqual(Regex(pattern).parse_string(text), text)
-        self.assertEqual("".join(sorted(Regex(r"-?\d+").expecting().keys())), "-0123456789")
+        self.assertEqual(
+            "".join(sorted(Regex(r"-?\d+").expecting().keys())), "-0123456789"
+        )
         self.assertEqual(Regex(r"-?\d+").min_length(), 1)
         self.assertEqual("".join(Regex(r"ab?").expecting().keys()), "a")
         self.assertEqual(Regex(r"ab?").min_length(), 1)
@@ -311,6 +330,9 @@ class TestRegexParsing(PyparsingExpressionTestCase):
     def test_overestimated_min_length_does_not_hide_match(self):
         # ENOUGH ALTERNATIVES THAT MatchFirst BUILDS ITS LOOKUP
         grammar = MatchFirst([
-            Literal("!"), Literal("$"), Regex(r"[0-9]+"), Regex(r"ab(?#note)cd")
+            Literal("!"),
+            Literal("$"),
+            Regex(r"[0-9]+"),
+            Regex(r"ab(?#note)cd"),
         ]).streamline()
         self.assertEqual(grammar.parse_string("abcd"), "abcd")

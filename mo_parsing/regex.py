@@ -238,7 +238,9 @@ not_ahead = ("(?!" + regex + ")") / (lambda t: NotAny(t["value"]))
 behind = ("(?<=" + regex + ")") / (lambda t: LookBehind(t["value"]))
 not_behind = ("(?<!" + regex + ")") / (lambda t: Log.error("not supported"))
 non_capture = ("(?:" + regex + ")") / (lambda t: t["value"])
-comment = ("(?#" + ZeroOrMore(Char(exclude=")"), NO_WHITESPACE) + ")") / (lambda: Empty())
+comment = (
+    "(?#" + ZeroOrMore(Char(exclude=")"), NO_WHITESPACE) + ")"
+) / (lambda: Empty())
 # conditional = ("(?" + try_match + "|" + else_match + ")")
 # recursive = ("(?R)")
 # TODO: match previous capture (3)
