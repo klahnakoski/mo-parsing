@@ -206,7 +206,12 @@ regex = Forward()
 
 line_start = Literal("^") / (lambda: LineStart())
 line_end = Literal("$") / (lambda: LineEnd())
-word_edge = Literal("\\b") / (lambda: NotAny(any_wordchar))
+word_char = Char(alphanums + "_")
+# A BOUNDARY IS A WORD/NON-WORD TRANSITION, EITHER DIRECTION
+word_edge = Literal("\\b") / (lambda: MatchFirst([
+    And([NotAny(LookBehind(word_char)), LookAhead(word_char)], NO_WHITESPACE),
+    And([LookBehind(word_char), NotAny(word_char)], NO_WHITESPACE),
+]))
 string_end = Literal("\\Z") / (lambda: StringEnd())
 esc_char = ("\\" + AnyChar()) / (lambda t: Literal(t.value()[1]))
 
@@ -256,8 +261,8 @@ term = (
     macro
     | simple_char
     | string_end
-    | esc_char
     | word_edge
+    | esc_char
     | brackets
     | ahead
     | not_ahead

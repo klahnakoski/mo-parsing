@@ -113,6 +113,10 @@ class LookAhead(ParseEnhancement):
     def __init__(self, expr):
         ParseEnhancement.__init__(self, expr)
 
+    def _min_length(self):
+        # CONSUMES NOTHING
+        return 0
+
     def parse_impl(self, string, start, do_actions=True):
         # by using self._expr.parse and deleting the contents of the returned ParseResults list
         # we keep any named results that were defined in the FollowedBy expression
