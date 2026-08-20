@@ -32,8 +32,10 @@ from mo_parsing.tokens import (
     AnyChar,
     LineStart,
     LineEnd,
+    StringEnd,
     Word,
     SingleCharLiteral,
+    Empty,
 )
 from mo_parsing.utils import (
     printables,
@@ -126,9 +128,15 @@ def repeat(tokens):
                 min_match=int(operator["min"]),
                 max_match=int(operator["max"]),
             )
-    elif mode in "*?":
+    elif mode == "*?":
+        # NON-GREEDY, WITH NOTHING FOLLOWING, MATCHES ZERO
+        return Many(operand, NO_WHITESPACE, min_match=0, max_match=0)
+    elif mode == "+?":
+        # NON-GREEDY, WITH NOTHING FOLLOWING, MATCHES ONE
+        return Many(operand, NO_WHITESPACE, exact=1)
+    elif mode == "*":
         return ZeroOrMore(operand, NO_WHITESPACE)
-    elif mode in "+?":
+    elif mode == "+":
         return OneOrMore(operand, NO_WHITESPACE)
     elif mode == "?":
         return Optional(operand, NO_WHITESPACE)
@@ -199,6 +207,7 @@ regex = Forward()
 line_start = Literal("^") / (lambda: LineStart())
 line_end = Literal("$") / (lambda: LineEnd())
 word_edge = Literal("\\b") / (lambda: NotAny(any_wordchar))
+string_end = Literal("\\Z") / (lambda: StringEnd())
 esc_char = ("\\" + AnyChar()) / (lambda t: Literal(t.value()[1]))
 
 with Whitespace():
@@ -215,8 +224,8 @@ repetition = Group(
 )
 
 # A LEADING `?` IS NOT A REPETITION, AS IN THE UNMODELLED `(?P=name)`
-lead_char = Char(printables, exclude=r".^$*+{}[]\|()")
-tail_char = Char(printables, exclude=r".^$*+?{}[]\|()")
+lead_char = Char(printables + " ", exclude=r".^$*+{}[]\|()")
+tail_char = Char(printables + " ", exclude=r".^$*+?{}[]\|()")
 # A REPETITION BINDS THE LAST CHARACTER ONLY, SO THE RUN STOPS BEFORE IT
 simple_char = Combine(
     lead_char + ZeroOrMore(~(tail_char + repetition) + tail_char, NO_WHITESPACE)
@@ -229,6 +238,7 @@ not_ahead = ("(?!" + regex + ")") / (lambda t: NotAny(t["value"]))
 behind = ("(?<=" + regex + ")") / (lambda t: LookBehind(t["value"]))
 not_behind = ("(?<!" + regex + ")") / (lambda t: Log.error("not supported"))
 non_capture = ("(?:" + regex + ")") / (lambda t: t["value"])
+comment = ("(?#" + ZeroOrMore(Char(exclude=")"), NO_WHITESPACE) + ")") / (lambda: Empty())
 # conditional = ("(?" + try_match + "|" + else_match + ")")
 # recursive = ("(?R)")
 # TODO: match previous capture (3)
@@ -243,6 +253,7 @@ group = ((LB / INC) + regex + ")") / name_token / DEC
 term = (
     macro
     | simple_char
+    | string_end
     | esc_char
     | word_edge
     | brackets
@@ -250,6 +261,7 @@ term = (
     | not_ahead
     | behind
     | not_behind
+    | comment
     | non_capture
     | named
     | group
@@ -281,7 +293,7 @@ class Regex(ParseEnhancement):
         :param pattern:  THE REGEX PATTERN
         :param asGroupList: RETURN A LIST OF CAPTURED GROUPS /1, /2, /3, ...
         """
-        parsed = regex.parse_string(pattern)
+        parsed = regex.parse_string(pattern, parse_all=True)
         ParseEnhancement.__init__(self, parsed.value().streamline())
         # WE ASSUME IT IS SAFE TO ASSIGN regex (NO SERIOUS BACKTRACKING PROBLEMS)
         self.streamlined = True
