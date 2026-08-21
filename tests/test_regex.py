@@ -367,6 +367,22 @@ class TestRegexParsing(PyparsingExpressionTestCase):
         ]:
             regex_compile(expr.__regex__()[1])
 
+    def test_unmodelled_escape_raises(self):
+        # THESE ARE VALID TO python re, SO SILENCE WOULD BUILD A WRONG TREE
+        for pattern in [r"\a", r"\f", r"\v", r"\B", r"(a)\1"]:
+            with self.assertRaisesParseException():
+                Regex(pattern)
+
+    def test_escaped_punctuation_stays_literal(self):
+        for pattern in [r"\.", r"\*", r"\-", r"\/", r"\#"]:
+            self.assertEqual(Regex(pattern).parse_string(pattern[1]), pattern[1])
+
+    def test_numeric_escape_is_its_character(self):
+        # THE HEX/OCTAL RULES REACH THE TOP LEVEL, NOT ONLY INSIDE BRACKETS
+        for pattern, char in [(r"\x41", "A"), (r"\012", "\n")]:
+            self.assertEqual(Regex(pattern).min_length(), 1)
+            self.assertEqual(Regex(pattern).expr.parser_config.match, char)
+
     def test_ignorable_may_be_more_than_one_token(self):
         with Whitespace() as white:
             white.add_ignore(Literal("#") + Optional(CharsNotIn("\n")))

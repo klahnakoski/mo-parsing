@@ -215,7 +215,8 @@ word_edge = Literal("\\b") / (lambda: MatchFirst([
 ]))
 string_end = Literal("\\Z") / (lambda: StringEnd())
 string_start = Literal("\\A") / (lambda: StringStart())
-esc_char = ("\\" + AnyChar()) / (lambda t: Literal(t.value()[1]))
+# AN UNMODELLED ALPHANUMERIC ESCAPE WOULD SILENTLY BECOME ITSELF
+esc_char = ("\\" + Char(exclude=alphanums)) / (lambda t: Literal(t.value()[1]))
 
 with Whitespace():
     # ALLOW SPACES IN THE RANGE
@@ -265,6 +266,8 @@ term = (
     | string_end
     | string_start
     | word_edge
+    | escaped_hex
+    | escaped_oct
     | esc_char
     | brackets
     | ahead
