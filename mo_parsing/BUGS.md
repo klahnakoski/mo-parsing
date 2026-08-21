@@ -12,3 +12,12 @@ remains, found while fixing those.
 `\A` still falls through, so the tree for `\Aab` matches `Aab`.
 
 Coverage: `Regex(r"\Aab").min_length()` is 2 and the tree matches `ab`, not `Aab`.
+
+## `__regex__` of `Optional(CharsNotIn(...))` emits an invalid pattern
+
+`Whitespace.add_ignore` compiles its argument's `__regex__()`; handed
+`Literal("#") + Optional(CharsNotIn("\n"))` it raises `re.error: multiple repeat` -
+the composed pattern stacks a quantifier on `CharsNotIn`'s own. Until it is fixed, an
+ignorable that is not a single token stays a hand-written `Regex`.
+
+Coverage: `Whitespace().add_ignore(Literal("#") + Optional(CharsNotIn("\n")))` raises.
