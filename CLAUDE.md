@@ -38,6 +38,16 @@ Class hierarchy, all rooted at `ParserElement` (`core.py`):
 
 **Results**: `ParseResults` is an n-ary tree; `.type` points at the ParserElement that produced it (keeps results small). Name lookup (`result["name"]`) walks the tree but stops at `Group` boundaries. Parse actions take `(tokens, index, string)` — the reverse of pyparsing — and `expr / lambda t: ...` is shorthand for `add_parse_action`.
 
+## Using it in a grammar
+
+- Limit `Regex` to unique patterns, not common ones. A regex earns its place for an
+  irregular lexical atom — an escape sequence, a quoted-string body — while structure is
+  the combinators': `Keyword("function") + fn_name + Optional(parens)` reads against the
+  language, where `Regex(r"function[ \t]+[A-Za-z_][\w-]*(?:[ \t]*\([ \t]*\))?")` is a
+  grammar hiding inside a string no production name can explain. Never spell whitespace
+  (`[ \t]*`) into a pattern — the whitespace context owns it — and an identifier is
+  `Word(alphas + "_", alphanums + "_-")`, not a charset regex.
+
 ## Layout notes
 
 - `pyparsing/` holds upstream pyparsing's tests and examples for reference/compat checking; not part of the package and not run by CI.
