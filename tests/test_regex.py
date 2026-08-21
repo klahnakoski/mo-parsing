@@ -7,12 +7,14 @@ from mo_parsing import (
     LookAhead,
     MatchFirst,
     Optional,
+    OneOrMore,
+    ZeroOrMore,
     Whitespace,
     whitespaces,
     CaselessKeyword,
 )
 from mo_parsing.tokens import SingleCharLiteral, Literal, Keyword, CharsNotIn
-from mo_parsing.utils import regex_compile
+from mo_parsing.utils import alphas, regex_compile
 from tests.test_simple_unit import PyparsingExpressionTestCase, SkipTo
 
 
@@ -349,16 +351,26 @@ class TestRegexParsing(PyparsingExpressionTestCase):
 
     def test_string_start_is_zero_width(self):
         # `\A` ANCHORS THE START, IT IS NOT A LITERAL "A"
-        self.assertEqual(Regex(r"\Aab").min_length(), 2)
-        self.assertEqual(Regex(r"\Aab").expr.parse_string("ab"), "ab")
-        with self.assertRaises(Exception):
-            Regex(r"\Aab").expr.parse_string("Aab")
+        anchored = Regex(r"\Aab")
+        self.assertEqual(anchored.min_length(), 2)
+        self.assertEqual(anchored.expr.parse_string("ab"), "ab")
+        with self.assertRaisesParseException():
+            anchored.expr.parse_string("Aab")
 
-    def test_optional_chars_not_in_emits_valid_regex(self):
-        # A QUANTIFIED PATTERN MUST BE GROUPED BEFORE ANOTHER QUANTIFIER IS STACKED ON IT
-        line = Literal("#") + Optional(CharsNotIn("\n"))
-        regex_compile(line.__regex__()[1])
+    def test_quantified_pattern_groups_before_repeating(self):
+        # A PATTERN CARRYING ITS OWN QUANTIFIER IS NOT ATOMIC
+        for expr in [
+            Optional(CharsNotIn("\n")),
+            Optional(OneOrMore(Char(alphas))),
+            Optional(ZeroOrMore(Char(alphas))),
+            OneOrMore(Char(alphas)[1:5]),
+        ]:
+            regex_compile(expr.__regex__()[1])
+
+    def test_ignorable_may_be_more_than_one_token(self):
         with Whitespace() as white:
-            white.add_ignore(line)
+            white.add_ignore(Literal("#") + Optional(CharsNotIn("\n")))
             parser = (Keyword("select") + Keyword("true")).finalize()
-        self.assertEqual(list(parser.parse_string("# note\nselect true")), ["select", "true"])
+        self.assertEqual(
+            list(parser.parse_string("# note\nselect true")), ["select", "true"]
+        )

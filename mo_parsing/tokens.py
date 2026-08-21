@@ -525,8 +525,7 @@ class CharsNotIn(Token):
             min_len=min,
             max_len=max,
             not_chars=not_chars,
-            # A TRAILING QUANTIFIER MUST BE GROUPED BEFORE ANOTHER IS STACKED ON IT
-            prec="*" if not suffix else "+",
+            prec=regex_prec(suffix),
         )
         self.parser_name = text(self)
 

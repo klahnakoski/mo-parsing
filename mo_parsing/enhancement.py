@@ -14,6 +14,7 @@ from mo_parsing.utils import (
     enlist,
     empty_tuple,
     regex_iso,
+    regex_prec,
     append_config,
     regex_compile,
     wrap_parse_action,
@@ -319,7 +320,7 @@ class Many(ParseEnhancement):
         if end:
             return "+", regex + suffix + end
         else:
-            return "*", regex + suffix
+            return regex_prec(suffix), regex + suffix
 
     def __call__(self, name):
         if not name:

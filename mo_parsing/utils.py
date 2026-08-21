@@ -76,6 +76,14 @@ def regex_iso(curr_prec, expr, new_prec):
         return expr
 
 
+def regex_prec(suffix):
+    """
+    PRECEDENCE OF A PATTERN CARRYING THIS TRAILING QUANTIFIER
+    """
+    # ANOTHER QUANTIFIER MAY NOT STACK ON THIS ONE
+    return "*" if not suffix else "+"
+
+
 def regex_caseless(literal):
     """
     RETURN REGEX FOR CASELESS VERSION OF GIVEN LITERAL (SO WE DO NOT NEED CASELESS MODE)
