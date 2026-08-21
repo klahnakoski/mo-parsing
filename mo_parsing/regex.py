@@ -33,6 +33,7 @@ from mo_parsing.tokens import (
     LineStart,
     LineEnd,
     StringEnd,
+    StringStart,
     Word,
     SingleCharLiteral,
     Empty,
@@ -213,6 +214,7 @@ word_edge = Literal("\\b") / (lambda: MatchFirst([
     And([LookBehind(word_char), NotAny(word_char)], NO_WHITESPACE),
 ]))
 string_end = Literal("\\Z") / (lambda: StringEnd())
+string_start = Literal("\\A") / (lambda: StringStart())
 esc_char = ("\\" + AnyChar()) / (lambda t: Literal(t.value()[1]))
 
 with Whitespace():
@@ -261,6 +263,7 @@ term = (
     macro
     | simple_char
     | string_end
+    | string_start
     | word_edge
     | esc_char
     | brackets

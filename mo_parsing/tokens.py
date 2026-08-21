@@ -486,7 +486,7 @@ class CharsNotIn(Token):
     """
 
     __slots__ = []
-    Config = append_config(Token, "min_len", "max_len", "not_chars")
+    Config = append_config(Token, "min_len", "max_len", "not_chars", "prec")
 
     def __init__(self, not_chars, min=1, max=0, exact=0):
         Token.__init__(self)
@@ -525,6 +525,8 @@ class CharsNotIn(Token):
             min_len=min,
             max_len=max,
             not_chars=not_chars,
+            # A TRAILING QUANTIFIER MUST BE GROUPED BEFORE ANOTHER IS STACKED ON IT
+            prec="*" if not suffix else "+",
         )
         self.parser_name = text(self)
 
@@ -542,7 +544,7 @@ class CharsNotIn(Token):
         return self
 
     def __regex__(self):
-        return "*", self.parser_config.regex.pattern
+        return self.parser_config.prec, self.parser_config.regex.pattern
 
     def __str__(self):
         return self.parser_config.regex.pattern
@@ -697,7 +699,7 @@ class StringStart(Token):
             # see if entire string up to here is just whitespace and ignoreables
             # if loc != self.whitespace.skip(string, 0):
             raise ParseException(self, loc, string)
-        return []
+        return ParseResults(self, loc, loc, [], [])
 
     def min_length(self):
         return 0
