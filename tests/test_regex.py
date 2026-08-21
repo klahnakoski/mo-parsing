@@ -369,7 +369,7 @@ class TestRegexParsing(PyparsingExpressionTestCase):
 
     def test_unmodelled_escape_raises(self):
         # THESE ARE VALID TO python re, SO SILENCE WOULD BUILD A WRONG TREE
-        for pattern in [r"\a", r"\f", r"\v", r"\B", r"(a)\1"]:
+        for pattern in [r"\a", r"\f", r"\v", r"\B", r"(a)\1", r"\0", r"\0x41"]:
             with self.assertRaisesParseException():
                 Regex(pattern)
 

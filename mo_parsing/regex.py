@@ -180,7 +180,7 @@ plain_char = Char(exclude=r"\]") / (lambda t: Literal(t.value()))
 
 escaped_hex = (
     Combine(
-        (Literal("\\0x") | Literal("\\x") | Literal("\\X"))  # lookup literals is faster
+        (Literal("\\x") | Literal("\\X"))  # lookup literals is faster
         + OneOrMore(Char(hexnums), NO_WHITESPACE)
     )
     / hex_to_char
