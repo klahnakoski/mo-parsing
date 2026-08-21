@@ -40,6 +40,12 @@ Class hierarchy, all rooted at `ParserElement` (`core.py`):
 
 ## Using it in a grammar
 
+- Do not compose your own regexes. `Regex(RESERVED + "|" + FUNCTION_HEAD)` and
+  `Regex(r"%s(?![\w./-])" % text)` are string arithmetic standing where the algebra
+  already is one: alternation is `|` over elements, a reserved-word list is
+  `MatchFirst([Keyword(k, ident_chars=...) for k in WORDS])` — `Keyword` compiles to the
+  word plus exactly that boundary lookahead — and the engine can only optimize what the
+  string glue does not hide from it.
 - Limit `Regex` to unique patterns, not common ones. A regex earns its place for an
   irregular lexical atom — an escape sequence, a quoted-string body — while structure is
   the combinators': `Keyword("function") + fn_name + Optional(parens)` reads against the
