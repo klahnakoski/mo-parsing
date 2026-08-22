@@ -71,7 +71,8 @@ def infix_bench():
             ],
         )
     text = " or ".join(
-        f"(a{i} + {i} * (b{i} - 3) / c{i} >= {i * 7} and -x{i} < y{i})" for i in range(40)
+        f"(a{i} + {i} * (b{i} - 3) / c{i} >= {i * 7} and -x{i} < y{i})"
+        for i in range(40)
     )
     return expr, text
 
@@ -123,7 +124,9 @@ def run(name, profile=False):
             parser.parse(text)
         ms = (time.perf_counter() - start) / REPEATS * 1000
         best = ms if best is None else min(best, ms)
-    print(f"{name:6}  {best:8.1f} ms/parse  ({len(text)} chars, best of {ROUNDS} rounds)")
+    print(
+        f"{name:6}  {best:8.1f} ms/parse  ({len(text)} chars, best of {ROUNDS} rounds)"
+    )
     if profile:
         prof = cProfile.Profile()
         prof.enable()

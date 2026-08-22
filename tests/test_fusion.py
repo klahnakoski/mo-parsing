@@ -52,7 +52,9 @@ class TestFusion(TestCase):
         self.assertEqual(len(fused_runs(expr)), 1)
         with self.assertRaises(ParseException):
             expr.parse("abc;", parse_all=True)
-        self.assertEqual(list((CharsNotIn(",;") + Literal(";")).parse("abc;")), ["abc", ";"])
+        self.assertEqual(
+            list((CharsNotIn(",;") + Literal(";")).parse("abc;")), ["abc", ";"]
+        )
 
     def test_optional_breaks_the_run(self):
         expr = Literal("a") + Optional(Literal("b")) + Literal("c")
@@ -61,10 +63,20 @@ class TestFusion(TestCase):
         self.assertEqual(list(expr.parse("a c", parse_all=True)), ["a", "c"])
 
     def test_optional_run_on_each_side(self):
-        expr = Word(alphas) + Word(nums) + Optional(Literal("!")) + Literal("(") + Literal(")")
+        expr = (
+            Word(alphas)
+            + Word(nums)
+            + Optional(Literal("!"))
+            + Literal("(")
+            + Literal(")")
+        )
         self.assertEqual(len(fused_runs(expr)), 2)
-        self.assertEqual(list(expr.parse("ab 12 ! ( )", parse_all=True)), ["ab", "12", "!", "(", ")"])
-        self.assertEqual(list(expr.parse("ab 12 ( )", parse_all=True)), ["ab", "12", "(", ")"])
+        self.assertEqual(
+            list(expr.parse("ab 12 ! ( )", parse_all=True)), ["ab", "12", "!", "(", ")"]
+        )
+        self.assertEqual(
+            list(expr.parse("ab 12 ( )", parse_all=True)), ["ab", "12", "(", ")"]
+        )
 
     def test_names_survive_fusion(self):
         expr = Word(alphas)("first") + Word(nums)("second")
@@ -77,7 +89,10 @@ class TestFusion(TestCase):
     def test_keyword_keeps_its_canonical_text(self):
         expr = CaselessKeyword("select") + CaselessKeyword("distinct")
         self.assertEqual(len(fused_runs(expr)), 1)
-        self.assertEqual(list(expr.parse("SELECT   DiStInCt", parse_all=True)), ["select", "distinct"])
+        self.assertEqual(
+            list(expr.parse("SELECT   DiStInCt", parse_all=True)),
+            ["select", "distinct"],
+        )
 
     def test_keyword_boundary_is_kept(self):
         expr = Keyword("select") + Keyword("all")
@@ -99,7 +114,10 @@ class TestFusion(TestCase):
     def test_suppress_alone_is_fused(self):
         expr = Suppress(Literal(",")).streamline()
         self.assertNotEqual(expr.regex, None)
-        self.assertEqual(list((Word(alphas) + Group(expr + Word(alphas))).parse("a , b")), ["a", ["b"]])
+        self.assertEqual(
+            list((Word(alphas) + Group(expr + Word(alphas))).parse("a , b")),
+            ["a", ["b"]],
+        )
 
     def test_spans_are_unchanged(self):
         expr = Group(Word(alphas) + Word(nums))
@@ -111,7 +129,9 @@ class TestFusion(TestCase):
     def test_group_is_a_boundary(self):
         expr = Group(Word(alphas)) + Group(Word(nums))
         self.assertEqual(fused_runs(expr), [])
-        self.assertEqual(expr.parse("abc 123", parse_all=True).as_list(), [["abc"], ["123"]])
+        self.assertEqual(
+            expr.parse("abc 123", parse_all=True).as_list(), [["abc"], ["123"]]
+        )
 
     def test_parse_action_is_a_boundary(self):
         expr = (Word(alphas) / (lambda t: t[0].upper())) + Word(nums)
@@ -123,7 +143,9 @@ class TestFusion(TestCase):
             white.add_ignore(Literal("--") + Regex(r"[^\n]*"))
             expr = Word(alphas) + Word(nums)
         self.assertEqual(len(fused_runs(expr)), 1)
-        self.assertEqual(list(expr.parse("abc -- note\n 123", parse_all=True)), ["abc", "123"])
+        self.assertEqual(
+            list(expr.parse("abc -- note\n 123", parse_all=True)), ["abc", "123"]
+        )
 
     def test_no_whitespace_puts_nothing_between(self):
         with whitespaces.NO_WHITESPACE:
