@@ -142,6 +142,14 @@ class ParseExpression(ParserElement):
         return ParserElement.__call__(self, name)
 
 
+def _and_plan(exprs):
+    """(expr, is_look_behind, is_syntax_guard) FOR EACH CHILD"""
+    return tuple(
+        (e, isinstance(e, LookBehind), isinstance(e, And.SyntaxErrorGuard))
+        for e in exprs
+    )
+
+
 class And(ParseExpression):
     """
     Requires all given `ParseExpression` s to be found in the given order.
@@ -151,7 +159,7 @@ class And(ParseExpression):
     suppress backtracking.
     """
 
-    __slots__ = []
+    __slots__ = ["plan"]
     Config = append_config(ParseExpression, "whitespace")
 
     class SyntaxErrorGuard(Empty):
@@ -177,6 +185,12 @@ class And(ParseExpression):
             exprs[:] = tmp
         super(And, self).__init__(exprs)
         self.set_config(whitespace=whitespace or whitespaces.CURRENT)
+        self.plan = _and_plan(self.exprs)
+
+    def copy(self):
+        output = ParseExpression.copy(self)
+        output.plan = self.plan
+        return output
 
     def streamline(self):
         if self.streamlined:
@@ -227,10 +241,12 @@ class And(ParseExpression):
 
         if same:
             self.streamlined = True
+            self.plan = _and_plan(self.exprs)
             return self
 
         output = self.copy()
         output.exprs = acc
+        output.plan = _and_plan(acc)
         output.streamlined = True
         return output
 
@@ -270,13 +286,14 @@ class And(ParseExpression):
         end = index = start
         acc = []
         failures = []
-        for i, expr in enumerate(self.exprs):
+        skip = self.parser_config.whitespace.skip
+        for expr, is_look_behind, is_syntax_guard in self.plan:
             if end > index:
-                if isinstance(expr, LookBehind):
+                if is_look_behind:
                     index = end
                 else:
-                    index = self.parser_config.whitespace.skip(string, end)
-            if isinstance(expr, And.SyntaxErrorGuard):
+                    index = skip(string, end)
+            if is_syntax_guard:
                 encountered_syntax_error = True
                 continue
             result = expr._parse(string, index, do_actions)
@@ -287,7 +304,7 @@ class And(ParseExpression):
                 else:
                     return failure_at(result, failures)
             failures.extend(result.failures)
-            if not result and index == result.end and isinstance(result.type, Many) and result.type.parser_config.min_match == 0:
+            if index == result.end and isinstance(result.type, Many) and result.type.parser_config.min_match == 0 and not result:
                 continue
             acc.append(result)
             end = result.end
