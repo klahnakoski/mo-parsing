@@ -1,7 +1,6 @@
 # encoding: utf-8
 import json
 from collections import OrderedDict
-from operator import itemgetter
 
 from mo_future import Iterable, text, generator_types
 from mo_imports import export
@@ -406,24 +405,25 @@ class Or(ParseExpression):
 
     def parse_impl(self, string, start, do_actions=True):
         failures = []
-        matches = []
+        # THE LONGEST MATCH WINS; TIES GO TO THE FIRST ALTERNATIVE
+        best = None
 
         for e in self.alternate:
             if isinstance(e, Fast):
                 for ee in e.get_short_list(string, start):
-                    result = ee._parse(string, start)
+                    result = ee._parse(string, start, do_actions)
                     if result.failed:
                         failures.append(result)
-                    else:
-                        matches.append((result.end, ee))
+                    elif best is None or result.end > best.end:
+                        best = result
             else:
-                result = e._parse(string, start)
+                result = e._parse(string, start, do_actions)
                 if result.failed:
                     failures.append(result)
-                else:
-                    matches.append((result.end, e))
+                elif best is None or result.end > best.end:
+                    best = result
 
-        if not matches:
+        if best is None:
             return failure(
                 self,
                 start,
@@ -431,55 +431,9 @@ class Or(ParseExpression):
                 msg="no defined alternatives to match",
                 cause=failures,
             )
-        if len(matches) == 1:
-            _, expr = matches[0]
-            result = expr._parse(string, start, do_actions)
-            if result.failed:
-                return result
-            failures.extend(result.failures)
-            return ParseResults(self, result.start, result.end, [result], failures)
 
-        if matches:
-            # re-evaluate all matches in descending order of length of match, in case attached actions
-            # might change whether or how much they match of the input.
-            matches.sort(key=itemgetter(0), reverse=True)
-
-            if not do_actions:
-                # no further conditions or parse actions to change the selection of
-                # alternative, so the first match will be the best match
-                _, expr = matches[0]
-                result = expr._parse(string, start, do_actions)
-                if result.failed:
-                    return result
-                failures.extend(result.failures)
-                return ParseResults(self, result.start, result.end, [result], failures)
-
-            longest = -1, None
-            for loc, expr in matches:
-                if loc <= longest[0]:
-                    # already have a longer match than this one will deliver, we are done
-                    return longest
-
-                result = expr._parse(string, start, do_actions)
-                if result.failed:
-                    failures.append(result)
-                else:
-                    failures.extend(result.failures)
-                    if result.end >= loc:
-                        return ParseResults(
-                            self, result.start, result.end, [result], failures
-                        )
-                    # didn't match as much as before
-                    elif result.end > longest[0]:
-                        longest = (
-                            result.end,
-                            ParseResults(
-                                self, result.start, result.end, [result], failures,
-                            ),
-                        )
-
-            if longest != (-1, None):
-                return longest
+        failures.extend(best.failures)
+        return ParseResults(self, best.start, best.end, [best], failures)
 
     def check_recursion(self, seen=empty_tuple):
         seen_more = seen + (self,)
