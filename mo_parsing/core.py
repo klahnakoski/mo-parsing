@@ -823,6 +823,8 @@ def fuse_row(expr):
     """
     RETURN (pattern, tokens) IF ONE REGEX MATCH CAN STAND FOR expr, ELSE None
     """
+    if expr.parse_action:
+        return None
     fused = expr.fuse()
     if fused is None or expr.min_length() <= 0:
         return None
@@ -830,10 +832,6 @@ def fuse_row(expr):
     if BACKREFERENCE.search(pattern):
         # group numbers shift when the pattern joins a larger one
         return None
-    for a in expr.parse_action:
-        if a is not _suppress_post_parse:
-            return None
-        tokens = empty_tuple
     return pattern, tokens
 
 
