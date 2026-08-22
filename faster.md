@@ -5,8 +5,21 @@ before and after each phase and update this file.
 
 ## Benchmark
 
-mo-sql-parsing (sibling checkout `../mo-sql-parsing`), Python 3.10, one 403-char
-`SELECT` with joins, subquery, `IN`, `GROUP BY`, `HAVING`, `ORDER BY`:
+`python tests/bench.py` — json (Forward/MatchFirst/delimited_list), infix
+(`infix_notation`, six levels), sql (mo-sql-parsing, sibling checkout or installed).
+Best of 5 rounds, wall clock, quiet machine:
+
+| state                          | json | infix |  sql |
+|--------------------------------|-----:|------:|-----:|
+| baseline (`d60251c`)           | 56.6 |  67.3 | 78.0 |
+| phase 1 (`0d419d2`)            |  TBD |   TBD |  TBD |
+
+Phase 1, measured under full CPU load as interleaved CPU time (direction only):
+json 130 → 100, infix 150 → 65, sql 165 → 53 ms.
+
+The original profile, mo-sql-parsing (sibling checkout `../mo-sql-parsing`), Python
+3.10, one 403-char `SELECT` with joins, subquery, `IN`, `GROUP BY`, `HAVING`,
+`ORDER BY`:
 
 ```python
 import sys; sys.path[:0] = [".", "../mo-sql-parsing"]
@@ -38,7 +51,7 @@ cProfile, baseline: ~50% of time is `ParseException.loc` → `causes` → `sort_
 succeeds. The rest is interpretive overhead: `And.parse_impl`, `_parse`, `isinstance`
 (430k calls), `ParseResults` construction and iteration.
 
-## Phase 1 — diagnostics off the hot path (measured 2.7×)
+## Phase 1 — diagnostics off the hot path (measured 2.7×) — landed in `0d419d2`
 
 Every combinator merges child `failures` into its successful result and every
 `ParseException` re-walks its cause tree to answer `.loc`. None of that is needed
