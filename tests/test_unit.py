@@ -2736,6 +2736,19 @@ class TestParsing(PyparsingExpressionTestCase):
 
         self.assertEqual(result, test_string.split(), "failed to match longest choice")
 
+    def testOrPrefersTheLongestActionCheckedMatch(self):
+        # a condition stops the repetition early, and the shortened match is
+        # what competes with the other alternatives
+        early = Char("a").add_condition(lambda t, i, s: i < 3)
+        result = (OneOrMore(early) ^ Literal("aa")).parse_string("aaaaa")
+        self.assertEqual(result, ["a", "a", "a"])
+
+    def testOrEveryAlternativeFailsItsAction(self):
+        never = Char("a").add_condition(lambda t, i, s: False)
+        expr = OneOrMore(never) ^ Literal("aa").add_condition(lambda t, i, s: False)
+        with TestCase.assertRaises(self, ParseException):
+            expr.parse_string("aaaaa")
+
     def testEachWithOptionalWithResultsName(self):
         result = (
             Optional("foo")("one") & Optional("bar")("two")

@@ -1,14 +1,13 @@
 # encoding: utf-8
 import json
 from collections import OrderedDict
-from operator import itemgetter
 
 from mo_future import Iterable, text, generator_types
 from mo_imports import export
 
 from mo_parsing import exceptions, whitespaces
 from mo_parsing.core import ParserElement, _PendingSkip
-from mo_parsing.enhancement import Optional, SkipTo, Many, LookBehind
+from mo_parsing.enhancement import Optional, SkipTo, Many, LookBehind, Group
 from mo_parsing.exceptions import (
     FAIL,
     ParseException,
@@ -142,6 +141,14 @@ class ParseExpression(ParserElement):
         return ParserElement.__call__(self, name)
 
 
+def _and_plan(exprs):
+    """(expr, is_look_behind, is_syntax_guard) FOR EACH CHILD"""
+    return tuple(
+        (e, isinstance(e, LookBehind), isinstance(e, And.SyntaxErrorGuard))
+        for e in exprs
+    )
+
+
 class And(ParseExpression):
     """
     Requires all given `ParseExpression` s to be found in the given order.
@@ -151,7 +158,7 @@ class And(ParseExpression):
     suppress backtracking.
     """
 
-    __slots__ = []
+    __slots__ = ["plan"]
     Config = append_config(ParseExpression, "whitespace")
 
     class SyntaxErrorGuard(Empty):
@@ -177,6 +184,17 @@ class And(ParseExpression):
             exprs[:] = tmp
         super(And, self).__init__(exprs)
         self.set_config(whitespace=whitespace or whitespaces.CURRENT)
+        self.plan = _and_plan(self.exprs)
+
+    def copy(self):
+        output = ParseExpression.copy(self)
+        output.plan = self.plan
+        return output
+
+    def leave_whitespace(self):
+        output = ParseExpression.leave_whitespace(self)
+        output.plan = _and_plan(output.exprs)
+        return output
 
     def streamline(self):
         if self.streamlined:
@@ -227,10 +245,12 @@ class And(ParseExpression):
 
         if same:
             self.streamlined = True
+            self.plan = _and_plan(self.exprs)
             return self
 
         output = self.copy()
         output.exprs = acc
+        output.plan = _and_plan(acc)
         output.streamlined = True
         return output
 
@@ -270,13 +290,14 @@ class And(ParseExpression):
         end = index = start
         acc = []
         failures = []
-        for i, expr in enumerate(self.exprs):
+        skip = self.parser_config.whitespace.skip
+        for expr, is_look_behind, is_syntax_guard in self.plan:
             if end > index:
-                if isinstance(expr, LookBehind):
+                if is_look_behind:
                     index = end
                 else:
-                    index = self.parser_config.whitespace.skip(string, end)
-            if isinstance(expr, And.SyntaxErrorGuard):
+                    index = skip(string, end)
+            if is_syntax_guard:
                 encountered_syntax_error = True
                 continue
             result = expr._parse(string, index, do_actions)
@@ -287,7 +308,7 @@ class And(ParseExpression):
                 else:
                     return failure_at(result, failures)
             failures.extend(result.failures)
-            if not result and index == result.end and isinstance(result.type, Many) and result.type.parser_config.min_match == 0:
+            if index == result.end and isinstance(result.type, Many) and result.type.parser_config.min_match == 0 and not result:
                 continue
             acc.append(result)
             end = result.end
@@ -389,24 +410,25 @@ class Or(ParseExpression):
 
     def parse_impl(self, string, start, do_actions=True):
         failures = []
-        matches = []
+        # THE LONGEST MATCH WINS; TIES GO TO THE FIRST ALTERNATIVE
+        best = None
 
         for e in self.alternate:
             if isinstance(e, Fast):
                 for ee in e.get_short_list(string, start):
-                    result = ee._parse(string, start)
+                    result = ee._parse(string, start, do_actions)
                     if result.failed:
                         failures.append(result)
-                    else:
-                        matches.append((result.end, ee))
+                    elif best is None or result.end > best.end:
+                        best = result
             else:
-                result = e._parse(string, start)
+                result = e._parse(string, start, do_actions)
                 if result.failed:
                     failures.append(result)
-                else:
-                    matches.append((result.end, e))
+                elif best is None or result.end > best.end:
+                    best = result
 
-        if not matches:
+        if best is None:
             return failure(
                 self,
                 start,
@@ -414,55 +436,9 @@ class Or(ParseExpression):
                 msg="no defined alternatives to match",
                 cause=failures,
             )
-        if len(matches) == 1:
-            _, expr = matches[0]
-            result = expr._parse(string, start, do_actions)
-            if result.failed:
-                return result
-            failures.extend(result.failures)
-            return ParseResults(self, result.start, result.end, [result], failures)
 
-        if matches:
-            # re-evaluate all matches in descending order of length of match, in case attached actions
-            # might change whether or how much they match of the input.
-            matches.sort(key=itemgetter(0), reverse=True)
-
-            if not do_actions:
-                # no further conditions or parse actions to change the selection of
-                # alternative, so the first match will be the best match
-                _, expr = matches[0]
-                result = expr._parse(string, start, do_actions)
-                if result.failed:
-                    return result
-                failures.extend(result.failures)
-                return ParseResults(self, result.start, result.end, [result], failures)
-
-            longest = -1, None
-            for loc, expr in matches:
-                if loc <= longest[0]:
-                    # already have a longer match than this one will deliver, we are done
-                    return longest
-
-                result = expr._parse(string, start, do_actions)
-                if result.failed:
-                    failures.append(result)
-                else:
-                    failures.extend(result.failures)
-                    if result.end >= loc:
-                        return ParseResults(
-                            self, result.start, result.end, [result], failures
-                        )
-                    # didn't match as much as before
-                    elif result.end > longest[0]:
-                        longest = (
-                            result.end,
-                            ParseResults(
-                                self, result.start, result.end, [result], failures,
-                            ),
-                        )
-
-            if longest != (-1, None):
-                return longest
+        failures.extend(best.failures)
+        return ParseResults(self, best.start, best.end, [best], failures)
 
     def check_recursion(self, seen=empty_tuple):
         seen_more = seen + (self,)
@@ -493,15 +469,17 @@ class MatchFirst(ParseExpression):
     match. May be constructed using the `|` operator.
     """
 
-    __slots__ = ["alternate"]
+    __slots__ = ["alternate", "transparent"]
 
     def __init__(self, exprs):
         ParseExpression.__init__(self, exprs)
         self.alternate = self.exprs
+        self.transparent = False
 
     def copy(self):
         output = ParseExpression.copy(self)
         output.alternate = self.alternate
+        output.transparent = False
         return output
 
     def _min_length(self):
@@ -523,6 +501,14 @@ class MatchFirst(ParseExpression):
             if result.failed:
                 failures.append(result)
                 continue
+            if (
+                self.transparent
+                and not result._type.token_name
+                and not isinstance(result.type, Group)
+                and not exceptions.DIAGNOSTICS
+            ):
+                # THE WRAPPER IS ONLY VISIBLE AT THE ROOT OF A LOOKUP
+                return result
             failures.extend(result.failures)
             return ParseResults(self, result.start, result.end, [result], failures)
 
@@ -543,6 +529,7 @@ class MatchFirst(ParseExpression):
                 return output.exprs[0]
 
         output.alternate = faster(output.exprs)
+        output.transparent = not output.parse_action and not output.token_name
 
         output.streamlined = True
         output.check_recursion()

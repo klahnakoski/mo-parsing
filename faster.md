@@ -14,9 +14,13 @@ Best of 5 rounds, wall clock, quiet machine:
 | baseline (`d60251c`)           | 42.9 |  49.4 | 52.6 |
 | phase 1 (`2ad06c9`)            | 26.0 |  19.1 | 14.2 |
 | phase 2 (`1c2a8f5`)            | 16.0 |  13.9 |  7.0 |
+| phase 3 (`6f46e28`)            | 13.9 |  11.9 |  6.3 |
 
 The phase-2 pair was measured back to back on a busier machine, which read phase 1
 as 28.5 / 21.0 / 15.3; against that the change is −44% json, −34% infix, −54% sql.
+
+The phase-3 pair was measured the same way, alternating with phase 2 in the same
+sitting, which read phase 2 as 16.6 / 14.0 / 7.3: −16% json, −15% infix, −14% sql.
 
 The original profile, mo-sql-parsing (sibling checkout `../mo-sql-parsing`), Python
 3.10, one 403-char `SELECT` with joins, subquery, `IN`, `GROUP BY`, `HAVING`,
@@ -120,18 +124,42 @@ At 3659 exceptions per parse that was ~6 ms of the 20 ms left after phase 1.
 - Bonus: `NotAny` on an expression with no regex equivalent always succeeded (it raised
   inside its own `try` under a bare `except`). It now consults the child's result.
 
-## Phase 3 — fewer nodes per parse (est. −15–25%)
+## Phase 3 — fewer nodes per parse (measured −16% json, −15% infix, −14% sql) — landed in `44d4341`, `83ce94b`, `6f46e28`
 
-- Transparent wrappers: unannotated `MatchFirst`, `Forward`, `Optional`, `Group`-less
-  `ParseEnhancement` each wrap the child in a fresh `ParseResults`
-  (`expressions.py:524`, `enhancement.py:67,671`). 1906 results for 403 chars.
-  `streamline()` already collapses some; mark the rest transparent and return the
-  child's result as-is.
-- `Or` parses every alternative with actions enabled to measure its end, then parses the
-  winner again (`expressions.py:400,421`). Parse without actions, keep the winning
-  result when only one matched.
-- `And.parse_impl` does two `isinstance` checks per child per call
-  (`expressions.py:272,276`); precompute per-child flags at streamline.
+1906 `ParseResults` for the 447-char sql benchmark, now 1648; `isinstance` calls per
+parse 11535, now 7717.
+
+- `And` asks `isinstance(expr, LookBehind)` and `isinstance(expr, And.SyntaxErrorGuard)`
+  once per child at `streamline()` instead of once per child per call: `self.plan` is a
+  tuple of `(expr, is_look_behind, is_syntax_guard)` that the loop unpacks. Over half
+  the `isinstance` calls in a parse were these two.
+- Unannotated `MatchFirst` and `Forward` return the child's result instead of wrapping
+  it in a fresh `ParseResults`. The extra level is invisible to `__iter__` and
+  `_get_item_by_name`, which already look through an unnamed, non-`Group` result — but
+  only from above: the walkers test the *children* of the result they start on, so at
+  the root of a lookup the wrapper is what makes a named or `Group` child visible (and,
+  for `Forward`, what hides it). So `streamline()` marks the wrapper transparent and the
+  parse keeps it for exactly those results. `MatchFirst` also keeps it while diagnosing,
+  where the earlier alternatives' failures are the cause tree.
+- `Or` parses each alternative once, with the caller's `do_actions`, and keeps the
+  longest result. It used to measure every alternative with actions and then parse the
+  winner again, running the winning subtree's parse actions twice; neither a parse
+  action nor a condition can change the end of the match it is attached to (`_parse` and
+  `wrap_parse_action` both refuse), so the second parse could only repeat the first.
+  Measuring without actions instead — the original plan — is not viable: it lets
+  alternatives that a condition rejects into the running, and mo-sql-parsing's
+  `test_issue_218_udf` goes from milliseconds to minutes. The re-measuring loop that
+  goes away had two unreachable, broken exits (one returned the `(end, result)` tuple
+  instead of the result, the other fell off the end and returned `None`); two tests in
+  `test_unit.py` pin what is left of the behaviour.
+- Not worth doing, measured in-process against the sql benchmark (both under 1%,
+  i.e. inside the noise): returning `FAIL` from `_parse` without calling `failure()`
+  (2960 calls per parse), and guarding `And`'s `failures.extend` on the fast path.
+- Not transparent: `ParseEnhancement.parse_impl` (`Group` inherits it, and Suppress,
+  Dict and OpenDict all carry a parse action, so there is nothing there to win); `Or`
+  (13 results per sql parse); `Many`/`Optional`/`ZeroOrMore`/`Combine`/`Group`, whose
+  results are real containers — `And` reads `isinstance(result.type, Many)` to tell an
+  empty `Optional` from a match.
 - `ParseResults.__bool__`/`__iter__`/`_get_item_by_name` walk the tree on every
   `tokens["name"]` (`results.py:44,137,159`); see phase 6.
 

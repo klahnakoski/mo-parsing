@@ -553,12 +553,14 @@ class Forward(ParserElement):
         "_in_regex",
         "_in_expecting",
         "__in_whitespace",
+        "transparent",
     ]
 
     def __init__(self, expr=Null):
         ParserElement.__init__(self)
         self.expr = None
         self.used_by = []
+        self.transparent = False
 
         self._str = None  # avoid recursion
         self._in_regex = None  # avoid recursion
@@ -574,6 +576,7 @@ class Forward(ParserElement):
         output._in_regex = None
         output._in_expecting = None
         output.__in_whitespace = False
+        output.transparent = False
 
         output.used_by = []
         return output
@@ -603,6 +606,7 @@ class Forward(ParserElement):
         Also you can use `/` operator
         """
         self.parse_action.append(wrap_parse_action(action))
+        self.transparent = False
         return self
 
     def leave_whitespace(self):
@@ -612,6 +616,7 @@ class Forward(ParserElement):
             return output
 
     def streamline(self):
+        self.transparent = not self.parse_action and not self.token_name
         if not self.expr or self.expr.streamlined:
             return self
 
@@ -666,7 +671,7 @@ class Forward(ParserElement):
                     "Ensure you have assigned a ParserElement (<<) to this Forward", cause=cause,
                 )
             raise cause from None
-        if result.failed:
+        if result.failed or (self.transparent and not result._type.token_name):
             return result
         return ForwardResults(self, result.start, result.end, [result], result.failures)
 
