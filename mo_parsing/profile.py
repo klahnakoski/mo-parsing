@@ -4,6 +4,7 @@ from json import dumps as value2json
 from mo_dots import to_data
 
 from mo_parsing.core import ParserElement
+from mo_parsing.exceptions import failure
 from mo_parsing.utils import Log
 
 try:
@@ -73,6 +74,13 @@ def _profile_parse(self, string, start, do_actions=True):
                 self, start, string, cause
             )
             raise
+
+        if tokens.failed:
+            match = 2
+            self.parser_config.fail_action and self.parser_config.fail_action(
+                self, start, string, tokens
+            )
+            return failure(self, start, string, cause=tokens)
 
         if self.parse_action and (do_actions or self.parser_config.callDuringTry):
             for fn in self.parse_action:
