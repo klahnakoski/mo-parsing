@@ -24,6 +24,9 @@ Suppress, ParserElement, NO_PARSER, NO_RESULTS, Group, Dict, Token, Empty = expe
 class ParseResults(object):
     __slots__ = ["_type", "start", "end", "tokens", "timing", "failures"]
 
+    # marks a returned value as a success; ParseException.failed is True
+    failed = False
+
     @property
     def name(self):
         return self._type.token_name

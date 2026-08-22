@@ -32,6 +32,9 @@ class ParseException(Exception):
     # constructor as small and fast as possible
     __slots__ = ["expr", "start", "string", "unsorted_cause", "_msg", "_causes", "_loc"]
 
+    # marks a returned value as a failure; ParseResults.failed is False
+    failed = True
+
     def __init__(self, expr, start, string, msg="", cause=None):
         if not isinstance(string, str):
             Log.error("expecting string")
@@ -203,6 +206,22 @@ class RecursiveGrammarException(Exception):
         return "RecursiveGrammarException: " + json.dumps([
             str(e) for e in self.parseElementTrace
         ])
+
+
+# returned (never raised) when a parse fails and we are not diagnosing
+FAIL = ParseException(None, 0, "")
+
+
+def failure(expr, start, string, msg="", cause=None):
+    """FAILURE VALUE FOR expr AT start"""
+    return ParseException(expr, start, string, msg, cause) if DIAGNOSTICS else FAIL
+
+
+def failure_at(cause, causes, type=ParseException):
+    """FAILURE VALUE AT THE POSITION OF cause"""
+    if not DIAGNOSTICS:
+        return FAIL
+    return type(cause.expr, cause.loc, cause.string, cause=causes)
 
 
 def compare_causes(a, b):
