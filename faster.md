@@ -15,12 +15,16 @@ Best of 5 rounds, wall clock, quiet machine:
 | phase 1 (`2ad06c9`)            | 26.0 |  19.1 | 14.2 |
 | phase 2 (`1c2a8f5`)            | 16.0 |  13.9 |  7.0 |
 | phase 3 (`6f46e28`)            | 13.9 |  11.9 |  6.3 |
+| phase 5.1 (`d3f95bb`)          | 10.8 |  11.1 |  6.0 |
 
 The phase-2 pair was measured back to back on a busier machine, which read phase 1
 as 28.5 / 21.0 / 15.3; against that the change is −44% json, −34% infix, −54% sql.
 
 The phase-3 pair was measured the same way, alternating with phase 2 in the same
 sitting, which read phase 2 as 16.6 / 14.0 / 7.3: −16% json, −15% infix, −14% sql.
+
+The phase-5.1 pair alternated with phase 3 three times in one sitting, which read
+phase 3 as 12.6 / 11.4 / 5.9: −14% json, −3% infix, sql unchanged.
 
 The original profile, mo-sql-parsing (sibling checkout `../mo-sql-parsing`), Python
 3.10, one 403-char `SELECT` with joins, subquery, `IN`, `GROUP BY`, `HAVING`,
@@ -170,16 +174,12 @@ A dict probe per call costs about what a token match costs, so a packrat table w
 only pay for `And`/`MatchFirst` nodes, and only if phases 1–3 leave them expensive.
 Re-measure after phase 3; do not build this first.
 
-## Phase 5 — compile the grammar (est. 2–5× over the phase-3 result)
+## Phase 5 — compile the grammar
 
 This is where "much faster" comes from; the phases above just stop paying for things
 nobody asked for.
 
-1. Regex fusion, pure Python. `__regex__()` already exists on every element. At
-   streamline, a run of adjacent children inside an `And` (or a whole `MatchFirst`)
-   that have no parse actions and no names fuses into one compiled pattern: one
-   `re.match` with groups replaces N `_parse` calls, N `ParseResults`, N whitespace
-   skips. `Fast` is this idea for first-character dispatch only; generalize it.
+1. Regex fusion — landed in `a02dd44`, `5df7ee2`, `65cf5ea`, `d3f95bb` (below).
 2. Closure compilation. `element.compile()` returns a plain function
    `(string, start) -> result | FAIL` with children captured as locals — no
    `_parse` → `parse_impl` dispatch, no `self.parser_config.x` namedtuple loads, no
@@ -198,7 +198,63 @@ hand-written stand-ins for what each generator would emit:
 
 The closure figure includes dropping failure tracking and `ParseResults`, so it is
 phases 1–3 plus codegen together. Inlining leaves into flat source adds ~15% over
-closures — the parameter-lookup removal is the small part. Regex fusion is the lever.
+closures — the parameter-lookup removal is the small part.
+
+The 31× row is a grammar with no parse actions and no names, so all of it fuses.
+Phase 5.1 measured how much of a real grammar does, and the answer is: a third of
+json, almost none of mo-sql-parsing. Closure compilation is the lever, because it
+pays on every element rather than only on the ones a regex can stand in for.
+
+### Phase 5.1 — regex fusion (measured −14% json, −3% infix, 0% sql)
+
+Per parse the benchmarks went 10033 → 7391 `_parse` and 8769 → 5767 `ParseResults`
+(json), 4161 → 4001 and 4957 → 4637 (infix), 3290 → 3208 and 1648 → 1630 (sql).
+
+`fuse()` is the protocol: a leaf returns the pattern that matches it, the tokens a
+match produces (`None` means the matched text, a tuple is the canonical text a
+`Keyword` or `Literal` reports), and how many characters it always consumes.
+`__regex__()` is left alone — `Fast` and `NotAny` still own it.
+
+What fuses:
+
+- `Suppress(X)` where X is one regex match. `Suppress` now has its own `parse_impl`
+  and no post-parse action, so a suppressed token costs one `ParseResults` instead
+  of three, and none at all for the child.
+- A run of two or more adjacent children of an `And` that each fuse: one compiled
+  pattern joined by the `And`'s own whitespace, one named group per child, and the
+  parse loop emits the same N results from `m.span()`. Token names are fine — the
+  name is on the element, and the element is what the emitted result points at.
+- `And.plain_plan` keeps the unfused rows and is what `parse_impl` walks while
+  diagnosing, so failure messages and cause trees are untouched.
+
+Every piece is atomic, because PEG never backtracks into an earlier child:
+`Word(alphas) + "x"` must fail on `"abcx"`. Variable-length pieces use the portable
+`(?=(?P<f0>…))(?P=f0)` emulation (lookarounds are atomic in `re`); native `(?>…)`
+would need Python 3.11. A fixed-length piece is a plain group, and whitespace with
+no ignored patterns is `[chars]*(?![chars])`, so only what can give back pays.
+
+What does not fuse, and the counts that say so — measured by instrumenting the
+three benchmarks and counting what each shape would absorb:
+
+- Anything with a parse action, a token name on a container, a `Group`, a `Forward`,
+  a lookbehind, the `-` guard, or a pattern carrying a backreference. Allowing parse
+  actions on leaves was measured: it adds 2 sites and 4 `_parse` calls on sql, none
+  elsewhere.
+- `Combine(X)`: zero sites on all three benchmarks — mo-sql-parsing's `Combine`s all
+  contain elements with parse actions.
+- `MatchFirst` of leaves: zero sites on json and infix, one site and 10 calls on sql;
+  `Fast` already dispatches these on the first character.
+- `Many`/`Optional` of leaves: expressible (an atomic `(?:WS B WS|WS)` alternation
+  reproduces the commit), but zero sites — every `Optional` in the benchmarks holds a
+  subtree, not a leaf.
+- Whole `And`/`MatchFirst` subtrees under a `Suppress`: every `Suppress` site on all
+  three benchmarks wraps a single leaf, so the recursive walker would earn nothing.
+
+sql is unchanged because mo-sql-parsing hangs a parse action on nearly every token:
+only 7 run sites are reached by the benchmark query, all multi-word keyword phrases
+(`select as struct`, `for system_time as of`) that mostly fail, and 9 `Suppress`es,
+all of single characters. json wins because `Suppress` of one character is 34% of its
+`_parse` calls and its `key : value` member fuses.
 
 ### Other targets
 
@@ -240,7 +296,7 @@ change match speed.
 0. Land the benchmark above where CI can run it (TODO.md already notes no perf check).
 1. Phase 1 — measured, 2.7×, smallest diff.
 2. Phase 2, phase 3 — re-measure after each.
-3. Phase 5.1 regex fusion, then phase 6 layout, then phase 5.2 closures.
+3. Phase 5.1 regex fusion — done. Then phase 6 layout, then phase 5.2 closures.
 4. Phase 4 only if the phase-3 profile says so. mypyc/Cython only after 5.
 
 ## Risks
