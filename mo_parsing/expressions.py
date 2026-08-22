@@ -8,7 +8,7 @@ from mo_imports import export
 
 from mo_parsing import exceptions, whitespaces
 from mo_parsing.core import ParserElement, _PendingSkip
-from mo_parsing.enhancement import Optional, SkipTo, Many, LookBehind
+from mo_parsing.enhancement import Optional, SkipTo, Many, LookBehind, Group
 from mo_parsing.exceptions import (
     FAIL,
     ParseException,
@@ -510,15 +510,17 @@ class MatchFirst(ParseExpression):
     match. May be constructed using the `|` operator.
     """
 
-    __slots__ = ["alternate"]
+    __slots__ = ["alternate", "transparent"]
 
     def __init__(self, exprs):
         ParseExpression.__init__(self, exprs)
         self.alternate = self.exprs
+        self.transparent = False
 
     def copy(self):
         output = ParseExpression.copy(self)
         output.alternate = self.alternate
+        output.transparent = False
         return output
 
     def _min_length(self):
@@ -540,6 +542,14 @@ class MatchFirst(ParseExpression):
             if result.failed:
                 failures.append(result)
                 continue
+            if (
+                self.transparent
+                and not result._type.token_name
+                and not isinstance(result.type, Group)
+                and not exceptions.DIAGNOSTICS
+            ):
+                # THE WRAPPER IS ONLY VISIBLE AT THE ROOT OF A LOOKUP
+                return result
             failures.extend(result.failures)
             return ParseResults(self, result.start, result.end, [result], failures)
 
@@ -560,6 +570,7 @@ class MatchFirst(ParseExpression):
                 return output.exprs[0]
 
         output.alternate = faster(output.exprs)
+        output.transparent = not output.parse_action and not output.token_name
 
         output.streamlined = True
         output.check_recursion()
