@@ -64,6 +64,25 @@ unless the top-level parse fails.
   `ParseResults.failures` stays as an attribute (mo-sql-parsing parse actions pass it
   through), just empty.
 
+### Which failure cause to keep
+
+Unknowable during the parse: the outer context may still discard the whole subtree,
+and only a failed parse ever needs a cause. So do not pick during parsing.
+
+- Fast pass records nothing — no `failures` lists, no `.loc`, no ranking.
+- Diagnostic re-parse collects the raw cause trees exactly as today but never ranks
+  mid-parse: `best_cause` is already lazy; the eager ranking is `And`'s `pe.loc`
+  (`expressions.py:290,294`) and the `len > 30` sort in `ParseResults.__init__`
+  (`results.py:42`). Drop both; sort once at the top.
+- Cost: a failing parse ≈ fast attempt + diagnostic attempt, about what a failing parse
+  costs today (the 54 ms already includes the eager sorts). Net loss only if most
+  inputs fail.
+- Cheaper option for later: farthest-failure — one `max(pos)` compare per failure and
+  the expected set at that position, what most PEG engines do. O(1), but it changes
+  messages: `best_cause` prefers named exprs and `msg` over position, and
+  `test_errors.py` pins those strings. Keep the full tree on the rare path; revisit
+  only if diagnostic mode shows up in a profile.
+
 ## Phase 2 — failure is a return value, not an exception (est. −25% of what remains)
 
 A three-frame raise/catch chain costs 1.64 µs; the same chain returning costs 0.17 µs.
