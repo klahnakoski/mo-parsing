@@ -10,7 +10,13 @@ from mo_imports import export, expect
 from mo_parsing import whitespaces
 from mo_parsing.exceptions import ParseException, diagnostics, failure
 from mo_parsing.results import ParseResults
-from mo_parsing.utils import Log, MAX_INT, wrap_parse_action, empty_tuple
+from mo_parsing.utils import (
+    BACKREFERENCE,
+    Log,
+    MAX_INT,
+    wrap_parse_action,
+    empty_tuple,
+)
 
 (
     SkipTo,
@@ -458,6 +464,14 @@ class ParserElement(object):
         """
         return {}
 
+    def fuse(self):
+        """
+        RETURN (pattern, tokens, length) WHEN ONE REGEX MATCH CAN STAND FOR THIS
+        ELEMENT.  tokens IS None WHEN THE MATCHED TEXT IS THE TOKEN.  length IS
+        THE CHARACTERS ALWAYS CONSUMED, OR None WHEN IT VARIES
+        """
+        return None
+
     def min_length(self):
         if self.min_length_cache >= 0:
             return self.min_length_cache
@@ -804,6 +818,21 @@ class _PendingSkip(ParserElement):
 
     def parse_impl(self, *args):
         Log.error("use of `...` expression without following SkipTo target expression")
+
+
+def fuse_row(expr):
+    """
+    RETURN (pattern, tokens, length) IF ONE REGEX MATCH CAN STAND FOR expr
+    """
+    if expr.parse_action:
+        return None
+    fused = expr.fuse()
+    if fused is None or expr.min_length() <= 0:
+        return None
+    if BACKREFERENCE.search(fused[0]):
+        # group numbers shift when the pattern joins a larger one
+        return None
+    return fused
 
 
 def set_parser_names():
