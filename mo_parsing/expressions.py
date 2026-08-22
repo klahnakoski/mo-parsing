@@ -6,7 +6,7 @@ from mo_future import Iterable, text, generator_types
 from mo_imports import export
 
 from mo_parsing import exceptions, whitespaces
-from mo_parsing.core import ParserElement, _PendingSkip
+from mo_parsing.core import ParserElement, _PendingSkip, fuse_row
 from mo_parsing.enhancement import Optional, SkipTo, Many, LookBehind, Group
 from mo_parsing.exceptions import (
     FAIL,
@@ -18,8 +18,10 @@ from mo_parsing.exceptions import (
 from mo_parsing.results import ParseResults
 from mo_parsing.tokens import Empty
 from mo_parsing.utils import (
+    BACKREFERENCE,
     empty_tuple,
     is_forward,
+    regex_atomic,
     regex_iso,
     Log,
     append_config,
@@ -142,11 +144,70 @@ class ParseExpression(ParserElement):
 
 
 def _and_plan(exprs):
-    """(expr, is_look_behind, is_syntax_guard) FOR EACH CHILD"""
+    """(expr, is_look_behind, is_syntax_guard, fused) FOR EACH CHILD"""
     return tuple(
-        (e, isinstance(e, LookBehind), isinstance(e, And.SyntaxErrorGuard))
+        (e, isinstance(e, LookBehind), isinstance(e, And.SyntaxErrorGuard), None)
         for e in exprs
     )
+
+
+def _fuse_run(run, whitespace):
+    """ONE PATTERN FOR A RUN OF ADJACENT CHILDREN, OR None"""
+    white = whitespace.__regex__()[1]
+    if BACKREFERENCE.search(white):
+        return None
+    parts = []
+    for i, (row, pattern, tokens) in enumerate(run):
+        if i and white:
+            parts.append(regex_atomic(white, f"w{i}"))
+        parts.append(regex_atomic(pattern, f"f{i}"))
+    try:
+        regex = regex_compile("".join(parts))
+    except Exception:
+        # a child pattern refuses to be embedded (own group names, inline flags)
+        return None
+    return (
+        regex,
+        tuple(
+            (row[0], regex.groupindex[f"f{i}"], tokens)
+            for i, (row, pattern, tokens) in enumerate(run)
+        ),
+    )
+
+
+def _fused_plan(plan, whitespace):
+    """REPLACE RUNS OF >=2 ADJACENT REGEX-ABLE CHILDREN WITH ONE PATTERN"""
+    acc = []
+    run = []
+
+    def flush():
+        if len(run) < 2:
+            acc.extend(r[0] for r in run)
+        else:
+            fused = _fuse_run(run, whitespace)
+            if fused is None:
+                acc.extend(r[0] for r in run)
+            else:
+                acc.append((None, False, False, fused))
+        run.clear()
+
+    for row in plan:
+        expr, is_look_behind, is_syntax_guard, _ = row
+        fusable = (
+            None
+            if is_look_behind or is_syntax_guard
+            else fuse_row(expr)
+        )
+        if fusable is None:
+            flush()
+            acc.append(row)
+        else:
+            run.append((row, fusable[0], fusable[1]))
+    flush()
+
+    if len(acc) == len(plan):
+        return plan
+    return tuple(acc)
 
 
 class And(ParseExpression):
@@ -158,7 +219,7 @@ class And(ParseExpression):
     suppress backtracking.
     """
 
-    __slots__ = ["plan"]
+    __slots__ = ["plan", "plain_plan"]
     Config = append_config(ParseExpression, "whitespace")
 
     class SyntaxErrorGuard(Empty):
@@ -184,17 +245,23 @@ class And(ParseExpression):
             exprs[:] = tmp
         super(And, self).__init__(exprs)
         self.set_config(whitespace=whitespace or whitespaces.CURRENT)
-        self.plan = _and_plan(self.exprs)
+        self.plan = self.plain_plan = _and_plan(self.exprs)
 
     def copy(self):
         output = ParseExpression.copy(self)
         output.plan = self.plan
+        output.plain_plan = self.plain_plan
         return output
 
     def leave_whitespace(self):
         output = ParseExpression.leave_whitespace(self)
-        output.plan = _and_plan(output.exprs)
+        output.set_plan(output.exprs)
         return output
+
+    def set_plan(self, exprs):
+        """DECIDE THE PER-CHILD PARSE PLAN, FUSING WHOLE RUNS OF CHILDREN"""
+        self.plain_plan = _and_plan(exprs)
+        self.plan = _fused_plan(self.plain_plan, self.parser_config.whitespace)
 
     def streamline(self):
         if self.streamlined:
@@ -245,12 +312,12 @@ class And(ParseExpression):
 
         if same:
             self.streamlined = True
-            self.plan = _and_plan(self.exprs)
+            self.set_plan(self.exprs)
             return self
 
         output = self.copy()
         output.exprs = acc
-        output.plan = _and_plan(acc)
+        output.set_plan(acc)
         output.streamlined = True
         return output
 
@@ -291,7 +358,11 @@ class And(ParseExpression):
         acc = []
         failures = []
         skip = self.parser_config.whitespace.skip
-        for expr, is_look_behind, is_syntax_guard in self.plan:
+        if exceptions.DIAGNOSTICS:
+            plan = self.plain_plan
+        else:
+            plan = self.plan
+        for expr, is_look_behind, is_syntax_guard, fused in plan:
             if end > index:
                 if is_look_behind:
                     index = end
@@ -299,6 +370,18 @@ class And(ParseExpression):
                     index = skip(string, end)
             if is_syntax_guard:
                 encountered_syntax_error = True
+                continue
+            if fused is not None:
+                regex, members = fused
+                found = regex.match(string, index)
+                if not found:
+                    return FAIL
+                for child, group, tokens in members:
+                    s, e = found.span(group)
+                    acc.append(ParseResults(
+                        child, s, e, [string[s:e]] if tokens is None else list(tokens), []
+                    ))
+                end = found.end()
                 continue
             result = expr._parse(string, index, do_actions)
             if result.failed:
