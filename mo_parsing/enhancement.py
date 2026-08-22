@@ -6,7 +6,7 @@ from mo_future import text, is_text
 from mo_imports import export, expect
 
 from mo_parsing import exceptions, whitespaces
-from mo_parsing.core import ParserElement
+from mo_parsing.core import ParserElement, fuse_row
 from mo_parsing.exceptions import (
     FAIL,
     ParseException,
@@ -832,16 +832,48 @@ class Suppress(TokenConverter):
     Converter for ignoring the results of a parsed expression.
     """
 
-    __slots__ = []
+    __slots__ = ["regex"]
 
     def __init__(self, expr):
         if isinstance(expr, text):
             expr = Literal(expr)
         TokenConverter.__init__(self, expr)
-        self.parse_action.append(_suppress_post_parse)
+        self.regex = None
+
+    def copy(self):
+        output = ParseEnhancement.copy(self)
+        output.regex = self.regex
+        return output
 
     def suppress(self):
         return self
+
+    def fuse(self):
+        row = fuse_row(self.expr)
+        if row is None:
+            return None
+        return row[0], empty_tuple
+
+    def streamline(self):
+        if self.streamlined:
+            return self
+        output = ParseEnhancement.streamline(self)
+        if isinstance(output, Suppress) and output.regex is None:
+            fused = output.fuse()
+            if fused:
+                output.regex = regex_compile(fused[0])
+        return output
+
+    def parse_impl(self, string, start, do_actions=True):
+        if self.regex and not exceptions.DIAGNOSTICS:
+            found = self.regex.match(string, start)
+            if found:
+                return ParseResults(self, start, found.end(), [], [])
+            return FAIL
+        result = self.expr._parse(string, start, do_actions)
+        if result.failed:
+            return failure(self, start, string, cause=result)
+        return ParseResults(self, result.start, result.end, [], result.failures)
 
     def __regex__(self):
         return self.expr.__regex__()
