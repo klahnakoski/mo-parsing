@@ -11,11 +11,8 @@ Best of 5 rounds, wall clock, quiet machine:
 
 | state                          | json | infix |  sql |
 |--------------------------------|-----:|------:|-----:|
-| baseline (`d60251c`)           | 56.6 |  67.3 | 78.0 |
-| phase 1 (`0d419d2`)            |  TBD |   TBD |  TBD |
-
-Phase 1, measured under full CPU load as interleaved CPU time (direction only):
-json 130 → 100, infix 150 → 65, sql 165 → 53 ms.
+| baseline (`d60251c`)           | 42.9 |  49.4 | 52.6 |
+| phase 1 (`2ad06c9`)            | 26.0 |  19.1 | 14.2 |
 
 The original profile, mo-sql-parsing (sibling checkout `../mo-sql-parsing`), Python
 3.10, one 403-char `SELECT` with joins, subquery, `IN`, `GROUP BY`, `HAVING`,
