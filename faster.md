@@ -167,12 +167,11 @@ parse 11535, now 7717.
 - `ParseResults.__bool__`/`__iter__`/`_get_item_by_name` walk the tree on every
   `tokens["name"]` (`results.py:44,137,159`); see phase 6.
 
-## Phase 4 — memoization: measure, probably skip
+## Phase 4 — memoization: dropped
 
 Only 29% of `_parse` calls repeat an (element, position); `Forward` repeats 7 of 87.
 A dict probe per call costs about what a token match costs, so a packrat table would
-only pay for `And`/`MatchFirst` nodes, and only if phases 1–3 leave them expensive.
-Re-measure after phase 3; do not build this first.
+only pay for `And`/`MatchFirst` nodes. Dropped without building it.
 
 ## Phase 5 — compile the grammar
 
@@ -293,17 +292,13 @@ change match speed.
 
 ## Order
 
-0. Land the benchmark above where CI can run it (TODO.md already notes no perf check).
-1. Phase 1 — measured, 2.7×, smallest diff.
-2. Phase 2, phase 3 — re-measure after each.
-3. Phase 5.1 regex fusion — done. Then phase 6 layout, then phase 5.2 closures.
-4. Phase 4 only if the phase-3 profile says so. mypyc/Cython only after 5.
+Phases 1, 2, 3 and 5.1 are landed. Next is phase 5.2 (closures), then phase 6
+(result layout). Phase 4 is dropped. mypyc/Cython only after 5.
 
 ## Risks
 
 - Error-message equality: `test_errors.py` and mo-sql-parsing's tests pin exact
   strings; the diagnostic re-parse must produce the same cause tree.
-- Parse actions that read `tokens.failures` or rely on `callDuringTry` running
-  during `Or` measurement.
+- Parse actions that read `tokens.failures`.
 - Regex fusion changes which element a failure is reported against; diagnostic mode
   must fall back to the unfused tree.
