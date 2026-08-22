@@ -24,7 +24,7 @@ from mo_parsing.enhancement import (
     ParseEnhancement,
     LookBehind,
 )
-from mo_parsing.exceptions import failure
+from mo_parsing.exceptions import FAIL, failure
 from mo_parsing.expressions import MatchFirst, And
 from mo_parsing.infix import delimited_list
 from mo_parsing.results import ParseResults, Annotation
@@ -371,6 +371,18 @@ class Regex(ParseEnhancement):
             return ParseResults(self, start, found.end(), [found[0]], [])
         else:
             return failure(self, start, string)
+
+    def _compile(self):
+        # the child grammar is not parsed; only the pattern is
+        regex = self.regex
+
+        def parse(string, start):
+            found = regex.match(string, start)
+            if found:
+                return ParseResults(self, start, found.end(), [found[0]], [])
+            return FAIL
+
+        return parse
 
     def streamline(self):
         # WE RUN THE DANGER OF MAKING PATHELOGICAL REGEX, SO WE DO NOT TRY

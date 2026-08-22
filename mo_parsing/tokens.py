@@ -5,7 +5,7 @@ from mo_imports import export
 
 from mo_parsing import whitespaces
 from mo_parsing.core import ParserElement
-from mo_parsing.exceptions import ParseException, failure
+from mo_parsing.exceptions import FAIL, ParseException, failure
 from mo_parsing.results import ParseResults
 from mo_parsing.utils import *
 from mo_parsing.whitespaces import Whitespace
@@ -24,6 +24,28 @@ class Token(ParserElement):
     def __init__(self):
         ParserElement.__init__(self)
         self.streamlined = True
+
+
+def _compile_regex_match(expr, tokens):
+    """MATCH parser_config.regex; tokens IS None WHEN THE MATCHED TEXT IS THE TOKEN"""
+    regex = expr.parser_config.regex
+    if tokens is None:
+
+        def parse(string, start):
+            found = regex.match(string, start)
+            if found:
+                return ParseResults(expr, start, found.end(), [found.group()], [])
+            return FAIL
+
+    else:
+
+        def parse(string, start):
+            found = regex.match(string, start)
+            if found:
+                return ParseResults(expr, start, found.end(), [tokens], [])
+            return FAIL
+
+    return parse
 
 
 class Empty(Token):
@@ -49,6 +71,12 @@ class Empty(Token):
         end = start
         # end = self.whitespace.skip(string, start)
         return ParseResults(self, start, end, [], [])
+
+    def _compile(self):
+        def parse(string, start):
+            return ParseResults(self, start, start, [], [])
+
+        return parse
 
     def streamline(self):
         return self
@@ -101,6 +129,14 @@ class AnyChar(Token):
             return failure(self, loc, string)
         return ParseResults(self, loc, loc + 1, [string[loc]], [])
 
+    def _compile(self):
+        def parse(string, start):
+            if start >= len(string):
+                return FAIL
+            return ParseResults(self, start, start + 1, [string[start]], [])
+
+        return parse
+
     def min_length(self):
         return 1
 
@@ -138,6 +174,17 @@ class Literal(Token):
             return ParseResults(self, start, end, [match], [])
         return failure(self, start, string)
 
+    def _compile(self):
+        match = self.parser_config.match
+        length = len(match)
+
+        def parse(string, start):
+            if string.startswith(match, start):
+                return ParseResults(self, start, start + length, [match], [])
+            return FAIL
+
+        return parse
+
     def expecting(self):
         return {self.parser_config.match.lower(): [self]}
 
@@ -173,6 +220,19 @@ class SingleCharLiteral(Literal):
             pass
 
         return failure(self, start, string)
+
+    def _compile(self):
+        match = self.parser_config.match
+
+        def parse(string, start):
+            try:
+                if string[start] == match:
+                    return ParseResults(self, start, start + 1, [match], [])
+            except IndexError:
+                pass
+            return FAIL
+
+        return parse
 
     def min_length(self):
         return 1
@@ -235,6 +295,9 @@ class Keyword(Token):
     def reverse(self):
         return Keyword(self.parser_config.match[::-1], self.parser_config.ident_chars)
 
+    def _compile(self):
+        return _compile_regex_match(self, self.parser_config.match)
+
     def fuse(self):
         # the trailing word boundary is zero-width
         match = self.parser_config.match
@@ -289,6 +352,9 @@ class CaselessLiteral(Literal):
     def fuse(self):
         # the pattern escapes an escaped match, so its length is not len(match)
         return self.parser_config.regex.pattern, (self.parser_config.match,), None
+
+    def _compile(self):
+        return _compile_regex_match(self, self.parser_config.match)
 
     def reverse(self):
         return CaselessLiteral(self.parser_config.match[::-1])
@@ -420,6 +486,17 @@ class Word(Token):
         else:
             return failure(self, start, string)
 
+    def _compile(self):
+        regex = self.regex
+
+        def parse(string, start):
+            found = regex.match(string, start)
+            if found:
+                return ParseResults(self, start, found.end(), [found.group()], [])
+            return FAIL
+
+        return parse
+
     def min_length(self):
         return self.parser_config.min
 
@@ -478,6 +555,9 @@ class Char(Token):
 
     def expecting(self):
         return {c: [self] for c in self.parser_config.include}
+
+    def _compile(self):
+        return _compile_regex_match(self, None)
 
     def min_length(self):
         return 1
@@ -560,6 +640,9 @@ class CharsNotIn(Token):
 
     def min_length(self):
         return self.parser_config.min_len
+
+    def _compile(self):
+        return _compile_regex_match(self, None)
 
     def reverse(self):
         return self
@@ -757,6 +840,20 @@ class StringEnd(Token):
         if found:
             return ParseResults(self, start, found.end(), [], [])
         return failure(self, start, string)
+
+    def _compile(self):
+        regex = self.parser_config.regex
+
+        def parse(string, start):
+            end = len(string)
+            if start >= end:
+                return ParseResults(self, end, end, [], [])
+            found = regex.match(string, start)
+            if found:
+                return ParseResults(self, start, found.end(), [], [])
+            return FAIL
+
+        return parse
 
     def min_length(self):
         return 0
