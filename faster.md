@@ -16,6 +16,7 @@ Best of 5 rounds, wall clock, quiet machine:
 | phase 2 (`1c2a8f5`)            | 16.0 |  13.9 |  7.0 |
 | phase 3 (`6f46e28`)            | 13.9 |  11.9 |  6.3 |
 | phase 5.1 (`d3f95bb`)          | 10.8 |  11.1 |  6.0 |
+| phase 5.2 (`9979b89`)          |  7.5 |   9.1 |  4.3 |
 
 The phase-2 pair was measured back to back on a busier machine, which read phase 1
 as 28.5 / 21.0 / 15.3; against that the change is −44% json, −34% infix, −54% sql.
@@ -25,6 +26,10 @@ sitting, which read phase 2 as 16.6 / 14.0 / 7.3: −16% json, −15% infix, −
 
 The phase-5.1 pair alternated with phase 3 three times in one sitting, which read
 phase 3 as 12.6 / 11.4 / 5.9: −14% json, −3% infix, sql unchanged.
+
+The phase-5.2 pair alternated with phase 5.1 three times in one sitting, which read
+phase 5.1 as 10.2 / 10.5 / 5.8: −27% json, −13% infix, −25% sql.  Overall against the
+baseline: 5.7× json, 5.4× infix, 12.2× sql.
 
 The original profile, mo-sql-parsing (sibling checkout `../mo-sql-parsing`), Python
 3.10, one 403-char `SELECT` with joins, subquery, `IN`, `GROUP BY`, `HAVING`,
@@ -179,11 +184,7 @@ This is where "much faster" comes from; the phases above just stop paying for th
 nobody asked for.
 
 1. Regex fusion — landed in `a02dd44`, `5df7ee2`, `65cf5ea`, `d3f95bb` (below).
-2. Closure compilation. `element.compile()` returns a plain function
-   `(string, start) -> result | FAIL` with children captured as locals — no
-   `_parse` → `parse_impl` dispatch, no `self.parser_config.x` namedtuple loads, no
-   `isinstance` at parse time. `Parser.__init__` compiles once. Source-text generation
-   (`exec`) only if closures still show measurable call overhead.
+2. Closure compilation — landed (below).
 
 Measured on a small grammar, `ident "=" (number | quoted) ";"` × 100 (1109 chars),
 hand-written stand-ins for what each generator would emit:
@@ -255,6 +256,64 @@ only 7 run sites are reached by the benchmark query, all multi-word keyword phra
 all of single characters. json wins because `Suppress` of one character is 34% of its
 `_parse` calls and its `key : value` member fuses.
 
+### Phase 5.2 — closure compilation (measured −27% json, −13% infix, −25% sql)
+
+`element.compile()` returns a plain function `(string, start) -> ParseResults | FAIL`
+that captures what it needs — the children's compiled functions, the whitespace `skip`,
+literal strings, compiled patterns, the element itself, the action list. Nothing is read
+through `self.parser_config` at parse time.
+
+- `_parse` stays the reference implementation: the diagnostic re-parse, `Debugger` and
+  `profile.py` all use it, and the last two install themselves by patching
+  `ParserElement._parse`. `Parser._parse_fn()` therefore hands back `self.element._parse`
+  while diagnosing or while that attribute is patched, and `self.compiled` otherwise.
+  `_scan_string` picks once, outside its loop.
+- So compiled code never reads `exceptions.DIAGNOSTICS`, never calls `failure()` — every
+  failure is `FAIL` — and `And` always walks its fused `plan`, never `plain_plan`.
+- `ParserElement.compile()` is `_with_actions(self, self._compile())`; the default
+  `_compile()` is `self.parse_impl`, so an unspecialized class (and any user subclass)
+  gets exactly what `_parse` did, one frame cheaper. `_with_actions` returns its argument
+  unchanged for the elements with no actions and no `fail_action`, and emits a
+  no-fail_action, one-action variant for the rest — which is nearly every mo-sql-parsing
+  token.
+- `do_actions` is gone from compiled code. `SkipTo` was the only caller that passed
+  `False` (its scan), and it stays interpreted; `callDuringTry` then means nothing,
+  because compiled code always runs the actions.
+- Specialized: `And` (a compile-time tuple of rows, with a tighter loop when no row is a
+  lookbehind, a fused run, or a child that can return an empty `Many`; the `-` guard row
+  is dropped, since in fast mode it only picks a failure type), `MatchFirst` (with the
+  `transparent` shortcut), `Or`, `Fast`, `MatchAll`, `Many`/`ZeroOrMore`/`Optional`,
+  `ParseEnhancement` (so `Group`, `Dict`, `OpenDict`), `Suppress`, `Combine`, `LookAhead`,
+  `NotAny`, `Forward`, and the leaves `Literal`, `SingleCharLiteral`, `Keyword`,
+  `CaselessLiteral`, `Word`, `Char`, `CharsNotIn`, `AnyChar`, `Empty`, `StringEnd`,
+  `Regex`. Interpreted: `SkipTo`, `PrecededBy`, and the positional tokens
+  (`LineStart`/`LineEnd`/`StringStart`/`WordStart`/`WordEnd`/`White`/`CloseMatch`).
+- `Forward` compiles to a trampoline over a one-element cell, so a cycle terminates and a
+  `<<` after `finalize()` still takes effect: the cell holds `_recompile` until the first
+  parse, and `<<` puts it back. That makes compilation lazy — `Parser.__init__` costs
+  0.2 ms on mo-sql-parsing and the first parse pays ~30 ms; the ~0.7 s to build that
+  grammar is unchanged.
+- `MatchAll` had to be compiled, not left interpreted: its `parse_impl` calls `_parse` on
+  every child, which pulled whole subtrees back into the interpreter — 909 of them per
+  sql parse. Afterwards the three benchmarks make no interpreted call at all, except the
+  `StringEnd` that `parse_all` checks once per parse.
+- Not worth doing, measured: a middle `And` loop for rows that need the empty-`Many`
+  check but no lookbehind or fused run (no change on any benchmark); a leaner
+  `ParseResults.__init__` — dropping the `end == -1` guard and the `DIAGNOSTICS` read is
+  20% of that constructor in isolation and 5767 constructions per json parse, but it does
+  not show end to end, so `ParseResults` is left alone for phase 6.
+
+What the sql profile looks like now (5 parses, 4.5 ms/parse): `And`'s general loop
+3515 calls/0.006 s, `ParseResults.__iter__` 13125/0.006, `_get_item_by_name` 3155/0.003,
+`ParseResults.__init__` 8150/0.003, `isinstance` 38030/0.003, `infix.make_tree`
+115/0.002, `re.match` 6060/0.002, `Many` 955/0.002. Roughly a quarter of what is left is
+result *access* — `__iter__`, `_get_item_by_name`, `items`, `.type`, `.name`,
+`__getitem__` — which is phase 6, not the matcher. infix is the extreme case: its own
+`make_tree` parse action and `ParseResults.__iter__` are two thirds of its profile, and
+`ParserElement.__eq__` is called 55815 times from `make_tree`'s `o == op`. Generated
+source (`exec`) is not indicated: no named call overhead is left to remove that codegen
+would reach.
+
 ### Other targets
 
 1. The regex engine is already another language: fusion hands the matching to `re`'s
@@ -292,8 +351,8 @@ change match speed.
 
 ## Order
 
-Phases 1, 2, 3 and 5.1 are landed. Next is phase 5.2 (closures), then phase 6
-(result layout). Phase 4 is dropped. mypyc/Cython only after 5.
+Phases 1, 2, 3, 5.1 and 5.2 are landed. Next is phase 6 (result layout). Phase 4
+is dropped. mypyc/Cython only after 5.
 
 ## Risks
 

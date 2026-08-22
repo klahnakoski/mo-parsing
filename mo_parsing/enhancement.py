@@ -6,7 +6,7 @@ from mo_future import text, is_text
 from mo_imports import export, expect
 
 from mo_parsing import exceptions, whitespaces
-from mo_parsing.core import ParserElement, fuse_row
+from mo_parsing.core import ParserElement, _with_actions, fuse_row
 from mo_parsing.exceptions import (
     FAIL,
     ParseException,
@@ -72,6 +72,17 @@ class ParseEnhancement(ParserElement):
             return failure(self, start, string, cause=result)
         return ParseResults(self, result.start, result.end, [result], result.failures)
 
+    def _compile(self):
+        child = self.expr.compile()
+
+        def parse(string, start):
+            result = child(string, start)
+            if result.failed:
+                return FAIL
+            return ParseResults(self, result.start, result.end, [result], [])
+
+        return parse
+
     def streamline(self):
         if self.streamlined:
             return self
@@ -132,6 +143,18 @@ class LookAhead(ParseEnhancement):
 
         return ParseResults(self, start, start, [result], result.failures)
 
+    def _compile(self):
+        child = self.expr.compile()
+
+        def parse(string, start):
+            result = child(string, start)
+            if result.failed:
+                return result
+            result.__class__ = Annotation
+            return ParseResults(self, start, start, [result], [])
+
+        return parse
+
     def __regex__(self):
         return "*", f"(?={self.expr.__regex__()[1]})"
 
@@ -172,6 +195,26 @@ class NotAny(LookAhead):
             if self.expr._parse(string, start, do_actions).failed:
                 return ParseResults(self, start, start, [], [])
             return failure(self, start, string)
+
+    def _compile(self):
+        regex = self.regex
+        if regex:
+
+            def parse_regex(string, start):
+                if regex.match(string, start):
+                    return ParseResults(self, start, start, [], [])
+                return FAIL
+
+            return parse_regex
+
+        child = self.expr.compile()
+
+        def parse(string, start):
+            if child(string, start).failed:
+                return ParseResults(self, start, start, [], [])
+            return FAIL
+
+        return parse
 
     def streamline(self):
         output = ParseEnhancement.streamline(self)
@@ -285,6 +328,41 @@ class Many(ParseEnhancement):
             else:
                 return ParseResults(self, start, end, acc, failures)
 
+    def _compile(self):
+        child = self.expr.compile()
+        config = self.parser_config
+        skip = config.whitespace.skip
+        min_match = config.min_match
+        max_match = config.max_match
+        stopper = config.end
+
+        def parse(string, start):
+            acc = []
+            end = start
+            count = 0
+            length = len(string)
+            while end < length:
+                index = skip(string, end)
+                if stopper is not None and stopper.match(string, index):
+                    break
+                result = child(string, index)
+                if result.failed:
+                    break
+                end = result.end
+                if result.end - result.start:
+                    acc.append(result)
+                    count += 1
+                    if count >= max_match:
+                        break
+
+            if count < min_match or max_match < count:
+                return FAIL
+            if count:
+                return ParseResults(self, acc[0].start, acc[-1].end, acc, [])
+            return ParseResults(self, start, end, acc, [])
+
+        return parse
+
     def streamline(self):
         if self.streamlined:
             return self
@@ -390,6 +468,19 @@ class ZeroOrMore(Many):
             return ParseResults(self, start, start, [], [result])
         return result
 
+    def _compile(self):
+        inner = Many._compile(self)
+        if self.parser_config.min_match == 0 and self.parser_config.max_match == MAX_INT:
+            return inner  # nothing left for Many to fail on
+
+        def parse(string, start):
+            result = inner(string, start)
+            if result.failed:
+                return ParseResults(self, start, start, [], [])
+            return result
+
+        return parse
+
     def __str__(self):
         if self.parser_name:
             return self.parser_name
@@ -417,6 +508,18 @@ class Optional(Many):
         if results.failed:
             return ParseResults(self, start, start, self.parser_config.default_value, [results])
         return ParseResults(self, results.start, results.end, [results], results.failures)
+
+    def _compile(self):
+        child = self.expr.compile()
+        default_value = self.parser_config.default_value
+
+        def parse(string, start):
+            results = child(string, start)
+            if results.failed:
+                return ParseResults(self, start, start, default_value, [])
+            return ParseResults(self, results.start, results.end, [results], [])
+
+        return parse
 
     def __str__(self):
         if self.parser_name:
@@ -454,6 +557,10 @@ class SkipTo(ParseEnhancement):
 
     def min_length(self):
         return 0
+
+    def _compile(self):
+        # the scan parses the target with do_actions=False; keep the interpreter
+        return self.parse_impl
 
     def __regex__(self):
         prec, pattern = self.expr.__regex__()
@@ -554,6 +661,7 @@ class Forward(ParserElement):
         "_in_expecting",
         "__in_whitespace",
         "transparent",
+        "compiled_body",
     ]
 
     def __init__(self, expr=Null):
@@ -561,6 +669,7 @@ class Forward(ParserElement):
         self.expr = None
         self.used_by = []
         self.transparent = False
+        self.compiled_body = None
 
         self._str = None  # avoid recursion
         self._in_regex = None  # avoid recursion
@@ -577,6 +686,7 @@ class Forward(ParserElement):
         output._in_expecting = None
         output.__in_whitespace = False
         output.transparent = False
+        output.compiled_body = None
 
         output.used_by = []
         return output
@@ -597,6 +707,8 @@ class Forward(ParserElement):
             other = other.expr
         norm = whitespaces.CURRENT.normalize(other)
         self.expr = norm.streamline()
+        if self.compiled_body is not None:
+            self.compiled_body[0] = self._recompile
         self.check_recursion()
         return self
 
@@ -607,6 +719,8 @@ class Forward(ParserElement):
         """
         self.parse_action.append(wrap_parse_action(action))
         self.transparent = False
+        if self.compiled_body is not None:
+            self.compiled_body[0] = self._recompile
         return self
 
     def leave_whitespace(self):
@@ -621,6 +735,8 @@ class Forward(ParserElement):
             return self
 
         self.expr = self.expr.streamline()
+        if self.compiled_body is not None:
+            self.compiled_body[0] = self._recompile
         self.check_recursion()
         return self
 
@@ -674,6 +790,47 @@ class Forward(ParserElement):
         if result.failed or (self.transparent and not result._type.token_name):
             return result
         return ForwardResults(self, result.start, result.end, [result], result.failures)
+
+    def compile(self):
+        compiled = self.compiled
+        if compiled is not None:
+            return compiled
+        # the body is late-bound: `<<` may replace it, even after finalize
+        cell = self.compiled_body = [self._recompile]
+
+        def trampoline(string, start):
+            return cell[0](string, start)
+
+        self.compiled = trampoline
+        return trampoline
+
+    def _recompile(self, string, start):
+        if not self.expr:
+            body = _with_actions(self, self.parse_impl)  # warn while parsing
+        else:
+            body = _with_actions(self, self._compile())
+        self.compiled_body[0] = body
+        return body(string, start)
+
+    def _compile(self):
+        child = self.expr.compile()
+        if self.transparent:
+
+            def parse_transparent(string, start):
+                result = child(string, start)
+                if result.failed or not result._type.token_name:
+                    return result
+                return ForwardResults(self, result.start, result.end, [result], [])
+
+            return parse_transparent
+
+        def parse(string, start):
+            result = child(string, start)
+            if result.failed:
+                return result
+            return ForwardResults(self, result.start, result.end, [result], [])
+
+        return parse
 
     def __regex__(self):
         if self._in_regex:
@@ -738,6 +895,24 @@ class Combine(TokenConverter):
         return ParseResults(
             self, start, result.end, [result.as_string(sep=self.parser_config.separator)], result.failures,
         )
+
+    def _compile(self):
+        expr = self.expr
+        if is_forward(expr):
+            # the child's parse_impl is skipped here, so cycles need the interpreter
+            return self.parse_impl
+        separator = self.parser_config.separator
+        inner = expr._compile()  # Combine calls parse_impl, not _parse
+
+        def parse(string, start):
+            result = inner(string, start)
+            if result.failed:
+                return FAIL
+            return ParseResults(
+                self, start, result.end, [result.as_string(sep=separator)], []
+            )
+
+        return parse
 
     def streamline(self):
         if self.streamlined:
@@ -875,6 +1050,28 @@ class Suppress(TokenConverter):
             return failure(self, start, string, cause=result)
         return ParseResults(self, result.start, result.end, [], result.failures)
 
+    def _compile(self):
+        regex = self.regex
+        if regex:
+
+            def parse_regex(string, start):
+                found = regex.match(string, start)
+                if found:
+                    return ParseResults(self, start, found.end(), [], [])
+                return FAIL
+
+            return parse_regex
+
+        child = self.expr.compile()
+
+        def parse(string, start):
+            result = child(string, start)
+            if result.failed:
+                return FAIL
+            return ParseResults(self, result.start, result.end, [], [])
+
+        return parse
+
     def __regex__(self):
         return self.expr.__regex__()
 
@@ -953,6 +1150,9 @@ class PrecededBy(LookAhead):
 
         ret.__class__ = Annotation
         return ParseResults(self, start, start, [ret], [])
+
+    def _compile(self):
+        return self.parse_impl
 
     def __regex__(self):
         if self.parser_config.exact:

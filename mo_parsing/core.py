@@ -7,8 +7,8 @@ from typing import List
 from mo_future import text, first
 from mo_imports import export, expect
 
-from mo_parsing import whitespaces
-from mo_parsing.exceptions import ParseException, diagnostics, failure
+from mo_parsing import exceptions, whitespaces
+from mo_parsing.exceptions import FAIL, ParseException, diagnostics, failure
 from mo_parsing.results import ParseResults
 from mo_parsing.utils import (
     BACKREFERENCE,
@@ -129,8 +129,15 @@ class Parser(object):
         with self.whitespace:
             self.element = Group(element)
 
+        self.compiled = self.element.compile()
         self.named = bool(element.token_name)
         self.streamlined = True
+
+    def _parse_fn(self):
+        """COMPILED FUNCTION, UNLESS DIAGNOSING OR _parse IS PATCHED"""
+        if exceptions.DIAGNOSTICS or ParserElement._parse is not _plain_parse:
+            return self.element._parse
+        return self.compiled
 
     @entrypoint
     def parse(self, string, parse_all=False):
@@ -175,7 +182,7 @@ class Parser(object):
 
     def _parse_once(self, string, parse_all):
         start = self.whitespace.skip(string, 0)
-        tokens = self.element._parse(string, start)
+        tokens = self._parse_fn()(string, start)
         if tokens.failed:
             return tokens
         if parse_all:
@@ -210,9 +217,10 @@ class Parser(object):
         instrlen = len(string)
         start = end = 0
         matches = 0
+        parse = self._parse_fn()
         while end <= instrlen and matches < max_matches:
             start = self.whitespace.skip(string, end)
-            tokens = self.element._parse(string, start)
+            tokens = parse(string, start)
             if tokens.failed:
                 end = start + 1
             else:
@@ -331,6 +339,7 @@ class ParserElement(object):
         "streamlined",
         "min_length_cache",
         "parser_config",
+        "compiled",
     ]
     Config = namedtuple("Config", ["callDuringTry", "fail_action"])
 
@@ -340,6 +349,7 @@ class ParserElement(object):
         self.token_name = ""
         self.streamlined = False
         self.min_length_cache = -1
+        self.compiled = None
 
         self.parser_config = self.Config(*([None] * len(self.Config._fields)))
         self.set_config(callDuringTry=False, fail_action=None)
@@ -359,6 +369,7 @@ class ParserElement(object):
         output.parser_config = self.parser_config
         output.streamlined = self.streamlined
         output.min_length_cache = -1
+        output.compiled = None
         return output
 
     def set_parser_name(self, name):
@@ -489,6 +500,20 @@ class ParserElement(object):
 
     def parse_impl(self, string, start, do_actions=True):
         return ParseResults(self, start, start, [], [])
+
+    def compile(self):
+        """
+        RETURN FUNCTION (string, start) -> ParseResults | FAIL, DOING WHAT
+        _parse DOES, BUT ONLY FOR THE (NON-DIAGNOSTIC) FAST PATH
+        """
+        compiled = self.compiled
+        if compiled is None:
+            compiled = self.compiled = _with_actions(self, self._compile())
+        return compiled
+
+    def _compile(self):
+        """RETURN FUNCTION (string, start) EQUIVALENT TO parse_impl"""
+        return self.parse_impl
 
     def _parse(self, string, start, do_actions=True):
         result = self.parse_impl(string, start, do_actions)
@@ -818,6 +843,58 @@ class _PendingSkip(ParserElement):
 
     def parse_impl(self, *args):
         Log.error("use of `...` expression without following SkipTo target expression")
+
+
+_plain_parse = ParserElement._parse
+
+
+def _with_actions(expr, inner):
+    """ADD fail_action AND THE parse actions TO A COMPILED FUNCTION"""
+    actions = expr.parse_action
+    fail_action = expr.parser_config.fail_action
+    if not actions and not fail_action:
+        return inner
+
+    if not fail_action and len(actions) == 1:
+        action = actions[0]
+
+        def parse_one(string, start):
+            result = inner(string, start)
+            if result.failed:
+                return result
+            try:
+                next_result = action(result, result.start, string)
+            except ParseException:
+                return FAIL
+            if next_result.end < result.end:
+                Log.error(
+                    "parse action {{name}} not allowed to roll back the end of parsing",
+                    name=action.__name__,
+                )
+            return next_result
+
+        return parse_one
+
+    def parse(string, start):
+        result = inner(string, start)
+        if result.failed:
+            fail_action and fail_action(expr, start, string, result)
+            return FAIL
+        for fn in actions:
+            try:
+                next_result = fn(result, result.start, string)
+            except ParseException as cause:
+                fail_action and fail_action(expr, start, string, cause)
+                return FAIL
+            if next_result.end < result.end:
+                Log.error(
+                    "parse action {{name}} not allowed to roll back the end of parsing",
+                    name=fn.__name__,
+                )
+            result = next_result
+        return result
+
+    return parse
 
 
 def fuse_row(expr):
