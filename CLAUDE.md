@@ -34,7 +34,9 @@ Class hierarchy, all rooted at `ParserElement` (`core.py`):
 
 **Circular imports** are broken with `mo_imports` `expect()`/`export()` pairs — the big tuples at the top of `core.py`/`whitespaces.py` are placeholders filled in when the defining module later calls `export()`. Keep this pattern when adding cross-module references.
 
-**Regex acceleration**: every element can emit an equivalent regex via `__regex__()`; used internally to fail fast (e.g. `Fast` dispatch on first character). `regex.py`'s `Regex` goes the other way, parsing a regex string into a grammar.
+**Regex acceleration**: every element can emit an equivalent regex via `__regex__()`; used internally to fail fast (e.g. `Fast` dispatch on first character), and via `fuse()` to run a `Suppress` or a run of adjacent leaf children of an `And` as one atomic pattern (fast path only). `regex.py`'s `Regex` goes the other way, parsing a regex string into a grammar.
+
+**Failure is a value**: `parse_impl`/`_parse` return a `ParseResults` or a failure value (`.failed` is True — the shared `FAIL`, or a real `ParseException` while `exceptions.DIAGNOSTICS` is on); they never raise for an ordinary mismatch. `Parser` re-parses once under `diagnostics()` after a failure to build the message, so the fast path carries no causes. Parse actions may still raise `ParseException`; `_parse` converts it.
 
 **Results**: `ParseResults` is an n-ary tree; `.type` points at the ParserElement that produced it (keeps results small). Name lookup (`result["name"]`) walks the tree but stops at `Group` boundaries. Parse actions take `(tokens, index, string)` — the reverse of pyparsing — and `expr / lambda t: ...` is shorthand for `add_parse_action`.
 
@@ -60,3 +62,4 @@ Class hierarchy, all rooted at `ParserElement` (`core.py`):
 - `mo_parsing/` and `tests/` are also SVN working copies (`.svn/` inside each); the `svn` git branch mirrors SVN state. Sync is done with the `/svn-sync` skill, not by hand.
 - `tests/README.md` covers contributor setup; `README.md` documents the pyparsing differences (immutability, whitespace context, no `*` wildcard, no pickle).
 - `TODO.md` — live work queue; `SESSION_LOG.md` — dated per-session history; `mo_parsing/BUGS.md` — known module defects (flows to SVN).
+- `faster.md` — the speed campaign: plan, measured numbers per phase, what is next; `tests/bench.py` is the benchmark it cites.
