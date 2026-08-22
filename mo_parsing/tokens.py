@@ -107,6 +107,9 @@ class AnyChar(Token):
     def reverse(self):
         return self
 
+    def fuse(self):
+        return ".", None
+
     def __regex__(self):
         return "*", "."
 
@@ -143,6 +146,9 @@ class Literal(Token):
 
     def reverse(self):
         return Literal(self.parser_config.match[::-1])
+
+    def fuse(self):
+        return self.parser_config.regex.pattern, (self.parser_config.match,)
 
     def __regex__(self):
         return "+", self.parser_config.regex.pattern
@@ -227,6 +233,9 @@ class Keyword(Token):
 
     def reverse(self):
         return Keyword(self.parser_config.match[::-1], self.parser_config.ident_chars)
+
+    def fuse(self):
+        return self.parser_config.regex.pattern, (self.parser_config.match,)
 
     def __regex__(self):
         return "+", self.parser_config.regex.pattern
@@ -418,6 +427,9 @@ class Word(Token):
             return self
         raise NotImplementedError()
 
+    def fuse(self):
+        return self.regex.pattern, None
+
     def __regex__(self):
         return "+", self.regex.pattern
 
@@ -465,6 +477,9 @@ class Char(Token):
 
     def reverse(self):
         return self
+
+    def fuse(self):
+        return self.parser_config.regex.pattern, None
 
     def __regex__(self):
         return "*", self.parser_config.regex.pattern
@@ -541,6 +556,9 @@ class CharsNotIn(Token):
 
     def reverse(self):
         return self
+
+    def fuse(self):
+        return self.parser_config.regex.pattern, None
 
     def __regex__(self):
         return self.parser_config.prec, self.parser_config.regex.pattern

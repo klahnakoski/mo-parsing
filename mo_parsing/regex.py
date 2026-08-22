@@ -392,6 +392,11 @@ class Regex(ParseEnhancement):
     def min_length(self):
         return self.expr.min_length()
 
+    def fuse(self):
+        if self.regex:
+            return self.regex.pattern, None
+        return None
+
     def __regex__(self):
         if self.regex:
             return "|", self.regex.pattern
