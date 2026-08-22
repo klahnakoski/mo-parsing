@@ -46,7 +46,10 @@ class ParseException(Exception):
     @property
     def causes(self):
         if self._causes is None:
-            self._causes = sort_causes(enlist(self.unsorted_cause))
+            if self.unsorted_cause is None:
+                self._causes = []
+            else:
+                self._causes = sort_causes(enlist(self.unsorted_cause))
         return self._causes
 
     @property
