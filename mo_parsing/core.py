@@ -8,7 +8,7 @@ from mo_future import text, first
 from mo_imports import export, expect
 
 from mo_parsing import whitespaces
-from mo_parsing.exceptions import ParseException
+from mo_parsing.exceptions import ParseException, diagnostics
 from mo_parsing.results import ParseResults
 from mo_parsing.utils import Log, MAX_INT, wrap_parse_action, empty_tuple
 
@@ -70,15 +70,18 @@ locker = RLock()
 streamlined = {}
 
 
+def _reset():
+    for a in _reset_actions:
+        try:
+            a()
+        except Exception as e:
+            Log.error("reset action failed", cause=e)
+
+
 def entrypoint(func):
     def output(*args, **kwargs):
         with locker:
-            for a in _reset_actions:
-                try:
-                    a()
-                except Exception as e:
-                    Log.error("reset action failed", cause=e)
-
+            _reset()
             return func(*args, **kwargs)
 
     return output
@@ -153,24 +156,34 @@ class Parser(object):
     parse_string = parse
 
     def _parseString(self, string, parse_all=False):
-        start = self.whitespace.skip(string, 0)
         try:
-            tokens = self.element._parse(string, start)
-            if parse_all:
-                end = self.whitespace.skip(string, tokens.end)
-                try:
-                    StringEnd()._parse(string, end)
-                except ParseException as pe:
-                    raise ParseException(
-                        self.element, 0, string, cause=tokens.failures + [pe]
-                    ) from None
+            return self._parse_once(string, parse_all)
+        except ParseException:
+            pass
+        # FAILED: PARSE AGAIN, COLLECTING CAUSES FOR THE MESSAGE
+        _reset()
+        with diagnostics():
+            try:
+                return self._parse_once(string, parse_all)
+            except ParseException as cause:
+                raise cause.best_cause from None
 
-            if self.named:
-                return tokens
-            else:
-                return tokens.tokens[0]
-        except ParseException as cause:
-            raise cause.best_cause from None
+    def _parse_once(self, string, parse_all):
+        start = self.whitespace.skip(string, 0)
+        tokens = self.element._parse(string, start)
+        if parse_all:
+            end = self.whitespace.skip(string, tokens.end)
+            try:
+                StringEnd()._parse(string, end)
+            except ParseException as pe:
+                raise ParseException(
+                    self.element, 0, string, cause=tokens.failures + [pe]
+                ) from None
+
+        if self.named:
+            return tokens
+        else:
+            return tokens.tokens[0]
 
     @entrypoint
     def scan_string(self, string, max_matches=MAX_INT, overlap=False):

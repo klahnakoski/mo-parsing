@@ -1,5 +1,6 @@
 # encoding: utf-8
 import json
+from contextlib import contextmanager
 
 from mo_future import text, is_text, sort_using_cmp
 from mo_imports import export, expect
@@ -9,13 +10,27 @@ from mo_parsing.utils import col, line, lineno
 
 MatchFirst = expect("MatchFirst")
 
+# collect and rank failure causes; Parser turns this on to re-parse after a failure
+DIAGNOSTICS = False
+
+
+@contextmanager
+def diagnostics():
+    global DIAGNOSTICS
+    previous = DIAGNOSTICS
+    DIAGNOSTICS = True
+    try:
+        yield
+    finally:
+        DIAGNOSTICS = previous
+
 
 class ParseException(Exception):
     """base exception class for all parsing runtime exceptions"""
 
     # Performance tuning: we construct a *lot* of these, so keep this
     # constructor as small and fast as possible
-    __slots__ = ["expr", "start", "string", "unsorted_cause", "_msg", "_causes"]
+    __slots__ = ["expr", "start", "string", "unsorted_cause", "_msg", "_causes", "_loc"]
 
     def __init__(self, expr, start, string, msg="", cause=None):
         if not isinstance(string, str):
@@ -23,9 +38,10 @@ class ParseException(Exception):
         self.expr = expr
         self.start = start
         self.string = string
-        self.unsorted_cause = cause
+        self.unsorted_cause = cause if DIAGNOSTICS else None
         self._msg = msg
         self._causes = None
+        self._loc = None
 
     @property
     def causes(self):
@@ -68,13 +84,13 @@ class ParseException(Exception):
 
     @property
     def loc(self):
-        causes = self.causes
-        if not causes:
-            return self.start
-        first_cause = causes[0]
-        if isinstance(first_cause, ParseException):
-            return first_cause.loc
-        return self.start
+        if self._loc is None:
+            causes = self.causes
+            if causes and isinstance(causes[0], ParseException):
+                self._loc = causes[0].loc
+            else:
+                self._loc = self.start
+        return self._loc
 
     @property
     def message(self):

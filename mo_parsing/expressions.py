@@ -640,7 +640,7 @@ def _distinct(a, b):
 
 
 class Fast(ParserElement):
-    __slots__ = ["lookup", "regex", "all_keys"]
+    __slots__ = ["lookup", "regex", "expecting_message"]
 
     def __init__(self, maps):
         ParserElement.__init__(self)
@@ -685,7 +685,7 @@ class Fast(ParserElement):
 
         self.lookup = {k: e for k, e in shorter}
         self.regex = regex_compile("|".join(regex_caseless(k) for k, _ in shorter))
-        self.all_keys = list(sorted(all_keys))
+        self.expecting_message = "expecting one of " + json.dumps(sorted(all_keys))
 
     def get_short_list(self, string, start):
         """
@@ -702,9 +702,7 @@ class Fast(ParserElement):
         if found:
             index = found.group(0).lower()
             if index not in self.lookup:
-                raise ParseException(
-                    self, start, string, "expecting one of " + json.dumps(self.all_keys)
-                )
+                raise ParseException(self, start, string, self.expecting_message)
             exprs = self.lookup[index]
 
             causes = []
@@ -716,9 +714,7 @@ class Fast(ParserElement):
 
             raise ParseException(self, start, string, cause=causes)
         else:
-            raise ParseException(
-                self, start, string, "expecting one of " + json.dumps(self.all_keys)
-            )
+            raise ParseException(self, start, string, self.expecting_message)
 
 
 class MatchAll(ParseExpression):
