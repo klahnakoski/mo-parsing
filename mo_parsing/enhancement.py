@@ -852,7 +852,7 @@ class Suppress(TokenConverter):
         row = fuse_row(self.expr)
         if row is None:
             return None
-        return row[0], empty_tuple
+        return row[0], empty_tuple, row[2]
 
     def streamline(self):
         if self.streamlined:

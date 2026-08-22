@@ -466,8 +466,9 @@ class ParserElement(object):
 
     def fuse(self):
         """
-        RETURN (pattern, tokens) WHEN ONE REGEX MATCH CAN STAND FOR THIS ELEMENT
-        tokens IS None WHEN THE MATCHED TEXT IS THE TOKEN
+        RETURN (pattern, tokens, length) WHEN ONE REGEX MATCH CAN STAND FOR THIS
+        ELEMENT.  tokens IS None WHEN THE MATCHED TEXT IS THE TOKEN.  length IS
+        THE CHARACTERS ALWAYS CONSUMED, OR None WHEN IT VARIES
         """
         return None
 
@@ -821,18 +822,17 @@ class _PendingSkip(ParserElement):
 
 def fuse_row(expr):
     """
-    RETURN (pattern, tokens) IF ONE REGEX MATCH CAN STAND FOR expr, ELSE None
+    RETURN (pattern, tokens, length) IF ONE REGEX MATCH CAN STAND FOR expr
     """
     if expr.parse_action:
         return None
     fused = expr.fuse()
     if fused is None or expr.min_length() <= 0:
         return None
-    pattern, tokens = fused
-    if BACKREFERENCE.search(pattern):
+    if BACKREFERENCE.search(fused[0]):
         # group numbers shift when the pattern joins a larger one
         return None
-    return pattern, tokens
+    return fused
 
 
 def set_parser_names():

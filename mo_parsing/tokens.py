@@ -108,7 +108,7 @@ class AnyChar(Token):
         return self
 
     def fuse(self):
-        return ".", None
+        return ".", None, 1
 
     def __regex__(self):
         return "*", "."
@@ -148,7 +148,8 @@ class Literal(Token):
         return Literal(self.parser_config.match[::-1])
 
     def fuse(self):
-        return self.parser_config.regex.pattern, (self.parser_config.match,)
+        match = self.parser_config.match
+        return self.parser_config.regex.pattern, (match,), len(match)
 
     def __regex__(self):
         return "+", self.parser_config.regex.pattern
@@ -235,7 +236,9 @@ class Keyword(Token):
         return Keyword(self.parser_config.match[::-1], self.parser_config.ident_chars)
 
     def fuse(self):
-        return self.parser_config.regex.pattern, (self.parser_config.match,)
+        # the trailing word boundary is zero-width
+        match = self.parser_config.match
+        return self.parser_config.regex.pattern, (match,), len(match)
 
     def __regex__(self):
         return "+", self.parser_config.regex.pattern
@@ -282,6 +285,10 @@ class CaselessLiteral(Literal):
                 self, start, found.end(), [self.parser_config.match], []
             )
         return failure(self, start, string)
+
+    def fuse(self):
+        # the pattern escapes an escaped match, so its length is not len(match)
+        return self.parser_config.regex.pattern, (self.parser_config.match,), None
 
     def reverse(self):
         return CaselessLiteral(self.parser_config.match[::-1])
@@ -428,7 +435,7 @@ class Word(Token):
         raise NotImplementedError()
 
     def fuse(self):
-        return self.regex.pattern, None
+        return self.regex.pattern, None, None
 
     def __regex__(self):
         return "+", self.regex.pattern
@@ -479,7 +486,7 @@ class Char(Token):
         return self
 
     def fuse(self):
-        return self.parser_config.regex.pattern, None
+        return self.parser_config.regex.pattern, None, 1
 
     def __regex__(self):
         return "*", self.parser_config.regex.pattern
@@ -558,7 +565,10 @@ class CharsNotIn(Token):
         return self
 
     def fuse(self):
-        return self.parser_config.regex.pattern, None
+        config = self.parser_config
+        # any other min/max leaves a quantifier that may give back
+        exact = 1 if config.min_len == 1 == config.max_len else None
+        return config.regex.pattern, None, exact
 
     def __regex__(self):
         return self.parser_config.prec, self.parser_config.regex.pattern

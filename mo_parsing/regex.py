@@ -394,7 +394,7 @@ class Regex(ParseEnhancement):
 
     def fuse(self):
         if self.regex:
-            return self.regex.pattern, None
+            return self.regex.pattern, None, None
         return None
 
     def __regex__(self):

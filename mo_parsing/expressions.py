@@ -23,6 +23,7 @@ from mo_parsing.utils import (
     is_forward,
     regex_atomic,
     regex_iso,
+    regex_range,
     Log,
     append_config,
     regex_caseless,
@@ -151,16 +152,34 @@ def _and_plan(exprs):
     )
 
 
+def _white_pattern(whitespace, name):
+    """WHITESPACE BETWEEN TWO FUSED CHILDREN, MATCHED GREEDILY AND ATOMICALLY"""
+    if whitespace.ignore_list:
+        pattern = whitespace.__regex__()[1]
+        if BACKREFERENCE.search(pattern):
+            return None
+        return regex_atomic(pattern, name)
+    if not whitespace.white_chars:
+        return ""
+    chars = regex_range(whitespace.white_chars)
+    # a star over one character class can not give back what the lookahead forbids
+    return f"{chars}*(?!{chars})"
+
+
 def _fuse_run(run, whitespace):
     """ONE PATTERN FOR A RUN OF ADJACENT CHILDREN, OR None"""
-    white = whitespace.__regex__()[1]
-    if BACKREFERENCE.search(white):
-        return None
     parts = []
-    for i, (row, pattern, tokens) in enumerate(run):
-        if i and white:
-            parts.append(regex_atomic(white, f"w{i}"))
-        parts.append(regex_atomic(pattern, f"f{i}"))
+    for i, (row, pattern, tokens, length) in enumerate(run):
+        if i:
+            white = _white_pattern(whitespace, f"w{i}")
+            if white is None:
+                return None
+            parts.append(white)
+        if length is None:
+            parts.append(regex_atomic(pattern, f"f{i}"))
+        else:
+            # a fixed-length match has nothing to give back
+            parts.append(f"(?P<f{i}>{pattern})")
     try:
         regex = regex_compile("".join(parts))
     except Exception:
@@ -170,7 +189,7 @@ def _fuse_run(run, whitespace):
         regex,
         tuple(
             (row[0], regex.groupindex[f"f{i}"], tokens)
-            for i, (row, pattern, tokens) in enumerate(run)
+            for i, (row, _, tokens, _) in enumerate(run)
         ),
     )
 
@@ -202,7 +221,7 @@ def _fused_plan(plan, whitespace):
             flush()
             acc.append(row)
         else:
-            run.append((row, fusable[0], fusable[1]))
+            run.append((row,) + fusable)
     flush()
 
     if len(acc) == len(plan):
