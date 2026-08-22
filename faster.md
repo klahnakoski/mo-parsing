@@ -327,7 +327,7 @@ would reach.
    boundary and the actions cap the win. Pays only if the actions move too, i.e. a
    mo-sql-parsing rewrite. Measure after tiers 1–2; do not start here.
 
-## Phase 6 — typed results ("type markup")
+## Phase 6 — typed results ("type markup"): dropped
 
 What it does not buy: speed via mypy. mypy checks, it does not compile. mypyc and
 Cython compile the *runtime*, not the grammar, and give 1.5–3× on interpretive
@@ -351,8 +351,8 @@ change match speed.
 
 ## Order
 
-Phases 1, 2, 3, 5.1 and 5.2 are landed. Next is phase 6 (result layout). Phase 4
-is dropped. mypyc/Cython only after 5.
+Phases 1, 2, 3, 5.1 and 5.2 are landed. Phases 4 and 6 are dropped by decision; the
+campaign is closed at json 7.9 / infix 9.4 / sql 4.4 ms.
 
 ## Risks
 

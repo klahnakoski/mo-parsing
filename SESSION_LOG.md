@@ -10,4 +10,5 @@
 - mo-black run over all touched mo_parsing/*.py and tests (98a7b4e)
 - svn-sync: published mo_parsing@r3088, tests@r3089 (before 5.2); no inbound. 5.2 + formatting
   still to publish
-- next: phase 6 (result layout)
+- phase 6 dropped by decision; speed campaign closed (faster.md records the final numbers)
+- svn-sync: published mo_parsing@r3090, tests@r3091 (phase 5.2 + formatting); no inbound
