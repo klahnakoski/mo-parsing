@@ -1105,6 +1105,66 @@ class MatchAll(ParseExpression):
 
         return ParseResults(self, results[0].start, results[-1].end, results, failures)
 
+    def _compile(self):
+        plan = tuple(
+            (e, e.compile(), mi, ma)
+            for e, mi, ma in zip(
+                self.exprs, self.parser_config.min_match, self.parser_config.max_match
+            )
+        )
+        skip = self.parser_config.whitespace.skip
+
+        def parse(string, start):
+            end = start
+            match_order = []
+            todo = list(plan)
+            count = [0] * len(plan)
+            while todo:
+                for i, (c, (e, child, mi, ma)) in enumerate(zip(count, todo)):
+                    result = child(string, end)
+                    if result.failed:
+                        continue
+                    loc = result.end
+                    if loc == end:
+                        continue
+                    end = skip(string, loc)
+                    c2 = count[i] = c + 1
+                    if c2 >= ma:
+                        del todo[i]
+                        del count[i]
+                    match_order.append((e, child))
+                    break
+                else:
+                    break
+
+            for c, (e, child, mi, ma) in zip(count, todo):
+                if c < mi:
+                    return FAIL
+
+            found = set(id(m) for m, _ in match_order)
+            if any(id(e) not in found and mi > 0 for e, _, mi, _ in plan):
+                return FAIL
+
+            # add any unmatched Optionals, in case they have default values defined
+            match_order += [(e, child) for e, child, _, _ in plan if id(e) not in found]
+
+            if not match_order:
+                return ParseResults(self, start, start, [], [])
+
+            # TODO: CAN WE AVOID THIS RE-PARSE?
+            results = []
+            end = start
+            for e, child in match_order:
+                result = child(string, end)
+                if result.failed:
+                    return result
+                end = skip(string, result.end)
+                results.append(result)
+
+            return ParseResults(self, results[0].start, results[-1].end, results, [])
+
+        return parse
+
     def __str__(self):
         if self.parser_name:
             return self.parser_name
