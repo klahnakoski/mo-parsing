@@ -134,6 +134,33 @@ nobody asked for.
    `isinstance` at parse time. `Parser.__init__` compiles once. Source-text generation
    (`exec`) only if closures still show measurable call overhead.
 
+Measured on a small grammar, `ident "=" (number | quoted) ";"` × 100 (1109 chars),
+hand-written stand-ins for what each generator would emit:
+
+| variant                                                   | µs/parse | speedup |
+|-----------------------------------------------------------|---------:|--------:|
+| current engine                                            |     5381 |       — |
+| closures: constants captured, `FAIL` return, tuple results|     1103 |    4.9× |
+| flat source: leaves inlined, no config loads, no calls    |      925 |    5.8× |
+| one fused regex for the whole statement                   |      173 |     31× |
+
+The closure figure includes dropping failure tracking and `ParseResults`, so it is
+phases 1–3 plus codegen together. Inlining leaves into flat source adds ~15% over
+closures — the parameter-lookup removal is the small part. Regex fusion is the lever.
+
+### Other targets
+
+1. The regex engine is already another language: fusion hands the matching to `re`'s
+   C engine with no toolchain and no wheels. Do this first.
+2. Compile the generated flat source with mypyc/Cython. It is the code they like —
+   plain functions, ints, strs, no `__class__` games — and mo-sql-parsing's grammar is
+   static, so it could ship a pre-generated, pre-compiled parser module. Typically 2–4×
+   on what tier 1 leaves; cost is per-Python-version wheels in CI.
+3. Emit Rust/C directly: fastest matcher, but parse actions and result materialization
+   stay in Python (mo-sql-parsing's actions build the JSON), so every node crosses the
+   boundary and the actions cap the win. Pays only if the actions move too, i.e. a
+   mo-sql-parsing rewrite. Measure after tiers 1–2; do not start here.
+
 ## Phase 6 — typed results ("type markup")
 
 What it does not buy: speed via mypy. mypy checks, it does not compile. mypyc and
