@@ -191,6 +191,11 @@ class And(ParseExpression):
         output.plan = self.plan
         return output
 
+    def leave_whitespace(self):
+        output = ParseExpression.leave_whitespace(self)
+        output.plan = _and_plan(output.exprs)
+        return output
+
     def streamline(self):
         if self.streamlined:
             return self
