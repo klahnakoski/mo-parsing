@@ -863,9 +863,14 @@ ipv6_address = Combine(
 ).set_parser_name("IPv6 address")
 "IPv6 address (long, short, or mixed form)"
 
-mac_address = (
-    Regex(r"[0-9a-fA-F]{2}([:.-])[0-9a-fA-F]{2}(?:\1[0-9a-fA-F]{2}){4}").set_parser_name("MAC address")
-)
+_hex_byte = Word(hexnums, exact=2)
+with whitespaces.NO_WHITESPACE:
+    # THE DELIMITER MUST BE THE SAME THROUGHOUT
+    mac_address = Combine(
+        _hex_byte + (":" + _hex_byte) * 5
+        | _hex_byte + ("." + _hex_byte) * 5
+        | _hex_byte + ("-" + _hex_byte) * 5
+    ).set_parser_name("MAC address")
 "MAC address xx:xx:xx:xx:xx (may also have '-' or '.' delimiters)"
 
 

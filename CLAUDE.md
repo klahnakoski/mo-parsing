@@ -1,0 +1,65 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## What this is
+
+`mo-parsing` — a fork of pyparsing optimized for speed (originally for mo-sql-parsing). PEG parser combinators defined with Python operators. Published to PyPI.
+
+## Commands
+
+```
+pip install -r tests/requirements.txt -r packaging/requirements.txt
+set PYTHONPATH=.
+python -m unittest discover tests                       # full suite
+python -m unittest tests.test_unit.TestParsing.test_x   # single test
+```
+
+CI (`.github/workflows/build.yml`) runs `python -m unittest discover .` on Python 3.8–3.13. `setup.py` lives in `packaging/` (CI copies it to the repo root); version and metadata are in `packaging/setuptools.json`. Runtime deps are only `mo-dots` and `mo-future`.
+
+Branches: `dev` is the working branch; `master` is release. Test matrix runs on master/tags, coverage on dev.
+
+## Architecture
+
+Class hierarchy, all rooted at `ParserElement` (`core.py`):
+
+- `tokens.py` — leaf matchers (`Literal`, `Word`, `Keyword`, `CharsNotIn`, positional tokens…)
+- `expressions.py` — combinators over child lists: `And`, `Or`, `MatchFirst`, `MatchAll`, plus `Fast` (regex-dispatched MatchFirst)
+- `enhancement.py` — single-child wrappers: `Many`/`OneOrMore`/`ZeroOrMore`/`Optional`, `Group`, `Suppress`, `Combine`, `Forward`, lookaheads
+- `helpers.py`, `infix.py` — prebuilt grammars; `infix_notation` is the fork's raison d'être (fast operator-precedence parsing)
+
+**ParserElements are immutable.** `add_parse_action()`, `set_token_name()` (`("name")` call syntax), operators — all return *new* elements that must be assigned. Dropping the return value is the classic bug when porting pyparsing code. `Forward` is the one deliberate mutability escape hatch.
+
+**Whitespace context** (`whitespaces.py`): `whitespaces.CURRENT` is a global consulted at *parser-creation* time (not parse time). `with Whitespace() as ws:` scopes it; it defines skipped characters, ignored patterns (comments), and what `Literal`/`Keyword` mean. Operators like `+` call `whitespaces.CURRENT.normalize()` to promote strings to elements, so the active context is baked into every element at construction.
+
+**Circular imports** are broken with `mo_imports` `expect()`/`export()` pairs — the big tuples at the top of `core.py`/`whitespaces.py` are placeholders filled in when the defining module later calls `export()`. Keep this pattern when adding cross-module references.
+
+**Regex acceleration**: every element can emit an equivalent regex via `__regex__()`; used internally to fail fast (e.g. `Fast` dispatch on first character), and via `fuse()` to run a `Suppress` or a run of adjacent leaf children of an `And` as one atomic pattern (fast path only). `regex.py`'s `Regex` goes the other way, parsing a regex string into a grammar.
+
+**Failure is a value**: `parse_impl`/`_parse` return a `ParseResults` or a failure value (`.failed` is True — the shared `FAIL`, or a real `ParseException` while `exceptions.DIAGNOSTICS` is on); they never raise for an ordinary mismatch. `Parser` re-parses once under `diagnostics()` after a failure to build the message, so the fast path carries no causes. Parse actions may still raise `ParseException`; `_parse` converts it.
+
+**Results**: `ParseResults` is an n-ary tree; `.type` points at the ParserElement that produced it (keeps results small). Name lookup (`result["name"]`) walks the tree but stops at `Group` boundaries. Parse actions take `(tokens, index, string)` — the reverse of pyparsing — and `expr / lambda t: ...` is shorthand for `add_parse_action`.
+
+## Using it in a grammar
+
+- Do not compose your own regexes. `Regex(RESERVED + "|" + FUNCTION_HEAD)` and
+  `Regex(r"%s(?![\w./-])" % text)` are string arithmetic standing where the algebra
+  already is one: alternation is `|` over elements, a reserved-word list is
+  `MatchFirst([Keyword(k, ident_chars=...) for k in WORDS])` — `Keyword` compiles to the
+  word plus exactly that boundary lookahead — and the engine can only optimize what the
+  string glue does not hide from it.
+- Limit `Regex` to unique patterns, not common ones. A regex earns its place for an
+  irregular lexical atom — an escape sequence, a quoted-string body — while structure is
+  the combinators': `Keyword("function") + fn_name + Optional(parens)` reads against the
+  language, where `Regex(r"function[ \t]+[A-Za-z_][\w-]*(?:[ \t]*\([ \t]*\))?")` is a
+  grammar hiding inside a string no production name can explain. Never spell whitespace
+  (`[ \t]*`) into a pattern — the whitespace context owns it — and an identifier is
+  `Word(alphas + "_", alphanums + "_-")`, not a charset regex.
+
+## Layout notes
+
+- `pyparsing/` holds upstream pyparsing's tests and examples for reference/compat checking; not part of the package and not run by CI.
+- `mo_parsing/` and `tests/` are also SVN working copies (`.svn/` inside each); the `svn` git branch mirrors SVN state. Sync is done with the `/svn-sync` skill, not by hand.
+- `tests/README.md` covers contributor setup; `README.md` documents the pyparsing differences (immutability, whitespace context, no `*` wildcard, no pickle).
+- `TODO.md` — live work queue; `SESSION_LOG.md` — dated per-session history; `mo_parsing/BUGS.md` — known module defects (flows to SVN).
+- `faster.md` — the speed campaign: plan, measured numbers per phase, what is next; `tests/bench.py` is the benchmark it cites.

@@ -1,24 +1,29 @@
 # encoding: utf-8
 import json
 from collections import OrderedDict
-from operator import itemgetter
 
 from mo_future import Iterable, text, generator_types
 from mo_imports import export
 
-from mo_parsing import whitespaces
-from mo_parsing.core import ParserElement, _PendingSkip
-from mo_parsing.enhancement import Optional, SkipTo, Many, LookBehind
+from mo_parsing import exceptions, whitespaces
+from mo_parsing.core import ParserElement, _PendingSkip, fuse_row
+from mo_parsing.enhancement import Optional, SkipTo, Many, LookBehind, Group
 from mo_parsing.exceptions import (
+    FAIL,
     ParseException,
     ParseSyntaxException,
+    failure,
+    failure_at,
 )
 from mo_parsing.results import ParseResults
 from mo_parsing.tokens import Empty
 from mo_parsing.utils import (
+    BACKREFERENCE,
     empty_tuple,
     is_forward,
+    regex_atomic,
     regex_iso,
+    regex_range,
     Log,
     append_config,
     regex_caseless,
@@ -139,6 +144,105 @@ class ParseExpression(ParserElement):
         return ParserElement.__call__(self, name)
 
 
+def _and_plan(exprs):
+    """(expr, is_look_behind, is_syntax_guard, fused) FOR EACH CHILD"""
+    return tuple(
+        (e, isinstance(e, LookBehind), isinstance(e, And.SyntaxErrorGuard), None)
+        for e in exprs
+    )
+
+
+def _empty_many(expr, seen):
+    """CAN expr RETURN AN EMPTY, ZERO-LENGTH Many RESULT? (CONSERVATIVE)"""
+    if id(expr) in seen:
+        return False
+    seen.add(id(expr))
+    if expr.parse_action:
+        # an action decides the result type
+        return True
+    if isinstance(expr, Many):
+        return expr.parser_config.min_match == 0
+    if isinstance(expr, MatchFirst) and expr.transparent:
+        return any(_empty_many(e, seen) for e in expr.exprs)
+    if is_forward(expr):
+        # ForwardResults.type is the child's type, and `<<` may change it later
+        return True
+    return False
+
+
+def _white_pattern(whitespace, name):
+    """WHITESPACE BETWEEN TWO FUSED CHILDREN, MATCHED GREEDILY AND ATOMICALLY"""
+    if whitespace.ignore_list:
+        pattern = whitespace.__regex__()[1]
+        if BACKREFERENCE.search(pattern):
+            return None
+        return regex_atomic(pattern, name)
+    if not whitespace.white_chars:
+        return ""
+    chars = regex_range(whitespace.white_chars)
+    # a star over one character class can not give back what the lookahead forbids
+    return f"{chars}*(?!{chars})"
+
+
+def _fuse_run(run, whitespace):
+    """ONE PATTERN FOR A RUN OF ADJACENT CHILDREN, OR None"""
+    parts = []
+    for i, (row, pattern, tokens, length) in enumerate(run):
+        if i:
+            white = _white_pattern(whitespace, f"w{i}")
+            if white is None:
+                return None
+            parts.append(white)
+        if length is None:
+            parts.append(regex_atomic(pattern, f"f{i}"))
+        else:
+            # a fixed-length match has nothing to give back
+            parts.append(f"(?P<f{i}>{pattern})")
+    try:
+        regex = regex_compile("".join(parts))
+    except Exception:
+        # a child pattern refuses to be embedded (own group names, inline flags)
+        return None
+    return (
+        regex,
+        tuple(
+            (row[0], regex.groupindex[f"f{i}"], tokens)
+            for i, (row, _, tokens, _) in enumerate(run)
+        ),
+    )
+
+
+def _fused_plan(plan, whitespace):
+    """REPLACE RUNS OF >=2 ADJACENT REGEX-ABLE CHILDREN WITH ONE PATTERN"""
+    acc = []
+    run = []
+
+    def flush():
+        if len(run) < 2:
+            acc.extend(r[0] for r in run)
+        else:
+            fused = _fuse_run(run, whitespace)
+            if fused is None:
+                acc.extend(r[0] for r in run)
+            else:
+                acc.append((None, False, False, fused))
+        run.clear()
+
+    for row in plan:
+        expr, is_look_behind, is_syntax_guard, _ = row
+        fusable = None if is_look_behind or is_syntax_guard else fuse_row(expr)
+        if fusable is None:
+            flush()
+            acc.append(row)
+        else:
+            run.append((row,) + fusable)
+    flush()
+
+    if len(acc) == len(plan):
+        return plan
+    return tuple(acc)
+
+
 class And(ParseExpression):
     """
     Requires all given `ParseExpression` s to be found in the given order.
@@ -148,7 +252,7 @@ class And(ParseExpression):
     suppress backtracking.
     """
 
-    __slots__ = []
+    __slots__ = ["plan", "plain_plan"]
     Config = append_config(ParseExpression, "whitespace")
 
     class SyntaxErrorGuard(Empty):
@@ -174,6 +278,23 @@ class And(ParseExpression):
             exprs[:] = tmp
         super(And, self).__init__(exprs)
         self.set_config(whitespace=whitespace or whitespaces.CURRENT)
+        self.plan = self.plain_plan = _and_plan(self.exprs)
+
+    def copy(self):
+        output = ParseExpression.copy(self)
+        output.plan = self.plan
+        output.plain_plan = self.plain_plan
+        return output
+
+    def leave_whitespace(self):
+        output = ParseExpression.leave_whitespace(self)
+        output.set_plan(output.exprs)
+        return output
+
+    def set_plan(self, exprs):
+        """DECIDE THE PER-CHILD PARSE PLAN, FUSING WHOLE RUNS OF CHILDREN"""
+        self.plain_plan = _and_plan(exprs)
+        self.plan = _fused_plan(self.plain_plan, self.parser_config.whitespace)
 
     def streamline(self):
         if self.streamlined:
@@ -224,10 +345,12 @@ class And(ParseExpression):
 
         if same:
             self.streamlined = True
+            self.set_plan(self.exprs)
             return self
 
         output = self.copy()
         output.exprs = acc
+        output.set_plan(acc)
         output.streamlined = True
         return output
 
@@ -267,34 +390,130 @@ class And(ParseExpression):
         end = index = start
         acc = []
         failures = []
-        for i, expr in enumerate(self.exprs):
+        skip = self.parser_config.whitespace.skip
+        if exceptions.DIAGNOSTICS:
+            plan = self.plain_plan
+        else:
+            plan = self.plan
+        for expr, is_look_behind, is_syntax_guard, fused in plan:
             if end > index:
-                if isinstance(expr, LookBehind):
+                if is_look_behind:
                     index = end
                 else:
-                    index = self.parser_config.whitespace.skip(string, end)
-            if isinstance(expr, And.SyntaxErrorGuard):
+                    index = skip(string, end)
+            if is_syntax_guard:
                 encountered_syntax_error = True
                 continue
-            try:
-                result = expr._parse(string, index, do_actions)
-                failures.extend(result.failures)
-                if not result and index == result.end and isinstance(result.type, Many) and result.type.parser_config.min_match == 0:
+            if fused is not None:
+                regex, members = fused
+                found = regex.match(string, index)
+                if not found:
+                    return FAIL
+                for child, group, tokens in members:
+                    s, e = found.span(group)
+                    acc.append(ParseResults(
+                        child,
+                        s,
+                        e,
+                        [string[s:e]] if tokens is None else list(tokens),
+                        [],
+                    ))
+                end = found.end()
+                continue
+            result = expr._parse(string, index, do_actions)
+            if result.failed:
+                failures.append(result)
+                if encountered_syntax_error:
+                    return failure_at(result, failures, ParseSyntaxException)
+                else:
+                    return failure_at(result, failures)
+            failures.extend(result.failures)
+            if (
+                index == result.end
+                and isinstance(result.type, Many)
+                and result.type.parser_config.min_match == 0
+                and not result
+            ):
+                continue
+            acc.append(result)
+            end = result.end
+
+        return ParseResults(self, start, end, acc, failures)
+
+    def _compile(self):
+        skip = self.parser_config.whitespace.skip
+        rows = []
+        for expr, is_look_behind, is_syntax_guard, fused in self.plan:
+            if is_syntax_guard:
+                # the guard only picks the failure type, which fast mode drops
+                continue
+            if fused is not None:
+                rows.append((None, False, fused[0], fused[1], False))
+            else:
+                rows.append((
+                    expr.compile(),
+                    is_look_behind,
+                    None,
+                    None,
+                    _empty_many(expr, set()),
+                ))
+        rows = tuple(rows)
+
+        if all(not lb and rx is None and not ck for _, lb, rx, _, ck in rows):
+            children = tuple(row[0] for row in rows)
+
+            def parse_children(string, start):
+                end = index = start
+                acc = []
+                for child in children:
+                    if end > index:
+                        index = skip(string, end)
+                    result = child(string, index)
+                    if result.failed:
+                        return FAIL
+                    acc.append(result)
+                    end = result.end
+                return ParseResults(self, start, end, acc, [])
+
+            return parse_children
+
+        def parse(string, start):
+            end = index = start
+            acc = []
+            for child, is_look_behind, regex, members, check_empty in rows:
+                if end > index:
+                    index = end if is_look_behind else skip(string, end)
+                if regex is not None:
+                    found = regex.match(string, index)
+                    if not found:
+                        return FAIL
+                    for member, group, tokens in members:
+                        s, e = found.span(group)
+                        acc.append(ParseResults(
+                            member,
+                            s,
+                            e,
+                            [string[s:e]] if tokens is None else list(tokens),
+                            [],
+                        ))
+                    end = found.end()
+                    continue
+                result = child(string, index)
+                if result.failed:
+                    return FAIL
+                if (
+                    check_empty
+                    and index == result.end
+                    and isinstance(result.type, Many)
+                    and result.type.parser_config.min_match == 0
+                    and not result
+                ):
                     continue
                 acc.append(result)
                 end = result.end
-            except ParseException as pe:
-                failures.append(pe)
-                if encountered_syntax_error:
-                    raise ParseSyntaxException(
-                        pe.expr, pe.loc, pe.string, cause=failures
-                    ) from None
-                else:
-                    raise ParseException(
-                        pe.expr, pe.loc, pe.string, cause=failures
-                    ) from None
+            return ParseResults(self, start, end, acc, [])
 
-        return ParseResults(self, start, end, acc, failures)
+        return parse
 
     def __add__(self, other):
         if other is Ellipsis:
@@ -391,77 +610,68 @@ class Or(ParseExpression):
 
     def parse_impl(self, string, start, do_actions=True):
         failures = []
-        matches = []
+        # THE LONGEST MATCH WINS; TIES GO TO THE FIRST ALTERNATIVE
+        best = None
 
         for e in self.alternate:
             if isinstance(e, Fast):
                 for ee in e.get_short_list(string, start):
-                    try:
-                        end = ee._parse(string, start).end
-                        matches.append((end, ee))
-                    except ParseException as err:
-                        failures.append(err)
+                    result = ee._parse(string, start, do_actions)
+                    if result.failed:
+                        failures.append(result)
+                    elif best is None or result.end > best.end:
+                        best = result
             else:
-                try:
-                    end = e._parse(string, start).end
-                    matches.append((end, e))
-                except ParseException as err:
-                    failures.append(err)
+                result = e._parse(string, start, do_actions)
+                if result.failed:
+                    failures.append(result)
+                elif best is None or result.end > best.end:
+                    best = result
 
-        if not matches:
-            raise ParseException(
+        if best is None:
+            return failure(
                 self,
                 start,
                 string,
                 msg="no defined alternatives to match",
                 cause=failures,
             )
-        if len(matches) == 1:
-            _, expr = matches[0]
-            result = expr._parse(string, start, do_actions)
-            failures.extend(result.failures)
-            return ParseResults(self, result.start, result.end, [result], failures)
 
-        if matches:
-            # re-evaluate all matches in descending order of length of match, in case attached actions
-            # might change whether or how much they match of the input.
-            matches.sort(key=itemgetter(0), reverse=True)
+        failures.extend(best.failures)
+        return ParseResults(self, best.start, best.end, [best], failures)
 
-            if not do_actions:
-                # no further conditions or parse actions to change the selection of
-                # alternative, so the first match will be the best match
-                _, expr = matches[0]
-                result = expr._parse(string, start, do_actions)
-                failures.extend(result.failures)
-                return ParseResults(self, result.start, result.end, [result], failures)
+    def _compile(self):
+        rows = tuple(
+            (None,) + e.compile_lookup()
+            if isinstance(e, Fast)
+            else (e.compile(), None, None)
+            for e in self.alternate
+        )
 
-            longest = -1, None
-            for loc, expr in matches:
-                if loc <= longest[0]:
-                    # already have a longer match than this one will deliver, we are done
-                    return longest
+        def parse(string, start):
+            # THE LONGEST MATCH WINS; TIES GO TO THE FIRST ALTERNATIVE
+            best = None
+            for child, regex, lookup in rows:
+                if child is None:
+                    found = regex.match(string, start)
+                    if not found:
+                        continue
+                    for shortlisted in lookup.get(found.group(0).lower(), ()):
+                        result = shortlisted(string, start)
+                        if not result.failed and (
+                            best is None or result.end > best.end
+                        ):
+                            best = result
+                    continue
+                result = child(string, start)
+                if not result.failed and (best is None or result.end > best.end):
+                    best = result
 
-                try:
-                    result = expr._parse(string, start, do_actions)
-                except ParseException as err:
-                    failures.append(err)
-                else:
-                    failures.extend(result.failures)
-                    if result.end >= loc:
-                        return ParseResults(
-                            self, result.start, result.end, [result], failures
-                        )
-                    # didn't match as much as before
-                    elif result.end > longest[0]:
-                        longest = (
-                            result.end,
-                            ParseResults(
-                                self, result.start, result.end, [result], failures,
-                            ),
-                        )
+            if best is None:
+                return FAIL
+            return ParseResults(self, best.start, best.end, [best], [])
 
-            if longest != (-1, None):
-                return longest
+        return parse
 
     def check_recursion(self, seen=empty_tuple):
         seen_more = seen + (self,)
@@ -492,15 +702,17 @@ class MatchFirst(ParseExpression):
     match. May be constructed using the `|` operator.
     """
 
-    __slots__ = ["alternate"]
+    __slots__ = ["alternate", "transparent"]
 
     def __init__(self, exprs):
         ParseExpression.__init__(self, exprs)
         self.alternate = self.exprs
+        self.transparent = False
 
     def copy(self):
         output = ParseExpression.copy(self)
         output.alternate = self.alternate
+        output.transparent = False
         return output
 
     def _min_length(self):
@@ -518,14 +730,51 @@ class MatchFirst(ParseExpression):
         failures = []
 
         for e in self.alternate:
-            try:
-                result = e._parse(string, start, do_actions)
-                failures.extend(result.failures)
-                return ParseResults(self, result.start, result.end, [result], failures)
-            except ParseException as cause:
-                failures.append(cause)
+            result = e._parse(string, start, do_actions)
+            if result.failed:
+                failures.append(result)
+                continue
+            if (
+                self.transparent
+                and not result._type.token_name
+                and not isinstance(result.type, Group)
+                and not exceptions.DIAGNOSTICS
+            ):
+                # THE WRAPPER IS ONLY VISIBLE AT THE ROOT OF A LOOKUP
+                return result
+            failures.extend(result.failures)
+            return ParseResults(self, result.start, result.end, [result], failures)
 
-        raise ParseException(self, start, string, cause=failures)
+        return failure(self, start, string, cause=failures)
+
+    def _compile(self):
+        children = tuple(e.compile() for e in self.alternate)
+        if self.transparent:
+
+            def parse_transparent(string, start):
+                for child in children:
+                    result = child(string, start)
+                    if result.failed:
+                        continue
+                    if not result._type.token_name and not isinstance(
+                        result.type, Group
+                    ):
+                        # THE WRAPPER IS ONLY VISIBLE AT THE ROOT OF A LOOKUP
+                        return result
+                    return ParseResults(self, result.start, result.end, [result], [])
+                return FAIL
+
+            return parse_transparent
+
+        def parse(string, start):
+            for child in children:
+                result = child(string, start)
+                if result.failed:
+                    continue
+                return ParseResults(self, result.start, result.end, [result], [])
+            return FAIL
+
+        return parse
 
     def streamline(self):
         if self.streamlined:
@@ -542,6 +791,7 @@ class MatchFirst(ParseExpression):
                 return output.exprs[0]
 
         output.alternate = faster(output.exprs)
+        output.transparent = not output.parse_action and not output.token_name
 
         output.streamlined = True
         output.check_recursion()
@@ -640,7 +890,7 @@ def _distinct(a, b):
 
 
 class Fast(ParserElement):
-    __slots__ = ["lookup", "regex", "all_keys"]
+    __slots__ = ["lookup", "regex", "expecting_message"]
 
     def __init__(self, maps):
         ParserElement.__init__(self)
@@ -685,7 +935,7 @@ class Fast(ParserElement):
 
         self.lookup = {k: e for k, e in shorter}
         self.regex = regex_compile("|".join(regex_caseless(k) for k, _ in shorter))
-        self.all_keys = list(sorted(all_keys))
+        self.expecting_message = "expecting one of " + json.dumps(sorted(all_keys))
 
     def get_short_list(self, string, start):
         """
@@ -702,23 +952,41 @@ class Fast(ParserElement):
         if found:
             index = found.group(0).lower()
             if index not in self.lookup:
-                raise ParseException(
-                    self, start, string, "expecting one of " + json.dumps(self.all_keys)
-                )
+                return failure(self, start, string, self.expecting_message)
             exprs = self.lookup[index]
 
             causes = []
             for e in exprs:
-                try:
-                    return e._parse(string, start, do_actions)
-                except ParseException as cause:
-                    causes.append(cause)
+                result = e._parse(string, start, do_actions)
+                if not result.failed:
+                    return result
+                causes.append(result)
 
-            raise ParseException(self, start, string, cause=causes)
+            return failure(self, start, string, cause=causes)
         else:
-            raise ParseException(
-                self, start, string, "expecting one of " + json.dumps(self.all_keys)
-            )
+            return failure(self, start, string, self.expecting_message)
+
+    def compile_lookup(self):
+        """RETURN (regex, {first characters: compiled shortlist})"""
+        return (
+            self.regex,
+            {k: tuple(e.compile() for e in exprs) for k, exprs in self.lookup.items()},
+        )
+
+    def _compile(self):
+        regex, lookup = self.compile_lookup()
+
+        def parse(string, start):
+            found = regex.match(string, start)
+            if not found:
+                return FAIL
+            for child in lookup.get(found.group(0).lower(), ()):
+                result = child(string, start)
+                if not result.failed:
+                    return result
+            return FAIL
+
+        return parse
 
 
 class MatchAll(ParseExpression):
@@ -782,27 +1050,29 @@ class MatchAll(ParseExpression):
         failures = []
         while todo:
             for i, (c, (e, mi, ma)) in enumerate(zip(count, todo)):
-                try:
-                    result = e._parse(string, end)
-                    failures.extend(result.failures)
-                    loc = result.end
-                    if loc == end:
-                        continue
-                    end = self.parser_config.whitespace.skip(string, loc)
-                    c2 = count[i] = c + 1
-                    if c2 >= ma:
-                        del todo[i]
-                        del count[i]
-                    match_order.append(e)
-                    break
-                except ParseException as pe:
-                    failures.append(pe)
+                result = e._parse(string, end)
+                if result.failed:
+                    failures.append(result)
+                    continue
+                failures.extend(result.failures)
+                loc = result.end
+                if loc == end:
+                    continue
+                end = self.parser_config.whitespace.skip(string, loc)
+                c2 = count[i] = c + 1
+                if c2 >= ma:
+                    del todo[i]
+                    del count[i]
+                match_order.append(e)
+                break
             else:
                 break
 
         for c, (e, mi, ma) in zip(count, todo):
             if c < mi:
-                raise ParseException(
+                if not exceptions.DIAGNOSTICS:
+                    return FAIL
+                return failure(
                     self,
                     start,
                     string,
@@ -817,8 +1087,10 @@ class MatchAll(ParseExpression):
             if id(e) not in found and mi > 0
         ]
         if missing:
+            if not exceptions.DIAGNOSTICS:
+                return FAIL
             missing = ", ".join(text(e) for e in missing)
-            raise ParseException(
+            return failure(
                 self,
                 start,
                 string,
@@ -837,10 +1109,72 @@ class MatchAll(ParseExpression):
         end = start
         for e in match_order:
             result = e._parse(string, end, do_actions)
+            if result.failed:
+                return result
             end = self.parser_config.whitespace.skip(string, result.end)
             results.append(result)
 
         return ParseResults(self, results[0].start, results[-1].end, results, failures)
+
+    def _compile(self):
+        plan = tuple(
+            (e, e.compile(), mi, ma)
+            for e, mi, ma in zip(
+                self.exprs, self.parser_config.min_match, self.parser_config.max_match
+            )
+        )
+        skip = self.parser_config.whitespace.skip
+
+        def parse(string, start):
+            end = start
+            match_order = []
+            todo = list(plan)
+            count = [0] * len(plan)
+            while todo:
+                for i, (c, (e, child, mi, ma)) in enumerate(zip(count, todo)):
+                    result = child(string, end)
+                    if result.failed:
+                        continue
+                    loc = result.end
+                    if loc == end:
+                        continue
+                    end = skip(string, loc)
+                    c2 = count[i] = c + 1
+                    if c2 >= ma:
+                        del todo[i]
+                        del count[i]
+                    match_order.append((e, child))
+                    break
+                else:
+                    break
+
+            for c, (e, child, mi, ma) in zip(count, todo):
+                if c < mi:
+                    return FAIL
+
+            found = set(id(m) for m, _ in match_order)
+            if any(id(e) not in found and mi > 0 for e, _, mi, _ in plan):
+                return FAIL
+
+            # add any unmatched Optionals, in case they have default values defined
+            match_order += [(e, child) for e, child, _, _ in plan if id(e) not in found]
+
+            if not match_order:
+                return ParseResults(self, start, start, [], [])
+
+            # TODO: CAN WE AVOID THIS RE-PARSE?
+            results = []
+            end = start
+            for e, child in match_order:
+                result = child(string, end)
+                if result.failed:
+                    return result
+                end = skip(string, result.end)
+                results.append(result)
+
+            return ParseResults(self, results[0].start, results[-1].end, results, [])
+
+        return parse
 
     def __str__(self):
         if self.parser_name:

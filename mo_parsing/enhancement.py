@@ -5,15 +5,21 @@ from mo_dots import Null, is_null
 from mo_future import text, is_text
 from mo_imports import export, expect
 
-from mo_parsing import whitespaces
-from mo_parsing.core import ParserElement
-from mo_parsing.exceptions import ParseException, RecursiveGrammarException
+from mo_parsing import exceptions, whitespaces
+from mo_parsing.core import ParserElement, _with_actions, fuse_row
+from mo_parsing.exceptions import (
+    FAIL,
+    ParseException,
+    RecursiveGrammarException,
+    failure,
+)
 from mo_parsing.results import ParseResults, ForwardResults, Annotation
 from mo_parsing.utils import (
     Log,
     enlist,
     empty_tuple,
     regex_iso,
+    regex_prec,
     append_config,
     regex_compile,
     wrap_parse_action,
@@ -22,7 +28,15 @@ from mo_parsing.utils import MAX_INT, is_forward
 
 Word: object
 (Token, NoMatch, Literal, Keyword, Word, CharsNotIn, StringEnd, Empty, Char,) = expect(
-    "Token", "NoMatch", "Literal", "Keyword", "Word", "CharsNotIn", "StringEnd", "Empty", "Char",
+    "Token",
+    "NoMatch",
+    "Literal",
+    "Keyword",
+    "Word",
+    "CharsNotIn",
+    "StringEnd",
+    "Empty",
+    "Char",
 )
 
 _get = object.__getattribute__
@@ -61,11 +75,21 @@ class ParseEnhancement(ParserElement):
         return self.expr.whitespace
 
     def parse_impl(self, string, start, do_actions=True):
-        try:
-            result = self.expr._parse(string, start, do_actions)
-            return ParseResults(self, result.start, result.end, [result], result.failures)
-        except ParseException as cause:
-            raise ParseException(self, start, string, cause=cause) from None
+        result = self.expr._parse(string, start, do_actions)
+        if result.failed:
+            return failure(self, start, string, cause=result)
+        return ParseResults(self, result.start, result.end, [result], result.failures)
+
+    def _compile(self):
+        child = self.expr.compile()
+
+        def parse(string, start):
+            result = child(string, start)
+            if result.failed:
+                return FAIL
+            return ParseResults(self, result.start, result.end, [result], [])
+
+        return parse
 
     def streamline(self):
         if self.streamlined:
@@ -113,13 +137,31 @@ class LookAhead(ParseEnhancement):
     def __init__(self, expr):
         ParseEnhancement.__init__(self, expr)
 
+    def _min_length(self):
+        # CONSUMES NOTHING
+        return 0
+
     def parse_impl(self, string, start, do_actions=True):
         # by using self._expr.parse and deleting the contents of the returned ParseResults list
         # we keep any named results that were defined in the FollowedBy expression
         result = self.expr._parse(string, start, do_actions=do_actions)
+        if result.failed:
+            return result
         result.__class__ = Annotation
 
         return ParseResults(self, start, start, [result], result.failures)
+
+    def _compile(self):
+        child = self.expr.compile()
+
+        def parse(string, start):
+            result = child(string, start)
+            if result.failed:
+                return result
+            result.__class__ = Annotation
+            return ParseResults(self, start, start, [result], [])
+
+        return parse
 
     def __regex__(self):
         return "*", f"(?={self.expr.__regex__()[1]})"
@@ -156,13 +198,31 @@ class NotAny(LookAhead):
             found = regex.match(string, start)
             if found:
                 return ParseResults(self, start, start, [], [])
-            raise ParseException(self, start, string) from None
+            return failure(self, start, string)
         else:
-            try:
-                self.expr.parse(string, start, do_actions=True)
-                raise ParseException(self, start, string) from None
-            except:
+            if self.expr._parse(string, start, do_actions).failed:
                 return ParseResults(self, start, start, [], [])
+            return failure(self, start, string)
+
+    def _compile(self):
+        regex = self.regex
+        if regex:
+
+            def parse_regex(string, start):
+                if regex.match(string, start):
+                    return ParseResults(self, start, start, [], [])
+                return FAIL
+
+            return parse_regex
+
+        child = self.expr.compile()
+
+        def parse(string, start):
+            if child(string, start).failed:
+                return ParseResults(self, start, start, [], [])
+            return FAIL
+
+        return parse
 
     def streamline(self):
         output = ParseEnhancement.streamline(self)
@@ -191,10 +251,18 @@ class NotAny(LookAhead):
 
 class Many(ParseEnhancement):
     __slots__ = []
-    Config = append_config(ParseEnhancement, "whitespace", "min_match", "max_match", "end")
+    Config = append_config(
+        ParseEnhancement, "whitespace", "min_match", "max_match", "end"
+    )
 
     def __init__(
-        self, expr, whitespace=None, stop_on=None, min_match=0, max_match=MAX_INT, exact=None,
+        self,
+        expr,
+        whitespace=None,
+        stop_on=None,
+        min_match=0,
+        max_match=MAX_INT,
+        exact=None,
     ):
         """
         MATCH expr SOME NUMBER OF TIMES (OR UNTIL stop_on IS REACHED
@@ -212,7 +280,9 @@ class Many(ParseEnhancement):
             max_match = exact
 
         self.set_config(
-            whitespace=whitespace or whitespaces.CURRENT, min_match=min_match, max_match=max_match,
+            whitespace=whitespace or whitespaces.CURRENT,
+            min_match=min_match,
+            max_match=max_match,
         )
         self.stop_on(stop_on)
 
@@ -239,32 +309,44 @@ class Many(ParseEnhancement):
         stopper = self.parser_config.end
         count = 0
         failures = []
-        try:
-            while end < len(string):
-                index = self.parser_config.whitespace.skip(string, end)
-                if stopper:
-                    if stopper.match(string, index):
-                        if min <= count:
-                            break
-                        else:
-                            raise ParseException(self, end, string, msg="found stopper too soon")
-                result = self.expr._parse(string, index, do_actions)
-                end = result.end
-                if result.end - result.start:
-                    acc.append(result)
-                    failures.extend(result.failures)
-                    count += 1
-                    if count >= max:
+        while end < len(string):
+            index = self.parser_config.whitespace.skip(string, end)
+            if stopper:
+                if stopper.match(string, index):
+                    if min <= count:
                         break
-
-        except ParseException as cause:
-            failures.append(cause)
+                    else:
+                        failures.append(failure(
+                            self, end, string, msg="found stopper too soon"
+                        ))
+                        break
+            result = self.expr._parse(string, index, do_actions)
+            if result.failed:
+                failures.append(result)
+                break
+            end = result.end
+            if result.end - result.start:
+                acc.append(result)
+                failures.extend(result.failures)
+                count += 1
+                if count >= max:
+                    break
 
         if count < min:
-            raise ParseException(self, start, string, f"Expecting at least {min} of {self}", failures)
+            if not exceptions.DIAGNOSTICS:
+                return FAIL
+            return failure(
+                self, start, string, f"Expecting at least {min} of {self}", failures
+            )
         elif max < count:
-            raise ParseException(
-                self, acc[0].start, string, f"Expecting less than {max} of {self.expr}", failures,
+            if not exceptions.DIAGNOSTICS:
+                return FAIL
+            return failure(
+                self,
+                acc[0].start,
+                string,
+                f"Expecting less than {max} of {self.expr}",
+                failures,
             )
         else:
             if count:
@@ -272,11 +354,49 @@ class Many(ParseEnhancement):
             else:
                 return ParseResults(self, start, end, acc, failures)
 
+    def _compile(self):
+        child = self.expr.compile()
+        config = self.parser_config
+        skip = config.whitespace.skip
+        min_match = config.min_match
+        max_match = config.max_match
+        stopper = config.end
+
+        def parse(string, start):
+            acc = []
+            end = start
+            count = 0
+            length = len(string)
+            while end < length:
+                index = skip(string, end)
+                if stopper is not None and stopper.match(string, index):
+                    break
+                result = child(string, index)
+                if result.failed:
+                    break
+                end = result.end
+                if result.end - result.start:
+                    acc.append(result)
+                    count += 1
+                    if count >= max_match:
+                        break
+
+            if count < min_match or max_match < count:
+                return FAIL
+            if count:
+                return ParseResults(self, acc[0].start, acc[-1].end, acc, [])
+            return ParseResults(self, start, end, acc, [])
+
+        return parse
+
     def streamline(self):
         if self.streamlined:
             return self
         expr = self.expr.streamline()
-        if self.parser_config.min_match == self.parser_config.max_match and not self.is_annotated():
+        if (
+            self.parser_config.min_match == self.parser_config.max_match
+            and not self.is_annotated()
+        ):
             if self.parser_config.min_match == 0:
                 return Empty()
             elif self.parser_config.min_match == 1:
@@ -310,12 +430,18 @@ class Many(ParseEnhancement):
             else:
                 suffix = "{" + text(self.parser_config.min_match) + "}"
         else:
-            suffix = "{" + text(self.parser_config.min_match) + "," + text(self.parser_config.max_match) + "}"
+            suffix = (
+                "{"
+                + text(self.parser_config.min_match)
+                + ","
+                + text(self.parser_config.max_match)
+                + "}"
+            )
 
         if end:
             return "+", regex + suffix + end
         else:
-            return "*", regex + suffix
+            return regex_prec(suffix), regex + suffix
 
     def __call__(self, name):
         if not name:
@@ -323,7 +449,10 @@ class Many(ParseEnhancement):
 
         for e in [self.expr]:
             if isinstance(e, ParserElement) and e.token_name == name:
-                Log.error("can not set token name, already set in one of the other expressions")
+                Log.error(
+                    "can not set token name, already set in one of the other"
+                    " expressions"
+                )
 
         return ParseEnhancement.__call__(self, name)
 
@@ -369,13 +498,31 @@ class ZeroOrMore(Many):
     __slots__ = []
 
     def __init__(self, expr, whitespace=None, stop_on=None):
-        Many.__init__(self, expr, whitespace, stop_on=stop_on, min_match=0, max_match=MAX_INT)
+        Many.__init__(
+            self, expr, whitespace, stop_on=stop_on, min_match=0, max_match=MAX_INT
+        )
 
     def parse_impl(self, string, start, do_actions=True):
-        try:
-            return Many.parse_impl(self, string, start, do_actions)
-        except ParseException as pe:
-            return ParseResults(self, start, start, [], [pe])
+        result = Many.parse_impl(self, string, start, do_actions)
+        if result.failed:
+            return ParseResults(self, start, start, [], [result])
+        return result
+
+    def _compile(self):
+        inner = Many._compile(self)
+        if (
+            self.parser_config.min_match == 0
+            and self.parser_config.max_match == MAX_INT
+        ):
+            return inner  # nothing left for Many to fail on
+
+        def parse(string, start):
+            result = inner(string, start)
+            if result.failed:
+                return ParseResults(self, start, start, [], [])
+            return result
+
+        return parse
 
     def __str__(self):
         if self.parser_name:
@@ -400,11 +547,26 @@ class Optional(Many):
         self.set_config(default_value=enlist(default))
 
     def parse_impl(self, string, start, do_actions=True):
-        try:
-            results = self.expr._parse(string, start, do_actions)
-            return ParseResults(self, results.start, results.end, [results], results.failures)
-        except ParseException as pe:
-            return ParseResults(self, start, start, self.parser_config.default_value, [pe])
+        results = self.expr._parse(string, start, do_actions)
+        if results.failed:
+            return ParseResults(
+                self, start, start, self.parser_config.default_value, [results]
+            )
+        return ParseResults(
+            self, results.start, results.end, [results], results.failures
+        )
+
+    def _compile(self):
+        child = self.expr.compile()
+        default_value = self.parser_config.default_value
+
+        def parse(string, start):
+            results = child(string, start)
+            if results.failed:
+                return ParseResults(self, start, start, default_value, [])
+            return ParseResults(self, results.start, results.end, [results], [])
+
+        return parse
 
     def __str__(self):
         if self.parser_name:
@@ -443,6 +605,10 @@ class SkipTo(ParseEnhancement):
     def min_length(self):
         return 0
 
+    def _compile(self):
+        # the scan parses the target with do_actions=False; keep the interpreter
+        return self.parse_impl
+
     def __regex__(self):
         prec, pattern = self.expr.__regex__()
         pattern = regex_iso(prec, pattern, "+")
@@ -463,31 +629,31 @@ class SkipTo(ParseEnhancement):
             if fail:
                 # break if fail_on expression matches
                 try:
-                    fail._parse(string, loc)
-                    break
+                    if not fail._parse(string, loc).failed:
+                        break
                 except:
                     pass
 
             if ignore:
                 # advance past ignore expressions
                 while 1:
-                    try:
-                        loc = ignore._parse(string, loc).end
-                        skip_end = loc
-                        loc = before_end = self.parser_config.whitespace.skip(string, loc)
-                    except ParseException:
+                    ignored = ignore._parse(string, loc)
+                    if ignored.failed:
                         break
-            try:
-                loc = self.expr._parse(string, loc, do_actions=False).end
-            except ParseException:
+                    loc = ignored.end
+                    skip_end = loc
+                    loc = before_end = self.parser_config.whitespace.skip(string, loc)
+            found = self.expr._parse(string, loc, do_actions=False)
+            if found.failed:
                 # no match, advance loc in string
                 loc += 1
             else:
                 # matched skipto expr, done
+                loc = found.end
                 break
         else:
             # ran off the end of the input string without matching skipto expr, fail
-            raise ParseException(self, start, string) from None
+            return failure(self, start, string)
 
         # build up return values
         end = loc
@@ -498,6 +664,8 @@ class SkipTo(ParseEnhancement):
 
         if self.parser_config.include:
             end_result = self.expr._parse(string, before_end, do_actions)
+            if end_result.failed:
+                return end_result
             skip_result.append(end_result)
             return ParseResults(self, start, end, skip_result, [])
         else:
@@ -539,12 +707,16 @@ class Forward(ParserElement):
         "_in_regex",
         "_in_expecting",
         "__in_whitespace",
+        "transparent",
+        "compiled_body",
     ]
 
     def __init__(self, expr=Null):
         ParserElement.__init__(self)
         self.expr = None
         self.used_by = []
+        self.transparent = False
+        self.compiled_body = None
 
         self._str = None  # avoid recursion
         self._in_regex = None  # avoid recursion
@@ -560,6 +732,8 @@ class Forward(ParserElement):
         output._in_regex = None
         output._in_expecting = None
         output.__in_whitespace = False
+        output.transparent = False
+        output.compiled_body = None
 
         output.used_by = []
         return output
@@ -580,6 +754,8 @@ class Forward(ParserElement):
             other = other.expr
         norm = whitespaces.CURRENT.normalize(other)
         self.expr = norm.streamline()
+        if self.compiled_body is not None:
+            self.compiled_body[0] = self._recompile
         self.check_recursion()
         return self
 
@@ -589,6 +765,9 @@ class Forward(ParserElement):
         Also you can use `/` operator
         """
         self.parse_action.append(wrap_parse_action(action))
+        self.transparent = False
+        if self.compiled_body is not None:
+            self.compiled_body[0] = self._recompile
         return self
 
     def leave_whitespace(self):
@@ -598,10 +777,13 @@ class Forward(ParserElement):
             return output
 
     def streamline(self):
+        self.transparent = not self.parse_action and not self.token_name
         if not self.expr or self.expr.streamlined:
             return self
 
         self.expr = self.expr.streamline()
+        if self.compiled_body is not None:
+            self.compiled_body[0] = self._recompile
         self.check_recursion()
         return self
 
@@ -646,13 +828,57 @@ class Forward(ParserElement):
     def parse_impl(self, string, loc, do_actions=True):
         try:
             result = self.expr._parse(string, loc, do_actions)
-            return ForwardResults(self, result.start, result.end, [result], result.failures)
         except Exception as cause:
             if is_null(self.expr):
                 Log.warning(
-                    "Ensure you have assigned a ParserElement (<<) to this Forward", cause=cause,
+                    "Ensure you have assigned a ParserElement (<<) to this Forward",
+                    cause=cause,
                 )
             raise cause from None
+        if result.failed or (self.transparent and not result._type.token_name):
+            return result
+        return ForwardResults(self, result.start, result.end, [result], result.failures)
+
+    def compile(self):
+        compiled = self.compiled
+        if compiled is not None:
+            return compiled
+        # the body is late-bound: `<<` may replace it, even after finalize
+        cell = self.compiled_body = [self._recompile]
+
+        def trampoline(string, start):
+            return cell[0](string, start)
+
+        self.compiled = trampoline
+        return trampoline
+
+    def _recompile(self, string, start):
+        if not self.expr:
+            body = _with_actions(self, self.parse_impl)  # warn while parsing
+        else:
+            body = _with_actions(self, self._compile())
+        self.compiled_body[0] = body
+        return body(string, start)
+
+    def _compile(self):
+        child = self.expr.compile()
+        if self.transparent:
+
+            def parse_transparent(string, start):
+                result = child(string, start)
+                if result.failed or not result._type.token_name:
+                    return result
+                return ForwardResults(self, result.start, result.end, [result], [])
+
+            return parse_transparent
+
+        def parse(string, start):
+            result = child(string, start)
+            if result.failed:
+                return result
+            return ForwardResults(self, result.start, result.end, [result], [])
+
+        return parse
 
     def __regex__(self):
         if self._in_regex:
@@ -711,13 +937,34 @@ class Combine(TokenConverter):
         self.set_config(separator=separator)
 
     def parse_impl(self, string, start, do_actions=True):
-        try:
-            result = self.expr.parse_impl(string, start, do_actions=do_actions)
+        result = self.expr.parse_impl(string, start, do_actions=do_actions)
+        if result.failed:
+            return failure(self, start, string, cause=result)
+        return ParseResults(
+            self,
+            start,
+            result.end,
+            [result.as_string(sep=self.parser_config.separator)],
+            result.failures,
+        )
+
+    def _compile(self):
+        expr = self.expr
+        if is_forward(expr):
+            # the child's parse_impl is skipped here, so cycles need the interpreter
+            return self.parse_impl
+        separator = self.parser_config.separator
+        inner = expr._compile()  # Combine calls parse_impl, not _parse
+
+        def parse(string, start):
+            result = inner(string, start)
+            if result.failed:
+                return FAIL
             return ParseResults(
-                self, start, result.end, [result.as_string(sep=self.parser_config.separator)], result.failures,
+                self, start, result.end, [result.as_string(sep=separator)], []
             )
-        except ParseException as cause:
-            raise ParseException(self, start, string, cause=cause)
+
+        return parse
 
     def streamline(self):
         if self.streamlined:
@@ -727,7 +974,9 @@ class Combine(TokenConverter):
         if expr is self.expr:
             self.streamlined = True
             return self
-        return Combine(expr, self.parser_config.separator).set_parser_name(self.parser_name)
+        return Combine(
+            expr, self.parser_config.separator
+        ).set_parser_name(self.parser_name)
 
     def expecting(self):
         return OrderedDict((k, [self]) for k in self.expr.expecting().keys())
@@ -812,16 +1061,70 @@ class Suppress(TokenConverter):
     Converter for ignoring the results of a parsed expression.
     """
 
-    __slots__ = []
+    __slots__ = ["regex"]
 
     def __init__(self, expr):
         if isinstance(expr, text):
             expr = Literal(expr)
         TokenConverter.__init__(self, expr)
-        self.parse_action.append(_suppress_post_parse)
+        self.regex = None
+
+    def copy(self):
+        output = ParseEnhancement.copy(self)
+        output.regex = self.regex
+        return output
 
     def suppress(self):
         return self
+
+    def fuse(self):
+        row = fuse_row(self.expr)
+        if row is None:
+            return None
+        return row[0], empty_tuple, row[2]
+
+    def streamline(self):
+        if self.streamlined:
+            return self
+        output = ParseEnhancement.streamline(self)
+        if isinstance(output, Suppress) and output.regex is None:
+            fused = output.fuse()
+            if fused:
+                output.regex = regex_compile(fused[0])
+        return output
+
+    def parse_impl(self, string, start, do_actions=True):
+        if self.regex and not exceptions.DIAGNOSTICS:
+            found = self.regex.match(string, start)
+            if found:
+                return ParseResults(self, start, found.end(), [], [])
+            return FAIL
+        result = self.expr._parse(string, start, do_actions)
+        if result.failed:
+            return failure(self, start, string, cause=result)
+        return ParseResults(self, result.start, result.end, [], result.failures)
+
+    def _compile(self):
+        regex = self.regex
+        if regex:
+
+            def parse_regex(string, start):
+                found = regex.match(string, start)
+                if found:
+                    return ParseResults(self, start, found.end(), [], [])
+                return FAIL
+
+            return parse_regex
+
+        child = self.expr.compile()
+
+        def parse(string, start):
+            result = child(string, start)
+            if result.failed:
+                return FAIL
+            return ParseResults(self, result.start, result.end, [], [])
+
+        return parse
 
     def __regex__(self):
         return self.expr.__regex__()
@@ -880,26 +1183,30 @@ class PrecededBy(LookAhead):
         if self.parser_config.exact:
             loc = start - self.parser_config.retreat
             if loc < 0:
-                raise ParseException(self, start, string)
+                return failure(self, start, string)
             ret = self.expr._parse(string, loc)
+            if ret.failed:
+                return ret
         else:
             # retreat specified a maximum lookbehind window, iterate
             test_expr = self.expr + StringEnd()
             instring_slice = string[:start]
-            last_cause = ParseException(self, start, string)
+            last_cause = failure(self, start, string)
 
             for offset in range(self.parser_config.retreat, start + 1):
-                try:
-                    ret = test_expr._parse(instring_slice, start - offset)
+                ret = test_expr._parse(instring_slice, start - offset)
+                if not ret.failed:
                     break
-                except ParseException as cause:
-                    last_cause = cause
+                last_cause = ret
             else:
-                raise last_cause
+                return last_cause
         # return empty list of tokens, but preserve any defined results names
 
         ret.__class__ = Annotation
         return ParseResults(self, start, start, [ret], [])
+
+    def _compile(self):
+        return self.parse_impl
 
     def __regex__(self):
         if self.parser_config.exact:
@@ -917,7 +1224,7 @@ export("mo_parsing.core", Optional)
 export("mo_parsing.core", NotAny)
 export("mo_parsing.core", Suppress)
 export("mo_parsing.core", Group)
-export("mo_parsing.core",_suppress_post_parse)
+export("mo_parsing.core", _suppress_post_parse)
 
 
 export("mo_parsing.results", Group)

@@ -4,6 +4,7 @@ import sys
 from mo_future import text
 
 from mo_parsing.core import ParserElement
+from mo_parsing.exceptions import failure
 from mo_parsing.utils import (
     quote,
     lineno,
@@ -44,22 +45,24 @@ def _debug_parse(debugger):
         if not debugger.silent:
             _try(self, start, string)
         loc = start
-        try:
-            debugger.parse_count += 1
-            debugger.max_stack_depth = stackdepth()
-            tokens = self.parse_impl(string, loc, do_actions)
-        except ParseException as cause:
+        debugger.parse_count += 1
+        debugger.max_stack_depth = stackdepth()
+        tokens = self.parse_impl(string, loc, do_actions)
+        if tokens.failed:
             self.parser_config.fail_action and self.parser_config.fail_action(
-                self, start, string, cause
+                self, start, string, tokens
             )
             if not debugger.silent:
-                fail(self, start, string, cause)
-            raise ParseException(self, start, string, cause=cause) from None
+                fail(self, start, string, tokens)
+            return failure(self, start, string, cause=tokens)
 
         if self.parse_action and (do_actions or self.parser_config.callDuringTry):
             try:
                 for fn in self.parse_action:
                     tokens = fn(tokens, start, string)
+            except ParseException as cause:
+                fail(self, start, string, cause)
+                return failure(self, start, string, cause=cause)
             except Exception as cause:
                 fail(self, start, string, cause)
                 raise
@@ -73,7 +76,10 @@ def _debug_parse(debugger):
 
 def _try(expr, start, string):
     global _max_preamble
-    preamble = f"  Attempt {quote(string, start)} at loc ({lineno(start, string)},{col(start, string)}), index={start}"
+    preamble = (
+        f"  Attempt {quote(string, start)} at loc"
+        f" ({lineno(start, string)},{col(start, string)}), index={start}"
+    )
     length = len(preamble)
     _max_preamble = max(_max_preamble, length)
     print(
@@ -87,7 +93,10 @@ def _try(expr, start, string):
 
 def match(expr, start, end, string, tokens):
     global _max_preamble
-    preamble = f"> Matched {quote(string[start:end])} at loc ({lineno(start, string)},{col(start, string)}), length={end-start}"
+    preamble = (
+        f"> Matched {quote(string[start:end])} at loc"
+        f" ({lineno(start, string)},{col(start, string)}), length={end-start}"
+    )
     length = len(preamble)
     _max_preamble = max(_max_preamble, length)
     print(

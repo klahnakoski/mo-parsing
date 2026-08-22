@@ -76,6 +76,26 @@ def regex_iso(curr_prec, expr, new_prec):
         return expr
 
 
+def regex_prec(suffix):
+    """
+    PRECEDENCE OF A PATTERN CARRYING THIS TRAILING QUANTIFIER
+    """
+    # ANOTHER QUANTIFIER MAY NOT STACK ON THIS ONE
+    return "*" if not suffix else "+"
+
+
+def regex_atomic(pattern, name):
+    """
+    MATCH pattern GREEDILY, NEVER GIVING BACK, CAPTURED AS name
+    LOOKAROUNDS ARE ATOMIC IN re, SO THE BACKREFERENCE CAN NOT BACKTRACK
+    """
+    return f"(?=(?P<{name}>{pattern}))(?P={name})"
+
+
+# a pattern with one of these can not be moved into a larger pattern
+BACKREFERENCE = re.compile(r"\\[1-9]|\(\?P=|\(\?\(")
+
+
 def regex_caseless(literal):
     """
     RETURN REGEX FOR CASELESS VERSION OF GIVEN LITERAL (SO WE DO NOT NEED CASELESS MODE)
@@ -187,6 +207,8 @@ def enlist(value):
         return value
     else:
         return [value]
+
+
 listwrap = enlist
 
 
@@ -352,7 +374,11 @@ def wrap_parse_action(func):
         except ParseException as pe:
             raise
         except Exception as cause:
-            Log.error("parse action {{name}} should not raise exception", name=func_name, cause=cause)
+            Log.error(
+                "parse action {{name}} should not raise exception",
+                name=func_name,
+                cause=cause,
+            )
 
     # copy func name to wrapper for sensible debug output
     try:

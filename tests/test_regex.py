@@ -1,8 +1,20 @@
 # encoding: utf-8
 import re
 
-from mo_parsing import Regex, Char, LookAhead, Whitespace, whitespaces, CaselessKeyword
-from mo_parsing.tokens import SingleCharLiteral, Literal, Keyword
+from mo_parsing import (
+    Regex,
+    Char,
+    LookAhead,
+    MatchFirst,
+    Optional,
+    OneOrMore,
+    ZeroOrMore,
+    Whitespace,
+    whitespaces,
+    CaselessKeyword,
+)
+from mo_parsing.tokens import SingleCharLiteral, Literal, Keyword, CharsNotIn
+from mo_parsing.utils import alphas, regex_compile
 from tests.test_simple_unit import PyparsingExpressionTestCase, SkipTo
 
 
@@ -216,7 +228,9 @@ class TestRegexParsing(PyparsingExpressionTestCase):
         with whitespaces.NO_WHITESPACE:
             simple_ident = (
                 Char(FIRST_IDENT_CHAR)
-                + ((Regex("(?<=[^0-9])") + "-" + LookAhead(~digit)) | Char(IDENT_CHAR))[...]
+                + (
+                    (Regex("(?<=[^0-9])") + "-" + LookAhead(~digit)) | Char(IDENT_CHAR)
+                )[...]
             )
 
         regex = simple_ident.__regex__()[1]
@@ -249,10 +263,13 @@ class TestRegexParsing(PyparsingExpressionTestCase):
 
     def test_keyword(self):
         k = CaselessKeyword("test", ident_chars=Regex("[a-z]"))
-        self.assertEqual(k.parser_config.ident_chars, 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz')
+        self.assertEqual(
+            k.parser_config.ident_chars,
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
+        )
 
         k = Keyword("test", ident_chars=Regex("[a-z]"))
-        self.assertEqual(k.parser_config.ident_chars, 'abcdefghijklmnopqrstuvwxyz')
+        self.assertEqual(k.parser_config.ident_chars, "abcdefghijklmnopqrstuvwxyz")
 
     def test_regex_or(self):
         parser = re.compile(r"(a)|(b)")
@@ -262,3 +279,114 @@ class TestRegexParsing(PyparsingExpressionTestCase):
         self.assertEqual(parser.match("b").group(1), None)
         self.assertEqual(parser.match("b").group(2), "b")
         self.assertEqual(parser.match("c"), None)
+
+    def test_optional_prefix_does_not_hide_alternative(self):
+        # A LEADING `-?` MUST NOT HIDE THE DIGITS THAT CAN ALSO START THE MATCH
+        number = Regex(r"-?\d+(?:\.\d+)?")
+        self.assertEqual("".join(sorted(number.expecting().keys())), "-0123456789")
+
+        # ENOUGH ALTERNATIVES THAT MatchFirst BUILDS ITS LOOKUP
+        grammar = MatchFirst([
+            Literal("!"),
+            Literal("$"),
+            Regex(r"[A-Za-z]+"),
+            number,
+        ]).streamline()
+        self.assertEqual(grammar.parse_string("42"), "42")
+        self.assertEqual(grammar.parse_string("-42"), "-42")
+        self.assertEqual(grammar.parse_string("3.14"), "3.14")
+
+    def test_repetition_binds_last_character(self):
+        # `abc*` IS `ab` FOLLOWED BY `c*`, NOT `abc` REPEATED
+        self.assertEqual("".join(Regex(r"abc*").expecting().keys()), "ab")
+        self.assertEqual(Regex(r"abc*").min_length(), 2)
+        self.assertEqual("".join(Regex(r"ab?c").expecting().keys()), "a")
+        self.assertEqual(Regex(r"ab?c").min_length(), 2)
+        self.assertEqual("".join(Regex(r"colou?r").expecting().keys()), "colo")
+        self.assertEqual(Regex(r"colou?r").min_length(), 5)
+        for pattern, text in [(r"abc*", "ab"), (r"ab?c", "ac"), (r"colou?r", "color")]:
+            self.assertEqual(Regex(pattern).parse_string(text), text)
+        self.assertEqual(
+            "".join(sorted(Regex(r"-?\d+").expecting().keys())), "-0123456789"
+        )
+        self.assertEqual(Regex(r"-?\d+").min_length(), 1)
+        self.assertEqual("".join(Regex(r"ab?").expecting().keys()), "a")
+        self.assertEqual(Regex(r"ab?").min_length(), 1)
+
+    def test_leading_question_mark_still_parses(self):
+        # A BARE `?` IN LEAD POSITION IS TOLERATED, AS IN THE UNMODELLED `(?P=name)`
+        Regex(r"(?P<name>a)(?P=name)")
+
+    def test_question_mark_builds_optional(self):
+        self.assertIsInstance(Regex(r"ab?").expr.exprs[1], Optional)
+
+    def test_non_greedy_is_not_greedy(self):
+        # THE TREE FOR A NON-GREEDY REPETITION MUST NOT CONSUME LIKE ITS GREEDY FORM
+        self.assertEqual(Regex(r"ab*?").expr.parse_string("abbb").end, 1)
+        self.assertEqual(Regex(r"ab+?").expr.parse_string("abbb").end, 2)
+
+    def test_zero_width_constructs_min_length(self):
+        # `(?#note)` AND `\Z` MATCH NO CHARACTERS
+        self.assertEqual(Regex(r"ab(?#note)cd").min_length(), 4)
+        self.assertEqual(Regex(r"a\Zb").min_length(), 2)
+
+    def test_word_edge_is_a_word_boundary(self):
+        # `\b` IS A ZERO-WIDTH WORD/NON-WORD TRANSITION
+        tree = Regex(r"\bcat\b").expr
+        self.assertEqual(
+            [(s, e) for _, s, e in tree.scan_string("a cat sat")], [(2, 5)]
+        )
+        self.assertEqual([(s, e) for _, s, e in tree.scan_string("concatenate")], [])
+        self.assertEqual(Regex(r"\bcat\b").min_length(), 3)
+
+    def test_overestimated_min_length_does_not_hide_match(self):
+        # ENOUGH ALTERNATIVES THAT MatchFirst BUILDS ITS LOOKUP
+        grammar = MatchFirst([
+            Literal("!"),
+            Literal("$"),
+            Regex(r"[0-9]+"),
+            Regex(r"ab(?#note)cd"),
+        ]).streamline()
+        self.assertEqual(grammar.parse_string("abcd"), "abcd")
+
+    def test_string_start_is_zero_width(self):
+        # `\A` ANCHORS THE START, IT IS NOT A LITERAL "A"
+        anchored = Regex(r"\Aab")
+        self.assertEqual(anchored.min_length(), 2)
+        self.assertEqual(anchored.expr.parse_string("ab"), "ab")
+        with self.assertRaisesParseException():
+            anchored.expr.parse_string("Aab")
+
+    def test_quantified_pattern_groups_before_repeating(self):
+        # A PATTERN CARRYING ITS OWN QUANTIFIER IS NOT ATOMIC
+        for expr in [
+            Optional(CharsNotIn("\n")),
+            Optional(OneOrMore(Char(alphas))),
+            Optional(ZeroOrMore(Char(alphas))),
+            OneOrMore(Char(alphas)[1:5]),
+        ]:
+            regex_compile(expr.__regex__()[1])
+
+    def test_unmodelled_escape_raises(self):
+        # THESE ARE VALID TO python re, SO SILENCE WOULD BUILD A WRONG TREE
+        for pattern in [r"\a", r"\f", r"\v", r"\B", r"(a)\1", r"\0", r"\0x41"]:
+            with self.assertRaisesParseException():
+                Regex(pattern)
+
+    def test_escaped_punctuation_stays_literal(self):
+        for pattern in [r"\.", r"\*", r"\-", r"\/", r"\#"]:
+            self.assertEqual(Regex(pattern).parse_string(pattern[1]), pattern[1])
+
+    def test_numeric_escape_is_its_character(self):
+        # THE HEX/OCTAL RULES REACH THE TOP LEVEL, NOT ONLY INSIDE BRACKETS
+        for pattern, char in [(r"\x41", "A"), (r"\012", "\n")]:
+            self.assertEqual(Regex(pattern).min_length(), 1)
+            self.assertEqual(Regex(pattern).expr.parser_config.match, char)
+
+    def test_ignorable_may_be_more_than_one_token(self):
+        with Whitespace() as white:
+            white.add_ignore(Literal("#") + Optional(CharsNotIn("\n")))
+            parser = (Keyword("select") + Keyword("true")).finalize()
+        self.assertEqual(
+            list(parser.parse_string("# note\nselect true")), ["select", "true"]
+        )

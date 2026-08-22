@@ -1,5 +1,6 @@
 # encoding: utf-8
 import json
+from contextlib import contextmanager
 
 from mo_future import text, is_text, sort_using_cmp
 from mo_imports import export, expect
@@ -9,13 +10,30 @@ from mo_parsing.utils import col, line, lineno
 
 MatchFirst = expect("MatchFirst")
 
+# collect and rank failure causes; Parser turns this on to re-parse after a failure
+DIAGNOSTICS = False
+
+
+@contextmanager
+def diagnostics():
+    global DIAGNOSTICS
+    previous = DIAGNOSTICS
+    DIAGNOSTICS = True
+    try:
+        yield
+    finally:
+        DIAGNOSTICS = previous
+
 
 class ParseException(Exception):
     """base exception class for all parsing runtime exceptions"""
 
     # Performance tuning: we construct a *lot* of these, so keep this
     # constructor as small and fast as possible
-    __slots__ = ["expr", "start", "string", "unsorted_cause", "_msg", "_causes"]
+    __slots__ = ["expr", "start", "string", "unsorted_cause", "_msg", "_causes", "_loc"]
+
+    # marks a returned value as a failure; ParseResults.failed is False
+    failed = True
 
     def __init__(self, expr, start, string, msg="", cause=None):
         if not isinstance(string, str):
@@ -23,14 +41,18 @@ class ParseException(Exception):
         self.expr = expr
         self.start = start
         self.string = string
-        self.unsorted_cause = cause
+        self.unsorted_cause = cause if DIAGNOSTICS else None
         self._msg = msg
         self._causes = None
+        self._loc = None
 
     @property
     def causes(self):
         if self._causes is None:
-            self._causes = sort_causes(enlist(self.unsorted_cause))
+            if self.unsorted_cause is None:
+                self._causes = []
+            else:
+                self._causes = sort_causes(enlist(self.unsorted_cause))
         return self._causes
 
     @property
@@ -47,7 +69,11 @@ class ParseException(Exception):
             return self
 
         best_0 = best[0]
-        if self.expr.parser_name and self.start >= best_0.start and not best_0.expr.parser_name:
+        if (
+            self.expr.parser_name
+            and self.start >= best_0.start
+            and not best_0.expr.parser_name
+        ):
             return self
         elif len(best) == 1:
             return best_0
@@ -68,13 +94,13 @@ class ParseException(Exception):
 
     @property
     def loc(self):
-        causes = self.causes
-        if not causes:
-            return self.start
-        first_cause = causes[0]
-        if isinstance(first_cause, ParseException):
-            return first_cause.loc
-        return self.start
+        if self._loc is None:
+            causes = self.causes
+            if causes and isinstance(causes[0], ParseException):
+                self._loc = causes[0].loc
+            else:
+                self._loc = self.start
+        return self._loc
 
     @property
     def message(self):
@@ -184,6 +210,22 @@ class RecursiveGrammarException(Exception):
         return "RecursiveGrammarException: " + json.dumps([
             str(e) for e in self.parseElementTrace
         ])
+
+
+# returned (never raised) when a parse fails and we are not diagnosing
+FAIL = ParseException(None, 0, "")
+
+
+def failure(expr, start, string, msg="", cause=None):
+    """FAILURE VALUE FOR expr AT start"""
+    return ParseException(expr, start, string, msg, cause) if DIAGNOSTICS else FAIL
+
+
+def failure_at(cause, causes, type=ParseException):
+    """FAILURE VALUE AT THE POSITION OF cause"""
+    if not DIAGNOSTICS:
+        return FAIL
+    return type(cause.expr, cause.loc, cause.string, cause=causes)
 
 
 def compare_causes(a, b):

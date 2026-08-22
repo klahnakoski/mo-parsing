@@ -24,6 +24,7 @@ from mo_parsing.enhancement import (
     ParseEnhancement,
     LookBehind,
 )
+from mo_parsing.exceptions import FAIL, failure
 from mo_parsing.expressions import MatchFirst, And
 from mo_parsing.infix import delimited_list
 from mo_parsing.results import ParseResults, Annotation
@@ -32,8 +33,11 @@ from mo_parsing.tokens import (
     AnyChar,
     LineStart,
     LineEnd,
+    StringEnd,
+    StringStart,
     Word,
     SingleCharLiteral,
+    Empty,
 )
 from mo_parsing.utils import (
     printables,
@@ -126,9 +130,15 @@ def repeat(tokens):
                 min_match=int(operator["min"]),
                 max_match=int(operator["max"]),
             )
-    elif mode in "*?":
+    elif mode == "*?":
+        # NON-GREEDY, WITH NOTHING FOLLOWING, MATCHES ZERO
+        return Many(operand, NO_WHITESPACE, min_match=0, max_match=0)
+    elif mode == "+?":
+        # NON-GREEDY, WITH NOTHING FOLLOWING, MATCHES ONE
+        return Many(operand, NO_WHITESPACE, exact=1)
+    elif mode == "*":
         return ZeroOrMore(operand, NO_WHITESPACE)
-    elif mode in "+?":
+    elif mode == "+":
         return OneOrMore(operand, NO_WHITESPACE)
     elif mode == "?":
         return Optional(operand, NO_WHITESPACE)
@@ -171,7 +181,7 @@ plain_char = Char(exclude=r"\]") / (lambda t: Literal(t.value()))
 
 escaped_hex = (
     Combine(
-        (Literal("\\0x") | Literal("\\x") | Literal("\\X"))  # lookup literals is faster
+        (Literal("\\x") | Literal("\\X"))  # lookup literals is faster
         + OneOrMore(Char(hexnums), NO_WHITESPACE)
     )
     / hex_to_char
@@ -198,11 +208,16 @@ regex = Forward()
 
 line_start = Literal("^") / (lambda: LineStart())
 line_end = Literal("$") / (lambda: LineEnd())
-word_edge = Literal("\\b") / (lambda: NotAny(any_wordchar))
-simple_char = Word(
-    printables, exclude=r".^$*+{}[]\|()"
-) / (lambda t: Literal(t.value()))
-esc_char = ("\\" + AnyChar()) / (lambda t: Literal(t.value()[1]))
+word_char = Char(alphanums + "_")
+# A BOUNDARY IS A WORD/NON-WORD TRANSITION, EITHER DIRECTION
+word_edge = Literal("\\b") / (lambda: MatchFirst([
+    And([NotAny(LookBehind(word_char)), LookAhead(word_char)], NO_WHITESPACE),
+    And([LookBehind(word_char), NotAny(word_char)], NO_WHITESPACE),
+]))
+string_end = Literal("\\Z") / (lambda: StringEnd())
+string_start = Literal("\\A") / (lambda: StringStart())
+# AN UNMODELLED ALPHANUMERIC ESCAPE WOULD SILENTLY BECOME ITSELF
+esc_char = ("\\" + Char(exclude=alphanums)) / (lambda t: Literal(t.value()[1]))
 
 with Whitespace():
     # ALLOW SPACES IN THE RANGE
@@ -217,6 +232,14 @@ repetition = Group(
     "{" + repetition | (Literal("*?") | Literal("+?") | Char("*+?"))("mode")
 )
 
+# A LEADING `?` IS NOT A REPETITION, AS IN THE UNMODELLED `(?P=name)`
+lead_char = Char(printables + " ", exclude=r".^$*+{}[]\|()")
+tail_char = Char(printables + " ", exclude=r".^$*+?{}[]\|()")
+# A REPETITION BINDS THE LAST CHARACTER ONLY, SO THE RUN STOPS BEFORE IT
+simple_char = Combine(
+    lead_char + ZeroOrMore(~(tail_char + repetition) + tail_char, NO_WHITESPACE)
+) / (lambda t: Literal(t.value()))
+
 LB = Char("(")
 
 ahead = ("(?=" + regex + ")") / (lambda t: LookAhead(t["value"]))
@@ -224,6 +247,9 @@ not_ahead = ("(?!" + regex + ")") / (lambda t: NotAny(t["value"]))
 behind = ("(?<=" + regex + ")") / (lambda t: LookBehind(t["value"]))
 not_behind = ("(?<!" + regex + ")") / (lambda t: Log.error("not supported"))
 non_capture = ("(?:" + regex + ")") / (lambda t: t["value"])
+comment = (
+    "(?#" + ZeroOrMore(Char(exclude=")"), NO_WHITESPACE) + ")"
+) / (lambda: Empty())
 # conditional = ("(?" + try_match + "|" + else_match + ")")
 # recursive = ("(?R)")
 # TODO: match previous capture (3)
@@ -238,13 +264,18 @@ group = ((LB / INC) + regex + ")") / name_token / DEC
 term = (
     macro
     | simple_char
-    | esc_char
+    | string_end
+    | string_start
     | word_edge
+    | escaped_hex
+    | escaped_oct
+    | esc_char
     | brackets
     | ahead
     | not_ahead
     | behind
     | not_behind
+    | comment
     | non_capture
     | named
     | group
@@ -276,7 +307,7 @@ class Regex(ParseEnhancement):
         :param pattern:  THE REGEX PATTERN
         :param asGroupList: RETURN A LIST OF CAPTURED GROUPS /1, /2, /3, ...
         """
-        parsed = regex.parse_string(pattern)
+        parsed = regex.parse_string(pattern, parse_all=True)
         ParseEnhancement.__init__(self, parsed.value().streamline())
         # WE ASSUME IT IS SAFE TO ASSIGN regex (NO SERIOUS BACKTRACKING PROBLEMS)
         self.streamlined = True
@@ -339,7 +370,19 @@ class Regex(ParseEnhancement):
         if found:
             return ParseResults(self, start, found.end(), [found[0]], [])
         else:
-            raise ParseException(self, start, string)
+            return failure(self, start, string)
+
+    def _compile(self):
+        # the child grammar is not parsed; only the pattern is
+        regex = self.regex
+
+        def parse(string, start):
+            found = regex.match(string, start)
+            if found:
+                return ParseResults(self, start, found.end(), [found[0]], [])
+            return FAIL
+
+        return parse
 
     def streamline(self):
         # WE RUN THE DANGER OF MAKING PATHELOGICAL REGEX, SO WE DO NOT TRY
@@ -360,6 +403,11 @@ class Regex(ParseEnhancement):
 
     def min_length(self):
         return self.expr.min_length()
+
+    def fuse(self):
+        if self.regex:
+            return self.regex.pattern, None, None
+        return None
 
     def __regex__(self):
         if self.regex:

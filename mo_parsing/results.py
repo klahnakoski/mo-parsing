@@ -4,6 +4,7 @@ import inspect
 from mo_dots import is_many, is_null, register_data, register_list, exists
 from mo_future import is_text, text, zip_longest, MutableMapping
 from mo_imports import expect, export
+from mo_parsing import exceptions
 from mo_parsing.exceptions import sort_causes
 
 from mo_parsing.utils import Log, enlist
@@ -23,6 +24,9 @@ Suppress, ParserElement, NO_PARSER, NO_RESULTS, Group, Dict, Token, Empty = expe
 class ParseResults(object):
     __slots__ = ["_type", "start", "end", "tokens", "timing", "failures"]
 
+    # marks a returned value as a success; ParseException.failed is True
+    failed = False
+
     @property
     def name(self):
         return self._type.token_name
@@ -39,7 +43,9 @@ class ParseResults(object):
         self.end = end
         self.tokens = tokens
         self.timing = None
-        if len(failures) > 30:
+        if not exceptions.DIAGNOSTICS:
+            self.failures = []
+        elif len(failures) > 30:
             failures = sort_causes(failures)
             best_index = failures[0].start
             self.failures = [f for f in failures if f.start == best_index]
@@ -426,4 +432,5 @@ register_data(ParseResults)
 register_list(ParseResults)
 
 from mo_parsing import whitespaces
+
 export("mo_parsing.utils", ParseResults)

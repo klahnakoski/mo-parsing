@@ -11,15 +11,17 @@
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
-        "Programming Language :: Python :: 3.13"
+        "Programming Language :: Python :: 3.13",
+        "Programming Language :: Python :: 3.14",
+        "Programming Language :: Python :: 3.15"
     ],
     "description": "Another PEG Parsing Tool",
     "description_content_type": "text/plain",
     "extras_require": {"tests": [
-        "mo-testing>=8.674.25037", "mo-threads>=6.672.25036",    "mo-logs>=8.672.25036",
-          "mo-files>=6.672.25036"
+        "mo-testing>=8.685.25166", "mo-threads>=6.682.25104",    "mo-logs>=8.685.25166",
+          "mo-files>=6.690.25168"
     ]},
-    "install_requires": ["mo-dots==10.685.25166", "mo-future==7.685.25166"],
+    "install_requires": ["mo-dots==10.686.26234", "mo-future==7.685.25166"],
     "license": "MIT",
     "long_description": {
         "$concat": [
@@ -176,5 +178,5 @@
     "name": "mo-parsing",
     "packages": ["mo_parsing"],
     "url": "https://github.com/klahnakoski/mo-parsing",
-    "version": "8.694.25301"
+    "version": "9.1.26234"
 }

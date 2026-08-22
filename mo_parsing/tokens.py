@@ -5,7 +5,7 @@ from mo_imports import export
 
 from mo_parsing import whitespaces
 from mo_parsing.core import ParserElement
-from mo_parsing.exceptions import ParseException
+from mo_parsing.exceptions import FAIL, ParseException, failure
 from mo_parsing.results import ParseResults
 from mo_parsing.utils import *
 from mo_parsing.whitespaces import Whitespace
@@ -24,6 +24,28 @@ class Token(ParserElement):
     def __init__(self):
         ParserElement.__init__(self)
         self.streamlined = True
+
+
+def _compile_regex_match(expr, tokens):
+    """MATCH parser_config.regex; tokens IS None WHEN THE MATCHED TEXT IS THE TOKEN"""
+    regex = expr.parser_config.regex
+    if tokens is None:
+
+        def parse(string, start):
+            found = regex.match(string, start)
+            if found:
+                return ParseResults(expr, start, found.end(), [found.group()], [])
+            return FAIL
+
+    else:
+
+        def parse(string, start):
+            found = regex.match(string, start)
+            if found:
+                return ParseResults(expr, start, found.end(), [tokens], [])
+            return FAIL
+
+    return parse
 
 
 class Empty(Token):
@@ -50,6 +72,12 @@ class Empty(Token):
         # end = self.whitespace.skip(string, start)
         return ParseResults(self, start, end, [], [])
 
+    def _compile(self):
+        def parse(string, start):
+            return ParseResults(self, start, start, [], [])
+
+        return parse
+
     def streamline(self):
         return self
 
@@ -74,7 +102,7 @@ class NoMatch(Token):
         self.parser_name = "NoMatch"
 
     def parse_impl(self, string, loc, do_actions=True):
-        raise ParseException(self, loc, string)
+        return failure(self, loc, string)
 
     def min_length(self):
         return 0
@@ -98,14 +126,25 @@ class AnyChar(Token):
 
     def parse_impl(self, string, loc, do_actions=True):
         if loc >= len(string):
-            raise ParseException(self, loc, string)
+            return failure(self, loc, string)
         return ParseResults(self, loc, loc + 1, [string[loc]], [])
+
+    def _compile(self):
+        def parse(string, start):
+            if start >= len(string):
+                return FAIL
+            return ParseResults(self, start, start + 1, [string[start]], [])
+
+        return parse
 
     def min_length(self):
         return 1
 
     def reverse(self):
         return self
+
+    def fuse(self):
+        return ".", None, 1
 
     def __regex__(self):
         return "*", "."
@@ -133,7 +172,18 @@ class Literal(Token):
         if string.startswith(match, start):
             end = start + len(match)
             return ParseResults(self, start, end, [match], [])
-        raise ParseException(self, start, string)
+        return failure(self, start, string)
+
+    def _compile(self):
+        match = self.parser_config.match
+        length = len(match)
+
+        def parse(string, start):
+            if string.startswith(match, start):
+                return ParseResults(self, start, start + length, [match], [])
+            return FAIL
+
+        return parse
 
     def expecting(self):
         return {self.parser_config.match.lower(): [self]}
@@ -143,6 +193,10 @@ class Literal(Token):
 
     def reverse(self):
         return Literal(self.parser_config.match[::-1])
+
+    def fuse(self):
+        match = self.parser_config.match
+        return self.parser_config.regex.pattern, (match,), len(match)
 
     def __regex__(self):
         return "+", self.parser_config.regex.pattern
@@ -165,7 +219,20 @@ class SingleCharLiteral(Literal):
         except IndexError:
             pass
 
-        raise ParseException(self, start, string)
+        return failure(self, start, string)
+
+    def _compile(self):
+        match = self.parser_config.match
+
+        def parse(string, start):
+            try:
+                if string[start] == match:
+                    return ParseResults(self, start, start + 1, [match], [])
+            except IndexError:
+                pass
+            return FAIL
+
+        return parse
 
     def min_length(self):
         return 1
@@ -181,7 +248,7 @@ class Keyword(Token):
     def __init__(
         self,
         match,
-        ident_chars = None,  # required to identify word boundary
+        ident_chars=None,  # required to identify word boundary
         caseless=None,
     ):
         Token.__init__(self)
@@ -217,7 +284,7 @@ class Keyword(Token):
             return ParseResults(
                 self, start, found.end(), [self.parser_config.match], []
             )
-        raise ParseException(self, start, string)
+        return failure(self, start, string)
 
     def expecting(self):
         return {self.parser_config.match.lower(): [self]}
@@ -227,6 +294,14 @@ class Keyword(Token):
 
     def reverse(self):
         return Keyword(self.parser_config.match[::-1], self.parser_config.ident_chars)
+
+    def _compile(self):
+        return _compile_regex_match(self, self.parser_config.match)
+
+    def fuse(self):
+        # the trailing word boundary is zero-width
+        match = self.parser_config.match
+        return self.parser_config.regex.pattern, (match,), len(match)
 
     def __regex__(self):
         return "+", self.parser_config.regex.pattern
@@ -272,7 +347,14 @@ class CaselessLiteral(Literal):
             return ParseResults(
                 self, start, found.end(), [self.parser_config.match], []
             )
-        raise ParseException(self, start, string)
+        return failure(self, start, string)
+
+    def fuse(self):
+        # the pattern escapes an escaped match, so its length is not len(match)
+        return self.parser_config.regex.pattern, (self.parser_config.match,), None
+
+    def _compile(self):
+        return _compile_regex_match(self, self.parser_config.match)
 
     def reverse(self):
         return CaselessLiteral(self.parser_config.match[::-1])
@@ -333,7 +415,7 @@ class CloseMatch(Token):
                 results["mismatches"] = mismatches
                 return results
 
-        raise ParseException(self, start, string)
+        return failure(self, start, string)
 
     def reverse(self):
         return CloseMatch(self.parser_config.match[
@@ -402,7 +484,18 @@ class Word(Token):
         if found:
             return ParseResults(self, start, found.end(), [found.group()], [])
         else:
-            raise ParseException(self, start, string)
+            return failure(self, start, string)
+
+    def _compile(self):
+        regex = self.regex
+
+        def parse(string, start):
+            found = regex.match(string, start)
+            if found:
+                return ParseResults(self, start, found.end(), [found.group()], [])
+            return FAIL
+
+        return parse
 
     def min_length(self):
         return self.parser_config.min
@@ -417,6 +510,9 @@ class Word(Token):
         if self.parser_config.init_char == self.parser_config.body_chars:
             return self
         raise NotImplementedError()
+
+    def fuse(self):
+        return self.regex.pattern, None, None
 
     def __regex__(self):
         return "+", self.regex.pattern
@@ -455,16 +551,22 @@ class Char(Token):
         if found:
             return ParseResults(self, start, found.end(), [found.group()], [])
 
-        raise ParseException(self, start, string)
+        return failure(self, start, string)
 
     def expecting(self):
         return {c: [self] for c in self.parser_config.include}
+
+    def _compile(self):
+        return _compile_regex_match(self, None)
 
     def min_length(self):
         return 1
 
     def reverse(self):
         return self
+
+    def fuse(self):
+        return self.parser_config.regex.pattern, None, 1
 
     def __regex__(self):
         return "*", self.parser_config.regex.pattern
@@ -486,7 +588,7 @@ class CharsNotIn(Token):
     """
 
     __slots__ = []
-    Config = append_config(Token, "min_len", "max_len", "not_chars")
+    Config = append_config(Token, "min_len", "max_len", "not_chars", "prec")
 
     def __init__(self, not_chars, min=1, max=0, exact=0):
         Token.__init__(self)
@@ -525,6 +627,7 @@ class CharsNotIn(Token):
             min_len=min,
             max_len=max,
             not_chars=not_chars,
+            prec=regex_prec(suffix),
         )
         self.parser_name = text(self)
 
@@ -533,16 +636,25 @@ class CharsNotIn(Token):
         if found:
             return ParseResults(self, start, found.end(), [found.group()], [])
 
-        raise ParseException(self, start, string)
+        return failure(self, start, string)
 
     def min_length(self):
         return self.parser_config.min_len
 
+    def _compile(self):
+        return _compile_regex_match(self, None)
+
     def reverse(self):
         return self
 
+    def fuse(self):
+        config = self.parser_config
+        # any other min/max leaves a quantifier that may give back
+        exact = 1 if config.min_len == 1 == config.max_len else None
+        return config.regex.pattern, None, exact
+
     def __regex__(self):
-        return "*", self.parser_config.regex.pattern
+        return self.parser_config.prec, self.parser_config.regex.pattern
 
     def __str__(self):
         return self.parser_config.regex.pattern
@@ -601,7 +713,7 @@ class White(Token):
 
     def parse_impl(self, string, start, do_actions=True):
         if string[start] not in self.parser_config.white_chars:
-            raise ParseException(self, start, string)
+            return failure(self, start, string)
         end = start
         end += 1
         maxloc = start + self.parser_config.max_len
@@ -610,7 +722,7 @@ class White(Token):
             end += 1
 
         if end - start < self.parser_config.min_len:
-            raise ParseException(self, end, string)
+            return failure(self, end, string)
 
         return ParseResults(
             self, start, end, string[start:end], [ParseException(self, end, string)]
@@ -636,7 +748,7 @@ class LineStart(Token):
     def parse_impl(self, string, start, do_actions=True):
         if col(start, string) == 1:
             return ParseResults(self, start, start, [], [])
-        raise ParseException(self, start, string)
+        return failure(self, start, string)
 
     def min_length(self):
         return 0
@@ -668,7 +780,7 @@ class LineEnd(Token):
         found = self.parser_config.regex.match(string, start)
         if found:
             return ParseResults(self, start, found.end(), ["\n"], [])
-        raise ParseException(self, start, string)
+        return failure(self, start, string)
 
     def min_length(self):
         return 0
@@ -696,8 +808,8 @@ class StringStart(Token):
         if loc != 0:
             # see if entire string up to here is just whitespace and ignoreables
             # if loc != self.whitespace.skip(string, 0):
-            raise ParseException(self, loc, string)
-        return []
+            return failure(self, loc, string)
+        return ParseResults(self, loc, loc, [], [])
 
     def min_length(self):
         return 0
@@ -727,7 +839,21 @@ class StringEnd(Token):
         found = self.parser_config.regex.match(string, start)
         if found:
             return ParseResults(self, start, found.end(), [], [])
-        raise ParseException(self, start, string)
+        return failure(self, start, string)
+
+    def _compile(self):
+        regex = self.parser_config.regex
+
+        def parse(string, start):
+            end = len(string)
+            if start >= end:
+                return ParseResults(self, end, end, [], [])
+            found = regex.match(string, start)
+            if found:
+                return ParseResults(self, start, found.end(), [], [])
+            return FAIL
+
+        return parse
 
     def min_length(self):
         return 0
@@ -766,7 +892,7 @@ class WordStart(Token):
         found = self.parser_config.regex.match(string, start)
         if found:
             return ParseResults(self, start, start, [], [])
-        raise ParseException(self, start, string)
+        return failure(self, start, string)
 
     def min_length(self):
         return 0
@@ -812,7 +938,7 @@ class WordEnd(Token):
         if found:
             return ParseResults(self, start, start, [], [])
         else:
-            raise ParseException(self, start, string)
+            return failure(self, start, string)
 
     def min_length(self):
         return 0
