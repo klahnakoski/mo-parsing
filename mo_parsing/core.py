@@ -8,7 +8,7 @@ from mo_future import text, first
 from mo_imports import export, expect
 
 from mo_parsing import whitespaces
-from mo_parsing.exceptions import ParseException, diagnostics
+from mo_parsing.exceptions import ParseException, diagnostics, failure
 from mo_parsing.results import ParseResults
 from mo_parsing.utils import Log, MAX_INT, wrap_parse_action, empty_tuple
 
@@ -156,29 +156,29 @@ class Parser(object):
     parse_string = parse
 
     def _parseString(self, string, parse_all=False):
-        try:
-            return self._parse_once(string, parse_all)
-        except ParseException:
-            pass
+        result = self._parse_once(string, parse_all)
+        if not result.failed:
+            return result
         # FAILED: PARSE AGAIN, COLLECTING CAUSES FOR THE MESSAGE
         _reset()
         with diagnostics():
-            try:
-                return self._parse_once(string, parse_all)
-            except ParseException as cause:
-                raise cause.best_cause from None
+            result = self._parse_once(string, parse_all)
+            if result.failed:
+                raise result.best_cause from None
+            return result
 
     def _parse_once(self, string, parse_all):
         start = self.whitespace.skip(string, 0)
         tokens = self.element._parse(string, start)
+        if tokens.failed:
+            return tokens
         if parse_all:
             end = self.whitespace.skip(string, tokens.end)
-            try:
-                StringEnd()._parse(string, end)
-            except ParseException as pe:
-                raise ParseException(
-                    self.element, 0, string, cause=tokens.failures + [pe]
-                ) from None
+            eos = StringEnd()._parse(string, end)
+            if eos.failed:
+                return failure(
+                    self.element, 0, string, cause=tokens.failures + [eos]
+                )
 
         if self.named:
             return tokens
@@ -205,10 +205,9 @@ class Parser(object):
         start = end = 0
         matches = 0
         while end <= instrlen and matches < max_matches:
-            try:
-                start = self.whitespace.skip(string, end)
-                tokens = self.element._parse(string, start)
-            except ParseException:
+            start = self.whitespace.skip(string, end)
+            tokens = self.element._parse(string, start)
+            if tokens.failed:
                 end = start + 1
             else:
                 matches += 1
@@ -478,17 +477,22 @@ class ParserElement(object):
         return ParseResults(self, start, start, [], [])
 
     def _parse(self, string, start, do_actions=True):
-        try:
-            result = self.parse_impl(string, start, do_actions)
-        except ParseException as cause:
+        result = self.parse_impl(string, start, do_actions)
+        if result.failed:
             self.parser_config.fail_action and self.parser_config.fail_action(
-                self, start, string, cause
+                self, start, string, result
             )
-            raise ParseException(self, start, string, cause=cause) from None
+            return failure(self, start, string, cause=result)
 
         if do_actions or self.parser_config.callDuringTry:
             for fn in self.parse_action:
-                next_result = fn(result, result.start, string)
+                try:
+                    next_result = fn(result, result.start, string)
+                except ParseException as cause:
+                    self.parser_config.fail_action and self.parser_config.fail_action(
+                        self, start, string, cause
+                    )
+                    return failure(self, start, string, cause=cause)
                 if next_result.end < result.end:
                     Log.error(
                         "parse action {{name}} not allowed to roll back the end of parsing",

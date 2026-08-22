@@ -5,7 +5,7 @@ from mo_imports import export
 
 from mo_parsing import whitespaces
 from mo_parsing.core import ParserElement
-from mo_parsing.exceptions import ParseException
+from mo_parsing.exceptions import ParseException, failure
 from mo_parsing.results import ParseResults
 from mo_parsing.utils import *
 from mo_parsing.whitespaces import Whitespace
@@ -74,7 +74,7 @@ class NoMatch(Token):
         self.parser_name = "NoMatch"
 
     def parse_impl(self, string, loc, do_actions=True):
-        raise ParseException(self, loc, string)
+        return failure(self, loc, string)
 
     def min_length(self):
         return 0
@@ -98,7 +98,7 @@ class AnyChar(Token):
 
     def parse_impl(self, string, loc, do_actions=True):
         if loc >= len(string):
-            raise ParseException(self, loc, string)
+            return failure(self, loc, string)
         return ParseResults(self, loc, loc + 1, [string[loc]], [])
 
     def min_length(self):
@@ -133,7 +133,7 @@ class Literal(Token):
         if string.startswith(match, start):
             end = start + len(match)
             return ParseResults(self, start, end, [match], [])
-        raise ParseException(self, start, string)
+        return failure(self, start, string)
 
     def expecting(self):
         return {self.parser_config.match.lower(): [self]}
@@ -165,7 +165,7 @@ class SingleCharLiteral(Literal):
         except IndexError:
             pass
 
-        raise ParseException(self, start, string)
+        return failure(self, start, string)
 
     def min_length(self):
         return 1
@@ -217,7 +217,7 @@ class Keyword(Token):
             return ParseResults(
                 self, start, found.end(), [self.parser_config.match], []
             )
-        raise ParseException(self, start, string)
+        return failure(self, start, string)
 
     def expecting(self):
         return {self.parser_config.match.lower(): [self]}
@@ -272,7 +272,7 @@ class CaselessLiteral(Literal):
             return ParseResults(
                 self, start, found.end(), [self.parser_config.match], []
             )
-        raise ParseException(self, start, string)
+        return failure(self, start, string)
 
     def reverse(self):
         return CaselessLiteral(self.parser_config.match[::-1])
@@ -333,7 +333,7 @@ class CloseMatch(Token):
                 results["mismatches"] = mismatches
                 return results
 
-        raise ParseException(self, start, string)
+        return failure(self, start, string)
 
     def reverse(self):
         return CloseMatch(self.parser_config.match[
@@ -402,7 +402,7 @@ class Word(Token):
         if found:
             return ParseResults(self, start, found.end(), [found.group()], [])
         else:
-            raise ParseException(self, start, string)
+            return failure(self, start, string)
 
     def min_length(self):
         return self.parser_config.min
@@ -455,7 +455,7 @@ class Char(Token):
         if found:
             return ParseResults(self, start, found.end(), [found.group()], [])
 
-        raise ParseException(self, start, string)
+        return failure(self, start, string)
 
     def expecting(self):
         return {c: [self] for c in self.parser_config.include}
@@ -534,7 +534,7 @@ class CharsNotIn(Token):
         if found:
             return ParseResults(self, start, found.end(), [found.group()], [])
 
-        raise ParseException(self, start, string)
+        return failure(self, start, string)
 
     def min_length(self):
         return self.parser_config.min_len
@@ -602,7 +602,7 @@ class White(Token):
 
     def parse_impl(self, string, start, do_actions=True):
         if string[start] not in self.parser_config.white_chars:
-            raise ParseException(self, start, string)
+            return failure(self, start, string)
         end = start
         end += 1
         maxloc = start + self.parser_config.max_len
@@ -611,7 +611,7 @@ class White(Token):
             end += 1
 
         if end - start < self.parser_config.min_len:
-            raise ParseException(self, end, string)
+            return failure(self, end, string)
 
         return ParseResults(
             self, start, end, string[start:end], [ParseException(self, end, string)]
@@ -637,7 +637,7 @@ class LineStart(Token):
     def parse_impl(self, string, start, do_actions=True):
         if col(start, string) == 1:
             return ParseResults(self, start, start, [], [])
-        raise ParseException(self, start, string)
+        return failure(self, start, string)
 
     def min_length(self):
         return 0
@@ -669,7 +669,7 @@ class LineEnd(Token):
         found = self.parser_config.regex.match(string, start)
         if found:
             return ParseResults(self, start, found.end(), ["\n"], [])
-        raise ParseException(self, start, string)
+        return failure(self, start, string)
 
     def min_length(self):
         return 0
@@ -697,7 +697,7 @@ class StringStart(Token):
         if loc != 0:
             # see if entire string up to here is just whitespace and ignoreables
             # if loc != self.whitespace.skip(string, 0):
-            raise ParseException(self, loc, string)
+            return failure(self, loc, string)
         return ParseResults(self, loc, loc, [], [])
 
     def min_length(self):
@@ -728,7 +728,7 @@ class StringEnd(Token):
         found = self.parser_config.regex.match(string, start)
         if found:
             return ParseResults(self, start, found.end(), [], [])
-        raise ParseException(self, start, string)
+        return failure(self, start, string)
 
     def min_length(self):
         return 0
@@ -767,7 +767,7 @@ class WordStart(Token):
         found = self.parser_config.regex.match(string, start)
         if found:
             return ParseResults(self, start, start, [], [])
-        raise ParseException(self, start, string)
+        return failure(self, start, string)
 
     def min_length(self):
         return 0
@@ -813,7 +813,7 @@ class WordEnd(Token):
         if found:
             return ParseResults(self, start, start, [], [])
         else:
-            raise ParseException(self, start, string)
+            return failure(self, start, string)
 
     def min_length(self):
         return 0

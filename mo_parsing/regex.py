@@ -24,6 +24,7 @@ from mo_parsing.enhancement import (
     ParseEnhancement,
     LookBehind,
 )
+from mo_parsing.exceptions import failure
 from mo_parsing.expressions import MatchFirst, And
 from mo_parsing.infix import delimited_list
 from mo_parsing.results import ParseResults, Annotation
@@ -369,7 +370,7 @@ class Regex(ParseEnhancement):
         if found:
             return ParseResults(self, start, found.end(), [found[0]], [])
         else:
-            raise ParseException(self, start, string)
+            return failure(self, start, string)
 
     def streamline(self):
         # WE RUN THE DANGER OF MAKING PATHELOGICAL REGEX, SO WE DO NOT TRY

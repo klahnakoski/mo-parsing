@@ -6,12 +6,15 @@ from operator import itemgetter
 from mo_future import Iterable, text, generator_types
 from mo_imports import export
 
-from mo_parsing import whitespaces
+from mo_parsing import exceptions, whitespaces
 from mo_parsing.core import ParserElement, _PendingSkip
 from mo_parsing.enhancement import Optional, SkipTo, Many, LookBehind
 from mo_parsing.exceptions import (
+    FAIL,
     ParseException,
     ParseSyntaxException,
+    failure,
+    failure_at,
 )
 from mo_parsing.results import ParseResults
 from mo_parsing.tokens import Empty
@@ -276,23 +279,18 @@ class And(ParseExpression):
             if isinstance(expr, And.SyntaxErrorGuard):
                 encountered_syntax_error = True
                 continue
-            try:
-                result = expr._parse(string, index, do_actions)
-                failures.extend(result.failures)
-                if not result and index == result.end and isinstance(result.type, Many) and result.type.parser_config.min_match == 0:
-                    continue
-                acc.append(result)
-                end = result.end
-            except ParseException as pe:
-                failures.append(pe)
+            result = expr._parse(string, index, do_actions)
+            if result.failed:
+                failures.append(result)
                 if encountered_syntax_error:
-                    raise ParseSyntaxException(
-                        pe.expr, pe.loc, pe.string, cause=failures
-                    ) from None
+                    return failure_at(result, failures, ParseSyntaxException)
                 else:
-                    raise ParseException(
-                        pe.expr, pe.loc, pe.string, cause=failures
-                    ) from None
+                    return failure_at(result, failures)
+            failures.extend(result.failures)
+            if not result and index == result.end and isinstance(result.type, Many) and result.type.parser_config.min_match == 0:
+                continue
+            acc.append(result)
+            end = result.end
 
         return ParseResults(self, start, end, acc, failures)
 
@@ -396,20 +394,20 @@ class Or(ParseExpression):
         for e in self.alternate:
             if isinstance(e, Fast):
                 for ee in e.get_short_list(string, start):
-                    try:
-                        end = ee._parse(string, start).end
-                        matches.append((end, ee))
-                    except ParseException as err:
-                        failures.append(err)
+                    result = ee._parse(string, start)
+                    if result.failed:
+                        failures.append(result)
+                    else:
+                        matches.append((result.end, ee))
             else:
-                try:
-                    end = e._parse(string, start).end
-                    matches.append((end, e))
-                except ParseException as err:
-                    failures.append(err)
+                result = e._parse(string, start)
+                if result.failed:
+                    failures.append(result)
+                else:
+                    matches.append((result.end, e))
 
         if not matches:
-            raise ParseException(
+            return failure(
                 self,
                 start,
                 string,
@@ -419,6 +417,8 @@ class Or(ParseExpression):
         if len(matches) == 1:
             _, expr = matches[0]
             result = expr._parse(string, start, do_actions)
+            if result.failed:
+                return result
             failures.extend(result.failures)
             return ParseResults(self, result.start, result.end, [result], failures)
 
@@ -432,6 +432,8 @@ class Or(ParseExpression):
                 # alternative, so the first match will be the best match
                 _, expr = matches[0]
                 result = expr._parse(string, start, do_actions)
+                if result.failed:
+                    return result
                 failures.extend(result.failures)
                 return ParseResults(self, result.start, result.end, [result], failures)
 
@@ -441,10 +443,9 @@ class Or(ParseExpression):
                     # already have a longer match than this one will deliver, we are done
                     return longest
 
-                try:
-                    result = expr._parse(string, start, do_actions)
-                except ParseException as err:
-                    failures.append(err)
+                result = expr._parse(string, start, do_actions)
+                if result.failed:
+                    failures.append(result)
                 else:
                     failures.extend(result.failures)
                     if result.end >= loc:
@@ -518,14 +519,14 @@ class MatchFirst(ParseExpression):
         failures = []
 
         for e in self.alternate:
-            try:
-                result = e._parse(string, start, do_actions)
-                failures.extend(result.failures)
-                return ParseResults(self, result.start, result.end, [result], failures)
-            except ParseException as cause:
-                failures.append(cause)
+            result = e._parse(string, start, do_actions)
+            if result.failed:
+                failures.append(result)
+                continue
+            failures.extend(result.failures)
+            return ParseResults(self, result.start, result.end, [result], failures)
 
-        raise ParseException(self, start, string, cause=failures)
+        return failure(self, start, string, cause=failures)
 
     def streamline(self):
         if self.streamlined:
@@ -702,19 +703,19 @@ class Fast(ParserElement):
         if found:
             index = found.group(0).lower()
             if index not in self.lookup:
-                raise ParseException(self, start, string, self.expecting_message)
+                return failure(self, start, string, self.expecting_message)
             exprs = self.lookup[index]
 
             causes = []
             for e in exprs:
-                try:
-                    return e._parse(string, start, do_actions)
-                except ParseException as cause:
-                    causes.append(cause)
+                result = e._parse(string, start, do_actions)
+                if not result.failed:
+                    return result
+                causes.append(result)
 
-            raise ParseException(self, start, string, cause=causes)
+            return failure(self, start, string, cause=causes)
         else:
-            raise ParseException(self, start, string, self.expecting_message)
+            return failure(self, start, string, self.expecting_message)
 
 
 class MatchAll(ParseExpression):
@@ -778,27 +779,29 @@ class MatchAll(ParseExpression):
         failures = []
         while todo:
             for i, (c, (e, mi, ma)) in enumerate(zip(count, todo)):
-                try:
-                    result = e._parse(string, end)
-                    failures.extend(result.failures)
-                    loc = result.end
-                    if loc == end:
-                        continue
-                    end = self.parser_config.whitespace.skip(string, loc)
-                    c2 = count[i] = c + 1
-                    if c2 >= ma:
-                        del todo[i]
-                        del count[i]
-                    match_order.append(e)
-                    break
-                except ParseException as pe:
-                    failures.append(pe)
+                result = e._parse(string, end)
+                if result.failed:
+                    failures.append(result)
+                    continue
+                failures.extend(result.failures)
+                loc = result.end
+                if loc == end:
+                    continue
+                end = self.parser_config.whitespace.skip(string, loc)
+                c2 = count[i] = c + 1
+                if c2 >= ma:
+                    del todo[i]
+                    del count[i]
+                match_order.append(e)
+                break
             else:
                 break
 
         for c, (e, mi, ma) in zip(count, todo):
             if c < mi:
-                raise ParseException(
+                if not exceptions.DIAGNOSTICS:
+                    return FAIL
+                return failure(
                     self,
                     start,
                     string,
@@ -813,8 +816,10 @@ class MatchAll(ParseExpression):
             if id(e) not in found and mi > 0
         ]
         if missing:
+            if not exceptions.DIAGNOSTICS:
+                return FAIL
             missing = ", ".join(text(e) for e in missing)
-            raise ParseException(
+            return failure(
                 self,
                 start,
                 string,
@@ -833,6 +838,8 @@ class MatchAll(ParseExpression):
         end = start
         for e in match_order:
             result = e._parse(string, end, do_actions)
+            if result.failed:
+                return result
             end = self.parser_config.whitespace.skip(string, result.end)
             results.append(result)
 

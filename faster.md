@@ -13,6 +13,10 @@ Best of 5 rounds, wall clock, quiet machine:
 |--------------------------------|-----:|------:|-----:|
 | baseline (`d60251c`)           | 42.9 |  49.4 | 52.6 |
 | phase 1 (`2ad06c9`)            | 26.0 |  19.1 | 14.2 |
+| phase 2 (`1c2a8f5`)            | 16.0 |  13.9 |  7.0 |
+
+The phase-2 pair was measured back to back on a busier machine, which read phase 1
+as 28.5 / 21.0 / 15.3; against that the change is −44% json, −34% infix, −54% sql.
 
 The original profile, mo-sql-parsing (sibling checkout `../mo-sql-parsing`), Python
 3.10, one 403-char `SELECT` with joins, subquery, `IN`, `GROUP BY`, `HAVING`,
@@ -93,18 +97,28 @@ and only a failed parse ever needs a cause. So do not pick during parsing.
   `test_errors.py` pins those strings. Keep the full tree on the rare path; revisit
   only if diagnostic mode shows up in a profile.
 
-## Phase 2 — failure is a return value, not an exception (est. −25% of what remains)
+## Phase 2 — failure is a return value, not an exception (measured −54% sql) — landed in `1c2a8f5`
 
 A three-frame raise/catch chain costs 1.64 µs; the same chain returning costs 0.17 µs.
-At 3659 exceptions per parse that is ~6 ms of the 20 ms left after phase 1.
+At 3659 exceptions per parse that was ~6 ms of the 20 ms left after phase 1.
 
-- `parse_impl` returns a `FAIL` sentinel; `_parse` and every combinator test
-  `is FAIL`. ~30 `parse_impl` sites, mechanical.
-- Only `ParseFatalException` and `And.SyntaxErrorGuard` still raise. Parse actions and
-  `add_condition` that raise `ParseException` are caught at the `_parse` boundary and
-  converted to `FAIL`.
-- Diagnostic mode (phase 1) is where the exception objects get built; the fast path
-  records nothing but the farthest failure position if even that.
+- `parse_impl` and `_parse` return either a `ParseResults` or a failure value.
+  `ParseResults.failed` is False and `ParseException.failed` is True, so one attribute
+  read decides; truthiness already means something else.
+- The failure value is a `ParseException` that is returned, never raised. While
+  diagnosing it is a fresh exception carrying the same cause tree as before; otherwise
+  it is the shared `FAIL` singleton, so the hot path allocates nothing. Both come from
+  `failure()`/`failure_at()` in `exceptions.py`, the one place the mode is consulted.
+- `_parse` wraps a returned failure exactly where it used to wrap a caught one, so
+  cause trees, `best_cause`, `__contains__` and every message are unchanged.
+- Parse actions and `add_condition` still raise `ParseException`; `_parse` catches that
+  around the action call only and converts it.
+- `ParseSyntaxException` (the `-` guard) is still returned as an ordinary failure and
+  still does not stop backtracking — same as before, and still worth revisiting.
+- `Many` and `MatchAll` format their expression into the failure message; that string
+  is built only while diagnosing.
+- Bonus: `NotAny` on an expression with no regex equivalent always succeeded (it raised
+  inside its own `try` under a bare `except`). It now consults the child's result.
 
 ## Phase 3 — fewer nodes per parse (est. −15–25%)
 
