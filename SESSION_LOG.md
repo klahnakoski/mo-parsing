@@ -10,5 +10,5 @@
 - phase 4 dropped by decision; four defects found by fusion recorded in mo_parsing/BUGS.md (58d2dfd)
 - mo-black run on tests/bench.py and tests/test_fusion.py only; mo_parsing/*.py formatting
   deferred until phase 5.2 merges (it would conflict with that branch)
-- svn-sync pending for mo_parsing and tests (the 08-20 BUGS.md rewrite is still unpublished too)
+- svn-sync: published mo_parsing@r3088, tests@r3089 (bench.py, test_fusion.py added); no inbound
 - next: merge phase 5.2, then phase 6 (result layout)

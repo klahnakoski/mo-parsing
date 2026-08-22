@@ -12,4 +12,3 @@ SESSION_LOG.md.
   (streamlines to `Empty`/operand)
 - BUGS.md coverage asks "regex construction does not get slower" — `tests/bench.py` measures
   parse time, not construction time
-- svn-sync to publish `mo_parsing` (speed phases, BUGS.md) and `tests`
