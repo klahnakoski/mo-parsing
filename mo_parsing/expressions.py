@@ -230,11 +230,7 @@ def _fused_plan(plan, whitespace):
 
     for row in plan:
         expr, is_look_behind, is_syntax_guard, _ = row
-        fusable = (
-            None
-            if is_look_behind or is_syntax_guard
-            else fuse_row(expr)
-        )
+        fusable = None if is_look_behind or is_syntax_guard else fuse_row(expr)
         if fusable is None:
             flush()
             acc.append(row)
@@ -416,7 +412,11 @@ class And(ParseExpression):
                 for child, group, tokens in members:
                     s, e = found.span(group)
                     acc.append(ParseResults(
-                        child, s, e, [string[s:e]] if tokens is None else list(tokens), []
+                        child,
+                        s,
+                        e,
+                        [string[s:e]] if tokens is None else list(tokens),
+                        [],
                     ))
                 end = found.end()
                 continue
@@ -428,7 +428,12 @@ class And(ParseExpression):
                 else:
                     return failure_at(result, failures)
             failures.extend(result.failures)
-            if index == result.end and isinstance(result.type, Many) and result.type.parser_config.min_match == 0 and not result:
+            if (
+                index == result.end
+                and isinstance(result.type, Many)
+                and result.type.parser_config.min_match == 0
+                and not result
+            ):
                 continue
             acc.append(result)
             end = result.end
@@ -637,7 +642,9 @@ class Or(ParseExpression):
 
     def _compile(self):
         rows = tuple(
-            (None,) + e.compile_lookup() if isinstance(e, Fast) else (e.compile(), None, None)
+            (None,) + e.compile_lookup()
+            if isinstance(e, Fast)
+            else (e.compile(), None, None)
             for e in self.alternate
         )
 
@@ -651,7 +658,9 @@ class Or(ParseExpression):
                         continue
                     for shortlisted in lookup.get(found.group(0).lower(), ()):
                         result = shortlisted(string, start)
-                        if not result.failed and (best is None or result.end > best.end):
+                        if not result.failed and (
+                            best is None or result.end > best.end
+                        ):
                             best = result
                     continue
                 result = child(string, start)
@@ -747,7 +756,9 @@ class MatchFirst(ParseExpression):
                     result = child(string, start)
                     if result.failed:
                         continue
-                    if not result._type.token_name and not isinstance(result.type, Group):
+                    if not result._type.token_name and not isinstance(
+                        result.type, Group
+                    ):
                         # THE WRAPPER IS ONLY VISIBLE AT THE ROOT OF A LOOKUP
                         return result
                     return ParseResults(self, result.start, result.end, [result], [])

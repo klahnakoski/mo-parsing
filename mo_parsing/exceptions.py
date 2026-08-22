@@ -69,7 +69,11 @@ class ParseException(Exception):
             return self
 
         best_0 = best[0]
-        if self.expr.parser_name and self.start >= best_0.start and not best_0.expr.parser_name:
+        if (
+            self.expr.parser_name
+            and self.start >= best_0.start
+            and not best_0.expr.parser_name
+        ):
             return self
         elif len(best) == 1:
             return best_0

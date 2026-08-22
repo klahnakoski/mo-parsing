@@ -248,7 +248,7 @@ class Keyword(Token):
     def __init__(
         self,
         match,
-        ident_chars = None,  # required to identify word boundary
+        ident_chars=None,  # required to identify word boundary
         caseless=None,
     ):
         Token.__init__(self)

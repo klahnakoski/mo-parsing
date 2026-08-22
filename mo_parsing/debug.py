@@ -76,7 +76,10 @@ def _debug_parse(debugger):
 
 def _try(expr, start, string):
     global _max_preamble
-    preamble = f"  Attempt {quote(string, start)} at loc ({lineno(start, string)},{col(start, string)}), index={start}"
+    preamble = (
+        f"  Attempt {quote(string, start)} at loc"
+        f" ({lineno(start, string)},{col(start, string)}), index={start}"
+    )
     length = len(preamble)
     _max_preamble = max(_max_preamble, length)
     print(
@@ -90,7 +93,10 @@ def _try(expr, start, string):
 
 def match(expr, start, end, string, tokens):
     global _max_preamble
-    preamble = f"> Matched {quote(string[start:end])} at loc ({lineno(start, string)},{col(start, string)}), length={end-start}"
+    preamble = (
+        f"> Matched {quote(string[start:end])} at loc"
+        f" ({lineno(start, string)},{col(start, string)}), length={end-start}"
+    )
     length = len(preamble)
     _max_preamble = max(_max_preamble, length)
     print(

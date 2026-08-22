@@ -2675,6 +2675,7 @@ class TestParsing(PyparsingExpressionTestCase):
         )
 
         rangeParser = numParser("from_") + Suppress("-") + numParser("to")
+
         def check(t):
             return t["to"] > t["from_"]
 
@@ -2764,7 +2765,6 @@ class TestParsing(PyparsingExpressionTestCase):
         self.assertEqual(list(result), ["bar"])
         self.assertEqual(sorted(result.keys()), ["two"])
         self.assertEqual(list(result.items()), [("two", ["bar"])])
-
 
     def testUnicodeExpression(self):
         z = "a" | Literal("\u1111")

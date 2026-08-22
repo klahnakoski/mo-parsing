@@ -207,6 +207,8 @@ def enlist(value):
         return value
     else:
         return [value]
+
+
 listwrap = enlist
 
 
@@ -372,7 +374,11 @@ def wrap_parse_action(func):
         except ParseException as pe:
             raise
         except Exception as cause:
-            Log.error("parse action {{name}} should not raise exception", name=func_name, cause=cause)
+            Log.error(
+                "parse action {{name}} should not raise exception",
+                name=func_name,
+                cause=cause,
+            )
 
     # copy func name to wrapper for sensible debug output
     try:

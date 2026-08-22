@@ -36,7 +36,7 @@ from mo_parsing.utils import (
     Token,
     Group,
     regex_parameters,
-    _suppress_post_parse
+    _suppress_post_parse,
 ) = expect(
     "SkipTo",
     "Many",
@@ -55,7 +55,7 @@ from mo_parsing.utils import (
     "Token",
     "Group",
     "regex_parameters",
-    "_suppress_post_parse"
+    "_suppress_post_parse",
 )
 
 DEBUG = False
@@ -189,9 +189,7 @@ class Parser(object):
             end = self.whitespace.skip(string, tokens.end)
             eos = StringEnd()._parse(string, end)
             if eos.failed:
-                return failure(
-                    self.element, 0, string, cause=tokens.failures + [eos]
-                )
+                return failure(self.element, 0, string, cause=tokens.failures + [eos])
 
         if self.named:
             return tokens
@@ -415,7 +413,9 @@ class ParserElement(object):
             output.parse_action.append(wrap_parse_action(func))
         except:
             # REPLACE WITH CONSTANT
-            output.parse_action.append(lambda t, i, s: ParseResults(t.type, t.start, t.end, [func], []))
+            output.parse_action.append(lambda t, i, s: ParseResults(
+                t.type, t.start, t.end, [func], []
+            ))
         return output
 
     def add_condition(self, *fns, message=None, callDuringTry=False, fatal=False):
@@ -534,8 +534,9 @@ class ParserElement(object):
                     return failure(self, start, string, cause=cause)
                 if next_result.end < result.end:
                     Log.error(
-                        "parse action {{name}} not allowed to roll back the end of parsing",
-                        name=fn.__name__
+                        "parse action {{name}} not allowed to roll back the end of"
+                        " parsing",
+                        name=fn.__name__,
                     )
                 result = next_result
         return result
