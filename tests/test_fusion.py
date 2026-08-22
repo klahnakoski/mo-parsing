@@ -134,6 +134,14 @@ class TestFusion(TestCase):
         with self.assertRaises(ParseException):
             expr.parse("abc 123", parse_all=True)
 
+    def test_combine_of_a_suppress_is_empty(self):
+        # Combine calls parse_impl directly, so it used to miss the suppression
+        self.assertEqual(list(Combine(Suppress(Word(alphas))).parse("abc")), [""])
+        self.assertEqual(
+            list(Combine(Word(alphas) + Suppress("-") + Word(alphas)).parse("ab-cd")),
+            ["abcd"],
+        )
+
     def test_regex_with_its_own_group(self):
         expr = Regex(r"(ab)+") + Literal(";")
         self.assertEqual(len(fused_runs(expr)), 1)
