@@ -152,6 +152,24 @@ def _and_plan(exprs):
     )
 
 
+def _empty_many(expr, seen):
+    """CAN expr RETURN AN EMPTY, ZERO-LENGTH Many RESULT? (CONSERVATIVE)"""
+    if id(expr) in seen:
+        return False
+    seen.add(id(expr))
+    if expr.parse_action:
+        # an action decides the result type
+        return True
+    if isinstance(expr, Many):
+        return expr.parser_config.min_match == 0
+    if isinstance(expr, MatchFirst) and expr.transparent:
+        return any(_empty_many(e, seen) for e in expr.exprs)
+    if is_forward(expr):
+        # ForwardResults.type is the child's type, and `<<` may change it later
+        return True
+    return False
+
+
 def _white_pattern(whitespace, name):
     """WHITESPACE BETWEEN TWO FUSED CHILDREN, MATCHED GREEDILY AND ATOMICALLY"""
     if whitespace.ignore_list:
@@ -417,6 +435,81 @@ class And(ParseExpression):
 
         return ParseResults(self, start, end, acc, failures)
 
+    def _compile(self):
+        skip = self.parser_config.whitespace.skip
+        rows = []
+        for expr, is_look_behind, is_syntax_guard, fused in self.plan:
+            if is_syntax_guard:
+                # the guard only picks the failure type, which fast mode drops
+                continue
+            if fused is not None:
+                rows.append((None, False, fused[0], fused[1], False))
+            else:
+                rows.append((
+                    expr.compile(),
+                    is_look_behind,
+                    None,
+                    None,
+                    _empty_many(expr, set()),
+                ))
+        rows = tuple(rows)
+
+        if all(not lb and rx is None and not ck for _, lb, rx, _, ck in rows):
+            children = tuple(row[0] for row in rows)
+
+            def parse_children(string, start):
+                end = index = start
+                acc = []
+                for child in children:
+                    if end > index:
+                        index = skip(string, end)
+                    result = child(string, index)
+                    if result.failed:
+                        return FAIL
+                    acc.append(result)
+                    end = result.end
+                return ParseResults(self, start, end, acc, [])
+
+            return parse_children
+
+        def parse(string, start):
+            end = index = start
+            acc = []
+            for child, is_look_behind, regex, members, check_empty in rows:
+                if end > index:
+                    index = end if is_look_behind else skip(string, end)
+                if regex is not None:
+                    found = regex.match(string, index)
+                    if not found:
+                        return FAIL
+                    for member, group, tokens in members:
+                        s, e = found.span(group)
+                        acc.append(ParseResults(
+                            member,
+                            s,
+                            e,
+                            [string[s:e]] if tokens is None else list(tokens),
+                            [],
+                        ))
+                    end = found.end()
+                    continue
+                result = child(string, index)
+                if result.failed:
+                    return FAIL
+                if (
+                    check_empty
+                    and index == result.end
+                    and isinstance(result.type, Many)
+                    and result.type.parser_config.min_match == 0
+                    and not result
+                ):
+                    continue
+                acc.append(result)
+                end = result.end
+            return ParseResults(self, start, end, acc, [])
+
+        return parse
+
     def __add__(self, other):
         if other is Ellipsis:
             return _PendingSkip(self)
@@ -542,6 +635,35 @@ class Or(ParseExpression):
         failures.extend(best.failures)
         return ParseResults(self, best.start, best.end, [best], failures)
 
+    def _compile(self):
+        rows = tuple(
+            (None,) + e.compile_lookup() if isinstance(e, Fast) else (e.compile(), None, None)
+            for e in self.alternate
+        )
+
+        def parse(string, start):
+            # THE LONGEST MATCH WINS; TIES GO TO THE FIRST ALTERNATIVE
+            best = None
+            for child, regex, lookup in rows:
+                if child is None:
+                    found = regex.match(string, start)
+                    if not found:
+                        continue
+                    for shortlisted in lookup.get(found.group(0).lower(), ()):
+                        result = shortlisted(string, start)
+                        if not result.failed and (best is None or result.end > best.end):
+                            best = result
+                    continue
+                result = child(string, start)
+                if not result.failed and (best is None or result.end > best.end):
+                    best = result
+
+            if best is None:
+                return FAIL
+            return ParseResults(self, best.start, best.end, [best], [])
+
+        return parse
+
     def check_recursion(self, seen=empty_tuple):
         seen_more = seen + (self,)
         for e in self.exprs:
@@ -615,6 +737,33 @@ class MatchFirst(ParseExpression):
             return ParseResults(self, result.start, result.end, [result], failures)
 
         return failure(self, start, string, cause=failures)
+
+    def _compile(self):
+        children = tuple(e.compile() for e in self.alternate)
+        if self.transparent:
+
+            def parse_transparent(string, start):
+                for child in children:
+                    result = child(string, start)
+                    if result.failed:
+                        continue
+                    if not result._type.token_name and not isinstance(result.type, Group):
+                        # THE WRAPPER IS ONLY VISIBLE AT THE ROOT OF A LOOKUP
+                        return result
+                    return ParseResults(self, result.start, result.end, [result], [])
+                return FAIL
+
+            return parse_transparent
+
+        def parse(string, start):
+            for child in children:
+                result = child(string, start)
+                if result.failed:
+                    continue
+                return ParseResults(self, result.start, result.end, [result], [])
+            return FAIL
+
+        return parse
 
     def streamline(self):
         if self.streamlined:
@@ -805,6 +954,28 @@ class Fast(ParserElement):
             return failure(self, start, string, cause=causes)
         else:
             return failure(self, start, string, self.expecting_message)
+
+    def compile_lookup(self):
+        """RETURN (regex, {first characters: compiled shortlist})"""
+        return (
+            self.regex,
+            {k: tuple(e.compile() for e in exprs) for k, exprs in self.lookup.items()},
+        )
+
+    def _compile(self):
+        regex, lookup = self.compile_lookup()
+
+        def parse(string, start):
+            found = regex.match(string, start)
+            if not found:
+                return FAIL
+            for child in lookup.get(found.group(0).lower(), ()):
+                result = child(string, start)
+                if not result.failed:
+                    return result
+            return FAIL
+
+        return parse
 
 
 class MatchAll(ParseExpression):
